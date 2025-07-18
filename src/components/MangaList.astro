@@ -1,0 +1,39 @@
+---
+// src/components/MangaList.astro
+const { mangaIds } = Astro.props;
+---
+
+<style>
+  .manga-list-section {
+    padding: 2rem 0;
+  }
+  h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: #eee;
+    border-bottom: 2px solid #ffc107;
+    padding-bottom: 0.5rem;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.5rem;
+  }
+  .manga-card {
+    background-color: #333;
+    color: #fff;
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .manga-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+  }
+  a {
+    text-decoration: none;
+  }
+</style>

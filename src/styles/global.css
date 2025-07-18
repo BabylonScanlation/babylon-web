@@ -1,0 +1,30 @@
+/* global.css */
+
+/* Definición de variables */
+:root {
+  --primary-color: #3292a6;
+  --primary-overlay: rgba(50, 146, 166, 0.8);
+}
+
+/* Estilos globales */
+body {
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+  background-color: var(--primary-overlay);
+}
+
+h1 {
+  color: var(--primary-color);
+  font-size: 2rem;
+}
+
+.navbar {
+  box-shadow: 2px 2px 5px var(--primary-color);
+  opacity: 0.9;
+  background-color: #fff;
+}
+
+.nav-item {
+  font-size: 1.4rem;
+  padding-right: 1.4rem;
+}

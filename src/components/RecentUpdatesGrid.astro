@@ -1,0 +1,44 @@
+---
+import MangaCard from './MangaCard.astro';
+
+interface Manga {
+  imageUrl: string;
+  title: string;
+  lastChapter?: string;
+  url: string;
+}
+
+const { mangas = [], title = "Actualizados Recientemente" } = Astro.props;
+---
+
+<section class="recent-updates-section">
+  <h2>{title}</h2>
+  
+  {mangas && mangas.length > 0 ? (
+    <div class="grid-container">
+      {mangas.map((manga: Manga) => (
+        <MangaCard
+          imageUrl={manga.imageUrl}
+          title={manga.title}
+          lastChapter={manga.lastChapter || ''}
+          url={manga.url}
+        />
+      ))}
+    </div>
+  ) : (
+     <p>No hay mangas en la biblioteca. Sube un capítulo para empezar.</p>
+  )}
+
+  <div class="view-all-container">
+    <a href="#" class="view-all-btn">VER TODOS LOS MANGAS ACTUALIZADOS RECIENTEMENTE</a>
+  </div>
+</section>
+
+<style>
+  .recent-updates-section { max-width: 1200px; margin: 3rem auto; padding: 0 1rem; }
+  h2 { font-size: 1.5rem; margin-bottom: 1rem; }
+  .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
+  .view-all-container { text-align: center; margin-top: 2rem; }
+  .view-all-btn { background-color: var(--card-background); padding: 0.75rem 1.5rem; border-radius: 4px; font-weight: bold; border: 1px solid #333; transition: background-color 0.2s; }
+  .view-all-btn:hover { background-color: #333; }
+</style>

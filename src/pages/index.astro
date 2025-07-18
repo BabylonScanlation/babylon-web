@@ -1,11 +1,43 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import HeroCarousel from '../components/HeroCarousel.astro';
+import FeaturedGrid from '../components/FeaturedGrid.astro';
+import CardSlider from '../components/CardSlider.astro'; 
+import RecentUpdatesGrid from '../components/RecentUpdatesGrid.astro';
+import { mangas as mockMangas } from '../data/mock-mangas.js';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+const mangas = mockMangas;
 ---
 
-<Layout>
-	<Welcome />
+<Layout title="BabylonScan - Inicio">
+  <Header />
+
+  <HeroCarousel />
+
+  <div class="main-content-wrapper">
+    <main>
+      <FeaturedGrid />
+      
+      <RecentUpdatesGrid mangas={mangas} title="Nuestra Biblioteca" />
+      
+      {/* 1. Pasamos los datos de 'mangas' al componente CardSlider */}
+      <CardSlider 
+        title="Más populares" 
+        subtitle="(Más visitados en las últimas 24 horas)"
+        mangas={mangas} 
+      />
+    </main>
+  </div>
+
+  <Footer />
 </Layout>
+
+<style is:global>
+  .main-content-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+</style>

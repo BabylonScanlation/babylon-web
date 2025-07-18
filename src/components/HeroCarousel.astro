@@ -1,0 +1,161 @@
+---
+// src/components/HeroCarousel.astro
+
+const slides = [
+  {
+    image: "/images/hero-1.jpg",
+    title: "Dandadan",
+    description: "Takakura es un joven amante de lo oculto que no cree en fantasmas, mientras que su amiga, Ayase, no cree en los alienígenas.",
+    tags: ["Sci-Fi", "Comedy", "Supernatural"]
+  },
+  {
+    image: "/images/hero-2.jpg",
+    title: "Chainsaw Man",
+    description: "Denji es un joven que alberga en su interior al demonio motosierra, el mundialmente conocido Chainsaw Man.",
+    tags: ["Shonen", "Terror", "Comedy"]
+  },
+  {
+    image: "/images/hero-3.jpg",
+    title: "Blue Lock",
+    description: "Tras una desastrosa derrota en el Mundial de 2018, la selección japonesa de fútbol lucha por recuperarse.",
+    tags: ["Spokon", "Action"]
+  }
+];
+---
+
+<div class="swiper">
+  <div class="swiper-wrapper">
+    {slides.map(slide => (
+      <div class="swiper-slide">
+        <img src={slide.image} alt={`Fondo de ${slide.title}`} class="slide-background" />
+
+        <div class="gradient-overlay"></div>
+
+        <div class="text-container">
+          <h3>{slide.title}</h3>
+          <p>{slide.description}</p>
+          <div class="tag-buttons">
+            <a href="#" class="main-action">LEER AHORA</a>
+            <span class="divider"></span>
+            {slide.tags.map(tag => (
+              <a href={`/tags/${tag.toLowerCase()}`} class="tag">{tag}</a>
+            ))}
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+  <div class="swiper-pagination"></div>
+</div>
+
+<style>
+  .swiper {
+    width: 100%;
+    height: 500px;
+    position: relative;
+    margin-top: 0;
+  }
+  .swiper-slide {
+    position: relative;
+    overflow: hidden;
+  }
+  .slide-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Esta línea asegura que la imagen cubra todo el espacio sin deformarse, 
+       recortando el exceso si es necesario. Es el ajuste automático que pides. */
+    object-fit: cover;
+  }
+  .gradient-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70%; /* Altura del degradado */
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 20%, transparent 100%);
+    z-index: 1;
+  }
+  .text-container {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2; /* El texto va por encima del degradado */
+    width: 90%;
+    max-width: 800px;
+    color: white;
+  }
+  /* ... (el resto de los estilos del text-container y los botones se mantienen igual) ... */
+  .text-container h3, .text-container p {
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .text-container h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .text-container p {
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    color: #ccc;
+  }
+  .tag-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .main-action {
+    background-color: var(--accent-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: bold;
+  }
+  .divider {
+    height: 20px;
+    width: 1px;
+    background-color: #555;
+  }
+  .tag {
+    background-color: rgba(255, 255, 255, 0.15);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    transition: background-color 0.2s;
+  }
+  .tag:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
+  .swiper-pagination-bullet {
+    background-color: white;
+    opacity: 0.7;
+  }
+  .swiper-pagination-bullet-active {
+    background-color: var(--accent-color);
+    opacity: 1;
+    width: 12px;
+    height: 12px;
+  }
+</style>
+
+<script>
+  // El script de Swiper se mantiene igual
+  import Swiper from 'swiper';
+  import { Pagination, Autoplay } from 'swiper/modules';
+  import 'swiper/css';
+  import 'swiper/css/pagination';
+  const swiper = new Swiper('.swiper', {
+    modules: [Pagination, Autoplay],
+    loop: true,
+    autoplay: {
+      delay: 5000,
+      disableOnInteraction: false,
+    },
+    pagination: {
+      el: '.swiper-pagination',
+      clickable: true,
+    },
+  });
+</script>

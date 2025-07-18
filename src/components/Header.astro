@@ -1,0 +1,114 @@
+---
+// src/components/Header.astro
+---
+<header>
+  <div class="container">
+    <div class="logo">
+      <a href="/">BabylonScan</a>
+    </div>
+    <div class="right-section">
+      <nav class="navigation">
+        <a href="/suscripciones">Suscripciones</a>
+        <a href="/mangas">Mangas</a>
+        <div class="search-bar">
+          <input type="text" placeholder="Buscar manga..." />
+          <button>BUSCAR</button>
+        </div>
+      </nav>
+      <div class="user-actions">
+        <a href="/login" class="login-btn">INICIAR SESIÓN</a>
+        <a href="/register" class="register-btn">REGISTRARSE</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<style>
+  header {
+    background-color: var(--card-background);
+    border-bottom: 1px solid #333;
+    padding: 1rem 0;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    background-color: rgba(18, 18, 18, 0.8);
+    backdrop-filter: blur(5px);
+  }
+  .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%; /* Hacemos que el contenedor ocupe todo el ancho */
+    /* max-width: 1200px; << ELIMINAMOS EL ANCHO MÁXIMO */
+    /* margin: 0 auto; << ELIMINAMOS EL CENTRADO */
+    padding: 0 2rem; /* Añadimos un padding para que no se pegue a los bordes de la pantalla */
+  }
+  .logo a {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--font-color);
+  }
+  .right-section {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  /* ... El resto del CSS se mantiene exactamente igual ... */
+  .navigation {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .navigation a {
+    color: var(--font-color);
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  .navigation a:hover {
+    color: var(--accent-color);
+  }
+  .search-bar {
+    display: flex;
+  }
+  .search-bar input {
+    background-color: var(--background-color);
+    border: 1px solid #444;
+    border-right: none;
+    padding: 0.5rem;
+    color: var(--font-color);
+    border-radius: 4px 0 0 4px;
+  }
+  .search-bar input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+  }
+  .search-bar button {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 0 1rem;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 0 4px 4px 0;
+  }
+  .user-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .login-btn,
+  .register-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: bold;
+  }
+  .login-btn {
+    background-color: transparent;
+  }
+  .register-btn {
+    background-color: var(--accent-color);
+    color: white;
+  }
+</style>

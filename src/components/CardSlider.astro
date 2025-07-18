@@ -1,0 +1,73 @@
+---
+import MangaCard from './MangaCard.astro';
+
+interface Manga {
+  imageUrl: string;
+  title: string;
+  lastChapter?: string;
+  url: string;
+}
+
+const { title, subtitle, mangas = [] } = Astro.props;
+---
+
+<section class="slider-section">
+  <div class="title-container">
+    <h2>{title}</h2>
+    {subtitle && <small>{subtitle}</small>}
+  </div>
+  <div class="swiper-card-slider">
+    <div class="swiper-wrapper">
+      {mangas.map((manga: Manga) => (
+        <div class="swiper-slide">
+          <MangaCard 
+            imageUrl={manga.imageUrl}
+            title={manga.title}
+            lastChapter={manga.lastChapter}
+            url={manga.url}
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .slider-section {
+    max-width: 1200px;
+    margin: 3rem auto;
+    padding: 0 1rem;
+  }
+  .title-container {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 1rem;
+  }
+  .title-container h2 {
+    font-size: 1.5rem;
+  }
+  .title-container small {
+    font-size: 0.9rem;
+    color: #aaa;
+    font-weight: 400;
+    margin-left: 0.5rem;
+  }
+  .swiper-card-slider {
+    width: 100%;
+    overflow: hidden;
+  }
+  .swiper-slide {
+    width: 200px;
+  }
+</style>
+
+<script>
+  import Swiper from 'swiper';
+  import 'swiper/css';
+  const cardSwiper = new Swiper('.swiper-card-slider', {
+    slidesPerView: 'auto',
+    spaceBetween: 16,
+    loop: false,
+    grabCursor: true,
+  });
+</script>

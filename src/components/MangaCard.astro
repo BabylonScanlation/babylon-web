@@ -1,0 +1,87 @@
+---
+const { imageUrl, title, lastChapter, url } = Astro.props;
+---
+
+<a href={url} class="card">
+  <div class="image-container">
+    <img src={imageUrl} alt={`Portada de ${title}`} loading="lazy" />
+    <div class="gradient-overlay"></div>
+    <div class="new-chapter-tag">NUEVO CAPÍTULO</div>
+    
+    <div class="card-content">
+      <h3 class="title">{title}</h3>
+      <p class="chapter">{lastChapter}</p>
+    </div>
+  </div>
+</a>
+
+<style>
+  .card {
+    display: block;
+    border-radius: 6px;
+    overflow: hidden;
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .card:hover {
+    transform: translateY(-5px);
+  }
+
+  .image-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    background-color: var(--card-background);
+  }
+
+  .image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .gradient-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60%;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 10%, transparent 100%);
+  }
+  
+  .new-chapter-tag {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    background-color: var(--green-tag);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    border-radius: 4px;
+    z-index: 2;
+  }
+
+  .card-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 0.75rem;
+    z-index: 2;
+  }
+
+  .title {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--font-color);
+  }
+
+  .chapter {
+    font-size: 0.875rem;
+    color: #ccc;
+    margin-top: 0.25rem;
+  }
+</style>

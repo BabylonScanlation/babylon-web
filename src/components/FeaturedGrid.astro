@@ -1,0 +1,133 @@
+---
+// src/components/FeaturedGrid.astro
+---
+
+<section class="featured-section">
+  <h2>Más populares <small>(Mangas con más vistas de todos los tiempos)</small></h2>
+  <div class="grid-container">
+    
+    <a href="#" class="featured-card large-card">
+      <img src="/images/hero-1.jpg" alt="Portada de Dandadan" class="card-background" />
+      <div class="card-overlay"></div>
+      <div class="card-content">
+        <span class="views-tag">209561 VISTAS TOTALES</span>
+        <h3>Dandadan</h3>
+        <p>Takakura es un joven amante de lo oculto que no cree en fantasmas, mientras que su amiga, Ayase, no cree en los alienígenas...</p>
+      </div>
+    </a>
+
+    <a href="#" class="featured-card small-card">
+      <img src="/images/hero-2.jpg" alt="Portada de One Punch-Man" class="card-background" />
+      <div class="card-overlay"></div>
+       <div class="card-content">
+        <span class="views-tag">129552 VISTAS TOTALES</span>
+        <h3>One Punch-Man</h3>
+        </div>
+    </a>
+
+    <a href="#" class="featured-card small-card">
+       <img src="/images/hero-3.jpg" alt="Portada de Tsuyoshi" class="card-background" />
+       <div class="card-overlay"></div>
+       <div class="card-content">
+        <span class="views-tag">86414 VISTAS TOTALES</span>
+        <h3>Tsuyoshi</h3>
+      </div>
+    </a>
+
+  </div>
+</section>
+
+<style>
+  .featured-section {
+    max-width: 1200px;
+    margin: 3rem auto;
+    padding: 0 1rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  h2 small {
+    font-size: 0.9rem;
+    color: #aaa;
+    font-weight: 400;
+    margin-left: 0.5rem;
+  }
+
+  .grid-container {
+    display: grid;
+    /* Definimos 2 columnas: la 1ra el doble de ancha que la 2da */
+    grid-template-columns: 2fr 1fr; 
+    /* Definimos 2 filas de igual altura */
+    grid-template-rows: repeat(2, 1fr);
+    gap: 1.5rem;
+    height: 520px; /* Altura total de la cuadrícula, puedes ajustarla */
+  }
+
+  .featured-card {
+    position: relative;
+    display: block;
+    border-radius: 8px;
+    overflow: hidden;
+    color: white;
+  }
+
+  /* La tarjeta grande ocupará 2 filas */
+  .large-card {
+    grid-row: span 2;
+  }
+
+  .card-background {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+
+  .featured-card:hover .card-background {
+    transform: scale(1.05);
+  }
+
+  .card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 20%, transparent 80%);
+  }
+
+  .card-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 1.5rem;
+    width: 100%;
+  }
+  
+  .views-tag {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+  }
+
+  .card-content h3 {
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .large-card .card-content p {
+    font-size: 0.9rem;
+    color: #ccc;
+  }
+
+  .small-card .card-content h3 {
+    font-size: 1.25rem; /* Hacemos el título un poco más pequeño en las tarjetas chicas */
+  }
+</style>
