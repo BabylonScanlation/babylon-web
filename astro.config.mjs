@@ -5,13 +5,13 @@ import cloudflare from '@astrojs/cloudflare';
 // Módulo virtual que simula los módulos nativos de Node.js de forma más inteligente
 const nodePolyfills = `
   // --- IMPLEMENTACIONES MÍNIMAS PARA ASTRO ---
+  // Proporcionamos implementaciones básicas para que el build de Astro no falle.
   export const path = {
     sep: '/',
     join: (...args) => args.filter(Boolean).join('/'),
     resolve: (...args) => ('/' + args.filter(Boolean).join('/')).replace(/\\\\/g, '/'),
     dirname: (p) => p.split('/').slice(0, -1).join('/') || '.',
     basename: (p) => p.split('/').pop() || '',
-    // --- CORRECCIÓN CRUCIAL PARA EL NUEVO ERROR ---
     extname: (p) => {
         const base = p.split('/').pop() || '';
         const parts = base.split('.');
@@ -22,9 +22,13 @@ const nodePolyfills = `
     pathToFileURL: (p) => 'file://' + p.replace(/\\\\/g, '/'),
     fileURLToPath: (u) => u.startsWith('file:///') ? u.substring(7) : u
   };
+  
+  // --- CORRECCIÓN CRUCIAL PARA EL BUILD ---
   // Exportaciones nombradas directas que el build de Astro busca
   export const pathToFileURL = url.pathToFileURL;
   export const fileURLToPath = url.fileURLToPath;
+  export const basename = path.basename;
+  export const dirname = path.dirname;
   export const extname = path.extname;
 
   // --- STUBS VACÍOS PARA EL RESTO ---
