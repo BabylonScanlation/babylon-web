@@ -4,7 +4,7 @@ import cloudflare from '@astrojs/cloudflare';
 
 // Módulo virtual que simula los módulos nativos de Node.js de forma más robusta
 const nodePolyfills = `
-  // --- Implementaciones mínimas para Astro y sus dependencias ---
+  // --- Implementaciones mínimas para Astro ---
   export const path = {
     sep: '/',
     join: (...args) => args.filter(Boolean).join('/'),
@@ -12,21 +12,44 @@ const nodePolyfills = `
     dirname: (p) => p.split('/').slice(0, -1).join('/') || '.',
     basename: (p) => p.split('/').pop() || '',
     extname: (p) => {
-        const base = p.split('/').pop() || '';
-        const parts = base.split('.');
-        return parts.length > 1 ? '.' + parts.pop() : '';
+      const base = p.split('/').pop() || '';
+      const parts = base.split('.');
+      return parts.length > 1 ? '.' + parts.pop() : '';
     }
   };
   export const url = {
     pathToFileURL: (p) => 'file://' + p.replace(/\\\\/g, '/'),
     fileURLToPath: (u) => u.startsWith('file:///') ? u.substring(7) : u
   };
-  
-  // Exportaciones nombradas directas que el build de Astro busca
   export const { pathToFileURL, fileURLToPath } = url;
   export const { basename, dirname, extname } = path;
 
-  // --- Stubs y Polyfills para el resto de dependencias ---
+  // --- Polyfills robustos para dependencias de Node.js ---
+  const process = {
+    env: {},
+    version: 'v18.0.0',
+    versions: {},
+    on: () => {},
+    addListener: () => {},
+    once: () => {},
+    off: () => {},
+    removeListener: () => {},
+    removeAllListeners: () => {},
+    emit: () => {},
+    prependListener: () => {},
+    prependOnceListener: () => {},
+    listeners: () => [],
+    binding: () => ({}),
+    cwd: () => '/',
+    chdir: () => {},
+    umask: () => 0,
+    nextTick: (cb) => Promise.resolve().then(cb),
+    platform: 'linux',
+    stdout: { isTTY: false, write: () => true, columns: 80, rows: 24, on: ()=>{} },
+    stderr: { isTTY: false, write: () => true, columns: 80, rows: 24, on: ()=>{} }
+  };
+  export { process };
+
   export const fs = { promises: {} };
   export const os = { homedir: () => '/' };
   export const crypto = {};
@@ -44,25 +67,9 @@ const nodePolyfills = `
   export const http = {};
   export const https = {};
   
-  // --- CORRECCIÓN CLAVE PARA EL ERROR 500 DE EJECUCIÓN ---
-  // Una simulación más completa del objeto 'process'
-  export const process = {
-    env: {},
-    stdout: { isTTY: false, write: () => {} },
-    stderr: { isTTY: false, write: () => {} },
-    cwd: () => '/',
-    nextTick: (cb) => Promise.resolve().then(cb),
-    on: () => {},
-    platform: 'linux'
-  };
-
-  // Exportación por defecto para compatibilidad
-  export default {
-    fs, path, os, crypto, url, process
-  };
+  export default { fs, path, os, crypto, url, process };
 `;
 
-// Lista de todos los módulos de Node.js que necesitamos neutralizar
 const nodeBuiltIns = [
   "fs", "path", "os", "crypto", "url", "http", "https", "zlib", "util",
   "stream", "events", "buffer", "querystring", "child_process", "net",
@@ -80,14 +87,8 @@ export default defineConfig({
   vite: {
     resolve: {
       alias: [
-        ...nodeBuiltIns.map(id => ({
-          find: new RegExp(`^${id}$`),
-          replacement: 'virtual:node-polyfills'
-        })),
-        ...nodeBuiltIns.map(id => ({
-          find: new RegExp(`^node:${id}$`),
-          replacement: 'virtual:node-polyfills'
-        })),
+        ...nodeBuiltIns.map(id => ({ find: new RegExp(`^${id}$`), replacement: 'virtual:node-polyfills' })),
+        ...nodeBuiltIns.map(id => ({ find: new RegExp(`^node:${id}$`), replacement: 'virtual:node-polyfills' })),
         { find: 'node:fs/promises', replacement: 'virtual:node-polyfills' }
       ]
     },
