@@ -181,7 +181,7 @@
 </script>
 
 <script>
-  // Script para la lógica de Firebase (este sí es procesado por TypeScript)
+  // Script para la lógica de Firebase
   import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -194,14 +194,11 @@
     const loginErrorMsg = document.getElementById(
       'login-error-message'
     ) as HTMLParagraphElement;
-    const loginSuccessMsg = document.getElementById(
-      'login-success-message'
-    ) as HTMLParagraphElement;
     const loginSubmitBtn = document.getElementById(
       'login-submit-button'
     ) as HTMLButtonElement;
 
-    if (loginForm && loginErrorMsg && loginSubmitBtn && loginSuccessMsg) {
+    if (loginForm && loginErrorMsg && loginSubmitBtn) {
       const btnText = loginSubmitBtn.querySelector(
         '.button-text'
       ) as HTMLSpanElement;
@@ -240,6 +237,7 @@
             password
           );
           const idToken = await userCredential.user.getIdToken();
+
           const response = await fetch('/api/auth/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -247,20 +245,14 @@
           });
 
           if (response.ok) {
-            // ✅ 1. Cerrar el modal primero
-            document.dispatchEvent(new CustomEvent('close-auth-modal'));
-
-            // ✅ 2. Recargar completamente con parámetro anti-caché
-            setTimeout(() => {
-              // Usamos window.location.href para asegurar una nueva petición al servidor
-              window.location.href =
-                window.location.pathname + '?t=' + Date.now();
-            }, 300);
+            // ✅ SOLUCIÓN FINAL: Redirección simple y efectiva.
+            // Esto fuerza una nueva petición al servidor, que ahora verá la cookie.
+            window.location.href = '/';
           } else {
             showLoginError('Error del servidor al iniciar sesión.');
           }
-        } catch (error: unknown) {
-          showLoginError('Email o contraseña incorrectos.');
+        } catch (error) {
+          showLoginError('Credenciales incorrectas.');
         }
       });
     }

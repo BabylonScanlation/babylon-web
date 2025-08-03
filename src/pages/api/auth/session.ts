@@ -13,23 +13,29 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
     const validation = SessionRequestSchema.safeParse(body);
 
     if (!validation.success) {
-      return new Response('Token no proporcionado o inválido', { status: 400 });
+      return new Response(JSON.stringify({ error: 'Token inválido' }), {
+        status: 400,
+      });
     }
 
     const { idToken } = validation.data;
     const { env } = locals.runtime;
 
-    // ✅ Usamos la verificación del lado del servidor que ya tenías
+    // Usamos la función de servidor para verificar el token de forma segura
     const decodedToken = await verifyFirebaseToken(idToken, env);
-    const uid = decodedToken.sub; // 'sub' (subject) es el UID
+    const uid = decodedToken.sub; // 'sub' (subject) es el UID en el token JWT
 
     if (!uid) {
-      return new Response('Token inválido, UID no encontrado', { status: 401 });
+      return new Response(
+        JSON.stringify({ error: 'UID no encontrado en el token' }),
+        { status: 401 }
+      );
     }
 
-    const expiresIn = 60 * 60 * 24 * 7; // 7 días en segundos
+    // Creamos una sesión de 7 días
+    const expiresIn = 60 * 60 * 24 * 7;
 
-    // ✅ Guardamos solo el UID en la cookie de sesión
+    // Guardamos únicamente el UID en la cookie de sesión. Es seguro y eficiente.
     cookies.set('user_session', uid, {
       path: '/',
       httpOnly: true,
@@ -38,9 +44,11 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
       sameSite: 'lax',
     });
 
-    return new Response('Sesión creada', { status: 200 });
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (error) {
     console.error('Error al crear la sesión:', error);
-    return new Response('Autenticación fallida', { status: 401 });
+    return new Response(JSON.stringify({ error: 'Autenticación fallida' }), {
+      status: 401,
+    });
   }
 };

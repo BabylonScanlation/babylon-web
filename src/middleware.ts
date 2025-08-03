@@ -1,7 +1,6 @@
 // src/middleware.ts
 import { defineMiddleware } from 'astro:middleware';
 import { getDB } from './lib/db';
-// 'verifyFirebaseToken' ya no se usa aquí, así que se elimina la importación.
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const runtime = context.locals.runtime;
@@ -10,24 +9,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
     context.locals.db = getDB(runtime.env);
   }
 
-  // Por defecto, no hay usuario.
+  // Inicializamos el usuario como indefinido
   context.locals.user = undefined;
 
   const sessionCookie = context.cookies.get('user_session');
 
-  // Si la cookie de sesión existe, contiene el UID del usuario.
-  // Confiamos en este UID para identificar al usuario autenticado.
+  // Si la cookie de sesión existe, su valor es el UID. Confiamos en él.
   if (sessionCookie?.value) {
-    try {
-      context.locals.user = {
-        uid: sessionCookie.value,
-        // El email no es crítico para saber si está logueado, se puede generar un placeholder o dejarlo nulo.
-        email: `user-${sessionCookie.value.substring(0, 8)}`,
-      };
-    } catch (error) {
-      // En caso de un error inesperado al procesar la cookie, la eliminamos.
-      context.cookies.delete('user_session', { path: '/' });
-    }
+    context.locals.user = {
+      uid: sessionCookie.value,
+      email: null, // El email no es necesario aquí para saber si está logueado
+    };
   }
 
   return next();
