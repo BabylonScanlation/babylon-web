@@ -45,8 +45,8 @@
       </form>
       <div class="form-footer">
         <p>
-          ¿No tienes una cuenta?
-          <a href="#" id="show-register">Regístrate aquí</a>
+          ¿No tienes una cuenta? <a href="#" id="show-register"
+            >Regístrate aquí</a>
         </p>
       </div>
     </div>
@@ -92,8 +92,7 @@
       </form>
       <div class="form-footer">
         <p>
-          ¿Ya tienes una cuenta?
-          <a href="#" id="show-login">Inicia sesión</a>
+          ¿Ya tienes una cuenta? <a href="#" id="show-login">Inicia sesión</a>
         </p>
       </div>
     </div>
@@ -108,7 +107,6 @@
     const registerView = document.getElementById('register-view');
     const showRegisterLink = document.getElementById('show-register');
     const showLoginLink = document.getElementById('show-login');
-
     if (
       !modalOverlay ||
       !modalCloseBtn ||
@@ -116,9 +114,8 @@
       !registerView ||
       !showRegisterLink ||
       !showLoginLink
-    ) {
+    )
       return;
-    }
 
     function openModal(view = 'login', successMessage = '') {
       const loginErrorMsg = document.getElementById('login-error-message');
@@ -141,7 +138,6 @@
     }
 
     document.addEventListener('open-auth-modal', (e) => {
-      // ✅ CORRECCIÓN: Se elimina la sintaxis de TypeScript 'as CustomEvent'
       const detail = e.detail || {};
       openModal(detail.view, detail.successMessage);
     });
@@ -247,18 +243,16 @@
       });
     }
 
-    // --- Lógica del Formulario de Registro ---
     const registerForm = document.getElementById(
       'register-form'
     ) as HTMLFormElement;
-    const registerErrorMsg = document.getElementById(
-      'register-error-message'
-    ) as HTMLParagraphElement;
-    const registerSubmitBtn = document.getElementById(
-      'register-submit-button'
-    ) as HTMLButtonElement;
-
-    if (registerForm && registerErrorMsg && registerSubmitBtn) {
+    if (registerForm) {
+      const registerErrorMsg = document.getElementById(
+        'register-error-message'
+      ) as HTMLParagraphElement;
+      const registerSubmitBtn = document.getElementById(
+        'register-submit-button'
+      ) as HTMLButtonElement;
       const btnText = registerSubmitBtn.querySelector(
         '.button-text'
       ) as HTMLSpanElement;
@@ -272,14 +266,12 @@
         btnLoader.style.display = 'none';
         registerSubmitBtn.disabled = false;
       };
-
       registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         registerSubmitBtn.disabled = true;
         btnText.style.display = 'none';
         btnLoader.style.display = 'block';
         registerErrorMsg.style.display = 'none';
-
         const formData = new FormData(registerForm);
         const email = formData.get('email')?.toString().trim();
         const password = formData.get('password')?.toString();

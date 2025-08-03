@@ -23,7 +23,7 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
     const { env } = locals.runtime;
 
     const decodedToken = await verifyFirebaseToken(idToken, env);
-    const uid = decodedToken.sub; // 'sub' (subject) es el UID
+    const uid = decodedToken.sub; // 'sub' es el UID en el token JWT
 
     if (!uid) {
       return new Response(
