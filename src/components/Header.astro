@@ -32,11 +32,14 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
             </form>
           ) : (
             <>
-              {/* ✅ ¡CRUCIAL! Estos botones ahora tienen data-attributes */}
-              <button data-open-modal="login" class="login-btn">
+              <button type="button" data-open-modal="login" class="login-btn">
                 INICIAR SESIÓN
               </button>
-              <button data-open-modal="register" class="register-btn">
+              <button
+                type="button"
+                data-open-modal="register"
+                class="register-btn"
+              >
                 REGISTRARSE
               </button>
             </>
@@ -67,11 +70,14 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
           </form>
         ) : (
           <>
-            {/* ✅ También en la vista móvil */}
-            <button data-open-modal="login" class="login-btn">
+            <button type="button" data-open-modal="login" class="login-btn">
               INICIAR SESIÓN
             </button>
-            <button data-open-modal="register" class="register-btn">
+            <button
+              type="button"
+              data-open-modal="register"
+              class="register-btn"
+            >
               REGISTRARSE
             </button>
           </>
@@ -82,9 +88,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
 </header>
 
 <script is:inline>
-  // Script para el menú hamburguesa y para EMITIR la señal del modal
   document.addEventListener('DOMContentLoaded', () => {
-    // Lógica del menú hamburguesa
     const hamburgerButton = document.getElementById('hamburger-button');
     const mobileNavPanel = document.getElementById('mobile-nav-panel');
     const body = document.body;
@@ -95,18 +99,13 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
       body.classList.toggle('mobile-nav-open', isActive);
     });
 
-    // ✅ --- LA SOLUCIÓN DEFINITIVA: Event Delegation + Custom Events ---
-    // Escuchamos clics en todo el header.
     const header = document.querySelector('.site-header');
     header?.addEventListener('click', (e) => {
       if (!(e.target instanceof Element)) return;
-
       const trigger = e.target.closest('[data-open-modal]');
       if (trigger) {
         e.preventDefault();
         const view = trigger.getAttribute('data-open-modal');
-
-        // Emitimos un evento global que el modal puede escuchar.
         document.dispatchEvent(
           new CustomEvent('open-auth-modal', {
             detail: { view: view === 'register' ? 'register' : 'login' },
@@ -118,7 +117,6 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
 </script>
 
 <style>
-  /* Tu CSS (sin cambios) */
   :global(body.mobile-nav-open) {
     overflow: hidden;
   }
