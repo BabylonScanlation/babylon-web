@@ -4,8 +4,7 @@ import cloudflare from '@astrojs/cloudflare';
 
 // Módulo virtual que simula los módulos nativos de Node.js de forma más inteligente
 const nodePolyfills = `
-  // --- IMPLEMENTACIONES MÍNIMAS PARA ASTRO ---
-  // Proporcionamos implementaciones básicas para que el build de Astro no falle.
+  // --- IMPLEMENTACIONES MÍNIMAS PARA ASTRO Y LIBS ---
   export const path = {
     sep: '/',
     join: (...args) => args.filter(Boolean).join('/'),
@@ -22,16 +21,14 @@ const nodePolyfills = `
     pathToFileURL: (p) => 'file://' + p.replace(/\\\\/g, '/'),
     fileURLToPath: (u) => u.startsWith('file:///') ? u.substring(7) : u
   };
-  
-  // --- CORRECCIÓN CRUCIAL PARA EL BUILD ---
-  // Exportaciones nombradas directas que el build de Astro busca
+
   export const pathToFileURL = url.pathToFileURL;
   export const fileURLToPath = url.fileURLToPath;
   export const basename = path.basename;
   export const dirname = path.dirname;
   export const extname = path.extname;
 
-  // --- STUBS VACÍOS PARA EL RESTO ---
+  // --- STUBS VACÍOS Y CORRECCIÓN PARA EL ERROR 500 ---
   export const fs = { promises: {} };
   export const os = {};
   export const crypto = {};
@@ -48,7 +45,9 @@ const nodePolyfills = `
   export const util = {};
   export const http = {};
   export const https = {};
-  export const process = { env: {} };
+
+  // ¡ESTA ES LA CORRECCIÓN CLAVE PARA EL ERROR 500!
+  export const process = { env: {}, stdout: null };
 
   // Exportación por defecto para compatibilidad
   export default {
@@ -56,7 +55,6 @@ const nodePolyfills = `
   };
 `;
 
-// Lista de todos los módulos de Node.js que necesitamos neutralizar
 const nodeBuiltIns = [
   "fs", "path", "os", "crypto", "url", "http", "https", "zlib", "util",
   "stream", "events", "buffer", "querystring", "child_process", "net",
