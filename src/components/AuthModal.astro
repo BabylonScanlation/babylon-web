@@ -6,7 +6,6 @@
   <div id="auth-modal-card" class="auth-card">
     <button id="auth-modal-close" class="close-btn">&times;</button>
 
-    {/* Contenedor del Formulario de Login */}
     <div id="login-view">
       <h2>Iniciar Sesión</h2>
       <div class="message-container">
@@ -19,8 +18,7 @@
       </div>
       <form id="login-form" class="auth-form">
         <div class="form-group">
-          <label for="email">Email</label>
-
+          <label for="login-email">Email</label>
           <input
             type="email"
             name="email"
@@ -30,7 +28,7 @@
           />
         </div>
         <div class="form-group">
-          <label for="password">Contraseña</label>
+          <label for="login-password">Contraseña</label>
           <input type="password" name="password" id="login-password" required />
         </div>
         <button type="submit" id="login-submit-button">
@@ -40,13 +38,12 @@
       </form>
       <div class="form-footer">
         <p>
-          ¿No tienes una cuenta?
-          <a href="#" id="show-register">Regístrate aquí</a>
+          ¿No tienes una cuenta? <a href="#" id="show-register"
+            >Regístrate aquí</a>
         </p>
       </div>
     </div>
 
-    {/* Contenedor del Formulario de Registro */}
     <div id="register-view" style="display: none;">
       <h2>Crear Cuenta</h2>
       <div class="message-container">
@@ -60,7 +57,6 @@
       <form id="register-form" class="auth-form">
         <div class="form-group">
           <label for="reg-email">Email</label>
-
           <input
             type="email"
             name="email"
@@ -89,8 +85,7 @@
       </form>
       <div class="form-footer">
         <p>
-          ¿Ya tienes una cuenta?
-          <a href="#" id="show-login">Inicia sesión</a>
+          ¿Ya tienes una cuenta? <a href="#" id="show-login">Inicia sesión</a>
         </p>
       </div>
     </div>
@@ -105,15 +100,20 @@
   import { auth } from '@lib/firebase/client';
 
   // --- Lógica General de la Modal ---
-  const modalOverlay = document.getElementById('auth-modal-overlay');
-  const modalCloseBtn = document.getElementById('auth-modal-close');
-  const loginView = document.getElementById('login-view');
-  const registerView = document.getElementById('register-view');
-  const showRegisterLink = document.getElementById('show-register');
-  const showLoginLink = document.getElementById('show-login');
+  const modalOverlay = document.getElementById(
+    'auth-modal-overlay'
+  ) as HTMLElement;
+  const modalCloseBtn = document.getElementById(
+    'auth-modal-close'
+  ) as HTMLElement;
+  const loginView = document.getElementById('login-view') as HTMLElement;
+  const registerView = document.getElementById('register-view') as HTMLElement;
+  const showRegisterLink = document.getElementById(
+    'show-register'
+  ) as HTMLElement;
+  const showLoginLink = document.getElementById('show-login') as HTMLElement;
 
-  function openModal(view = 'login') {
-    if (!modalOverlay || !loginView || !registerView) return;
+  function openModal(view: 'login' | 'register' = 'login') {
     if (view === 'login') {
       loginView.style.display = 'block';
       registerView.style.display = 'none';
@@ -126,19 +126,16 @@
   }
 
   function closeModal() {
-    if (!modalOverlay) return;
     modalOverlay.classList.add('is-hidden');
     document.body.style.overflow = '';
   }
 
-  // Event Listeners para abrir/cerrar/cambiar vistas
   document.addEventListener('click', (e) => {
     if (!(e.target instanceof Element)) return;
-
     if (e.target.matches('[data-open-modal]')) {
       e.preventDefault();
-      const view = e.target.getAttribute('data-open-modal') || 'login';
-      openModal(view);
+      const view = e.target.getAttribute('data-open-modal');
+      openModal(view === 'register' ? 'register' : 'login');
     }
   });
 
@@ -168,29 +165,35 @@
   });
 
   // --- Lógica del Formulario de Login ---
-  const loginForm = document.getElementById('login-form');
-  const loginErrorMsg = document.getElementById('login-error-message');
+  const loginForm = document.getElementById('login-form') as HTMLFormElement;
+  const loginErrorMsg = document.getElementById(
+    'login-error-message'
+  ) as HTMLParagraphElement;
   const loginSubmitBtn = document.getElementById(
     'login-submit-button'
-  ) as HTMLButtonElement | null;
+  ) as HTMLButtonElement;
 
-  if (loginForm instanceof HTMLFormElement && loginErrorMsg && loginSubmitBtn) {
-    const btnText = loginSubmitBtn.querySelector('.button-text');
-    const btnLoader = loginSubmitBtn.querySelector('.button-loader');
+  if (loginForm && loginErrorMsg && loginSubmitBtn) {
+    const btnText = loginSubmitBtn.querySelector(
+      '.button-text'
+    ) as HTMLSpanElement;
+    const btnLoader = loginSubmitBtn.querySelector(
+      '.button-loader'
+    ) as HTMLSpanElement;
 
     const showLoginError = (message: string) => {
       loginErrorMsg.textContent = message;
       loginErrorMsg.style.display = 'block';
-      if (btnText instanceof HTMLElement) btnText.style.display = 'inline';
-      if (btnLoader instanceof HTMLElement) btnLoader.style.display = 'none';
-      if (loginSubmitBtn) loginSubmitBtn.disabled = false;
+      btnText.style.display = 'inline';
+      btnLoader.style.display = 'none';
+      loginSubmitBtn.disabled = false;
     };
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (loginSubmitBtn) loginSubmitBtn.disabled = true;
-      if (btnText instanceof HTMLElement) btnText.style.display = 'none';
-      if (btnLoader instanceof HTMLElement) btnLoader.style.display = 'block';
+      loginSubmitBtn.disabled = true;
+      btnText.style.display = 'none';
+      btnLoader.style.display = 'block';
       loginErrorMsg.style.display = 'none';
 
       const formData = new FormData(loginForm);
@@ -217,59 +220,46 @@
         if (response.ok) {
           window.location.reload();
         } else {
-          const errorData = (await response
-            .json()
-            .catch(() => ({ error: 'Error desconocido' }))) as {
-            error?: string;
-          };
-          showLoginError(
-            errorData.error || 'Error del servidor al iniciar sesión.'
-          );
+          showLoginError('Error del servidor al iniciar sesión.');
         }
       } catch (error: any) {
-        if (error instanceof Error && 'code' in error) {
-          switch (error.code) {
-            case 'auth/invalid-credential':
-              showLoginError('Email o contraseña incorrectos.');
-              break;
-            default:
-              showLoginError('No se pudo iniciar sesión. Verifica tus datos.');
-          }
-        } else {
-          showLoginError('Ocurrió un error inesperado.');
-        }
+        showLoginError('Email o contraseña incorrectos.');
       }
     });
   }
 
   // --- Lógica del Formulario de Registro ---
-  const registerForm = document.getElementById('register-form');
-  const registerErrorMsg = document.getElementById('register-error-message');
+  const registerForm = document.getElementById(
+    'register-form'
+  ) as HTMLFormElement;
+  const registerErrorMsg = document.getElementById(
+    'register-error-message'
+  ) as HTMLParagraphElement;
   const registerSubmitBtn = document.getElementById(
     'register-submit-button'
-  ) as HTMLButtonElement | null;
+  ) as HTMLButtonElement;
 
-  if (
-    registerForm instanceof HTMLFormElement &&
-    registerErrorMsg &&
-    registerSubmitBtn
-  ) {
-    const btnText = registerSubmitBtn.querySelector('.button-text');
-    const btnLoader = registerSubmitBtn.querySelector('.button-loader');
+  if (registerForm && registerErrorMsg && registerSubmitBtn) {
+    const btnText = registerSubmitBtn.querySelector(
+      '.button-text'
+    ) as HTMLSpanElement;
+    const btnLoader = registerSubmitBtn.querySelector(
+      '.button-loader'
+    ) as HTMLSpanElement;
 
     const showRegisterError = (message: string) => {
       registerErrorMsg.textContent = message;
       registerErrorMsg.style.display = 'block';
-      if (btnText instanceof HTMLElement) btnText.style.display = 'inline';
-      if (btnLoader instanceof HTMLElement) btnLoader.style.display = 'none';
-      if (registerSubmitBtn) registerSubmitBtn.disabled = false;
+      btnText.style.display = 'inline';
+      btnLoader.style.display = 'none';
+      registerSubmitBtn.disabled = false;
     };
 
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (registerSubmitBtn) registerSubmitBtn.disabled = true;
-      if (btnText instanceof HTMLElement) btnText.style.display = 'none';
-      if (btnLoader instanceof HTMLElement) btnLoader.style.display = 'block';
+      registerSubmitBtn.disabled = true;
+      btnText.style.display = 'none';
+      btnLoader.style.display = 'block';
       registerErrorMsg.style.display = 'none';
 
       const formData = new FormData(registerForm);
@@ -287,58 +277,24 @@
       }
 
       try {
-        const userCredential = await createUserWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
-        const idToken = await userCredential.user.getIdToken();
-        const response = await fetch('/api/auth/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken }),
-        });
-        if (response.ok) {
-          // Cambia a la vista de login con mensaje de éxito
-          openModal('login');
-          const loginSuccessMsg = document.getElementById(
-            'login-error-message'
-          );
-          if (loginSuccessMsg) {
-            // ✅ CORRECCIÓN: La cadena de texto ahora está en una sola línea.
-            loginSuccessMsg.textContent =
-              '¡Registro exitoso! Ahora puedes iniciar sesión.';
-            loginSuccessMsg.className = 'success-message';
-            loginSuccessMsg.style.display = 'block';
-          }
-        } else {
-          const errorData = (await response
-            .json()
-            .catch(() => ({ error: 'Error desconocido' }))) as {
-            error?: string;
-          };
-          showRegisterError(
-            errorData.error || 'Error del servidor al crear la sesión.'
-          );
+        await createUserWithEmailAndPassword(auth, email, password);
+        openModal('login');
+        const loginSuccessMsg = document.getElementById(
+          'login-error-message'
+        ) as HTMLParagraphElement;
+        if (loginSuccessMsg) {
+          loginSuccessMsg.textContent =
+            '¡Registro exitoso! Ahora puedes iniciar sesión.';
+          loginSuccessMsg.className = 'success-message';
+          loginSuccessMsg.style.display = 'block';
         }
       } catch (error: any) {
-        if (error instanceof Error && 'code' in error) {
-          switch (error.code) {
-            case 'auth/email-already-in-use':
-              showRegisterError('Este email ya está registrado.');
-              break;
-            case 'auth/weak-password':
-              showRegisterError(
-                'La contraseña debe tener al menos 6 caracteres.'
-              );
-              break;
-            default:
-              showRegisterError(
-                'Error al registrar la cuenta. Inténtalo más tarde.'
-              );
-          }
+        if (error.code === 'auth/email-already-in-use') {
+          showRegisterError('Este email ya está registrado.');
+        } else if (error.code === 'auth/weak-password') {
+          showRegisterError('La contraseña debe tener al menos 6 caracteres.');
         } else {
-          showRegisterError('Ocurrió un error inesperado.');
+          showRegisterError('Error al registrar la cuenta.');
         }
       }
     });
@@ -346,6 +302,7 @@
 </script>
 
 <style>
+  /* Tu CSS (sin cambios) */
   .auth-modal-overlay {
     position: fixed;
     top: 0;
