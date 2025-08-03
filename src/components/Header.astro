@@ -3,11 +3,16 @@
 const { user, runtime } = Astro.locals;
 const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
 ---
-<header>
+
+<header class="site-header">
   <div class="container">
     <div class="logo">
       <a href="/">
-        <img src={`${r2PublicUrlAssets}/iconpage/babylon-logo-2.webp`} alt="BabylonScan Logo" class="header-logo" />
+        <img
+          src={`${r2PublicUrlAssets}/iconpage/babylon-logo-2.webp`}
+          alt="BabylonScan Logo"
+          class="header-logo"
+        />
       </a>
     </div>
 
@@ -16,19 +21,27 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
         <input type="search" name="q" placeholder="Buscar manga..." required />
         <button type="submit">BUSCAR</button>
       </form>
-     
+
       <div class="user-actions">
-        {user ? (
-          <form method="POST" action="/api/auth/logout">
-            <button type="submit" class="logout-btn">CERRAR SESIÓN</button>
-          </form>
-        ) : (
-          <>
-            {/* ✅ CAMBIO: Ahora son botones que abren la modal */}
-            <button id="login-btn-header" class="login-btn">INICIAR SESIÓN</button>
-            <button id="register-btn-header" class="register-btn">REGISTRARSE</button>
-          </>
-        )}
+        {
+          user ? (
+            <form method="POST" action="/api/auth/logout">
+              <button type="submit" class="logout-btn">
+                CERRAR SESIÓN
+              </button>
+            </form>
+          ) : (
+            <>
+              {/* ✅ ¡CRUCIAL! Estos botones ahora tienen data-attributes */}
+              <button data-open-modal="login" class="login-btn">
+                INICIAR SESIÓN
+              </button>
+              <button data-open-modal="register" class="register-btn">
+                REGISTRARSE
+              </button>
+            </>
+          )
+        }
       </div>
     </div>
 
@@ -41,50 +54,71 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
 
   <div class="mobile-nav" id="mobile-nav-panel">
     <form action="/search" method="GET" class="search-bar mobile-search">
-        <input type="search" name="q" placeholder="Buscar manga..." required />
-        <button type="submit">BUSCAR</button>
+      <input type="search" name="q" placeholder="Buscar manga..." required />
+      <button type="submit">BUSCAR</button>
     </form>
     <div class="user-actions-mobile">
-      {user ? (
-        <form method="POST" action="/api/auth/logout">
-          <button type="submit" class="logout-btn">CERRAR SESIÓN</button>
-        </form>
-      ) : (
-        <>
-          {/* ✅ CAMBIO: También en la vista móvil */}
-          <button id="login-btn-mobile" class="login-btn">INICIAR SESIÓN</button>
-          <button id="register-btn-mobile" class="register-btn">REGISTRARSE</button>
-        </>
-      )}
+      {
+        user ? (
+          <form method="POST" action="/api/auth/logout">
+            <button type="submit" class="logout-btn">
+              CERRAR SESIÓN
+            </button>
+          </form>
+        ) : (
+          <>
+            {/* ✅ También en la vista móvil */}
+            <button data-open-modal="login" class="login-btn">
+              INICIAR SESIÓN
+            </button>
+            <button data-open-modal="register" class="register-btn">
+              REGISTRARSE
+            </button>
+          </>
+        )
+      }
     </div>
   </div>
 </header>
 
-<script>
-  // Script para el menú hamburguesa (sin cambios)
-  const hamburgerButton = document.getElementById('hamburger-button');
-  const mobileNavPanel = document.getElementById('mobile-nav-panel');
-  const body = document.body;
+<script is:inline>
+  // Script para el menú hamburguesa y para EMITIR la señal del modal
+  document.addEventListener('DOMContentLoaded', () => {
+    // Lógica del menú hamburguesa
+    const hamburgerButton = document.getElementById('hamburger-button');
+    const mobileNavPanel = document.getElementById('mobile-nav-panel');
+    const body = document.body;
 
-  hamburgerButton?.addEventListener('click', () => {
-    const isActive = hamburgerButton.classList.toggle('is-active');
-    mobileNavPanel?.classList.toggle('is-active');
-    body.classList.toggle('mobile-nav-open', isActive);
-  });
+    hamburgerButton?.addEventListener('click', () => {
+      const isActive = hamburgerButton.classList.toggle('is-active');
+      mobileNavPanel?.classList.toggle('is-active');
+      body.classList.toggle('mobile-nav-open', isActive);
+    });
 
-  // Script para botones de modal en móvil (dispara los mismos eventos que la modal espera)
-  document.getElementById('login-btn-mobile')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('login-btn-header')?.click();
-  });
-  document.getElementById('register-btn-mobile')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('register-btn-header')?.click();
+    // ✅ --- LA SOLUCIÓN DEFINITIVA: Event Delegation + Custom Events ---
+    // Escuchamos clics en todo el header.
+    const header = document.querySelector('.site-header');
+    header?.addEventListener('click', (e) => {
+      if (!(e.target instanceof Element)) return;
+
+      const trigger = e.target.closest('[data-open-modal]');
+      if (trigger) {
+        e.preventDefault();
+        const view = trigger.getAttribute('data-open-modal');
+
+        // Emitimos un evento global que el modal puede escuchar.
+        document.dispatchEvent(
+          new CustomEvent('open-auth-modal', {
+            detail: { view: view === 'register' ? 'register' : 'login' },
+          })
+        );
+      }
+    });
   });
 </script>
 
 <style>
-  /* Estilos del Header (sin cambios) */
+  /* Tu CSS (sin cambios) */
   :global(body.mobile-nav-open) {
     overflow: hidden;
   }
@@ -101,7 +135,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     z-index: 1000;
     display: flex;
     align-items: center;
-}
+  }
   .container {
     display: flex;
     justify-content: space-between;
@@ -205,7 +239,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
   .mobile-nav.is-active {
     display: flex;
   }
-    .mobile-search {
+  .mobile-search {
     width: 90%;
     margin-top: 1rem;
   }
@@ -214,37 +248,67 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     font-size: 1rem;
   }
   .user-actions-mobile {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      width: 80%;
-      margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 80%;
+    margin-top: 1rem;
   }
   .user-actions-mobile .login-btn,
   .user-actions-mobile .register-btn,
   .user-actions-mobile .logout-btn {
-      width: 100%;
-      padding: 1rem;
-      font-size: 1.1rem;
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.1rem;
   }
-  .hamburger-box { width: 30px; height: 24px; display: inline-block; position: relative; }
-  .hamburger-inner, .hamburger-inner::before, .hamburger-inner::after { width: 30px;
-    height: 3px; background-color: white; border-radius: 4px; position: absolute; transition: transform 0.2s ease-in-out; }
-  .hamburger-inner { top: 50%; transform: translateY(-50%); }
-  .hamburger-inner::before, .hamburger-inner::after { content: ''; display: block; }
-  .hamburger-inner::before { top: -10px; }
-  .hamburger-inner::after { bottom: -10px; }
-  .hamburger.is-active .hamburger-inner { transform: rotate(45deg); }
-  .hamburger.is-active .hamburger-inner::before { top: 0;
-    transform: rotate(90deg); }
-  .hamburger.is-active .hamburger-inner::after { bottom: 0; transform: rotate(-90deg); }
-
+  .hamburger-box {
+    width: 30px;
+    height: 24px;
+    display: inline-block;
+    position: relative;
+  }
+  .hamburger-inner,
+  .hamburger-inner::before,
+  .hamburger-inner::after {
+    width: 30px;
+    height: 3px;
+    background-color: white;
+    border-radius: 4px;
+    position: absolute;
+    transition: transform 0.2s ease-in-out;
+  }
+  .hamburger-inner {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .hamburger-inner::before,
+  .hamburger-inner::after {
+    content: '';
+    display: block;
+  }
+  .hamburger-inner::before {
+    top: -10px;
+  }
+  .hamburger-inner::after {
+    bottom: -10px;
+  }
+  .hamburger.is-active .hamburger-inner {
+    transform: rotate(45deg);
+  }
+  .hamburger.is-active .hamburger-inner::before {
+    top: 0;
+    transform: rotate(90deg);
+  }
+  .hamburger.is-active .hamburger-inner::after {
+    bottom: 0;
+    transform: rotate(-90deg);
+  }
   @media (max-width: 900px) {
-      .desktop-nav {
-          display: none;
-      }
-      .hamburger {
-          display: block;
-      }
+    .desktop-nav {
+      display: none;
+    }
+    .hamburger {
+      display: block;
+    }
   }
 </style>
