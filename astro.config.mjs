@@ -12,15 +12,16 @@ const nodePolyfills = `
     dirname: (p) => p.split('/').slice(0, -1).join('/') || '.',
     basename: (p) => p.split('/').pop() || '',
     extname: (p) => {
-      const base = p.split('/').pop() || '';
-      const parts = base.split('.');
-      return parts.length > 1 ? '.' + parts.pop() : '';
+        const base = p.split('/').pop() || '';
+        const parts = base.split('.');
+        return parts.length > 1 ? '.' + parts.pop() : '';
     }
   };
   export const url = {
     pathToFileURL: (p) => 'file://' + p.replace(/\\\\/g, '/'),
     fileURLToPath: (u) => u.startsWith('file:///') ? u.substring(7) : u
   };
+  
   export const { pathToFileURL, fileURLToPath } = url;
   export const { basename, dirname, extname } = path;
 
@@ -28,7 +29,7 @@ const nodePolyfills = `
   const process = {
     env: {},
     version: 'v18.0.0',
-    versions: {},
+    versions: { node: '18.0.0' },
     on: () => {},
     addListener: () => {},
     once: () => {},
@@ -43,10 +44,17 @@ const nodePolyfills = `
     cwd: () => '/',
     chdir: () => {},
     umask: () => 0,
-    nextTick: (cb) => Promise.resolve().then(cb),
+    nextTick: (cb, ...args) => Promise.resolve().then(() => cb(...args)),
     platform: 'linux',
     stdout: { isTTY: false, write: () => true, columns: 80, rows: 24, on: ()=>{} },
-    stderr: { isTTY: false, write: () => true, columns: 80, rows: 24, on: ()=>{} }
+    stderr: { isTTY: false, write: () => true, columns: 80, rows: 24, on: ()=>{} },
+    argv: ['/usr/bin/node'],
+    getuid: () => 0,
+    getgid: () => 0,
+    geteuid: () => 0,
+    getegid: () => 0,
+    getgroups: () => [],
+    features: {}
   };
   export { process };
 
@@ -70,6 +78,7 @@ const nodePolyfills = `
   export default { fs, path, os, crypto, url, process };
 `;
 
+// Lista de todos los módulos de Node.js que necesitamos neutralizar
 const nodeBuiltIns = [
   "fs", "path", "os", "crypto", "url", "http", "https", "zlib", "util",
   "stream", "events", "buffer", "querystring", "child_process", "net",
