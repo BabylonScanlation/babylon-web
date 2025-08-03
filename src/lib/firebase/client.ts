@@ -11,6 +11,5 @@ const firebaseConfig = {
   appId: import.meta.env.PUBLIC_FIREBASE_APP_ID,
 };
 
-// ¡CORRECCIÓN! Añadimos 'export' para que las constantes sean visibles.
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
