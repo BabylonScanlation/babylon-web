@@ -130,27 +130,22 @@
     document.body.style.overflow = '';
   }
 
+  // --- Event Listeners Robustos ---
+
+  // 1. Escucha todos los clics en la página (¡la forma correcta!)
   document.addEventListener('click', (e) => {
     if (!(e.target instanceof Element)) return;
-    if (e.target.matches('[data-open-modal]')) {
+
+    // 2. Si el clic fue en un botón para abrir el modal, lo abre.
+    const modalTrigger = e.target.closest('[data-open-modal]');
+    if (modalTrigger) {
       e.preventDefault();
-      const view = e.target.getAttribute('data-open-modal');
+      const view = modalTrigger.getAttribute('data-open-modal');
       openModal(view === 'register' ? 'register' : 'login');
     }
   });
 
-  document
-    .getElementById('login-btn-header')
-    ?.addEventListener('click', (e) => {
-      e.preventDefault();
-      openModal('login');
-    });
-  document
-    .getElementById('register-btn-header')
-    ?.addEventListener('click', (e) => {
-      e.preventDefault();
-      openModal('register');
-    });
+  // 3. Listeners para los elementos DENTRO del modal
   modalCloseBtn?.addEventListener('click', closeModal);
   modalOverlay?.addEventListener('click', (e) => {
     if (e.target === modalOverlay) closeModal();
