@@ -44,9 +44,8 @@
       </form>
       <div class="form-footer">
         <p>
-          ¿No tienes una cuenta? <a href="#" id="show-register"
-            >Regístrate aquí</a
-          >
+          ¿No tienes una cuenta?
+          <a href="#" id="show-register">Regístrate aquí</a>
         </p>
       </div>
     </div>
@@ -92,7 +91,8 @@
       </form>
       <div class="form-footer">
         <p>
-          ¿Ya tienes una cuenta? <a href="#" id="show-login">Inicia sesión</a>
+          ¿Ya tienes una cuenta?
+          <a href="#" id="show-login">Inicia sesión</a>
         </p>
       </div>
     </div>
@@ -148,8 +148,9 @@
       document.body.style.overflow = '';
     }
 
-    // ✅ Escucha el evento global disparado por el Header.
+    // Escucha el evento global disparado por otros componentes para abrir el modal.
     document.addEventListener('open-auth-modal', (e) => {
+      // ✅ CORRECCIÓN AQUÍ: Eliminamos la sintaxis de TypeScript (as CustomEvent)
       const detail = e.detail || {};
       openModal(detail.view, detail.successMessage);
     });
@@ -178,25 +179,27 @@
 </script>
 
 <script>
-  // Script para la lógica de Firebase (separado para mayor claridad)
+  // Script para la lógica de Firebase (este sí es procesado por TypeScript)
   import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
   } from 'firebase/auth';
   import { auth } from '@lib/firebase/client';
 
-  // La lógica de los formularios se ejecuta después de que el HTML esté listo
   document.addEventListener('DOMContentLoaded', () => {
     // --- Lógica del Formulario de Login ---
     const loginForm = document.getElementById('login-form') as HTMLFormElement;
     const loginErrorMsg = document.getElementById(
       'login-error-message'
     ) as HTMLParagraphElement;
+    const loginSuccessMsg = document.getElementById(
+      'login-success-message'
+    ) as HTMLParagraphElement;
     const loginSubmitBtn = document.getElementById(
       'login-submit-button'
     ) as HTMLButtonElement;
 
-    if (loginForm && loginErrorMsg && loginSubmitBtn) {
+    if (loginForm && loginErrorMsg && loginSubmitBtn && loginSuccessMsg) {
       const btnText = loginSubmitBtn.querySelector(
         '.button-text'
       ) as HTMLSpanElement;
@@ -240,12 +243,13 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idToken }),
           });
+
           if (response.ok) {
-            window.location.reload();
+            window.location.href = window.location.pathname;
           } else {
             showLoginError('Error del servidor al iniciar sesión.');
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           showLoginError('Email o contraseña incorrectos.');
         }
       });
@@ -310,15 +314,20 @@
               },
             })
           );
-        } catch (error: any) {
-          if (error.code === 'auth/email-already-in-use') {
-            showRegisterError('Este email ya está registrado.');
-          } else if (error.code === 'auth/weak-password') {
-            showRegisterError(
-              'La contraseña debe tener al menos 6 caracteres.'
-            );
+        } catch (error: unknown) {
+          if (typeof error === 'object' && error !== null && 'code' in error) {
+            const firebaseError = error as { code: string };
+            if (firebaseError.code === 'auth/email-already-in-use') {
+              showRegisterError('Este email ya está registrado.');
+            } else if (firebaseError.code === 'auth/weak-password') {
+              showRegisterError(
+                'La contraseña debe tener al menos 6 caracteres.'
+              );
+            } else {
+              showRegisterError('Error al registrar la cuenta.');
+            }
           } else {
-            showRegisterError('Error al registrar la cuenta.');
+            showRegisterError('Ocurrió un error inesperado.');
           }
         }
       });
