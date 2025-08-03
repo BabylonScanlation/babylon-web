@@ -9,12 +9,13 @@ const nodePolyfills = `
   export const path = {
     sep: '/',
     join: (...args) => args.filter(Boolean).join('/'),
-    resolve: (...args) => ('/' + args.filter(Boolean).join('/')).replace(/\\/g, '/'),
+    // CORRECCIÓN DE SINTAXIS EN LA SIGUIENTE LÍNEA
+    resolve: (...args) => ('/' + args.filter(Boolean).join('/')).replace(/\\\\/g, '/'),
     dirname: (p) => p.split('/').slice(0, -1).join('/') || '.',
     basename: (p) => p.split('/').pop() || ''
   };
   export const url = {
-    pathToFileURL: (p) => 'file://' + p.replace(/\\/g, '/'),
+    pathToFileURL: (p) => 'file://' + p.replace(/\\\\/g, '/'),
     fileURLToPath: (u) => u.startsWith('file:///') ? u.substring(7) : u
   };
   // Exportaciones nombradas directas que el build de Astro busca
