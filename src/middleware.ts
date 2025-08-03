@@ -1,51 +1,36 @@
 // src/middleware.ts
 import { defineMiddleware } from 'astro:middleware';
 import { getDB } from './lib/db';
-import { getFirebaseAuth } from './lib/firebase/server'; // <--- Importamos la función de autenticación
+import { verifyFirebaseToken } from './lib/firebase/server'; // <-- Usamos nuestra nueva función
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const runtime = context.locals.runtime;
 
-  // 1. Inicialización de la base de datos (lógica existente)
   if (runtime?.env?.DB) {
-    try {
-      context.locals.db = getDB(runtime.env);
-    } catch (error) {
-      console.error(
-        'Error al inicializar la base de datos en el middleware:',
-        error
-      );
-    }
+    context.locals.db = getDB(runtime.env);
   }
 
-  // --- INICIO DE LA LÓGICA DE AUTENTICACIÓN AÑADIDA ---
-
-  // 2. Obtenemos la cookie de sesión del usuario
+  // --- NUEVA LÓGICA DE AUTENTICACIÓN ---
   const sessionCookie = context.cookies.get('user_session');
+  context.locals.user = undefined; // Aseguramos que el usuario no esté definido por defecto
 
   if (sessionCookie?.value) {
     try {
-      // 3. Verificamos el token de la cookie con Firebase Admin
-      const auth = getFirebaseAuth(runtime.env);
-      const decodedToken = await auth.verifyIdToken(sessionCookie.value);
+      const decodedToken = await verifyFirebaseToken(
+        sessionCookie.value,
+        runtime.env
+      );
 
-      // 4. Si el token es válido, guardamos los datos del usuario
       context.locals.user = {
-        uid: decodedToken.uid,
-        email: decodedToken.email || null,
+        uid: decodedToken.sub!, // 'sub' (subject) es el UID del usuario en el token JWT
+        email: (decodedToken.email as string) || null,
       };
-    } catch (error) {
-      // Si el token es inválido o expiró, lo eliminamos
-      console.error('Error al verificar el token de sesión:', error);
+    } catch (error: any) {
+      // Si el token es inválido, lo eliminamos y continuamos como usuario no autenticado
+      // console.error("Token de sesión inválido:", error.code || error.message);
       context.cookies.delete('user_session', { path: '/' });
-      context.locals.user = undefined;
     }
-  } else {
-    // Si no hay cookie, nos aseguramos de que no haya un usuario en sesión
-    context.locals.user = undefined;
   }
-  // --- FIN DE LA LÓGICA DE AUTENTICACIÓN ---
 
-  // 5. Continuamos con la petición
   return next();
 });
