@@ -10,7 +10,11 @@
 		"deploy": "astro build && wrangler pages deploy",
 		"cf-typegen": "wrangler types",
 		"dev:cf": "wrangler pages dev --proxy 8789 -- astro dev --port 8789",
-		"start": "astro start"
+		"start": "astro start",
+		"db:pull": "wrangler d1 export babylon-scanlation-prod --remote --output=./migrations/dump.sql",
+		"db:reset:local": "if exist .wrangler\\state\\v3\\d1 rd /s /q .wrangler\\state\\v3\\d1",
+		"db:local": "wrangler d1 execute babylon-scanlation-prod --local --file=./migrations/dump.sql",
+		"db:sync": "npm run db:pull && npm run db:reset:local && npm run db:local"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "^12.6.0",
