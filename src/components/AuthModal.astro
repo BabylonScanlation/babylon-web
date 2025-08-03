@@ -6,7 +6,6 @@
   <div id="auth-modal-card" class="auth-card">
     <button id="auth-modal-close" class="close-btn">&times;</button>
 
-    {/* Contenido del Login */}
     <div id="login-view">
       <h2>Iniciar Sesión</h2>
       <div class="message-container">
@@ -45,7 +44,6 @@
       </div>
     </div>
 
-    {/* Contenido del Registro */}
     <div id="register-view" style="display: none;">
       <h2>Crear Cuenta</h2>
       <div class="message-container">
@@ -94,214 +92,232 @@
   </div>
 </div>
 
+<script is:inline>
+  // is:inline asegura que este script se ejecute en el cliente sin ser procesado por Astro.
+
+  // --- Lógica de la Modal (encapsulada para no contaminar el scope global) ---
+  function setupAuthModal() {
+    const modalOverlay = document.getElementById('auth-modal-overlay');
+    const modalCloseBtn = document.getElementById('auth-modal-close');
+    const loginView = document.getElementById('login-view');
+    const registerView = document.getElementById('register-view');
+    const showRegisterLink = document.getElementById('show-register');
+    const showLoginLink = document.getElementById('show-login');
+
+    if (
+      !modalOverlay ||
+      !modalCloseBtn ||
+      !loginView ||
+      !registerView ||
+      !showRegisterLink ||
+      !showLoginLink
+    ) {
+      console.error(
+        'No se encontraron todos los elementos del modal de autenticación.'
+      );
+      return;
+    }
+
+    function openModal(view = 'login') {
+      if (view === 'login') {
+        loginView.style.display = 'block';
+        registerView.style.display = 'none';
+      } else {
+        loginView.style.display = 'none';
+        registerView.style.display = 'block';
+      }
+      modalOverlay.classList.remove('is-hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      modalOverlay.classList.add('is-hidden');
+      document.body.style.overflow = '';
+    }
+
+    // ✅ --- LA SOLUCIÓN DEFINITIVA: Event Delegation ---
+    // Escuchamos todos los clics en el documento. Esto es infalible.
+    document.addEventListener('click', (e) => {
+      // Usamos .closest() para ver si el clic fue en un disparador o dentro de uno.
+      const trigger = e.target.closest('[data-open-modal]');
+      if (trigger) {
+        e.preventDefault();
+        const view = trigger.getAttribute('data-open-modal');
+        openModal(view === 'register' ? 'register' : 'login');
+      }
+    });
+
+    // Listeners para los elementos DENTRO del modal
+    modalCloseBtn.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) closeModal();
+    });
+    showRegisterLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModal('register');
+    });
+    showLoginLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModal('login');
+    });
+  }
+
+  // Esperamos a que la ventana esté completamente cargada para ejecutar nuestro setup.
+  // Esto nos da una capa extra de seguridad.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupAuthModal);
+  } else {
+    setupAuthModal();
+  }
+</script>
+
 <script>
+  // Script para la lógica de Firebase (separado para mayor claridad)
   import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
   } from 'firebase/auth';
   import { auth } from '@lib/firebase/client';
 
-  // --- Lógica General de la Modal ---
-  const modalOverlay = document.getElementById(
-    'auth-modal-overlay'
-  ) as HTMLElement;
-  const modalCloseBtn = document.getElementById(
-    'auth-modal-close'
-  ) as HTMLElement;
-  const loginView = document.getElementById('login-view') as HTMLElement;
-  const registerView = document.getElementById('register-view') as HTMLElement;
-  const showRegisterLink = document.getElementById(
-    'show-register'
-  ) as HTMLElement;
-  const showLoginLink = document.getElementById('show-login') as HTMLElement;
+  // La lógica de los formularios se ejecuta después de que el HTML esté listo
+  document.addEventListener('DOMContentLoaded', () => {
+    // --- Lógica del Formulario de Login ---
+    const loginForm = document.getElementById('login-form') as HTMLFormElement;
+    const loginErrorMsg = document.getElementById(
+      'login-error-message'
+    ) as HTMLParagraphElement;
+    const loginSubmitBtn = document.getElementById(
+      'login-submit-button'
+    ) as HTMLButtonElement;
 
-  function openModal(view: 'login' | 'register' = 'login') {
-    if (!modalOverlay || !loginView || !registerView) return;
-    if (view === 'login') {
-      loginView.style.display = 'block';
-      registerView.style.display = 'none';
-    } else {
-      loginView.style.display = 'none';
-      registerView.style.display = 'block';
-    }
-    modalOverlay.classList.remove('is-hidden');
-    document.body.style.overflow = 'hidden';
-  }
+    if (loginForm && loginErrorMsg && loginSubmitBtn) {
+      const btnText = loginSubmitBtn.querySelector(
+        '.button-text'
+      ) as HTMLSpanElement;
+      const btnLoader = loginSubmitBtn.querySelector(
+        '.button-loader'
+      ) as HTMLSpanElement;
 
-  function closeModal() {
-    if (!modalOverlay) return;
-    modalOverlay.classList.add('is-hidden');
-    document.body.style.overflow = '';
-  }
+      const showLoginError = (message: string) => {
+        loginErrorMsg.textContent = message;
+        loginErrorMsg.style.display = 'block';
+        btnText.style.display = 'inline';
+        btnLoader.style.display = 'none';
+        loginSubmitBtn.disabled = false;
+      };
 
-  // ✅ --- LA SOLUCIÓN DEFINITIVA: Event Delegation ---
-  // Escuchamos todos los clics en la página. Esto funciona sin importar cuándo se creen los botones.
-  document.addEventListener('click', (e) => {
-    if (!(e.target instanceof Element)) return;
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        loginSubmitBtn.disabled = true;
+        btnText.style.display = 'none';
+        btnLoader.style.display = 'block';
+        loginErrorMsg.style.display = 'none';
 
-    // Usamos .closest() para ver si el clic fue en uno de nuestros botones (o dentro de uno).
-    const loginTrigger = e.target.closest('#login-btn-header');
-    const registerTrigger = e.target.closest('#register-btn-header');
+        const formData = new FormData(loginForm);
+        const email = formData.get('email')?.toString().trim();
+        const password = formData.get('password')?.toString();
 
-    if (loginTrigger) {
-      e.preventDefault();
-      openModal('login');
-    }
-
-    if (registerTrigger) {
-      e.preventDefault();
-      openModal('register');
-    }
-  });
-
-  // Listeners para los elementos DENTRO del modal
-  modalCloseBtn?.addEventListener('click', closeModal);
-  modalOverlay?.addEventListener('click', (e) => {
-    if (e.target === modalOverlay) closeModal();
-  });
-  showRegisterLink?.addEventListener('click', (e) => {
-    e.preventDefault();
-    openModal('register');
-  });
-  showLoginLink?.addEventListener('click', (e) => {
-    e.preventDefault();
-    openModal('login');
-  });
-
-  // --- Lógica de Formularios (sin cambios, ya era correcta) ---
-  const loginForm = document.getElementById('login-form') as HTMLFormElement;
-  const loginErrorMsg = document.getElementById(
-    'login-error-message'
-  ) as HTMLParagraphElement;
-  const loginSubmitBtn = document.getElementById(
-    'login-submit-button'
-  ) as HTMLButtonElement;
-
-  if (loginForm && loginErrorMsg && loginSubmitBtn) {
-    const btnText = loginSubmitBtn.querySelector(
-      '.button-text'
-    ) as HTMLSpanElement;
-    const btnLoader = loginSubmitBtn.querySelector(
-      '.button-loader'
-    ) as HTMLSpanElement;
-
-    const showLoginError = (message: string) => {
-      loginErrorMsg.textContent = message;
-      loginErrorMsg.style.display = 'block';
-      btnText.style.display = 'inline';
-      btnLoader.style.display = 'none';
-      loginSubmitBtn.disabled = false;
-    };
-
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      loginSubmitBtn.disabled = true;
-      btnText.style.display = 'none';
-      btnLoader.style.display = 'block';
-      loginErrorMsg.style.display = 'none';
-
-      const formData = new FormData(loginForm);
-      const email = formData.get('email')?.toString().trim();
-      const password = formData.get('password')?.toString();
-
-      if (!email || !password) {
-        showLoginError('Por favor, completa todos los campos.');
-        return;
-      }
-
-      try {
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
-        const idToken = await userCredential.user.getIdToken();
-        const response = await fetch('/api/auth/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken }),
-        });
-        if (response.ok) {
-          window.location.reload();
-        } else {
-          showLoginError('Error del servidor al iniciar sesión.');
+        if (!email || !password) {
+          showLoginError('Por favor, completa todos los campos.');
+          return;
         }
-      } catch (error: any) {
-        showLoginError('Email o contraseña incorrectos.');
-      }
-    });
-  }
 
-  const registerForm = document.getElementById(
-    'register-form'
-  ) as HTMLFormElement;
-  const registerErrorMsg = document.getElementById(
-    'register-error-message'
-  ) as HTMLParagraphElement;
-  const registerSubmitBtn = document.getElementById(
-    'register-submit-button'
-  ) as HTMLButtonElement;
-
-  if (registerForm && registerErrorMsg && registerSubmitBtn) {
-    const btnText = registerSubmitBtn.querySelector(
-      '.button-text'
-    ) as HTMLSpanElement;
-    const btnLoader = registerSubmitBtn.querySelector(
-      '.button-loader'
-    ) as HTMLSpanElement;
-
-    const showRegisterError = (message: string) => {
-      registerErrorMsg.textContent = message;
-      registerErrorMsg.style.display = 'block';
-      btnText.style.display = 'inline';
-      btnLoader.style.display = 'none';
-      registerSubmitBtn.disabled = false;
-    };
-
-    registerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      registerSubmitBtn.disabled = true;
-      btnText.style.display = 'none';
-      btnLoader.style.display = 'block';
-      registerErrorMsg.style.display = 'none';
-
-      const formData = new FormData(registerForm);
-      const email = formData.get('email')?.toString().trim();
-      const password = formData.get('password')?.toString();
-      const confirmPassword = formData.get('confirmPassword')?.toString();
-
-      if (!email || !password || !confirmPassword) {
-        showRegisterError('Por favor, completa todos los campos.');
-        return;
-      }
-      if (password !== confirmPassword) {
-        showRegisterError('Las contraseñas no coinciden.');
-        return;
-      }
-
-      try {
-        await createUserWithEmailAndPassword(auth, email, password);
-        openModal('login');
-        const loginSuccessMsg = document.getElementById(
-          'login-error-message'
-        ) as HTMLParagraphElement;
-        if (loginSuccessMsg) {
-          loginSuccessMsg.textContent =
-            '¡Registro exitoso! Ahora puedes iniciar sesión.';
-          loginSuccessMsg.className = 'success-message';
-          loginSuccessMsg.style.display = 'block';
+        try {
+          const userCredential = await signInWithEmailAndPassword(
+            auth,
+            email,
+            password
+          );
+          const idToken = await userCredential.user.getIdToken();
+          const response = await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
+          });
+          if (response.ok) {
+            window.location.reload();
+          } else {
+            showLoginError('Error del servidor al iniciar sesión.');
+          }
+        } catch (error: any) {
+          showLoginError('Email o contraseña incorrectos.');
         }
-      } catch (error: any) {
-        if (error.code === 'auth/email-already-in-use') {
-          showRegisterError('Este email ya está registrado.');
-        } else if (error.code === 'auth/weak-password') {
-          showRegisterError('La contraseña debe tener al menos 6 caracteres.');
-        } else {
-          showRegisterError('Error al registrar la cuenta.');
+      });
+    }
+
+    // --- Lógica del Formulario de Registro ---
+    const registerForm = document.getElementById(
+      'register-form'
+    ) as HTMLFormElement;
+    const registerErrorMsg = document.getElementById(
+      'register-error-message'
+    ) as HTMLParagraphElement;
+    const registerSubmitBtn = document.getElementById(
+      'register-submit-button'
+    ) as HTMLButtonElement;
+
+    if (registerForm && registerErrorMsg && registerSubmitBtn) {
+      const btnText = registerSubmitBtn.querySelector(
+        '.button-text'
+      ) as HTMLSpanElement;
+      const btnLoader = registerSubmitBtn.querySelector(
+        '.button-loader'
+      ) as HTMLSpanElement;
+
+      const showRegisterError = (message: string) => {
+        registerErrorMsg.textContent = message;
+        registerErrorMsg.style.display = 'block';
+        btnText.style.display = 'inline';
+        btnLoader.style.display = 'none';
+        registerSubmitBtn.disabled = false;
+      };
+
+      registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        registerSubmitBtn.disabled = true;
+        btnText.style.display = 'none';
+        btnLoader.style.display = 'block';
+        registerErrorMsg.style.display = 'none';
+
+        const formData = new FormData(registerForm);
+        const email = formData.get('email')?.toString().trim();
+        const password = formData.get('password')?.toString();
+        const confirmPassword = formData.get('confirmPassword')?.toString();
+
+        if (!email || !password || !confirmPassword) {
+          showRegisterError('Por favor, completa todos los campos.');
+          return;
         }
-      }
-    });
-  }
+        if (password !== confirmPassword) {
+          showRegisterError('Las contraseñas no coinciden.');
+          return;
+        }
+
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+          document.dispatchEvent(
+            new CustomEvent('open-auth-modal', {
+              detail: {
+                view: 'login',
+                successMessage:
+                  '¡Registro exitoso! Ahora puedes iniciar sesión.',
+              },
+            })
+          );
+        } catch (error: any) {
+          if (error.code === 'auth/email-already-in-use') {
+            showRegisterError('Este email ya está registrado.');
+          } else if (error.code === 'auth/weak-password') {
+            showRegisterError(
+              'La contraseña debe tener al menos 6 caracteres.'
+            );
+          } else {
+            showRegisterError('Error al registrar la cuenta.');
+          }
+        }
+      });
+    }
+  });
 </script>
 
 <style>
