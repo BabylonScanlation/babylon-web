@@ -10,6 +10,12 @@
       <h2>Iniciar Sesión</h2>
       <div class="message-container">
         <p
+          id="login-success-message"
+          class="success-message"
+          style="display: none;"
+        >
+        </p>
+        <p
           id="login-error-message"
           class="error-message"
           style="display: none;"
@@ -94,9 +100,6 @@
 </div>
 
 <script is:inline>
-  // is:inline asegura que este script se ejecute en el cliente sin ser procesado por Astro.
-
-  // --- Lógica de la Modal (encapsulada para no contaminar el scope global) ---
   function setupAuthModal() {
     const modalOverlay = document.getElementById('auth-modal-overlay');
     const modalCloseBtn = document.getElementById('auth-modal-close');
@@ -104,6 +107,8 @@
     const registerView = document.getElementById('register-view');
     const showRegisterLink = document.getElementById('show-register');
     const showLoginLink = document.getElementById('show-login');
+    const loginErrorMsg = document.getElementById('login-error-message');
+    const loginSuccessMsg = document.getElementById('login-success-message');
 
     if (
       !modalOverlay ||
@@ -111,15 +116,22 @@
       !loginView ||
       !registerView ||
       !showRegisterLink ||
-      !showLoginLink
+      !showLoginLink ||
+      !loginErrorMsg ||
+      !loginSuccessMsg
     ) {
-      console.error(
-        'No se encontraron todos los elementos del modal de autenticación.'
-      );
       return;
     }
 
-    function openModal(view = 'login') {
+    function openModal(view = 'login', successMessage = '') {
+      loginErrorMsg.style.display = 'none';
+      loginSuccessMsg.style.display = 'none';
+
+      if (successMessage) {
+        loginSuccessMsg.textContent = successMessage;
+        loginSuccessMsg.style.display = 'block';
+      }
+
       if (view === 'login') {
         loginView.style.display = 'block';
         registerView.style.display = 'none';
@@ -136,16 +148,10 @@
       document.body.style.overflow = '';
     }
 
-    // ✅ --- LA SOLUCIÓN DEFINITIVA: Event Delegation ---
-    // Escuchamos todos los clics en el documento. Esto es infalible.
-    document.addEventListener('click', (e) => {
-      // Usamos .closest() para ver si el clic fue en un disparador o dentro de uno.
-      const trigger = e.target.closest('[data-open-modal]');
-      if (trigger) {
-        e.preventDefault();
-        const view = trigger.getAttribute('data-open-modal');
-        openModal(view === 'register' ? 'register' : 'login');
-      }
+    // ✅ Escucha el evento global disparado por el Header.
+    document.addEventListener('open-auth-modal', (e) => {
+      const detail = e.detail || {};
+      openModal(detail.view, detail.successMessage);
     });
 
     // Listeners para los elementos DENTRO del modal
@@ -163,8 +169,7 @@
     });
   }
 
-  // Esperamos a que la ventana esté completamente cargada para ejecutar nuestro setup.
-  // Esto nos da una capa extra de seguridad.
+  // Ejecutamos el setup en cuanto el DOM esté listo.
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', setupAuthModal);
   } else {
