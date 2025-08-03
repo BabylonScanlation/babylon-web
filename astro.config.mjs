@@ -4,15 +4,26 @@ import cloudflare from '@astrojs/cloudflare';
 
 // Módulo virtual que simula los módulos nativos de Node.js de forma más inteligente
 const nodePolyfills = `
-  // Stubs mínimos para módulos que Astro o sus dependencias podrían necesitar
-  export const fs = { promises: {} };
+  // --- IMPLEMENTACIONES MÍNIMAS PARA ASTRO ---
+  // Proporcionamos implementaciones básicas para que el build de Astro no falle.
   export const path = {
     sep: '/',
     join: (...args) => args.filter(Boolean).join('/'),
-    resolve: (...args) => '/' + args.filter(Boolean).join('/'),
+    resolve: (...args) => ('/' + args.filter(Boolean).join('/')).replace(/\\/g, '/'),
     dirname: (p) => p.split('/').slice(0, -1).join('/') || '.',
     basename: (p) => p.split('/').pop() || ''
   };
+  export const url = {
+    pathToFileURL: (p) => 'file://' + p.replace(/\\/g, '/'),
+    fileURLToPath: (u) => u.startsWith('file:///') ? u.substring(7) : u
+  };
+  // Exportaciones nombradas directas que el build de Astro busca
+  export const pathToFileURL = url.pathToFileURL;
+  export const fileURLToPath = url.fileURLToPath;
+
+  // --- STUBS VACÍOS PARA EL RESTO ---
+  // El resto de los módulos que necesita firebase-admin pueden ser objetos vacíos.
+  export const fs = { promises: {} };
   export const os = {};
   export const crypto = {};
   export const child_process = {};
@@ -28,25 +39,15 @@ const nodePolyfills = `
   export const util = {};
   export const http = {};
   export const https = {};
-  
-  // --- CORRECCIÓN CRUCIAL PARA EL ERROR DE BUILD ---
-  // Implementación mínima compatible para el módulo 'url'
-  export const url = {
-    pathToFileURL: (p) => new URL(p, 'file:///').href,
-    fileURLToPath: (u) => u.startsWith('file:///') ? u.substring(7) : u
-  };
+  export const process = { env: {} };
 
-  // Exportaciones por defecto
+  // Exportación por defecto para compatibilidad
   export default {
-    fs,
-    path,
-    os,
-    crypto,
-    url,
-    process: { env: {} }
+    fs, path, os, crypto, url, process
   };
 `;
 
+// Lista de todos los módulos de Node.js que necesitamos neutralizar
 const nodeBuiltIns = [
   "fs", "path", "os", "crypto", "url", "http", "https", "zlib", "util",
   "stream", "events", "buffer", "querystring", "child_process", "net",
