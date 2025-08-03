@@ -22,7 +22,15 @@
         >
         </p>
       </div>
-      <form id="login-form" class="auth-form" method="POST">
+
+      <form
+        id="login-form"
+        class="auth-form"
+        method="POST"
+        action="/api/auth/login"
+      >
+        <input type="hidden" name="idToken" id="login-id-token" />
+
         <div class="form-group">
           <label for="login-email">Email</label>
           <input
@@ -107,8 +115,6 @@
     const registerView = document.getElementById('register-view');
     const showRegisterLink = document.getElementById('show-register');
     const showLoginLink = document.getElementById('show-login');
-    const loginErrorMsg = document.getElementById('login-error-message');
-    const loginSuccessMsg = document.getElementById('login-success-message');
 
     if (
       !modalOverlay ||
@@ -116,29 +122,25 @@
       !loginView ||
       !registerView ||
       !showRegisterLink ||
-      !showLoginLink ||
-      !loginErrorMsg ||
-      !loginSuccessMsg
+      !showLoginLink
     ) {
       return;
     }
 
     function openModal(view = 'login', successMessage = '') {
-      loginErrorMsg.style.display = 'none';
-      loginSuccessMsg.style.display = 'none';
+      const loginErrorMsg = document.getElementById('login-error-message');
+      const loginSuccessMsg = document.getElementById('login-success-message');
+      if (loginErrorMsg) loginErrorMsg.style.display = 'none';
+      if (loginSuccessMsg) loginSuccessMsg.style.display = 'none';
 
-      if (successMessage) {
+      if (successMessage && loginSuccessMsg) {
         loginSuccessMsg.textContent = successMessage;
         loginSuccessMsg.style.display = 'block';
       }
 
-      if (view === 'login') {
-        loginView.style.display = 'block';
-        registerView.style.display = 'none';
-      } else {
-        loginView.style.display = 'none';
-        registerView.style.display = 'block';
-      }
+      loginView.style.display = view === 'login' ? 'block' : 'none';
+      registerView.style.display = view === 'register' ? 'block' : 'none';
+
       modalOverlay.classList.remove('is-hidden');
       document.body.style.overflow = 'hidden';
     }
@@ -148,16 +150,11 @@
       document.body.style.overflow = '';
     }
 
-    // Escucha el evento global disparado por otros componentes para abrir el modal.
     document.addEventListener('open-auth-modal', (e) => {
       const detail = e.detail || {};
       openModal(detail.view, detail.successMessage);
     });
 
-    // ✅ Escuchar el nuevo evento de cierre global
-    document.addEventListener('close-auth-modal', closeModal);
-
-    // Listeners para los elementos DENTRO del modal
     modalCloseBtn.addEventListener('click', closeModal);
     modalOverlay.addEventListener('click', (e) => {
       if (e.target === modalOverlay) closeModal();
@@ -172,7 +169,6 @@
     });
   }
 
-  // Ejecutamos el setup en cuanto el DOM esté listo.
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', setupAuthModal);
   } else {
@@ -181,7 +177,6 @@
 </script>
 
 <script>
-  // Script para la lógica de Firebase
   import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -215,7 +210,7 @@
       };
 
       loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+        e.preventDefault(); // Prevenimos el envío para obtener el token primero
         loginSubmitBtn.disabled = true;
         btnText.style.display = 'none';
         btnLoader.style.display = 'block';
@@ -238,26 +233,24 @@
           );
           const idToken = await userCredential.user.getIdToken();
 
-          const response = await fetch('/api/auth/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken }),
-          });
+          // Colocamos el token en el campo oculto
+          const idTokenInput = document.getElementById(
+            'login-id-token'
+          ) as HTMLInputElement;
+          idTokenInput.value = idToken;
 
-          if (response.ok) {
-            // ✅ SOLUCIÓN FINAL: Redirección simple y efectiva.
-            // Esto fuerza una nueva petición al servidor, que ahora verá la cookie.
-            window.location.href = '/';
-          } else {
-            showLoginError('Error del servidor al iniciar sesión.');
-          }
-        } catch (error) {
+          // Enviamos el formulario de forma nativa. El servidor se encargará de la redirección.
+          loginForm.submit();
+        } catch (error: unknown) {
           showLoginError('Credenciales incorrectas.');
+          loginSubmitBtn.disabled = false;
+          btnText.style.display = 'inline';
+          btnLoader.style.display = 'none';
         }
       });
     }
 
-    // --- Lógica del Formulario de Registro ---
+    // --- Lógica del Formulario de Registro (sin cambios) ---
     const registerForm = document.getElementById(
       'register-form'
     ) as HTMLFormElement;
@@ -267,7 +260,6 @@
     const registerSubmitBtn = document.getElementById(
       'register-submit-button'
     ) as HTMLButtonElement;
-
     if (registerForm && registerErrorMsg && registerSubmitBtn) {
       const btnText = registerSubmitBtn.querySelector(
         '.button-text'
@@ -275,7 +267,6 @@
       const btnLoader = registerSubmitBtn.querySelector(
         '.button-loader'
       ) as HTMLSpanElement;
-
       const showRegisterError = (message: string) => {
         registerErrorMsg.textContent = message;
         registerErrorMsg.style.display = 'block';
@@ -283,7 +274,6 @@
         btnLoader.style.display = 'none';
         registerSubmitBtn.disabled = false;
       };
-
       registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         registerSubmitBtn.disabled = true;
@@ -295,7 +285,6 @@
         const email = formData.get('email')?.toString().trim();
         const password = formData.get('password')?.toString();
         const confirmPassword = formData.get('confirmPassword')?.toString();
-
         if (!email || !password || !confirmPassword) {
           showRegisterError('Por favor, completa todos los campos.');
           return;
@@ -304,7 +293,6 @@
           showRegisterError('Las contraseñas no coinciden.');
           return;
         }
-
         try {
           await createUserWithEmailAndPassword(auth, email, password);
           document.dispatchEvent(

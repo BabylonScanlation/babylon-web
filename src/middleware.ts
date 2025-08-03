@@ -9,7 +9,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     context.locals.db = getDB(runtime.env);
   }
 
-  // Inicializamos el usuario como indefinido
+  // Inicializar usuario como no autenticado por defecto
   context.locals.user = undefined;
 
   const sessionCookie = context.cookies.get('user_session');
@@ -18,7 +18,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (sessionCookie?.value) {
     context.locals.user = {
       uid: sessionCookie.value,
-      email: null, // El email no es necesario aquí para saber si está logueado
+      email: null, // El email no es necesario para saber si está autenticado
     };
   }
 
