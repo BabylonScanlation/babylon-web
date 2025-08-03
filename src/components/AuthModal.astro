@@ -150,10 +150,12 @@
 
     // Escucha el evento global disparado por otros componentes para abrir el modal.
     document.addEventListener('open-auth-modal', (e) => {
-      // ✅ CORRECCIÓN AQUÍ: Eliminamos la sintaxis de TypeScript (as CustomEvent)
       const detail = e.detail || {};
       openModal(detail.view, detail.successMessage);
     });
+
+    // ✅ Escuchar el nuevo evento de cierre global
+    document.addEventListener('close-auth-modal', closeModal);
 
     // Listeners para los elementos DENTRO del modal
     modalCloseBtn.addEventListener('click', closeModal);
@@ -245,7 +247,14 @@
           });
 
           if (response.ok) {
-            window.location.href = window.location.pathname;
+            // ✅ 1. Cerrar el modal primero para una mejor UX.
+            document.dispatchEvent(new CustomEvent('close-auth-modal'));
+
+            // ✅ 2. Recargar la página con un parámetro anti-caché después de un breve retardo.
+            setTimeout(() => {
+              window.location.href =
+                window.location.pathname + '?t=' + Date.now();
+            }, 300); // 300ms dan tiempo a que la cookie se asiente y el modal se cierre.
           } else {
             showLoginError('Error del servidor al iniciar sesión.');
           }
