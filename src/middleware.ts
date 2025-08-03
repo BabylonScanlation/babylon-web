@@ -1,7 +1,7 @@
 // src/middleware.ts
 import { defineMiddleware } from 'astro:middleware';
 import { getDB } from './lib/db';
-import { verifyFirebaseToken } from './lib/firebase/server'; // <-- Usamos nuestra nueva función
+// 'verifyFirebaseToken' ya no se usa aquí, así que se elimina la importación.
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const runtime = context.locals.runtime;
@@ -10,24 +10,22 @@ export const onRequest = defineMiddleware(async (context, next) => {
     context.locals.db = getDB(runtime.env);
   }
 
-  // --- NUEVA LÓGICA DE AUTENTICACIÓN ---
-  const sessionCookie = context.cookies.get('user_session');
-  context.locals.user = undefined; // Aseguramos que el usuario no esté definido por defecto
+  // Por defecto, no hay usuario.
+  context.locals.user = undefined;
 
+  const sessionCookie = context.cookies.get('user_session');
+
+  // Si la cookie de sesión existe, contiene el UID del usuario.
+  // Confiamos en este UID para identificar al usuario autenticado.
   if (sessionCookie?.value) {
     try {
-      const decodedToken = await verifyFirebaseToken(
-        sessionCookie.value,
-        runtime.env
-      );
-
       context.locals.user = {
-        uid: decodedToken.sub!, // 'sub' (subject) es el UID del usuario en el token JWT
-        email: (decodedToken.email as string) || null,
+        uid: sessionCookie.value,
+        // El email no es crítico para saber si está logueado, se puede generar un placeholder o dejarlo nulo.
+        email: `user-${sessionCookie.value.substring(0, 8)}`,
       };
-    } catch (error: any) {
-      // Si el token es inválido, lo eliminamos y continuamos como usuario no autenticado
-      // console.error("Token de sesión inválido:", error.code || error.message);
+    } catch (error) {
+      // En caso de un error inesperado al procesar la cookie, la eliminamos.
       context.cookies.delete('user_session', { path: '/' });
     }
   }

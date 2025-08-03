@@ -247,14 +247,15 @@
           });
 
           if (response.ok) {
-            // ✅ 1. Cerrar el modal primero para una mejor UX.
+            // ✅ 1. Cerrar el modal primero
             document.dispatchEvent(new CustomEvent('close-auth-modal'));
 
-            // ✅ 2. Recargar la página con un parámetro anti-caché después de un breve retardo.
+            // ✅ 2. Recargar completamente con parámetro anti-caché
             setTimeout(() => {
+              // Usamos window.location.href para asegurar una nueva petición al servidor
               window.location.href =
                 window.location.pathname + '?t=' + Date.now();
-            }, 300); // 300ms dan tiempo a que la cookie se asiente y el modal se cierre.
+            }, 300);
           } else {
             showLoginError('Error del servidor al iniciar sesión.');
           }
