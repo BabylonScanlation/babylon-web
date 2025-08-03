@@ -2,7 +2,7 @@
 import { defineConfig } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
 
-// Módulo virtual que simula los módulos nativos de Node.js de forma más robusta
+// Módulo virtual que simula los módulos nativos de Node.js de forma robusta y definitiva
 const nodePolyfills = `
   // --- Implementaciones mínimas para Astro ---
   export const path = {
@@ -12,22 +12,21 @@ const nodePolyfills = `
     dirname: (p) => p.split('/').slice(0, -1).join('/') || '.',
     basename: (p) => p.split('/').pop() || '',
     extname: (p) => {
-        const base = p.split('/').pop() || '';
-        const parts = base.split('.');
-        return parts.length > 1 ? '.' + parts.pop() : '';
+      const base = p.split('/').pop() || '';
+      const parts = base.split('.');
+      return parts.length > 1 ? '.' + parts.pop() : '';
     }
   };
   export const url = {
     pathToFileURL: (p) => 'file://' + p.replace(/\\\\/g, '/'),
     fileURLToPath: (u) => u.startsWith('file:///') ? u.substring(7) : u
   };
-  
   export const { pathToFileURL, fileURLToPath } = url;
   export const { basename, dirname, extname } = path;
 
-  // --- Polyfills robustos para dependencias de Node.js ---
+  // --- Polyfill robusto de process ---
   const process = {
-    env: {},
+    env: { FORCE_COLOR: '0', NO_COLOR: '1' }, // Desactiva colores proactivamente
     version: 'v18.0.0',
     versions: { node: '18.0.0' },
     on: () => {},
@@ -46,18 +45,42 @@ const nodePolyfills = `
     umask: () => 0,
     nextTick: (cb, ...args) => Promise.resolve().then(() => cb(...args)),
     platform: 'linux',
-    stdout: { isTTY: false, write: () => true, columns: 80, rows: 24, on: ()=>{} },
-    stderr: { isTTY: false, write: () => true, columns: 80, rows: 24, on: ()=>{} },
+    stdout: {
+      isTTY: false,
+      write: () => true,
+      columns: 80,
+      rows: 24,
+      on: ()=>{},
+      // ¡Crucial! Métodos de conversión a primitivos
+      [Symbol.toPrimitive]: () => '[object process.stdout]',
+      toString: () => '[object process.stdout]',
+      valueOf: () => null
+    },
+    stderr: {
+      isTTY: false,
+      write: () => true,
+      columns: 80,
+      rows: 24,
+      on: ()=>{},
+      // ¡Crucial! Métodos de conversión a primitivos
+      [Symbol.toPrimitive]: () => '[object process.stderr]',
+      toString: () => '[object process.stderr]',
+      valueOf: () => null
+    },
     argv: ['/usr/bin/node'],
-    getuid: () => 0,
-    getgid: () => 0,
-    geteuid: () => 0,
-    getegid: () => 0,
-    getgroups: () => [],
-    features: {}
   };
+
+  // Asignar a global para compatibilidad con librerías de Node.js
+  if (typeof globalThis.process === 'undefined') {
+    globalThis.process = process;
+  }
+  if (typeof global === 'undefined') {
+    globalThis.global = globalThis;
+  }
+  
   export { process };
 
+  // --- Stubs vacíos para el resto ---
   export const fs = { promises: {} };
   export const os = { homedir: () => '/' };
   export const crypto = {};
@@ -78,7 +101,6 @@ const nodePolyfills = `
   export default { fs, path, os, crypto, url, process };
 `;
 
-// Lista de todos los módulos de Node.js que necesitamos neutralizar
 const nodeBuiltIns = [
   "fs", "path", "os", "crypto", "url", "http", "https", "zlib", "util",
   "stream", "events", "buffer", "querystring", "child_process", "net",
@@ -88,9 +110,7 @@ const nodeBuiltIns = [
 export default defineConfig({
   output: 'server',
   adapter: cloudflare({
-    platformProxy: {
-      enabled: true,
-    },
+    platformProxy: { enabled: true },
     imageService: "cloudflare",
   }),
   vite: {
