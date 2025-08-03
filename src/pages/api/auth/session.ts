@@ -1,4 +1,3 @@
-// src/pages/api/auth/session.ts
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { verifyFirebaseToken } from '@lib/firebase/server';
@@ -23,7 +22,7 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
     const { env } = locals.runtime;
 
     const decodedToken = await verifyFirebaseToken(idToken, env);
-    const uid = decodedToken.sub; // 'sub' es el UID en el token JWT
+    const uid = decodedToken.sub;
 
     if (!uid) {
       return new Response(

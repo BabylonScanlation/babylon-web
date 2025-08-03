@@ -1,4 +1,3 @@
-// src/middleware.ts
 import { defineMiddleware } from 'astro:middleware';
 import { getDB } from './lib/db';
 
