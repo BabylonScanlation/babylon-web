@@ -2,9 +2,9 @@
 import { defineConfig } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
 
-// Módulo virtual que simula los módulos nativos de Node.js de forma más inteligente
+// Módulo virtual que simula los módulos nativos de Node.js de forma más robusta
 const nodePolyfills = `
-  // --- IMPLEMENTACIONES MÍNIMAS PARA ASTRO Y LIBS ---
+  // --- Implementaciones mínimas para Astro y sus dependencias ---
   export const path = {
     sep: '/',
     join: (...args) => args.filter(Boolean).join('/'),
@@ -21,16 +21,14 @@ const nodePolyfills = `
     pathToFileURL: (p) => 'file://' + p.replace(/\\\\/g, '/'),
     fileURLToPath: (u) => u.startsWith('file:///') ? u.substring(7) : u
   };
+  
+  // Exportaciones nombradas directas que el build de Astro busca
+  export const { pathToFileURL, fileURLToPath } = url;
+  export const { basename, dirname, extname } = path;
 
-  export const pathToFileURL = url.pathToFileURL;
-  export const fileURLToPath = url.fileURLToPath;
-  export const basename = path.basename;
-  export const dirname = path.dirname;
-  export const extname = path.extname;
-
-  // --- STUBS VACÍOS Y CORRECCIÓN PARA EL ERROR 500 ---
+  // --- Stubs y Polyfills para el resto de dependencias ---
   export const fs = { promises: {} };
-  export const os = {};
+  export const os = { homedir: () => '/' };
   export const crypto = {};
   export const child_process = {};
   export const net = {};
@@ -40,14 +38,23 @@ const nodePolyfills = `
   export const zlib = {};
   export const stream = {};
   export const assert = {};
-  export const buffer = {};
+  export const buffer = { Buffer: {} };
   export const querystring = {};
-  export const util = {};
+  export const util = { inspect: () => '' };
   export const http = {};
   export const https = {};
-
-  // ¡ESTA ES LA CORRECCIÓN CLAVE PARA EL ERROR 500!
-  export const process = { env: {}, stdout: null };
+  
+  // --- CORRECCIÓN CLAVE PARA EL ERROR 500 DE EJECUCIÓN ---
+  // Una simulación más completa del objeto 'process'
+  export const process = {
+    env: {},
+    stdout: { isTTY: false, write: () => {} },
+    stderr: { isTTY: false, write: () => {} },
+    cwd: () => '/',
+    nextTick: (cb) => Promise.resolve().then(cb),
+    on: () => {},
+    platform: 'linux'
+  };
 
   // Exportación por defecto para compatibilidad
   export default {
@@ -55,6 +62,7 @@ const nodePolyfills = `
   };
 `;
 
+// Lista de todos los módulos de Node.js que necesitamos neutralizar
 const nodeBuiltIns = [
   "fs", "path", "os", "crypto", "url", "http", "https", "zlib", "util",
   "stream", "events", "buffer", "querystring", "child_process", "net",
@@ -80,10 +88,7 @@ export default defineConfig({
           find: new RegExp(`^node:${id}$`),
           replacement: 'virtual:node-polyfills'
         })),
-        {
-          find: 'node:fs/promises',
-          replacement: 'virtual:node-polyfills'
-        }
+        { find: 'node:fs/promises', replacement: 'virtual:node-polyfills' }
       ]
     },
     plugins: [
