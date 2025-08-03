@@ -1,0 +1,126 @@
+---
+// src/components/UpdateCard.astro
+import Image from './Image.astro';
+import type { Series } from '../types';
+
+interface Props {
+  series: Series;
+}
+
+const { series } = Astro.props;
+
+function timeAgo(dateString: string) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  let interval = seconds / 31536000;
+if (interval > 1) return `hace ${Math.floor(interval)} años`;
+  interval = seconds / 2592000;
+if (interval > 1) return `hace ${Math.floor(interval)} meses`;
+  interval = seconds / 86400;
+if (interval > 1) return `hace ${Math.floor(interval)} días`;
+  interval = seconds / 3600;
+if (interval > 1) return `hace ${Math.floor(interval)} horas`;
+  interval = seconds / 60;
+if (interval > 1) return `hace ${Math.floor(interval)} minutos`;
+  return `hace ${Math.floor(seconds)} segundos`;
+}
+
+interface ChapterInfo {
+  number: number;
+  createdAt: string;
+}
+---
+
+<a href={`/series/${series.slug}`} class="update-card">
+  <div class="card-background">
+    <Image 
+      src={series.cover_image_url} 
+      alt={`Portada de ${series.title}`} 
+      width={400} 
+      height={600} 
+      loading="lazy" 
+    />
+  </div>
+  <div class="card-overlay">
+    <h3 class="series-title">{series.title}</h3>
+    <div class="chapters-info">
+      {series.chapters && series.chapters.map((chapter: ChapterInfo) => (
+        <div class="chapter-details">
+          <span>Capítulo {chapter.number}</span>
+   
+       <time>{timeAgo(chapter.createdAt)}</time>
+        </div>
+      ))}
+    </div>
+  </div>
+</a>
+
+<style>
+  .update-card {
+    display: block;
+position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 2 / 3;
+    transition: transform 0.2s ease-in-out;
+}
+  .update-card:hover {
+    transform: translateY(-5px);
+  }
+  .card-background {
+    position: absolute;
+    top: 0;
+left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .card-background img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+  .card-overlay {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 0.5rem;
+    right: 0.5rem;
+    border-radius: 12px;
+    padding: 0.75rem;
+    background: rgba(20, 20, 20, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+  .series-title {
+    font-size: 1rem; /* Reducido para consistencia */
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 0.5rem; /* Reducido */
+    white-space: nowrap;
+    overflow: hidden;
+text-overflow: ellipsis;
+  }
+  .chapters-info {
+    display: flex;
+    justify-content: space-around;
+    gap: 0.75rem; /* Reducido */
+}
+  .chapter-details {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.8rem; /* Reducido */
+}
+  .chapter-details span {
+    color: #fff;
+  }
+  .chapter-details time {
+    color: #ccc;
+font-size: 0.7rem; /* Reducido */
+    margin-top: 0.15rem; /* Reducido */
+  }
+</style>

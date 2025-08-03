@@ -1,0 +1,213 @@
+---
+// src/pages/admin/comments.astro
+import Layout from '../../layouts/Layout.astro';
+
+const sessionCookie = Astro.cookies.get('session');
+if (sessionCookie?.value !== 'admin-logged-in') {
+  return Astro.redirect('/admin-login');
+}
+
+interface Comment {
+  id: number;
+  user_email: string;
+  comment_text: string;
+}
+interface Chapter {
+  id: number;
+  chapter_number: number;
+  comments: Comment[];
+}
+interface Series {
+  id: number;
+  title: string;
+  chapters: Chapter[];
+  seriesComments: Comment[];
+}
+
+let allSeries: Series[] = [];
+
+try {
+  const response = await fetch(new URL('/api/admin/series-with-chapters', Astro.url), {
+    headers: { 'Cookie': `session=${sessionCookie.value}` }
+  });
+
+  if (response.ok) {
+    allSeries = await response.json();
+  }
+} catch (e) {
+  console.error(e);
+}
+---
+
+<Layout title="Gestionar Comentarios">
+  <main class="admin-container">
+    <a href="/admin" class="back-link">&larr; Volver al Panel</a>
+    <h1>Gestionar Comentarios</h1>
+    <p class="description">
+      Aquí puedes moderar todos los comentarios del sitio.
+      Despliega una serie y luego un capítulo para ver y eliminar los comentarios asociados.
+    </p>
+
+    <div class="series-grid">
+      {allSeries.map(series => {
+        const seriesCommentsCount = series.seriesComments.length;
+        const chaptersCommentsCount = series.chapters.flatMap(c => c.comments).length;
+        const totalComments = seriesCommentsCount + chaptersCommentsCount;
+        return (
+        <details class="series-details-main">
+          <summary class="series-summary">
+            <span class="summary-title">{series.title}</span>
+        
+            {/* ✅ TÍTULO MODIFICADO CON EL TOTAL */}
+            <div class="summary-meta">
+              <span class="summary-separator">|</span>
+              <span class="total-count">En Total: {totalComments}</span>
+              <span class="summary-separator">|</span>
+              <span>De la Serie: {seriesCommentsCount}</span>
+            
+              <span class="summary-separator">|</span>
+              <span>En Capítulos: {chaptersCommentsCount}</span>
+            </div>
+          </summary>
+          <div class="series-content-panel">
+            <div class="comment-group">
+              {series.seriesComments.length > 0 ? (
+                series.seriesComments.map(comment => (
+                  <div class="comment-item">
+                    <div class="comment-info">
+                      <span class="comment-author">{comment.user_email.split('@')[0]}:</span>
+                   
+                       <p class="comment-text">{comment.comment_text}</p>
+                    </div>
+                    <form action="/api/comments/series/delete" method="post" onsubmit="return confirm('¿Eliminar este comentario de la serie?');">
+                      <input type="hidden" name="commentId" value={comment.id} />
+                     
+                      <button type="submit" class="delete-comment-btn" title="Eliminar Comentario">X</button>
+                    </form>
+                  </div>
+                ))
+              ) : <p class="no-comments">No hay comentarios para esta serie.</p>}
+            </div>
+
+       
+            {series.chapters.map(chapter => (
+              <details class="chapter-details">
+                <summary class="chapter-summary">
+                  <span class="summary-title">Capítulo {chapter.chapter_number}</span>
+                   <div class="summary-meta">
+                    <span class="summary-separator">|</span>
+                    <span>{chapter.comments.length} Comentarios</span>
+                  </div>
+                </summary>
+                <div class="chapter-content-panel">
+                  {chapter.comments.length > 0 ? (
+                    chapter.comments.map(comment => (
+                      <div class="comment-item">
+                        <div class="comment-info">
+                          <span class="comment-author">{comment.user_email.split('@')[0]}:</span>
+   
+                          <p class="comment-text">{comment.comment_text}</p>
+                        </div>
+                        <form action="/api/comments/delete" method="post" onsubmit="return confirm('¿Eliminar este comentario de capítulo?');">
+                    
+                          <input type="hidden" name="commentId" value={comment.id} />
+                          <button type="submit" class="delete-comment-btn" title="Eliminar Comentario">X</button>
+                        </form>
+                      </div>
+              
+                    ))
+                  ) : <p class="no-comments">No hay comentarios en este capítulo.</p>}
+                </div>
+              </details>
+            ))}
+          </div>
+        </details>
+      )})}
+  
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .admin-container { padding: 2rem; max-width: 1200px; margin: 0 auto;
+  }
+  h1 { margin-bottom: 0.5rem; }
+  .description { margin-bottom: 1.5rem; color: #aaa; }
+  .back-link { display: inline-block;
+  margin-bottom: 1.5rem; color: var(--accent-color); }
+  
+  .series-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .series-details-main {
+    background-color: var(--card-background);
+    border-radius: 8px;
+    border: 1px solid #333;
+  }
+
+  /* --- ESTILOS PARA LOS TÍTULOS --- */
+  .series-summary, .chapter-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    gap: 1rem;
+  }
+  .series-summary { font-size: 1.2rem;
+  }
+  .chapter-summary {
+    font-size: 1rem;
+    padding: 0.75rem 1.5rem;
+    background-color: #2a2a2a;
+    border-top: 1px solid #444;
+    border-bottom: 1px solid #444;
+  }
+  .summary-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .summary-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: normal;
+    color: #ccc;
+    flex-shrink: 0;
+  }
+  .summary-separator {
+    color: #555;
+  }
+  /* ✅ ESTILO PARA EL CONTADOR TOTAL */
+  .total-count {
+    font-weight: bold;
+    color: #fff;
+  }
+  
+  .series-content-panel { padding: 0; }
+  .chapter-details { margin: 0;
+  }
+  
+  .chapter-content-panel, .comment-group {
+    padding: 1rem 1.5rem;
+  }
+  .chapter-content-panel { background-color: #222;
+  }
+  
+  .comment-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding: 0.75rem; background-color: #333; border-radius: 4px;
+  margin-bottom: 0.5rem; }
+  .comment-info { flex-grow: 1; }
+  .comment-author { font-size: 0.8rem; font-weight: bold; color: #ccc;
+  }
+  .comment-text { font-size: 0.9rem; color: #eee; margin-top: 0.25rem; word-break: break-word; }
+  .delete-comment-btn { background: #c0392b; color: white;
+  border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 0.8rem; font-weight: bold; cursor: pointer; flex-shrink: 0; line-height: 24px; padding: 0;
+  }
+  .no-comments { font-style: italic; color: #888; padding: 0.5rem; }
+</style>

@@ -1,0 +1,105 @@
+---
+const currentYear = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-left"></div>
+    <div class="footer-center">
+      <p>&copy;
+{currentYear} Babylon S.L. - Todos los derechos reservados.</p>
+    </div>
+    <div class="footer-right">
+      <a href="#" class="patreon" aria-label="Patreon" title="Patreon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15.385 1.224c-3.99 0-7.227 3.238-7.227 7.228s3.237 7.228 7.227 7.228c3.99 0 7.227-3.238 7.227-7.228S19.375 1.224 15.385 1.224zM2.625 1.224H.11v21.552h2.515V1.224z"></path></svg>
+      </a>
+      <a href="https://www.facebook.com/people/De-Todo-Un-Poco-Scan/100089537409290/" class="facebook" aria-label="Facebook" title="Facebook">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M22.675 0h-21.35C.585 0 0 .585 0 1.325v21.351C0 23.415.585 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 
+0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.74 0 1.325-.585 1.325-1.325V1.325C24 .585 23.415 0 22.675 0z"></path></svg>
+      </a>
+      <a href="https://www.discord.gg/TpYcuqY7EV" class="discord" aria-label="Discord" title="Discord">
+        <img src="https://cdn.simpleicons.org/discord/%235865F2" alt="Discord Logo" />
+      </a>
+      <a href="https://www.twitter.com/BabylonScan" class="x-twitter" aria-label="X (Twitter)" title="X (Twitter)">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
+      </a>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    /* --- CAMBIO DE COLOR AQUÍ --- */
+    background-color: var(--deep-black);
+    border-top: 1px solid #333;
+    padding: 0.75rem 0;
+    margin-top: 1rem;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    display: flex;
+justify-content: space-between;
+    align-items: center;
+  }
+  .footer-left,
+  .footer-right {
+    flex: 1;
+}
+  .footer-center {
+    flex-shrink: 0;
+  }
+  .footer-center p {
+    color: #aaa;
+font-size: 0.9rem;
+  }
+  .footer-right {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+  .footer-right a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+  .footer-right svg,
+  .footer-right img {
+    width: 100%;
+    height: 100%;
+    transition: filter 0.2s ease-in-out;
+}
+  .patreon { color: #f96854; }
+  .facebook { color: #1877F2; }
+  .discord { color: #5865F2;
+}
+  .x-twitter { color: #ffffff; }
+
+  .footer-right a:hover svg,
+  .footer-right a:hover img {
+    filter: brightness(1.2) saturate(1.2);
+}
+
+  @media (max-width: 768px) {
+    .container {
+      flex-direction: column;
+      gap: 0.75rem;
+}
+    .footer-left, .footer-right {
+      flex: none;
+      width: 100%;
+}
+    .footer-center {
+      order: 2;
+}
+    .footer-right {
+      order: 1;
+      justify-content: center;
+}
+    .footer-left {
+        display: none;
+    }
+  }
+</style>

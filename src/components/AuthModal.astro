@@ -1,0 +1,412 @@
+---
+// src/components/AuthModal.astro
+---
+<div id="auth-modal-overlay" class="auth-modal-overlay is-hidden">
+  <div id="auth-modal-card" class="auth-card">
+    <button id="auth-modal-close" class="close-btn">&times;</button>
+    
+    {/* Contenedor del Formulario de Login */}
+    <div id="login-view">
+      <h2>Iniciar Sesión</h2>
+      <div class="message-container">
+        <p id="login-error-message" class="error-message" style="display: none;"></p>
+      </div>
+      <form id="login-form" class="auth-form">
+        <div class="form-group">
+          <label for="email">Email</label>
+       
+   <input type="email" name="email" id="login-email" placeholder="tu@email.com" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <input type="password" name="password" id="login-password" required />
+        </div>
+        <button type="submit" id="login-submit-button">
+          <span class="button-text">Entrar</span>
+          <span class="button-loader"></span>
+        
+</button>
+      </form>
+      <div class="form-footer">
+        <p>¿No tienes una cuenta?
+<a href="#" id="show-register">Regístrate aquí</a></p>
+      </div>
+    </div>
+
+    {/* Contenedor del Formulario de Registro */}
+    <div id="register-view" style="display: none;">
+      <h2>Crear Cuenta</h2>
+      <div class="message-container">
+        <p id="register-error-message" class="error-message" style="display: none;"></p>
+      </div>
+      <form id="register-form" class="auth-form">
+        <div class="form-group">
+          <label for="reg-email">Email</label>
+          
+<input type="email" name="email" id="reg-email" placeholder="nombre@ejemplo.com" required />
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Contraseña</label>
+          <input type="password" name="password" id="reg-password" required />
+        </div>
+        <div class="form-group">
+          <label for="reg-confirm-password">Confirmar Contraseña</label>
+          <input type="password" name="confirmPassword" id="reg-confirm-password" required />
+       
+ </div>
+        <button type="submit" id="register-submit-button">
+            <span class="button-text">Registrarse</span>
+            <span class="button-loader"></span>
+        </button>
+      </form>
+      <div class="form-footer">
+        <p>¿Ya tienes una cuenta?
+<a href="#" id="show-login">Inicia sesión</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+  import { auth } from "@lib/firebase/client";
+
+  // --- Lógica General de la Modal ---
+  const modalOverlay = document.getElementById('auth-modal-overlay');
+  const modalCloseBtn = document.getElementById('auth-modal-close');
+  const loginView = document.getElementById('login-view');
+  const registerView = document.getElementById('register-view');
+  const showRegisterLink = document.getElementById('show-register');
+  const showLoginLink = document.getElementById('show-login');
+
+  function openModal(view = 'login') {
+    if (!modalOverlay || !loginView || !registerView) return;
+    if (view === 'login') {
+      loginView.style.display = 'block';
+      registerView.style.display = 'none';
+    } else {
+      loginView.style.display = 'none';
+      registerView.style.display = 'block';
+    }
+    modalOverlay.classList.remove('is-hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    if (!modalOverlay) return;
+    modalOverlay.classList.add('is-hidden');
+    document.body.style.overflow = '';
+  }
+
+  // Event Listeners para abrir/cerrar/cambiar vistas
+  document.addEventListener('click', (e) => {
+    if (!(e.target instanceof Element)) return;
+
+    if (e.target.matches('[data-open-modal]')) {
+      e.preventDefault();
+      const view = e.target.getAttribute('data-open-modal') || 'login';
+      openModal(view);
+    }
+  });
+
+  document.getElementById('login-btn-header')?.addEventListener('click', (e) => { e.preventDefault(); openModal('login'); });
+  document.getElementById('register-btn-header')?.addEventListener('click', (e) => { e.preventDefault(); openModal('register'); });
+  modalCloseBtn?.addEventListener('click', closeModal);
+  modalOverlay?.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+  showRegisterLink?.addEventListener('click', (e) => { e.preventDefault(); openModal('register'); });
+  showLoginLink?.addEventListener('click', (e) => { e.preventDefault(); openModal('login'); });
+
+  // --- Lógica del Formulario de Login ---
+  const loginForm = document.getElementById("login-form");
+  const loginErrorMsg = document.getElementById("login-error-message");
+  const loginSubmitBtn = document.getElementById('login-submit-button') as HTMLButtonElement | null;
+
+  if (loginForm instanceof HTMLFormElement && loginErrorMsg && loginSubmitBtn) {
+    const btnText = loginSubmitBtn.querySelector('.button-text');
+    const btnLoader = loginSubmitBtn.querySelector('.button-loader');
+    
+    const showLoginError = (message: string) => {
+        loginErrorMsg.textContent = message;
+        loginErrorMsg.style.display = 'block';
+        if (btnText instanceof HTMLElement) btnText.style.display = 'inline';
+        if (btnLoader instanceof HTMLElement) btnLoader.style.display = 'none';
+        if(loginSubmitBtn) loginSubmitBtn.disabled = false;
+    };
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if(loginSubmitBtn) loginSubmitBtn.disabled = true;
+      if (btnText instanceof HTMLElement) btnText.style.display = 'none';
+      if (btnLoader instanceof HTMLElement) btnLoader.style.display = 'block';
+      loginErrorMsg.style.display = 'none';
+
+      const formData = new FormData(loginForm);
+      const email = formData.get("email")?.toString().trim();
+      const password = formData.get("password")?.toString();
+
+      if (!email || !password) {
+        showLoginError("Por favor, completa todos los campos.");
+        return;
+      }
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const idToken = await userCredential.user.getIdToken();
+        const response = await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        });
+        if (response.ok) {
+          window.location.href = "/";
+        } else {
+          const errorData = await response.json().catch(() => ({ error: 'Error desconocido' })) as { error?: string };
+          showLoginError(errorData.error || "Error del servidor al iniciar sesión.");
+        }
+      } catch (error: any) {
+        if (error instanceof Error && 'code' in error) {
+          switch (error.code) {
+            case 'auth/invalid-credential':
+              showLoginError("Email o contraseña incorrectos.");
+              break;
+            default:
+              showLoginError("No se pudo iniciar sesión. Verifica tus datos.");
+          }
+        } else {
+          showLoginError("Ocurrió un error inesperado.");
+        }
+      }
+    });
+  }
+
+  // --- Lógica del Formulario de Registro ---
+  const registerForm = document.getElementById("register-form");
+  const registerErrorMsg = document.getElementById("register-error-message");
+  const registerSubmitBtn = document.getElementById('register-submit-button') as HTMLButtonElement | null;
+  
+  if (registerForm instanceof HTMLFormElement && registerErrorMsg && registerSubmitBtn) {
+    const btnText = registerSubmitBtn.querySelector('.button-text');
+    const btnLoader = registerSubmitBtn.querySelector('.button-loader');
+
+    const showRegisterError = (message: string) => {
+      registerErrorMsg.textContent = message;
+      registerErrorMsg.style.display = 'block';
+      if (btnText instanceof HTMLElement) btnText.style.display = 'inline';
+      if (btnLoader instanceof HTMLElement) btnLoader.style.display = 'none';
+      if(registerSubmitBtn) registerSubmitBtn.disabled = false;
+    };
+    
+    registerForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if(registerSubmitBtn) registerSubmitBtn.disabled = true;
+      if (btnText instanceof HTMLElement) btnText.style.display = 'none';
+      if (btnLoader instanceof HTMLElement) btnLoader.style.display = 'block';
+      registerErrorMsg.style.display = 'none';
+
+      const formData = new FormData(registerForm);
+      const email = formData.get("email")?.toString().trim();
+      const password = formData.get("password")?.toString();
+      const confirmPassword = formData.get("confirmPassword")?.toString();
+
+      if (!email || !password || !confirmPassword) {
+        showRegisterError("Por favor, completa todos los campos.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        showRegisterError("Las contraseñas no coinciden.");
+        return;
+      }
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const idToken = await userCredential.user.getIdToken();
+        const response = await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        });
+        if (response.ok) {
+          // Cambia a la vista de login con mensaje de éxito
+          openModal('login');
+          const loginSuccessMsg = document.getElementById('login-error-message');
+          if (loginSuccessMsg) {
+            // ✅ CORRECCIÓN: La cadena de texto ahora está en una sola línea.
+            loginSuccessMsg.textContent = '¡Registro exitoso! Ahora puedes iniciar sesión.';
+            loginSuccessMsg.className = 'success-message';
+            loginSuccessMsg.style.display = 'block';
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({ error: 'Error desconocido' })) as { error?: string };
+          showRegisterError(errorData.error || "Error del servidor al crear la sesión.");
+        }
+      } catch (error: any) {
+        if (error instanceof Error && 'code' in error) {
+          switch (error.code) {
+            case 'auth/email-already-in-use':
+              showRegisterError("Este email ya está registrado.");
+              break;
+            case 'auth/weak-password':
+              showRegisterError("La contraseña debe tener al menos 6 caracteres.");
+              break;
+            default:
+              showRegisterError("Error al registrar la cuenta. Inténtalo más tarde.");
+          }
+        } else {
+          showRegisterError("Ocurrió un error inesperado.");
+        }
+      }
+    });
+  }
+</script>
+
+<style>
+.auth-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+opacity: 1;
+  transition: opacity 0.3s ease-in-out;
+}
+.auth-modal-overlay.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.auth-card {
+  position: relative;
+  background-color: var(--card-background);
+padding: 2.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.5);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  color: var(--font-color);
+transform: scale(1);
+  transition: transform 0.3s ease-in-out;
+}
+.auth-modal-overlay.is-hidden .auth-card {
+  transform: scale(0.95);
+}
+.close-btn {
+  position: absolute;
+  top: 10px;
+right: 15px;
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 2.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.auth-card h2 {
+  font-size: 1.8rem;
+}
+.message-container {
+  min-height: 40px;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.auth-form {
+  display: flex;
+  flex-direction: column;
+gap: 1.25rem;
+}
+.form-group {
+  text-align: left;
+}
+.auth-form label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #ccc;
+margin-bottom: 0.25rem;
+}
+.auth-form input {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #333;
+  border: 1px solid #555;
+  color: var(--font-color);
+  border-radius: 4px;
+font-size: 1rem;
+  transition: border-color 0.2s;
+}
+.auth-form input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+.auth-form button {
+  position: relative;
+padding: 0.75rem 1.5rem;
+  background-color: var(--accent-color);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+margin-top: 0.5rem;
+  min-height: 44px;
+}
+.auth-form button:hover:not(:disabled) {
+  background-color: #009acd;
+}
+.auth-form button:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+.button-loader {
+  display: none;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+@keyframes spin {
+  to { transform: rotate(360deg);
+}
+}
+.success-message, .error-message {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+.success-message {
+  color: #2ecc71;
+background-color: rgba(46, 204, 113, 0.1);
+}
+.error-message {
+  color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.1);
+}
+.form-footer {
+  margin-top: 1.5rem;
+font-size: 0.9rem;
+  color: #aaa;
+}
+.form-footer a {
+  color: var(--accent-color);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+.form-footer a:hover {
+  text-decoration: underline;
+}
+</style>

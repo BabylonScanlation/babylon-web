@@ -1,0 +1,1007 @@
+---
+// src/pages/series/[slug]/[chapter]/index.astro
+import Layout from '../../../../layouts/Layout.astro';
+import Comments from '../../../../components/Comments.astro';
+
+// --- Interfaces para la forma de los datos ---
+interface Chapter {
+  chapter_number: number;
+  title: string | null;
+}
+interface SeriesData {
+  chapters: Chapter[];
+  title: string;
+}
+interface ChapterAPIResponse {
+  seriesId: number;
+  chapterId: number;
+  imageUrls?: string[];
+  message?: string;
+  error?: string;
+}
+interface Comment {
+  id: number;
+  user_email: string;
+  comment_text: string;
+  created_at: string;
+}
+
+const { slug, chapter } = Astro.params;
+const user = Astro.locals.user;
+// --- Variables de Estado para la Página ---
+let pageImageUrls: string[] = [];
+let error: string | null = null;
+let loadingMessage: string | null = null;
+let seriesId: number | null = null;
+let chapterId: number | null = null;
+let isProcessing = false;
+let allChapters: Chapter[] = [];
+let seriesTitle: string | null = null;
+let comments: Comment[] = [];
+
+try {
+  // Obtenemos la información general de la serie
+  const seriesResponse = await fetch(new URL(`/api/series/${slug}`, Astro.url));
+  if (seriesResponse.ok) {
+    const seriesData = (await seriesResponse.json()) as SeriesData;
+    allChapters = seriesData.chapters || [];
+    seriesTitle = seriesData.title;
+  }
+
+  // Hacemos la primera petición para saber el estado del capítulo
+  const chapterResponse = await fetch(
+    new URL(`/api/series/${slug}/${chapter}`, Astro.url)
+  );
+  const data = (await chapterResponse.json()) as ChapterAPIResponse;
+
+  seriesId = data.seriesId;
+  chapterId = data.chapterId;
+  if (chapterResponse.status === 200 && data.imageUrls) {
+    isProcessing = false;
+    pageImageUrls = data.imageUrls;
+    if (chapterId) {
+      const commentsResponse = await fetch(
+        new URL(`/api/comments/${chapterId}`, Astro.url)
+      );
+      if (commentsResponse.ok) {
+        comments = await commentsResponse.json();
+      }
+    }
+  } else if (chapterResponse.status === 202) {
+    isProcessing = true;
+    loadingMessage =
+      data.message || 'El capítulo se está preparando. ¡Un momento, por favor!';
+  } else {
+    error =
+      data.error ||
+      `No se pudo cargar el capítulo. (Error: ${chapterResponse.status})`;
+  }
+} catch (e) {
+  console.error(e);
+  error = 'Ocurrió un error crítico al contactar con el servidor.';
+}
+
+// Lógica para los botones de capítulo siguiente/anterior
+const currentChapterNumber = parseFloat(chapter!);
+const currentChapterIndex = allChapters.findIndex(
+  (c) => c.chapter_number === currentChapterNumber
+);
+
+let nextChapterUrl: string | null = null;
+if (currentChapterIndex > 0) {
+  const nextChapter = allChapters[currentChapterIndex - 1];
+  if (nextChapter) {
+    nextChapterUrl = `/series/${slug}/${nextChapter.chapter_number}`;
+  }
+}
+
+let prevChapterUrl: string | null = null;
+if (
+  currentChapterIndex !== -1 &&
+  currentChapterIndex < allChapters.length - 1
+) {
+  const prevChapter = allChapters[currentChapterIndex + 1];
+  if (prevChapter) {
+    prevChapterUrl = `/series/${slug}/${prevChapter.chapter_number}`;
+  }
+}
+---
+
+<Layout title={`Leyendo ${seriesTitle ?? 'Serie'} - Cap. ${chapter}`}>
+  <div class="reader-top-nav-wrapper" id="reader-top-nav-wrapper">
+    <div class="reader-top-nav">
+      <a
+        href={`/series/${slug}`}
+        class="back-to-series"
+        title={seriesTitle ?? ''}
+      >
+        {seriesTitle}
+      </a>
+      <div class="chapter-nav">
+        <a
+          href={prevChapterUrl ?? '#'}
+          class:list={{ disabled: !prevChapterUrl }}
+          title="Capítulo Anterior"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </a>
+        <span class="chapter-number">Capítulo {chapter}</span>
+        <a
+          href={nextChapterUrl ?? '#'}
+          class:list={{ disabled: !nextChapterUrl }}
+          title="Capítulo Siguiente"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="reader-controls" id="reader-controls">
+    <div class="controls-menu" id="controls-menu">
+      <button id="config-btn" class="control-btn" data-tooltip="Configuración">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="3" y1="12" x2="13" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="nav-divider"></div>
+      <button
+        id="scroll-top-btn"
+        class="control-btn"
+        data-tooltip="Subir al inicio"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="12" y1="19" x2="12" y2="5"></line>
+          <polyline points="5 12 12 5 19 12"></polyline>
+        </svg>
+      </button>
+      <button
+        id="scroll-bottom-btn"
+        class="control-btn"
+        data-tooltip="Bajar al final"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <polyline points="19 12 12 19 5 12"></polyline>
+        </svg>
+      </button>
+    </div>
+    <button id="menu-toggle-btn" class="control-btn main-toggle">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+
+  <div id="config-modal" class="config-modal-overlay" style="display: none;">
+    <div class="config-modal-panel">
+      <h3>Configuración de Lectura</h3>
+      <div class="config-option">
+        <label>Modo de vista:</label>
+        <div class="radio-group">
+          <input
+            type="radio"
+            id="mode-cascade"
+            name="view-mode"
+            value="cascade"
+            checked
+          />
+          <label for="mode-cascade">Cascada</label>
+          <input
+            type="radio"
+            id="mode-single"
+            name="view-mode"
+            value="single"
+          />
+          <label for="mode-single">Página única</label>
+        </div>
+      </div>
+      <div class="config-option-col">
+        <label for="width-slider"
+          >Ancho del lector (<span id="width-value">80%</span>)</label
+        >
+        <input
+          type="range"
+          id="width-slider"
+          min="40"
+          max="100"
+          value="80"
+          step="5"
+        />
+      </div>
+      <div class="modal-actions">
+        <button id="save-settings-btn">Guardar</button>
+        <button id="close-modal-btn">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="content-sizer" class="content-sizer">
+    <main class="reader-container" id="reader-container">
+      {error && <p class="error-message">{error}</p>}
+
+      {
+        isProcessing && (
+          <div class="loading-overlay">
+            <div class="spinner" />
+            <p class="loading-text">{loadingMessage}</p>
+            <div class="progress-bar-container">
+              <div class="progress-bar" />
+            </div>
+            <p class="loading-subtext">
+              Esto solo ocurrirá la primera vez que se cargue el capítulo.
+              ¡Gracias por tu paciencia!
+            </p>
+          </div>
+        )
+      }
+
+      <div id="nav-visibility-top-sentinel"></div>
+
+      <div
+        id="cascade-view"
+        class="pages"
+        style={isProcessing ? 'display: none;' : ''}
+      >
+        {
+          pageImageUrls.map((url) => (
+            <div class="image-container" style="aspect-ratio: 700 / 1000;">
+              <img src={url} alt={`Página del manga`} loading="lazy" />
+            </div>
+          ))
+        }
+      </div>
+
+      <div
+        id="single-page-view"
+        class="pages-single"
+        style={isProcessing ? 'display: none;' : 'display: none;'}
+      >
+        <img id="single-page-image" src="" alt="Página del manga" />
+        <div class="single-page-nav">
+          <button id="prev-page-btn" title="Página Anterior">&lt;</button>
+          <span id="page-counter"></span>
+          <button id="next-page-btn" title="Página Siguiente">&gt;</button>
+        </div>
+      </div>
+
+      {
+        !error && !isProcessing && pageImageUrls.length === 0 && (
+          <p>Cargando páginas...</p>
+        )
+      }
+    </main>
+
+    {
+      pageImageUrls.length > 0 && chapterId && (
+        <div class="comments-wrapper" id="comments-wrapper">
+          <Comments comments={comments} chapterId={chapterId} user={user} />
+        </div>
+      )
+    }
+  </div>
+
+  <div id="nav-visibility-bottom-sentinel"></div>
+</Layout>
+
+<script
+  define:vars={{
+    isProcessing,
+    slug,
+    chapter,
+    seriesId,
+    chapterId,
+    pageImageUrls,
+  }}
+>
+  if (seriesId)
+    fetch('/api/view', {
+      method: 'POST',
+      body: JSON.stringify({ seriesId }),
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+    }).catch(console.error);
+  if (chapterId)
+    fetch('/api/chapters/view', {
+      method: 'POST',
+      body: JSON.stringify({ chapterId }),
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+    }).catch(console.error);
+
+  function initializeReader() {
+    if (isProcessing) {
+      const pollUrl = `/api/series/${slug}/${chapter}`;
+      const intervalId = setInterval(async () => {
+        try {
+          const response = await fetch(pollUrl, { cache: 'no-cache' });
+          if (response.status === 200) {
+            const data = await response.json();
+            if (
+              data &&
+              Array.isArray(data.imageUrls) &&
+              data.imageUrls.length > 0
+            ) {
+              clearInterval(intervalId);
+              window.location.reload();
+            }
+          } else if (response.status !== 202) {
+            console.error('Error durante el sondeo, estado:', response.status);
+            clearInterval(intervalId);
+          }
+        } catch (error) {
+          console.error('Error crítico durante el sondeo del capítulo:', error);
+          clearInterval(intervalId);
+        }
+      }, 5000);
+    }
+
+    const mainHeader = document.querySelector('header');
+    const topNavWrapper = document.getElementById('reader-top-nav-wrapper');
+    const configBtn = document.getElementById('config-btn');
+    const modal = document.getElementById('config-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const widthSlider = document.getElementById('width-slider');
+    const widthValue = document.getElementById('width-value');
+    const contentSizer = document.getElementById('content-sizer');
+    const scrollTopBtn = document.getElementById('scroll-top-btn');
+    const scrollBottomBtn = document.getElementById('scroll-bottom-btn');
+    const readerControls = document.getElementById('reader-controls');
+    const menuToggleBtn = document.getElementById('menu-toggle-btn');
+    const cascadeView = document.getElementById('cascade-view');
+    const singleView = document.getElementById('single-page-view');
+    const singlePageImage = document.getElementById('single-page-image');
+    const prevPageBtn = document.getElementById('prev-page-btn');
+    const nextPageBtn = document.getElementById('next-page-btn');
+    const pageCounter = document.getElementById('page-counter');
+    const topSentinel = document.getElementById('nav-visibility-top-sentinel');
+    const bottomSentinel = document.getElementById(
+      'nav-visibility-bottom-sentinel'
+    );
+    let sentinelsVisible = { top: false, bottom: false };
+
+    const observerCallback = (entries) => {
+      if (!mainHeader || !topNavWrapper) return;
+      entries.forEach((entry) => {
+        if (entry.target.id === 'nav-visibility-top-sentinel')
+          sentinelsVisible.top = entry.isIntersecting;
+        if (entry.target.id === 'nav-visibility-bottom-sentinel')
+          sentinelsVisible.bottom = entry.isIntersecting;
+      });
+      const shouldBeVisible = sentinelsVisible.top || sentinelsVisible.bottom;
+      mainHeader.classList.toggle('hidden', !shouldBeVisible);
+      topNavWrapper.classList.toggle('hidden', !shouldBeVisible);
+    };
+
+    if (window.IntersectionObserver && topSentinel && bottomSentinel) {
+      const observer = new IntersectionObserver(observerCallback, {
+        threshold: 0,
+      });
+      observer.observe(topSentinel);
+      observer.observe(bottomSentinel);
+    }
+
+    menuToggleBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      readerControls?.classList.toggle('is-expanded');
+    });
+    scrollTopBtn?.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      readerControls?.classList.remove('is-expanded');
+    });
+    scrollBottomBtn?.addEventListener('click', () => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      readerControls?.classList.remove('is-expanded');
+    });
+    document.addEventListener('click', (e) => {
+      if (
+        readerControls &&
+        e.target instanceof Node &&
+        !readerControls.contains(e.target)
+      ) {
+        readerControls.classList.remove('is-expanded');
+      }
+    });
+
+    configBtn?.addEventListener(
+      'click',
+      () => modal && (modal.style.display = 'flex')
+    );
+    closeModalBtn?.addEventListener(
+      'click',
+      () => modal && (modal.style.display = 'none')
+    );
+    modal?.addEventListener(
+      'click',
+      (e) => e.target === modal && (modal.style.display = 'none')
+    );
+    saveSettingsBtn?.addEventListener('click', () => {
+      if (widthSlider instanceof HTMLInputElement)
+        localStorage.setItem('readerWidth', widthSlider.value);
+      const selectedMode = document.querySelector(
+        'input[name="view-mode"]:checked'
+      );
+      if (selectedMode instanceof HTMLInputElement) {
+        localStorage.setItem('viewMode', selectedMode.value);
+        setViewMode(selectedMode.value);
+      }
+      if (modal) modal.style.display = 'none';
+      readerControls?.classList.remove('is-expanded');
+    });
+
+    function applyReaderWidth(value) {
+      if (widthValue) {
+        widthValue.textContent = `${value}%`;
+      }
+      if (contentSizer instanceof HTMLElement) {
+        contentSizer.style.maxWidth = `${value}%`;
+      }
+    }
+
+    if (!pageImageUrls || pageImageUrls.length === 0) return;
+    let currentPageIndex = 0;
+
+    function setViewMode(mode) {
+      if (!cascadeView || !singleView) return;
+      cascadeView.style.display = mode === 'cascade' ? 'block' : 'none';
+      singleView.style.display = mode === 'single' ? 'flex' : 'none';
+      if (mode === 'single') renderSinglePage();
+    }
+
+    function renderSinglePage() {
+      if (singlePageImage instanceof HTMLImageElement)
+        singlePageImage.src = pageImageUrls[currentPageIndex];
+      if (pageCounter)
+        pageCounter.textContent = `${currentPageIndex + 1} / ${pageImageUrls.length}`;
+      if (prevPageBtn instanceof HTMLButtonElement)
+        prevPageBtn.disabled = currentPageIndex === 0;
+      if (nextPageBtn instanceof HTMLButtonElement)
+        nextPageBtn.disabled = currentPageIndex === pageImageUrls.length - 1;
+    }
+
+    function changePage(direction) {
+      const newIndex = currentPageIndex + direction;
+      if (newIndex >= 0 && newIndex < pageImageUrls.length) {
+        currentPageIndex = newIndex;
+        renderSinglePage();
+      }
+    }
+
+    prevPageBtn?.addEventListener('click', () => changePage(-1));
+    nextPageBtn?.addEventListener('click', () => changePage(1));
+    document.addEventListener('keydown', (e) => {
+      const mode = localStorage.getItem('viewMode') || 'cascade';
+      if (mode === 'single') {
+        if (e.key === 'ArrowLeft') changePage(-1);
+        if (e.key === 'ArrowRight') changePage(1);
+      }
+    });
+
+    const savedWidth = localStorage.getItem('readerWidth') || '80';
+    const savedMode = localStorage.getItem('viewMode') || 'cascade';
+
+    if (widthSlider instanceof HTMLInputElement) {
+      widthSlider.value = savedWidth;
+      applyReaderWidth(savedWidth);
+    }
+    const radioToSelect = document.getElementById(`mode-${savedMode}`);
+    if (radioToSelect instanceof HTMLInputElement) radioToSelect.checked = true;
+
+    setViewMode(savedMode);
+
+    widthSlider?.addEventListener('input', (e) => {
+      if (e.target instanceof HTMLInputElement)
+        applyReaderWidth(e.target.value);
+    });
+  }
+
+  document.addEventListener('astro:page-load', initializeReader);
+  initializeReader();
+</script>
+
+<style>
+  .content-sizer {
+    width: 100%;
+    margin: 1rem auto 0;
+  }
+  .reader-container {
+    max-width: 100%;
+  }
+  .comments-wrapper {
+    margin: 2rem auto;
+    width: 100%;
+    max-width: 1200px;
+    padding: 0 1rem;
+  }
+
+  .image-container {
+    display: block;
+    overflow: hidden;
+  }
+
+  .image-container img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  :global(header),
+  .reader-top-nav-wrapper {
+    transition: transform 0.3s ease-in-out;
+  }
+  :global(header.hidden) {
+    transform: translateY(-120%);
+  }
+  .reader-top-nav-wrapper.hidden {
+    transform: translateY(calc(-100% - 70px));
+  }
+  .reader-top-nav-wrapper {
+    position: sticky;
+    top: 70px;
+    z-index: 900;
+  }
+  .reader-top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--card-background);
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #333;
+  }
+  #nav-visibility-top-sentinel,
+  #nav-visibility-bottom-sentinel {
+    height: 1px;
+    width: 100%;
+  }
+  .pages img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    background-color: #000;
+  }
+  .error-message {
+    color: #ff6b6b;
+    margin-top: 2rem;
+    font-size: 1.2rem;
+  }
+  .back-to-series {
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 50%;
+    transition: color 0.2s;
+  }
+  .back-to-series:hover {
+    color: var(--accent-color);
+  }
+  .chapter-nav {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .chapter-nav a {
+    color: var(--font-color);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .chapter-nav a.disabled {
+    color: #555;
+    pointer-events: none;
+  }
+  .chapter-number {
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+  .reader-controls {
+    position: fixed;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1010;
+  }
+  .controls-menu {
+    display: flex;
+    flex-direction: column;
+    background: rgba(30, 30, 30, 0.8);
+    backdrop-filter: blur(5px);
+    border-radius: 8px;
+    padding: 8px;
+    gap: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .control-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .control-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .control-btn::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 120%;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #111;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .control-btn:hover::after {
+    opacity: 1;
+  }
+  .nav-divider {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.2);
+    margin: 4px 0;
+  }
+  .main-toggle {
+    display: none;
+  }
+  .config-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1020;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .config-modal-panel {
+    background: var(--card-background);
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    border: 1px solid #444;
+  }
+  .config-modal-panel h3 {
+    text-align: center;
+    margin-bottom: 0;
+  }
+  .config-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .radio-group {
+    display: flex;
+    gap: 10px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .radio-group label {
+    padding: 8px 12px;
+    background: #333;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  .radio-group input[type='radio'] {
+    display: none;
+  }
+  .radio-group input[type='radio']:checked + label {
+    background: var(--accent-color);
+    color: white;
+  }
+  .modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .modal-actions button {
+    padding: 0.75rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+  }
+  #save-settings-btn {
+    background-color: var(--accent-color);
+    color: #fff;
+  }
+  #save-settings-btn:hover {
+    background-color: #009acd;
+  }
+  #close-modal-btn {
+    background-color: #555;
+    color: #fff;
+  }
+  #close-modal-btn:hover {
+    background-color: #666;
+  }
+  .config-option-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .config-option-col label {
+    text-align: left;
+    font-weight: 500;
+  }
+  input[type='range'] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    background: #555;
+    border-radius: 5px;
+    outline: none;
+  }
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--accent-color);
+    cursor: pointer;
+    border-radius: 50%;
+  }
+  input[type='range']::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--accent-color);
+    cursor: pointer;
+    border-radius: 50%;
+  }
+  .pages-single {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+  }
+  #single-page-image {
+    max-width: 100%;
+    height: auto;
+  }
+  .single-page-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    color: white;
+    background: var(--card-background);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    user-select: none;
+  }
+  .single-page-nav button {
+    background: transparent;
+    border: 1px solid #555;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+  }
+  .single-page-nav button:hover:not(:disabled) {
+    background-color: #333;
+  }
+  .single-page-nav button:disabled {
+    color: #555;
+    cursor: not-allowed;
+    border-color: #333;
+  }
+
+  .loading-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1rem;
+    text-align: center;
+    border: 1px solid #333;
+    background-color: var(--card-background);
+    border-radius: 8px;
+    margin-top: 2rem;
+  }
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(255, 255, 255, 0.2);
+    border-top-color: var(--accent-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1.5rem;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .loading-text {
+    font-size: 1.2rem;
+    color: #e0e0e0;
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+  .loading-subtext {
+    font-size: 0.9rem;
+    color: #888;
+    margin-top: 1.5rem;
+  }
+  .progress-bar-container {
+    width: 80%;
+    max-width: 400px;
+    height: 10px;
+    background-color: #333;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--accent-color),
+      transparent
+    );
+    background-size: 200% 100%;
+    border-radius: 5px;
+    animation: loading-progress 2s linear infinite;
+  }
+  @keyframes loading-progress {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .reader-top-nav-wrapper {
+      top: 70px;
+    }
+    .reader-controls {
+      background: transparent;
+      border: none;
+      padding: 0;
+      left: 10px;
+      top: auto;
+      bottom: 20px;
+      transform: none;
+    }
+    .main-toggle {
+      display: flex;
+      background: rgba(30, 30, 30, 0.8);
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+    .controls-menu {
+      position: absolute;
+      bottom: 60px;
+      left: 0;
+      visibility: hidden;
+      opacity: 0;
+      transform: translateY(10px);
+      transition:
+        opacity 0.2s ease,
+        transform 0.2s ease,
+        visibility 0s 0.2s;
+    }
+    .reader-controls.is-expanded .controls-menu {
+      visibility: visible;
+      opacity: 1;
+      transform: translateY(0);
+      transition:
+        opacity 0.2s ease,
+        transform 0.2s ease,
+        visibility 0s;
+    }
+    .control-btn::after {
+      display: none;
+    }
+    #content-sizer {
+      max-width: 95vw;
+    }
+  }
+</style>

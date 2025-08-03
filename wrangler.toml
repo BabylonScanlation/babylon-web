@@ -1,0 +1,36 @@
+# wrangler.toml
+name = "babylon-scanlation"
+# pages_build_output_dir = "dist"
+compatibility_date = "2025-07-18"
+compatibility_flags = ["nodejs_compat"]
+
+# --- D1 (Producción) ---
+[[d1_databases]]
+binding = "DB" 
+database_name = "babylon-scanlation-prod"
+database_id = "5c1ecb07-f1ea-4961-9014-0b8612fc0caf"
+
+# --- R2 (Producción) ---
+[[r2_buckets]]
+binding = "R2_CACHE"
+bucket_name = "babylon-scanlation-cache"
+
+[[r2_buckets]]
+binding = "R2_ASSETS"
+bucket_name = "babylon-scanlation-assets"
+
+
+# ---- ENTORNO DE VISTA PREVIA ----
+[env.preview]
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "babylon-scanlation-preview"
+database_id = "2dd58a59-9a80-480a-8b6c-c9de96b60462"
+
+[[env.preview.r2_buckets]]
+binding = "R2_CACHE"
+bucket_name = "babylon-scanlation-cache"
+
+[[env.preview.r2_buckets]]
+binding = "R2_ASSETS"
+bucket_name = "babylon-scanlation-assets"

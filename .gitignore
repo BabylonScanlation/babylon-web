@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.astro
+
+# Cloudflare local development state
+.wrangler/
+.dev.vars
+.env
+
+# Database
+migrations/
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Ignorar scripts de utilidad específicos
+cleanup-deployments.js
+create-migrations.js

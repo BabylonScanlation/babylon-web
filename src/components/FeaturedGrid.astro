@@ -1,0 +1,228 @@
+---
+import Image from './Image.astro';
+
+const { mangas = [] } = Astro.props;
+const largeCardManga = mangas[0];
+const smallCardManga1 = mangas[1];
+const smallCardManga2 = mangas[2];
+---
+
+<section class="featured-section">
+  <h2>Lo más destacado</h2>
+  <div class="grid-container">
+    
+    {largeCardManga ?
+    (
+      <a href={`/series/${largeCardManga.slug}`} class="featured-card large-card">
+        <Image 
+          src={largeCardManga.cover_image_url} 
+          alt={`Portada de ${largeCardManga.title}`} 
+          class="card-background" 
+          loading="eager" 
+          width={800} 
+          height={520} 
+        />
+        <div class="card-overlay"></div>
+        <div class="card-content">
+          <div class="card-header">
+            <h3>{largeCardManga.title}</h3>
+            <span class="views-tag">{largeCardManga.views?.toLocaleString() || 0} VISTAS</span>
+          </div>
+          <p>{largeCardManga.description}</p>
+        </div>
+      </a>
+    ) : (
+       <div class="featured-card placeholder large-card"></div>
+    )}
+
+    {smallCardManga1 ?
+    (
+      <a href={`/series/${smallCardManga1.slug}`} class="featured-card small-card">
+        <Image 
+          src={smallCardManga1.cover_image_url} 
+          alt={`Portada de ${smallCardManga1.title}`} 
+          class="card-background" 
+          loading="eager" 
+          width={400} 
+          height={250}
+        />
+        <div class="card-overlay"></div>
+        <div class="card-content">
+           <div class="card-header">
+            <h3>{smallCardManga1.title}</h3>
+            <span class="views-tag">{smallCardManga1.views?.toLocaleString() || 0} VISTAS</span>
+          </div>
+        </div>
+      </a>
+    ) : (
+      <div class="featured-card placeholder small-card"></div>
+     )}
+
+    {smallCardManga2 ?
+    (
+      <a href={`/series/${smallCardManga2.slug}`} class="featured-card small-card">
+        <Image 
+          src={smallCardManga2.cover_image_url} 
+          alt={`Portada de ${smallCardManga2.title}`} 
+          class="card-background" 
+          loading="eager" 
+          width={400} 
+          height={250}
+        />
+        <div class="card-overlay"></div>
+        <div class="card-content">
+          <div class="card-header">
+            <h3>{smallCardManga2.title}</h3>
+            <span class="views-tag">{smallCardManga2.views?.toLocaleString() || 0} VISTAS</span>
+          </div>
+        </div>
+      </a>
+    ) : (
+      
+      <div class="featured-card placeholder small-card"></div>
+    )}
+    
+    {mangas.length === 0 && (
+      <p style="grid-column: 1 / -1; text-align: center; color: #aaa;">No hay series destacadas para mostrar.</p>
+    )}
+
+  </div>
+</section>
+
+<style>
+  .featured-section {
+    max-width: 1200px;
+    margin: 2rem auto; 
+    padding: 0 1rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .grid-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr; 
+    grid-template-rows: repeat(2, 1fr);
+    gap: 1.5rem;
+    height: 520px;
+  }
+
+  .featured-card {
+    position: relative;
+    display: block;
+    border-radius: 8px;
+    overflow: hidden;
+    color: white;
+    background-color: #333;
+  }
+
+  .large-card {
+    grid-row: span 2;
+  }
+
+  .card-background {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+
+  .featured-card:hover .card-background {
+    transform: scale(1.05);
+  }
+
+  .card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 20%, transparent 80%);
+  }
+
+  .card-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 1.5rem;
+    width: 100%;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .views-tag {
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .card-content h3 {
+    font-size: 1.75rem;
+    margin: 0;
+  }
+  
+  .large-card .card-content p {
+    font-size: 0.9rem;
+    color: #ccc;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .small-card .card-content h3 {
+    font-size: 1.25rem;
+  }
+
+  @media (max-width: 900px) {
+    .grid-container {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+      height: auto;
+      gap: 1rem;
+    }
+
+    .large-card {
+      grid-row: span 1;
+      min-height: 350px;
+    }
+
+    .small-card {
+      min-height: 200px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    h2 {
+      font-size: 1.3rem;
+    }
+    .card-content {
+      padding: 1rem;
+    }
+    .card-content h3 {
+        font-size: 1.2rem;
+    }
+    .large-card .card-content p {
+        -webkit-line-clamp: 2;
+        font-size: 0.8rem;
+    }
+    .small-card .card-content h3 {
+        font-size: 1rem;
+    }
+    .views-tag {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+    }
+  }
+</style>

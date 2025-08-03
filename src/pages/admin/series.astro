@@ -1,0 +1,199 @@
+---
+// src/pages/admin/series.astro
+import Layout from '../../layouts/Layout.astro';
+
+const sessionCookie = Astro.cookies.get('session');
+if (sessionCookie?.value !== 'admin-logged-in') {
+  return Astro.redirect('/admin-login');
+}
+
+interface Chapter {
+  id: number;
+  chapter_number: number;
+  title: string | null;
+}
+interface Series {
+  id: number;
+  title: string;
+  description: string;
+  cover_image_url: string;
+  slug: string;
+  chapters: Chapter[];
+  status: string | null;
+  type: string | null;
+  genres: string | null;
+  author: string | null;
+  artist: string | null;
+  published_by: string | null;
+  alternative_names: string | null;
+  serialized_by: string | null;
+}
+
+let allSeries: Series[] = [];
+const success = Astro.url.searchParams.get('success');
+let error = Astro.url.searchParams.get('error');
+
+try {
+  const response = await fetch(new URL('/api/admin/series-with-chapters', Astro.url), {
+    headers: { 'Cookie': `session=${sessionCookie.value}` }
+  });
+
+  if (response.ok) {
+    allSeries = await response.json();
+  } else {
+    error = `Error al cargar las series: ${response.statusText}`;
+  }
+} catch (e) {
+  console.error(e);
+  error = "No se pudo conectar con la API para cargar las series.";
+}
+---
+
+<Layout title="Gestionar Series">
+  <main class="admin-container">
+    <a href="/admin" class="back-link">&larr; Volver al Panel</a>
+    <h1>Gestionar Series y Capítulos</h1>
+
+    {success && <p class="success-message">{success}</p>}
+    {error && <p class="error-message">{error}</p>}
+
+    {allSeries.length > 0 ?
+      allSeries.map(series => (
+      <details class="series-details">
+        <summary>{series.title}</summary>
+        <div class="series-content">
+          <div class="series-info-and-forms">
+            <div class="current-cover">
+              <p>Portada Actual</p>
+              <img src={series.cover_image_url} alt={`Portada de ${series.title}`} class="cover-preview-img" />
+            </div>
+   
+            <div class="forms-container">
+              <form action="/api/update-series" method="post" enctype="multipart/form-data" class="admin-form">
+                <input type="hidden" name="seriesId" value={series.id} />
+                <div class="form-group"><label for={`title-${series.id}`}>Título</label><input type="text" id={`title-${series.id}`} name="title" value={series.title} required /></div>
+                <div class="form-group"><label for={`desc-${series.id}`}>Descripción</label><textarea id={`desc-${series.id}`} name="description" rows="4" required>{series.description}</textarea></div>
+
+      
+                <div class="form-grid">
+                  <div class="form-group"><label for={`status-${series.id}`}>Estado</label><input type="text" id={`status-${series.id}`} name="status" value={series.status || ''} placeholder="Ej: En emisión" /></div>
+                  <div class="form-group"><label for={`type-${series.id}`}>Tipo</label><input type="text" id={`type-${series.id}`} name="type" value={series.type || ''} placeholder="Ej: Manga" /></div>
+                  <div class="form-group"><label for={`author-${series.id}`}>Autor</label><input type="text" id={`author-${series.id}`} name="author" value={series.author || ''} placeholder="Autor de la obra" /></div>
+                  <div class="form-group"><label for={`artist-${series.id}`}>Artista</label><input type="text" id={`artist-${series.id}`} name="artist" value={series.artist || ''} placeholder="Artista de la obra" /></div>
+                  <div class="form-group"><label for={`published_by-${series.id}`}>Publicado por</label><input type="text" id={`published_by-${series.id}`} name="published_by" value={series.published_by || ''} placeholder="Ej: Shueisha" /></div>
+                  <div class="form-group"><label for={`serialized_by-${series.id}`}>Serializado por</label><input type="text" id={`serialized_by-${series.id}`} name="serialized_by" value={series.serialized_by || ''} placeholder="Ej: Weekly Shōnen Jump" /></div>
+                </div>
+                <div class="form-group">
+                  <label for={`genres-${series.id}`}>Géneros (separados por coma)</label>
+                  <input type="text" id={`genres-${series.id}`} name="genres" value={series.genres || ''} placeholder="Ej: Acción, Aventura" />
+                </div>
+                <div class="form-group">
+                  <label for={`alternative_names-${series.id}`}>Nombres alternativos (separados por coma)</label>
+                  <input type="text" id={`alternative_names-${series.id}`} name="alternative_names" value={series.alternative_names || ''} />
+                </div>
+
+                <div class="form-group"><label for={`cover-${series.id}`}>Cambiar Portada (Opcional)</label><input type="file" id={`cover-${series.id}`} name="coverImage" accept="image/jpeg,image/png,image/webp" /></div>
+                <button type="submit">Actualizar Serie</button>
+              </form>
+ 
+              <form action="/api/delete-series" method="post" onsubmit="return confirm('¿Estás seguro de que quieres eliminar TODA la serie?\\nEsta acción no se puede deshacer.');">
+                <input type="hidden" name="seriesId" value={series.id} />
+                <button type="submit" class="delete-btn">Eliminar Serie Completa</button>
+              </form>
+            </div>
+          </div>
+          <div class="chapters-list">
+       
+            <h3>Capítulos ({series.chapters.length})</h3>
+            {series.chapters.length > 0 ? (
+              <ul>{series.chapters.map(chapter => (
+                  <li class="chapter-item">
+                    <form action="/api/update-chapter" method="post" class="update-chapter-form">
+                      <span class="chapter-number-label">Cap. {chapter.chapter_number}</span>
+                  
+                      <input type="text" name="title" value={chapter.title || ''} placeholder="Sin título" class="chapter-title-input" />
+                      <input type="hidden" name="chapterId" value={chapter.id} />
+                      <button type="submit" class="update-chapter-btn" title="Guardar Título">✓</button>
+                    </form>
+               
+
+                    <form action="/api/delete-chapters" method="post" onsubmit="return confirm('¿Seguro que quieres eliminar este capítulo?');">
+                      <input type="hidden" name="chapterId" value={chapter.id} />
+                      <button type="submit" class="delete-chapter-btn" title="Eliminar Capítulo">✗</button>
+                  
+                    </form>
+              
+                  </li>
+              ))}</ul>
+            ) : (
+              <p>No hay capítulos para esta serie.</p>
+            )}
+    
+          </div>
+        </div>
+      </details>
+    )) : (
+      <p>No se encontraron series para mostrar.</p>
+    )}
+  </main>
+</Layout>
+
+<style>
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .admin-container { padding: 2rem; max-width: 900px;
+  margin: 0 auto;
+  }
+  h1 { margin-bottom: 1.5rem; }
+  .back-link { display: inline-block; margin-bottom: 1.5rem; color: var(--accent-color);
+  }
+  .success-message, .error-message { padding: 1rem; margin-bottom: 1rem; border-radius: 4px; text-align: center;
+  }
+  .success-message { background-color: rgba(46, 204, 113, 0.2); color: #2ecc71; }
+  .error-message { background-color: rgba(231, 76, 60, 0.2);
+  color: #e74c3c; }
+  .series-details { background-color: var(--card-background); border-radius: 8px; margin-bottom: 1rem; border: 1px solid #333;
+  }
+  .series-details summary { padding: 1rem; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
+  .series-content { padding: 1.5rem;
+  border-top: 1px solid #444; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  .series-info-and-forms { display: flex; flex-direction: column;
+  gap: 1.5rem; }
+  .current-cover { text-align: center; }
+  .current-cover p { font-weight: bold; margin-bottom: 0.75rem;
+  }
+  .cover-preview-img { max-width: 180px; width: 100%; height: auto; border-radius: 8px; border: 2px solid #444;
+  }
+  .forms-container { display: flex; flex-direction: column; gap: 1.5rem; }
+  .admin-form { display: flex; flex-direction: column; gap: 1rem;
+  }
+  .form-group label { display: block; margin-bottom: 0.5rem; }
+  .admin-form input, .admin-form textarea { width: 100%; padding: 0.75rem;
+  background-color: #333; border: 1px solid #555; color: var(--font-color); border-radius: 4px; }
+  button { padding: 0.75rem 1.5rem; background-color: var(--accent-color);
+  color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 0.5rem; width: 100%; }
+  .delete-btn { background-color: #c0392b;
+  }
+  .chapters-list { max-height: 450px; overflow-y: auto; padding-right: 10px; }
+  .chapters-list h3 { margin-bottom: 1rem;
+  }
+  .chapters-list ul { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; padding: 0;
+  }
+  .chapter-item { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; border: 1px solid #444;
+  border-radius: 4px; }
+  .update-chapter-form { flex-grow: 1; display: flex; align-items: center; gap: 0.75rem; }
+  .chapter-number-label { white-space: nowrap;
+  }
+  .chapter-title-input { width: 100%; background-color: #333; border: 1px solid #555; color: var(--font-color); border-radius: 4px; padding: 0.5rem;
+  }
+  .update-chapter-btn, .delete-chapter-btn { padding: 0; margin: 0; width: 32px; height: 32px; font-size: 1.2rem; flex-shrink: 0;
+  }
+  .update-chapter-btn { background-color: #27ae60; }
+  .delete-chapter-btn { background-color: #c0392b;
+  }
+  @media (max-width: 768px) { .series-content { grid-template-columns: 1fr; } .chapters-list { margin-top: 2rem; } .form-grid { grid-template-columns: 1fr;
+  } }
+</style>

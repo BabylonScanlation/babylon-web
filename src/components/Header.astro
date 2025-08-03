@@ -1,0 +1,250 @@
+---
+// src/components/Header.astro
+const { user, runtime } = Astro.locals;
+const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
+---
+<header>
+  <div class="container">
+    <div class="logo">
+      <a href="/">
+        <img src={`${r2PublicUrlAssets}/iconpage/babylon-logo-2.webp`} alt="BabylonScan Logo" class="header-logo" />
+      </a>
+    </div>
+
+    <div class="desktop-nav">
+      <form action="/search" method="GET" class="search-bar">
+        <input type="search" name="q" placeholder="Buscar manga..." required />
+        <button type="submit">BUSCAR</button>
+      </form>
+     
+      <div class="user-actions">
+        {user ? (
+          <form method="POST" action="/api/auth/logout">
+            <button type="submit" class="logout-btn">CERRAR SESIÓN</button>
+          </form>
+        ) : (
+          <>
+            {/* ✅ CAMBIO: Ahora son botones que abren la modal */}
+            <button id="login-btn-header" class="login-btn">INICIAR SESIÓN</button>
+            <button id="register-btn-header" class="register-btn">REGISTRARSE</button>
+          </>
+        )}
+      </div>
+    </div>
+
+    <button class="hamburger" id="hamburger-button" aria-label="Abrir menú">
+      <span class="hamburger-box">
+        <span class="hamburger-inner"></span>
+      </span>
+    </button>
+  </div>
+
+  <div class="mobile-nav" id="mobile-nav-panel">
+    <form action="/search" method="GET" class="search-bar mobile-search">
+        <input type="search" name="q" placeholder="Buscar manga..." required />
+        <button type="submit">BUSCAR</button>
+    </form>
+    <div class="user-actions-mobile">
+      {user ? (
+        <form method="POST" action="/api/auth/logout">
+          <button type="submit" class="logout-btn">CERRAR SESIÓN</button>
+        </form>
+      ) : (
+        <>
+          {/* ✅ CAMBIO: También en la vista móvil */}
+          <button id="login-btn-mobile" class="login-btn">INICIAR SESIÓN</button>
+          <button id="register-btn-mobile" class="register-btn">REGISTRARSE</button>
+        </>
+      )}
+    </div>
+  </div>
+</header>
+
+<script>
+  // Script para el menú hamburguesa (sin cambios)
+  const hamburgerButton = document.getElementById('hamburger-button');
+  const mobileNavPanel = document.getElementById('mobile-nav-panel');
+  const body = document.body;
+
+  hamburgerButton?.addEventListener('click', () => {
+    const isActive = hamburgerButton.classList.toggle('is-active');
+    mobileNavPanel?.classList.toggle('is-active');
+    body.classList.toggle('mobile-nav-open', isActive);
+  });
+
+  // Script para botones de modal en móvil (dispara los mismos eventos que la modal espera)
+  document.getElementById('login-btn-mobile')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('login-btn-header')?.click();
+  });
+  document.getElementById('register-btn-mobile')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('register-btn-header')?.click();
+  });
+</script>
+
+<style>
+  /* Estilos del Header (sin cambios) */
+  :global(body.mobile-nav-open) {
+    overflow: hidden;
+  }
+  header {
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    border-bottom: 1px solid #333;
+    padding: 0 1rem;
+    height: 70px;
+    width: 100%;
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+}
+  .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0 1rem;
+  }
+  .logo a {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--font-color);
+    display: flex;
+    align-items: center;
+  }
+  .header-logo {
+    height: 55px;
+    width: auto;
+    background-color: transparent !important;
+  }
+  .desktop-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .search-bar {
+    display: flex;
+  }
+  .search-bar input {
+    background-color: var(--background-color);
+    border: 1px solid #444;
+    border-right: none;
+    padding: 0.5rem;
+    color: var(--font-color);
+    border-radius: 4px 0 0 4px;
+    width: 200px;
+  }
+  .search-bar input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+  }
+  .search-bar button {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 0 1rem;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 0 4px 4px 0;
+  }
+  .user-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .login-btn,
+  .register-btn,
+  .logout-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    font-family: inherit;
+    font-size: inherit;
+    border: none;
+    cursor: pointer;
+    background: none;
+    color: var(--font-color);
+  }
+  .register-btn {
+    background-color: var(--accent-color);
+    color: white;
+  }
+  .logout-btn {
+    background-color: #555;
+    color: white;
+  }
+  .logout-btn:hover {
+    background-color: #777;
+  }
+  .hamburger {
+    display: none;
+    cursor: pointer;
+    padding: 10px;
+    background: transparent;
+    border: none;
+  }
+  .mobile-nav {
+    display: none;
+    position: fixed;
+    top: 70px;
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 70px);
+    background-color: rgba(0, 0, 0, 0.98);
+    flex-direction: column;
+    align-items: center;
+    padding-top: 2rem;
+    gap: 1.5rem;
+  }
+  .mobile-nav.is-active {
+    display: flex;
+  }
+    .mobile-search {
+    width: 90%;
+    margin-top: 1rem;
+  }
+  .mobile-search input {
+    width: 100%;
+    font-size: 1rem;
+  }
+  .user-actions-mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 80%;
+      margin-top: 1rem;
+  }
+  .user-actions-mobile .login-btn,
+  .user-actions-mobile .register-btn,
+  .user-actions-mobile .logout-btn {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.1rem;
+  }
+  .hamburger-box { width: 30px; height: 24px; display: inline-block; position: relative; }
+  .hamburger-inner, .hamburger-inner::before, .hamburger-inner::after { width: 30px;
+    height: 3px; background-color: white; border-radius: 4px; position: absolute; transition: transform 0.2s ease-in-out; }
+  .hamburger-inner { top: 50%; transform: translateY(-50%); }
+  .hamburger-inner::before, .hamburger-inner::after { content: ''; display: block; }
+  .hamburger-inner::before { top: -10px; }
+  .hamburger-inner::after { bottom: -10px; }
+  .hamburger.is-active .hamburger-inner { transform: rotate(45deg); }
+  .hamburger.is-active .hamburger-inner::before { top: 0;
+    transform: rotate(90deg); }
+  .hamburger.is-active .hamburger-inner::after { bottom: 0; transform: rotate(-90deg); }
+
+  @media (max-width: 900px) {
+      .desktop-nav {
+          display: none;
+      }
+      .hamburger {
+          display: block;
+      }
+  }
+</style>
