@@ -5,14 +5,18 @@ import cloudflare from '@astrojs/cloudflare';
 // Módulo virtual que simula los módulos nativos de Node.js de forma más inteligente
 const nodePolyfills = `
   // --- IMPLEMENTACIONES MÍNIMAS PARA ASTRO ---
-  // Proporcionamos implementaciones básicas para que el build de Astro no falle.
   export const path = {
     sep: '/',
     join: (...args) => args.filter(Boolean).join('/'),
-    // CORRECCIÓN DE SINTAXIS EN LA SIGUIENTE LÍNEA
     resolve: (...args) => ('/' + args.filter(Boolean).join('/')).replace(/\\\\/g, '/'),
     dirname: (p) => p.split('/').slice(0, -1).join('/') || '.',
-    basename: (p) => p.split('/').pop() || ''
+    basename: (p) => p.split('/').pop() || '',
+    // --- CORRECCIÓN CRUCIAL PARA EL NUEVO ERROR ---
+    extname: (p) => {
+        const base = p.split('/').pop() || '';
+        const parts = base.split('.');
+        return parts.length > 1 ? '.' + parts.pop() : '';
+    }
   };
   export const url = {
     pathToFileURL: (p) => 'file://' + p.replace(/\\\\/g, '/'),
@@ -21,9 +25,9 @@ const nodePolyfills = `
   // Exportaciones nombradas directas que el build de Astro busca
   export const pathToFileURL = url.pathToFileURL;
   export const fileURLToPath = url.fileURLToPath;
+  export const extname = path.extname;
 
   // --- STUBS VACÍOS PARA EL RESTO ---
-  // El resto de los módulos que necesita firebase-admin pueden ser objetos vacíos.
   export const fs = { promises: {} };
   export const os = {};
   export const crypto = {};
@@ -66,7 +70,6 @@ export default defineConfig({
   vite: {
     resolve: {
       alias: [
-        // Alias con expresiones regulares para una coincidencia exacta
         ...nodeBuiltIns.map(id => ({
           find: new RegExp(`^${id}$`),
           replacement: 'virtual:node-polyfills'
@@ -75,7 +78,6 @@ export default defineConfig({
           find: new RegExp(`^node:${id}$`),
           replacement: 'virtual:node-polyfills'
         })),
-        // Manejo específico para 'fs/promises'
         {
           find: 'node:fs/promises',
           replacement: 'virtual:node-polyfills'
