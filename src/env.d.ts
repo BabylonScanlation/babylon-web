@@ -1,3 +1,5 @@
+// src/env.d.ts
+
 /// <reference types="astro/client" />
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 import type { Runtime } from '@astrojs/cloudflare/runtime';
@@ -19,10 +21,13 @@ declare global {
         FIREBASE_PRIVATE_KEY?: string;
       }>;
       db: D1Database;
-      user?: {
-        uid: string;
-        email?: string | null;
-      };
+      // 👇 LA CORRECCIÓN ESTÁ AQUÍ 👇
+      user:
+        | {
+            uid: string;
+            email?: string | null;
+          }
+        | undefined; // <--- Añadimos "| undefined" para permitir que el usuario no exista
     }
   }
 }
