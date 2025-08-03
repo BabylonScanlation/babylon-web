@@ -30,13 +30,7 @@ const nodePolyfills = `
 const nodeBuiltIns = [
   "fs", "path", "os", "crypto", "url", "http", "https", "zlib", "util",
   "stream", "events", "buffer", "querystring", "child_process", "net",
-  "tls", "assert", "http2", "process",
-  // Incluimos las versiones con el prefijo "node:"
-  "node:fs", "node:path", "node:os", "node:crypto", "node:url",
-  "node:http", "node:https", "node:zlib", "node:util", "node:stream",
-  "node:events", "node:buffer", "node:querystring", "node:child_process",
-  "node:net", "node:tls", "node:assert", "node:http2", "node:process",
-  "node:fs/promises"
+  "tls", "assert", "http2", "process"
 ];
 
 export default defineConfig({
@@ -49,11 +43,24 @@ export default defineConfig({
   }),
   vite: {
     resolve: {
-      alias: nodeBuiltIns.map(id => ({
-        find: id,
-        replacement: 'virtual:node-polyfills'
-      })),
-    }, // <--- ¡AQUÍ ESTABA EL ERROR! Faltaba esta coma.
+      alias: [
+        // Creamos un alias para cada módulo de Node.js a nuestro módulo virtual.
+        // Usamos una expresión regular para asegurar una coincidencia exacta.
+        ...nodeBuiltIns.map(id => ({
+          find: new RegExp(`^${id}$`),
+          replacement: 'virtual:node-polyfills'
+        })),
+        ...nodeBuiltIns.map(id => ({
+          find: new RegExp(`^node:${id}$`),
+          replacement: 'virtual:node-polyfills'
+        })),
+         // Manejo específico para 'fs/promises' que causaba el error
+        {
+          find: 'node:fs/promises',
+          replacement: 'virtual:node-polyfills'
+        }
+      ]
+    },
     plugins: [
       {
         name: 'vite-plugin-node-polyfills-custom',
