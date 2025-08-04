@@ -23,3 +23,25 @@ export async function verifyFirebaseToken(
 
   return payload;
 }
+
+export async function verifySessionCookie(cookie: string, env: any) {
+  const JWKS = createRemoteJWKSet(
+    new URL(
+      'https://www.googleapis.com/service_account/v1/jwk/securetoken@system.gserviceaccount.com'
+    )
+  );
+
+  const { payload } = await jwtVerify(cookie, JWKS, {
+    issuer: `https://session.firebase.google.com/${env.FIREBASE_PROJECT_ID}`,
+    audience: env.FIREBASE_PROJECT_ID,
+  });
+
+  return {
+    uid: payload.sub,
+    email: payload.email,
+    emailVerified: payload.email_verified,
+    lastLogin: payload.auth_time
+      ? new Date(Number(payload.auth_time) * 1000).toISOString()
+      : null,
+  };
+}

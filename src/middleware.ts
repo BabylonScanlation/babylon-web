@@ -1,5 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 import { getDB } from './lib/db';
+import { verifySessionCookie } from './lib/firebase/server'; // Nueva función
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const runtime = context.locals.runtime;
@@ -13,31 +14,20 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   if (sessionCookie) {
     try {
-      const decodedCookie = Buffer.from(sessionCookie, 'base64').toString(
-        'utf-8'
-      );
-      const userData = JSON.parse(decodedCookie);
-
-      // Verificar sesión activa en Firebase
-      const auth = getAuth();
-      if (auth.currentUser?.uid === userData.uid) {
-        context.locals.user = userData;
+      const userData = await verifySessionCookie(sessionCookie, runtime.env);
+      if (typeof userData.uid === 'string') {
+        context.locals.user = {
+          uid: userData.uid,
+          email: typeof userData.email === 'string' ? userData.email : null,
+        };
+      } else {
+        context.locals.user = undefined;
       }
     } catch (error) {
-      console.error('Error decoding session cookie:', error);
-      context.cookies.delete('user_session');
+      console.error('Error verifying session cookie:', error);
+      context.cookies.delete('user_session', { path: '/' });
     }
   }
 
   return next();
 });
-// Replace this stub with the actual import from your authentication library, e.g. Firebase Auth
-// import { getAuth } from 'firebase/auth';
-// Or implement a mock for development:
-function getAuth() {
-  return {
-    currentUser: {
-      uid: 'mock-uid', // Replace with actual logic to get the current user
-    },
-  };
-}
