@@ -1,7 +1,5 @@
 ---
-// You're getting a warning that these imports are unused.
-// To fix this, we need to move the Firebase imports from the frontmatter to the inline script where they are actually used.
-// The code will work, but the linter is telling you that the imports are not correctly scoped for where they are being consumed.
+// src/components/AuthModal.astro
 ---
 
 <div id="auth-modal-overlay" class="auth-modal-overlay is-hidden">
@@ -47,8 +45,9 @@
       </form>
       <div class="form-footer">
         <p>
-          ¿No tienes una cuenta?
-          <a href="#" id="show-register">Regístrate aquí</a>
+          ¿No tienes una cuenta? <a href="#" id="show-register"
+            >Regístrate aquí</a
+          >
         </p>
       </div>
     </div>
@@ -109,6 +108,7 @@
     const registerView = document.getElementById('register-view');
     const showRegisterLink = document.getElementById('show-register');
     const showLoginLink = document.getElementById('show-login');
+
     if (
       !modalOverlay ||
       !modalCloseBtn ||
@@ -122,12 +122,15 @@
     function openModal(view = 'login', successMessage = '') {
       const loginErrorMsg = document.getElementById('login-error-message');
       const loginSuccessMsg = document.getElementById('login-success-message');
+
       if (loginErrorMsg) loginErrorMsg.style.display = 'none';
       if (loginSuccessMsg) loginSuccessMsg.style.display = 'none';
+
       if (successMessage && loginSuccessMsg) {
         loginSuccessMsg.textContent = successMessage;
         loginSuccessMsg.style.display = 'block';
       }
+
       loginView.style.display = view === 'login' ? 'block' : 'none';
       registerView.style.display = view === 'register' ? 'block' : 'none';
       modalOverlay.classList.remove('is-hidden');
@@ -139,11 +142,21 @@
       document.body.style.overflow = '';
     }
 
+    // Evento personalizado para abrir el modal
     document.addEventListener('open-auth-modal', (e) => {
-      const detail = e.detail || {};
-      openModal(detail.view, detail.successMessage);
+      const detail = e.detail;
+      const view =
+        detail && typeof detail === 'object' && 'view' in detail
+          ? detail.view
+          : undefined;
+      const successMessage =
+        detail && typeof detail === 'object' && 'successMessage' in detail
+          ? detail.successMessage
+          : undefined;
+      openModal(view, successMessage);
     });
 
+    // Eventos de los controles del modal
     modalCloseBtn.addEventListener('click', closeModal);
     modalOverlay.addEventListener('click', (e) => {
       if (e.target === modalOverlay) closeModal();
@@ -158,6 +171,7 @@
     });
   }
 
+  // Inicializar cuando el DOM esté listo
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', setupAuthModal);
   } else {
@@ -166,7 +180,6 @@
 </script>
 
 <script>
-  // FIX: Moved Firebase imports here, as this is where the functions are actually used.
   import { auth } from '@lib/firebase/client';
   import {
     signInWithEmailAndPassword,
@@ -174,7 +187,7 @@
   } from 'firebase/auth';
 
   document.addEventListener('DOMContentLoaded', () => {
-    // FIX: Added type assertions to guarantee elements exist and are of the correct type.
+    // Configuración del formulario de login
     const loginForm = document.getElementById('login-form') as HTMLFormElement;
     const loginErrorMsg = document.getElementById(
       'login-error-message'
@@ -184,7 +197,6 @@
     ) as HTMLButtonElement;
 
     if (loginForm && loginErrorMsg && loginSubmitBtn) {
-      // FIX: Added null checks and type assertions for `btnText` and `btnLoader`
       const btnText = loginSubmitBtn.querySelector(
         '.button-text'
       ) as HTMLSpanElement;
@@ -192,18 +204,21 @@
         '.button-loader'
       ) as HTMLSpanElement;
 
-      // FIX: Explicitly defined the type of the `message` parameter to avoid implicit 'any' type.
+      // FIX: Explicitly typed the 'message' parameter as string.
       const showLoginError = (message: string) => {
         loginErrorMsg.textContent = message;
         loginErrorMsg.style.display = 'block';
+        // FIX: Added null checks on btnText and btnLoader.
         if (btnText) btnText.style.display = 'inline';
         if (btnLoader) btnLoader.style.display = 'none';
+        // FIX: loginSubmitBtn is already checked above.
         loginSubmitBtn.disabled = false;
       };
 
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         loginSubmitBtn.disabled = true;
+        // FIX: Added null checks.
         if (btnText) btnText.style.display = 'none';
         if (btnLoader) btnLoader.style.display = 'block';
         loginErrorMsg.style.display = 'none';
@@ -232,20 +247,20 @@
           });
 
           if (response.ok) {
-            // Forzar recarga para sincronizar estado
             window.location.href = '/';
           } else {
-            // FIX: Added a type guard to check if errorData is an object with an 'error' property.
             const errorData: unknown = await response.json();
+            // FIX: Added a type guard to safely access the 'error' property.
             const errorMessage =
               errorData && typeof errorData === 'object' && 'error' in errorData
                 ? (errorData as { error: string }).error
                 : 'Error del servidor al iniciar sesión.';
             showLoginError(errorMessage);
           }
-        } catch (error) {
-          // FIX: Added a type guard to check if the error is an object with a 'code' property.
+        } catch (error: unknown) {
+          // FIX: Explicitly typed the catch variable as 'unknown'.
           let errorMessage = 'Credenciales incorrectas.';
+          // FIX: Added a type guard to check if 'error' has a 'code' property.
           if (error && typeof error === 'object' && 'code' in error) {
             if (error.code === 'auth/invalid-credential') {
               errorMessage = 'Credenciales incorrectas.';
@@ -260,6 +275,7 @@
       });
     }
 
+    // Configuración del formulario de registro
     const registerForm = document.getElementById(
       'register-form'
     ) as HTMLFormElement;
@@ -270,7 +286,6 @@
       const registerSubmitBtn = document.getElementById(
         'register-submit-button'
       ) as HTMLButtonElement;
-      // FIX: Added null checks and type assertions for `btnText` and `btnLoader`
       const btnText = registerSubmitBtn.querySelector(
         '.button-text'
       ) as HTMLSpanElement;
@@ -278,8 +293,9 @@
         '.button-loader'
       ) as HTMLSpanElement;
 
-      // FIX: Explicitly defined the type of the `message` parameter to avoid implicit 'any' type.
+      // FIX: Explicitly typed the 'message' parameter as string.
       const showRegisterError = (message: string) => {
+        // FIX: Added null checks on elements before accessing their properties.
         if (registerErrorMsg) {
           registerErrorMsg.textContent = message;
           registerErrorMsg.style.display = 'block';
@@ -291,6 +307,7 @@
 
       registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        // FIX: Added null checks on elements before accessing their properties.
         if (registerSubmitBtn) registerSubmitBtn.disabled = true;
         if (btnText) btnText.style.display = 'none';
         if (btnLoader) btnLoader.style.display = 'block';
@@ -322,8 +339,9 @@
               },
             })
           );
-        } catch (error) {
-          // FIX: Added a type guard to check if the error is an object with a 'code' property.
+        } catch (error: unknown) {
+          // FIX: Explicitly typed the catch variable as 'unknown'.
+          // FIX: Added a type guard to check if 'error' has a 'code' property.
           if (error && typeof error === 'object' && 'code' in error) {
             if (error.code === 'auth/email-already-in-use') {
               showRegisterError('Este email ya está registrado.');
@@ -359,10 +377,12 @@
     opacity: 1;
     transition: opacity 0.3s ease-in-out;
   }
+
   .auth-modal-overlay.is-hidden {
     opacity: 0;
     pointer-events: none;
   }
+
   .auth-card {
     position: relative;
     background-color: var(--card-background);
@@ -376,9 +396,11 @@
     transform: scale(1);
     transition: transform 0.3s ease-in-out;
   }
+
   .auth-modal-overlay.is-hidden .auth-card {
     transform: scale(0.95);
   }
+
   .close-btn {
     position: absolute;
     top: 10px;
@@ -390,9 +412,11 @@
     line-height: 1;
     cursor: pointer;
   }
+
   .auth-card h2 {
     font-size: 1.8rem;
   }
+
   .message-container {
     min-height: 40px;
     margin-bottom: 1rem;
@@ -400,14 +424,17 @@
     align-items: center;
     justify-content: center;
   }
+
   .auth-form {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
   }
+
   .form-group {
     text-align: left;
   }
+
   .auth-form label {
     display: block;
     font-weight: 700;
@@ -415,6 +442,7 @@
     color: #ccc;
     margin-bottom: 0.25rem;
   }
+
   .auth-form input {
     width: 100%;
     padding: 0.75rem;
@@ -425,10 +453,12 @@
     font-size: 1rem;
     transition: border-color 0.2s;
   }
+
   .auth-form input:focus {
     outline: none;
     border-color: var(--accent-color);
   }
+
   .auth-form button {
     position: relative;
     padding: 0.75rem 1.5rem;
@@ -443,13 +473,16 @@
     margin-top: 0.5rem;
     min-height: 44px;
   }
+
   .auth-form button:hover:not(:disabled) {
     background-color: #009acd;
   }
+
   .auth-form button:disabled {
     background-color: #555;
     cursor: not-allowed;
   }
+
   .button-loader {
     display: none;
     width: 20px;
@@ -460,11 +493,13 @@
     animation: spin 1s linear infinite;
     margin: 0 auto;
   }
+
   @keyframes spin {
     to {
       transform: rotate(360deg);
     }
   }
+
   .success-message,
   .error-message {
     width: 100%;
@@ -473,25 +508,30 @@
     text-align: center;
     font-size: 0.9rem;
   }
+
   .success-message {
     color: #2ecc71;
     background-color: rgba(46, 204, 113, 0.1);
   }
+
   .error-message {
     color: #ff6b6b;
     background-color: rgba(255, 107, 107, 0.1);
   }
+
   .form-footer {
     margin-top: 1.5rem;
     font-size: 0.9rem;
     color: #aaa;
   }
+
   .form-footer a {
     color: var(--accent-color);
     text-decoration: none;
     font-weight: 600;
     cursor: pointer;
   }
+
   .form-footer a:hover {
     text-decoration: underline;
   }

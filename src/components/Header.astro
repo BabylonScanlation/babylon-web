@@ -1,4 +1,5 @@
 ---
+// src/components/Header.astro
 const { user, runtime } = Astro.locals;
 const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
 ---
@@ -84,20 +85,22 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
 
 <script>
   // Manejador para el botón de logout en desktop
-  document
-    .getElementById('logout-button')
-    ?.addEventListener('click', async () => {
+  const logoutButton = document.getElementById('logout-button');
+  if (logoutButton) {
+    logoutButton.addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.reload();
     });
+  }
 
   // Manejador para el botón de logout en mobile
-  document
-    .getElementById('logout-button-mobile')
-    ?.addEventListener('click', async () => {
+  const logoutButtonMobile = document.getElementById('logout-button-mobile');
+  if (logoutButtonMobile) {
+    logoutButtonMobile.addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.reload();
     });
+  }
 </script>
 
 <script is:inline>
@@ -106,39 +109,31 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     const mobileNavPanel = document.getElementById('mobile-nav-panel');
     const body = document.body;
 
-    hamburgerButton?.addEventListener('click', () => {
-      const isActive = hamburgerButton.classList.toggle('is-active');
-      mobileNavPanel?.classList.toggle('is-active');
-      body.classList.toggle('mobile-nav-open', isActive);
-    });
+    if (hamburgerButton && mobileNavPanel) {
+      hamburgerButton.addEventListener('click', () => {
+        const isActive = hamburgerButton.classList.toggle('is-active');
+        mobileNavPanel.classList.toggle('is-active');
+        body.classList.toggle('mobile-nav-open', isActive);
+      });
+    }
 
-    const header = document.querySelector('.site-header');
-    header?.addEventListener('click', (e) => {
-      if (!(e.target instanceof Element)) return;
-      const trigger = e.target.closest('[data-open-modal]');
+    // Delegación mejorada para manejar elementos dinámicos
+    document.addEventListener('click', (e) => {
+      const trigger = e.target.closest(
+        '[data-open-modal], .star, .emoji, .auth-trigger, #show-register, #show-login'
+      );
+
       if (trigger) {
         e.preventDefault();
-        const view = trigger.getAttribute('data-open-modal');
-        document.dispatchEvent(
-          new CustomEvent('open-auth-modal', {
-            detail: { view: view === 'register' ? 'register' : 'login' },
-          })
-        );
+        const view = trigger.getAttribute('data-open-modal') || 'login';
+
+        // Disparar evento personalizado
+        const event = new CustomEvent('open-auth-modal', {
+          detail: { view },
+        });
+        document.dispatchEvent(event);
       }
     });
-
-    // Event listener para abrir modal desde estrellas/emojis
-    document
-      .querySelectorAll('.star, .emoji, .auth-trigger')
-      .forEach((element) => {
-        element.addEventListener('click', () => {
-          document.dispatchEvent(
-            new CustomEvent('open-auth-modal', {
-              detail: { view: 'login' },
-            })
-          );
-        });
-      });
   });
 </script>
 
@@ -146,6 +141,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
   :global(body.mobile-nav-open) {
     overflow: hidden;
   }
+
   header {
     background-color: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(5px);
@@ -160,6 +156,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     display: flex;
     align-items: center;
   }
+
   .container {
     display: flex;
     justify-content: space-between;
@@ -167,6 +164,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     width: 100%;
     padding: 0 1rem;
   }
+
   .logo a {
     font-size: 1.5rem;
     font-weight: bold;
@@ -174,19 +172,23 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     display: flex;
     align-items: center;
   }
+
   .header-logo {
     height: 55px;
     width: auto;
     background-color: transparent !important;
   }
+
   .desktop-nav {
     display: flex;
     align-items: center;
     gap: 1.5rem;
   }
+
   .search-bar {
     display: flex;
   }
+
   .search-bar input {
     background-color: var(--background-color);
     border: 1px solid #444;
@@ -196,10 +198,12 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     border-radius: 4px 0 0 4px;
     width: 200px;
   }
+
   .search-bar input:focus {
     outline: none;
     border-color: var(--accent-color);
   }
+
   .search-bar button {
     background-color: var(--accent-color);
     color: white;
@@ -209,11 +213,13 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     font-weight: bold;
     border-radius: 0 4px 4px 0;
   }
+
   .user-actions {
     display: flex;
     align-items: center;
     gap: 1rem;
   }
+
   .login-btn,
   .register-btn,
   .logout-btn {
@@ -229,17 +235,21 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     background: none;
     color: var(--font-color);
   }
+
   .register-btn {
     background-color: var(--accent-color);
     color: white;
   }
+
   .logout-btn {
     background-color: #555;
     color: white;
   }
+
   .logout-btn:hover {
     background-color: #777;
   }
+
   .hamburger {
     display: none;
     cursor: pointer;
@@ -247,6 +257,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     background: transparent;
     border: none;
   }
+
   .mobile-nav {
     display: none;
     position: fixed;
@@ -260,17 +271,21 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     padding-top: 2rem;
     gap: 1.5rem;
   }
+
   .mobile-nav.is-active {
     display: flex;
   }
+
   .mobile-search {
     width: 90%;
     margin-top: 1rem;
   }
+
   .mobile-search input {
     width: 100%;
     font-size: 1rem;
   }
+
   .user-actions-mobile {
     display: flex;
     flex-direction: column;
@@ -278,6 +293,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     width: 80%;
     margin-top: 1rem;
   }
+
   .user-actions-mobile .login-btn,
   .user-actions-mobile .register-btn,
   .user-actions-mobile .logout-btn {
@@ -285,12 +301,14 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     padding: 1rem;
     font-size: 1.1rem;
   }
+
   .hamburger-box {
     width: 30px;
     height: 24px;
     display: inline-block;
     position: relative;
   }
+
   .hamburger-inner,
   .hamburger-inner::before,
   .hamburger-inner::after {
@@ -301,32 +319,40 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     position: absolute;
     transition: transform 0.2s ease-in-out;
   }
+
   .hamburger-inner {
     top: 50%;
     transform: translateY(-50%);
   }
+
   .hamburger-inner::before,
   .hamburger-inner::after {
     content: '';
     display: block;
   }
+
   .hamburger-inner::before {
     top: -10px;
   }
+
   .hamburger-inner::after {
     bottom: -10px;
   }
+
   .hamburger.is-active .hamburger-inner {
     transform: rotate(45deg);
   }
+
   .hamburger.is-active .hamburger-inner::before {
     top: 0;
     transform: rotate(90deg);
   }
+
   .hamburger.is-active .hamburger-inner::after {
     bottom: 0;
     transform: rotate(-90deg);
   }
+
   @media (max-width: 900px) {
     .desktop-nav {
       display: none;

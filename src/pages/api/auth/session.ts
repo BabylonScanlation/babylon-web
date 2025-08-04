@@ -36,9 +36,11 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
     cookies.set('user_session', idToken, {
       path: '/',
       httpOnly: true,
-      secure: import.meta.env.PROD,
+      secure: true, // Siempre seguro en Cloudflare
       maxAge: expiresIn,
       sameSite: 'lax',
+      // Dominio específico para pages.dev
+      domain: import.meta.env.PROD ? 'babylon-scanlation.pages.dev' : '',
     });
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });

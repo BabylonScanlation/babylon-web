@@ -14,14 +14,17 @@ const firebaseConfig = {
   appId: import.meta.env.PUBLIC_FIREBASE_APP_ID,
 };
 
+// Inicializar app si no existe
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+// Obtener instancia de autenticación
 export const auth = getAuth(app);
 
-// Configurar persistencia correctamente
+// Configurar persistencia de sesión
 setPersistence(auth, browserLocalPersistence)
   .then(() => {
-    console.log('Persistencia de Firebase configurada correctamente.');
+    console.log('Persistencia de Firebase configurada');
   })
   .catch((error) => {
-    console.error('Error al configurar la persistencia de Firebase:', error);
+    console.error('Error configurando persistencia:', error);
   });

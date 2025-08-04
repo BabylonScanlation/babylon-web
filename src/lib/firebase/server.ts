@@ -12,32 +12,19 @@ export async function verifyFirebaseToken(token: string, env: any) {
 
   const JWKS = createRemoteJWKSet(new URL(JWKS_URL));
 
-  const { payload } = await jwtVerify(token, JWKS, {
-    issuer: `https://securetoken.google.com/${env.FIREBASE_PROJECT_ID}`,
-    audience: env.FIREBASE_PROJECT_ID,
-  });
+  try {
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: `https://securetoken.google.com/${env.FIREBASE_PROJECT_ID}`,
+      audience: env.FIREBASE_PROJECT_ID,
+    });
 
-  return payload;
-}
-
-export async function verifySessionCookie(cookie: string, env: any) {
-  const JWKS = createRemoteJWKSet(
-    new URL(
-      'https://www.googleapis.com/service_account/v1/jwk/securetoken@system.gserviceaccount.com'
-    )
-  );
-
-  const { payload } = await jwtVerify(cookie, JWKS, {
-    issuer: `https://session.firebase.google.com/${env.FIREBASE_PROJECT_ID}`,
-    audience: env.FIREBASE_PROJECT_ID,
-  });
-
-  return {
-    uid: payload.sub,
-    email: payload.email || null,
-    emailVerified: payload.email_verified || false,
-    lastLogin: payload.auth_time
-      ? new Date(Number(payload.auth_time) * 1000).toISOString()
-      : null,
-  };
+    // Ajuste específico para compatibilidad con Cloudflare
+    return {
+      ...payload,
+      sub: payload.sub || payload.user_id,
+    };
+  } catch (error) {
+    console.error('Error verifying Firebase token:', error);
+    throw new Error('Token inválido o expirado');
+  }
 }
