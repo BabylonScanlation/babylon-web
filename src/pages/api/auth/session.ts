@@ -33,7 +33,6 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
 
     const expiresIn = 60 * 60 * 24 * 7; // 7 días
 
-    // Crear cookie de sesión segura
     cookies.set('user_session', idToken, {
       path: '/',
       httpOnly: true,

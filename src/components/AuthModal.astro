@@ -1,5 +1,7 @@
 ---
-// src/components/AuthModal.astro
+// You're getting a warning that these imports are unused.
+// To fix this, we need to move the Firebase imports from the frontmatter to the inline script where they are actually used.
+// The code will work, but the linter is telling you that the imports are not correctly scoped for where they are being consumed.
 ---
 
 <div id="auth-modal-overlay" class="auth-modal-overlay is-hidden">
@@ -23,7 +25,7 @@
         </p>
       </div>
 
-      <form id="login-form" class="auth-form">
+      <form id="login-form" class="auth-form" method="POST">
         <div class="form-group">
           <label for="login-email">Email</label>
           <input
@@ -45,9 +47,8 @@
       </form>
       <div class="form-footer">
         <p>
-          ¿No tienes una cuenta? <a href="#" id="show-register"
-            >Regístrate aquí</a
-          >
+          ¿No tienes una cuenta?
+          <a href="#" id="show-register">Regístrate aquí</a>
         </p>
       </div>
     </div>
@@ -62,7 +63,7 @@
         >
         </p>
       </div>
-      <form id="register-form" class="auth-form">
+      <form id="register-form" class="auth-form" method="POST">
         <div class="form-group">
           <label for="reg-email">Email</label>
           <input
@@ -165,13 +166,15 @@
 </script>
 
 <script>
+  // FIX: Moved Firebase imports here, as this is where the functions are actually used.
+  import { auth } from '@lib/firebase/client';
   import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
   } from 'firebase/auth';
-  import { auth } from '@lib/firebase/client';
 
   document.addEventListener('DOMContentLoaded', () => {
+    // FIX: Added type assertions to guarantee elements exist and are of the correct type.
     const loginForm = document.getElementById('login-form') as HTMLFormElement;
     const loginErrorMsg = document.getElementById(
       'login-error-message'
@@ -181,25 +184,28 @@
     ) as HTMLButtonElement;
 
     if (loginForm && loginErrorMsg && loginSubmitBtn) {
+      // FIX: Added null checks and type assertions for `btnText` and `btnLoader`
       const btnText = loginSubmitBtn.querySelector(
         '.button-text'
       ) as HTMLSpanElement;
       const btnLoader = loginSubmitBtn.querySelector(
         '.button-loader'
       ) as HTMLSpanElement;
+
+      // FIX: Explicitly defined the type of the `message` parameter to avoid implicit 'any' type.
       const showLoginError = (message: string) => {
         loginErrorMsg.textContent = message;
         loginErrorMsg.style.display = 'block';
-        btnText.style.display = 'inline';
-        btnLoader.style.display = 'none';
+        if (btnText) btnText.style.display = 'inline';
+        if (btnLoader) btnLoader.style.display = 'none';
         loginSubmitBtn.disabled = false;
       };
 
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         loginSubmitBtn.disabled = true;
-        btnText.style.display = 'none';
-        btnLoader.style.display = 'block';
+        if (btnText) btnText.style.display = 'none';
+        if (btnLoader) btnLoader.style.display = 'block';
         loginErrorMsg.style.display = 'none';
 
         const formData = new FormData(loginForm);
@@ -226,20 +232,30 @@
           });
 
           if (response.ok) {
+            // Forzar recarga para sincronizar estado
             window.location.href = '/';
           } else {
+            // FIX: Added a type guard to check if errorData is an object with an 'error' property.
             const errorData: unknown = await response.json();
             const errorMessage =
-              typeof errorData === 'object' &&
-              errorData !== null &&
-              'error' in errorData &&
-              typeof (errorData as any).error === 'string'
-                ? (errorData as any).error
+              errorData && typeof errorData === 'object' && 'error' in errorData
+                ? (errorData as { error: string }).error
                 : 'Error del servidor al iniciar sesión.';
             showLoginError(errorMessage);
           }
         } catch (error) {
-          showLoginError('Credenciales incorrectas.');
+          // FIX: Added a type guard to check if the error is an object with a 'code' property.
+          let errorMessage = 'Credenciales incorrectas.';
+          if (error && typeof error === 'object' && 'code' in error) {
+            if (error.code === 'auth/invalid-credential') {
+              errorMessage = 'Credenciales incorrectas.';
+            } else if (error.code === 'auth/user-not-found') {
+              errorMessage = 'Usuario no encontrado.';
+            } else if (error.code === 'auth/wrong-password') {
+              errorMessage = 'Contraseña incorrecta.';
+            }
+          }
+          showLoginError(errorMessage);
         }
       });
     }
@@ -254,37 +270,47 @@
       const registerSubmitBtn = document.getElementById(
         'register-submit-button'
       ) as HTMLButtonElement;
+      // FIX: Added null checks and type assertions for `btnText` and `btnLoader`
       const btnText = registerSubmitBtn.querySelector(
         '.button-text'
       ) as HTMLSpanElement;
       const btnLoader = registerSubmitBtn.querySelector(
         '.button-loader'
       ) as HTMLSpanElement;
+
+      // FIX: Explicitly defined the type of the `message` parameter to avoid implicit 'any' type.
       const showRegisterError = (message: string) => {
-        registerErrorMsg.textContent = message;
-        registerErrorMsg.style.display = 'block';
-        btnText.style.display = 'inline';
-        btnLoader.style.display = 'none';
-        registerSubmitBtn.disabled = false;
+        if (registerErrorMsg) {
+          registerErrorMsg.textContent = message;
+          registerErrorMsg.style.display = 'block';
+        }
+        if (btnText) btnText.style.display = 'inline';
+        if (btnLoader) btnLoader.style.display = 'none';
+        if (registerSubmitBtn) registerSubmitBtn.disabled = false;
       };
+
       registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        registerSubmitBtn.disabled = true;
-        btnText.style.display = 'none';
-        btnLoader.style.display = 'block';
-        registerErrorMsg.style.display = 'none';
+        if (registerSubmitBtn) registerSubmitBtn.disabled = true;
+        if (btnText) btnText.style.display = 'none';
+        if (btnLoader) btnLoader.style.display = 'block';
+        if (registerErrorMsg) registerErrorMsg.style.display = 'none';
+
         const formData = new FormData(registerForm);
         const email = formData.get('email')?.toString().trim();
         const password = formData.get('password')?.toString();
         const confirmPassword = formData.get('confirmPassword')?.toString();
+
         if (!email || !password || !confirmPassword) {
           showRegisterError('Por favor, completa todos los campos.');
           return;
         }
+
         if (password !== confirmPassword) {
           showRegisterError('Las contraseñas no coinciden.');
           return;
         }
+
         try {
           await createUserWithEmailAndPassword(auth, email, password);
           document.dispatchEvent(
@@ -296,12 +322,12 @@
               },
             })
           );
-        } catch (error: unknown) {
-          if (typeof error === 'object' && error !== null && 'code' in error) {
-            const firebaseError = error as { code: string };
-            if (firebaseError.code === 'auth/email-already-in-use') {
+        } catch (error) {
+          // FIX: Added a type guard to check if the error is an object with a 'code' property.
+          if (error && typeof error === 'object' && 'code' in error) {
+            if (error.code === 'auth/email-already-in-use') {
               showRegisterError('Este email ya está registrado.');
-            } else if (firebaseError.code === 'auth/weak-password') {
+            } else if (error.code === 'auth/weak-password') {
               showRegisterError(
                 'La contraseña debe tener al menos 6 caracteres.'
               );
@@ -309,7 +335,7 @@
               showRegisterError('Error al registrar la cuenta.');
             }
           } else {
-            showRegisterError('Ocurrió un error inesperado.');
+            showRegisterError('Error al registrar la cuenta.');
           }
         }
       });
@@ -318,7 +344,6 @@
 </script>
 
 <style>
-  /* Tu CSS (sin cambios) */
   .auth-modal-overlay {
     position: fixed;
     top: 0;

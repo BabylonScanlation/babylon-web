@@ -1,5 +1,4 @@
 ---
-// src/components/Header.astro
 const { user, runtime } = Astro.locals;
 const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
 ---
@@ -25,11 +24,9 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
       <div class="user-actions">
         {
           user ? (
-            <form method="POST" action="/api/auth/logout">
-              <button id="logout-button" class="logout-btn">
-                CERRAR SESIÓN
-              </button>
-            </form>
+            <button id="logout-button" class="logout-btn">
+              CERRAR SESIÓN
+            </button>
           ) : (
             <>
               <button type="button" data-open-modal="login" class="login-btn">
@@ -63,11 +60,9 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     <div class="user-actions-mobile">
       {
         user ? (
-          <form method="POST" action="/api/auth/logout">
-            <button type="submit" class="logout-btn">
-              CERRAR SESIÓN
-            </button>
-          </form>
+          <button id="logout-button-mobile" class="logout-btn">
+            CERRAR SESIÓN
+          </button>
         ) : (
           <>
             <button type="button" data-open-modal="login" class="login-btn">
@@ -88,8 +83,17 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
 </header>
 
 <script>
+  // Manejador para el botón de logout en desktop
   document
     .getElementById('logout-button')
+    ?.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.reload();
+    });
+
+  // Manejador para el botón de logout en mobile
+  document
+    .getElementById('logout-button-mobile')
     ?.addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.reload();
@@ -122,6 +126,19 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
         );
       }
     });
+
+    // Event listener para abrir modal desde estrellas/emojis
+    document
+      .querySelectorAll('.star, .emoji, .auth-trigger')
+      .forEach((element) => {
+        element.addEventListener('click', () => {
+          document.dispatchEvent(
+            new CustomEvent('open-auth-modal', {
+              detail: { view: 'login' },
+            })
+          );
+        });
+      });
   });
 </script>
 

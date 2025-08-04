@@ -1,6 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 import { getDB } from './lib/db';
-import { verifySessionCookie } from './lib/firebase/server'; // Nueva función
+import { verifySessionCookie } from './lib/firebase/server';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const runtime = context.locals.runtime;
@@ -15,16 +15,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (sessionCookie) {
     try {
       const userData = await verifySessionCookie(sessionCookie, runtime.env);
-      if (typeof userData.uid === 'string') {
-        context.locals.user = {
-          uid: userData.uid,
-          email: typeof userData.email === 'string' ? userData.email : null,
-        };
-      } else {
-        context.locals.user = undefined;
-      }
+      context.locals.user = {
+        uid: userData.uid ?? '',
+        email: userData.email as string,
+        emailVerified: userData.emailVerified ?? false,
+      } as { uid: string; email: string; emailVerified: boolean };
     } catch (error) {
-      console.error('Error verifying session cookie:', error);
+      console.error('Error verificando la cookie de sesión:', error);
       context.cookies.delete('user_session', { path: '/' });
     }
   }
