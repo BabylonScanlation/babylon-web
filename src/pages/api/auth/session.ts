@@ -33,13 +33,27 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
 
     const expiresIn = 60 * 60 * 24 * 7; // 7 días en segundos
 
-    cookies.set('user_session', uid, {
-      path: '/',
-      httpOnly: true,
-      secure: import.meta.env.PROD,
-      maxAge: expiresIn,
-      sameSite: 'lax',
-    });
+    // Obtener el usuario completo de Firebase
+    const user = await getAuth().getUser(uid);
+
+    // Almacenar más datos en la sesión
+    cookies.set(
+      'user_session',
+      JSON.stringify({
+        uid,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        lastLogin: user.metadata.lastSignInTime,
+      }),
+      {
+        path: '/',
+        httpOnly: true,
+        secure: import.meta.env.PROD,
+        maxAge: expiresIn,
+        sameSite: 'lax',
+        encode: (value) => Buffer.from(value).toString('base64'), // Codificar
+      }
+    );
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (error) {
@@ -49,3 +63,4 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
     });
   }
 };
+import { getAuth } from 'firebase-admin/auth';
