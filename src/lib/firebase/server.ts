@@ -1,8 +1,9 @@
 // src/lib/firebase/server.ts
 import { jwtVerify, importJWK } from 'jose';
 
+// Esta es la URL CORRECTA para obtener las claves de Firebase.
 const JWKS_URL =
-  'https://www.googleapis.com/service_account/v1/jwk/securetoken.google.com';
+  'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 
 export async function verifyFirebaseToken(token: string, env: any) {
   const projectIdToUse = env.FIREBASE_PROJECT_ID;
@@ -13,7 +14,6 @@ export async function verifyFirebaseToken(token: string, env: any) {
     );
   }
 
-  // Usar fetch nativo para obtener las claves públicas
   const res = await fetch(JWKS_URL);
   if (!res.ok) {
     const errorBody = await res.text();
@@ -27,34 +27,26 @@ export async function verifyFirebaseToken(token: string, env: any) {
   }
   const jwks: { keys: any[] } = await res.json();
 
-  // Verificar que jwks tiene la propiedad 'keys' y es un array
-  if (!jwks || !Array.isArray(jwks.keys)) {
-    throw new Error('El JWKS obtenido no tiene el formato esperado.');
-  }
-
-  // Crear un mapa de claves por 'kid'
-  const keyMap: Record<string, any> = {};
+  // Map kid to imported key
+  const kidToKey: Record<string, CryptoKey> = {};
   await Promise.all(
     jwks.keys.map(async (key: any) => {
-      keyMap[key.kid] = await importJWK(key, 'RS256');
+      const imported = await importJWK(key, 'RS256');
+      if (imported instanceof CryptoKey) {
+        kidToKey[key.kid] = imported;
+      } else {
+        throw new Error('importJWK did not return a CryptoKey');
+      }
     })
   );
 
   try {
     const { payload } = await jwtVerify(
       token,
-      async (protectedHeader: { kid?: string }) => {
-        const kid = protectedHeader.kid;
-        if (!kid) {
-          throw new Error(
-            'No se encontró el identificador de clave (kid) en el encabezado protegido.'
-          );
-        }
-        const key = keyMap[kid];
+      async (header: import('jose').JWTHeaderParameters) => {
+        const key = kidToKey[header.kid as string];
         if (!key) {
-          throw new Error(
-            'No se encontró la clave pública para el kid proporcionado.'
-          );
+          throw new Error('No matching JWK found for kid: ' + header.kid);
         }
         return key;
       },
