@@ -45,9 +45,8 @@
       </form>
       <div class="form-footer">
         <p>
-          ¿No tienes una cuenta? <a href="#" id="show-register"
-            >Regístrate aquí</a
-          >
+          ¿No tienes una cuenta?
+          <a href="#" id="show-register">Regístrate aquí</a>
         </p>
       </div>
     </div>
@@ -93,7 +92,8 @@
       </form>
       <div class="form-footer">
         <p>
-          ¿Ya tienes una cuenta? <a href="#" id="show-login">Inicia sesión</a>
+          ¿Ya tienes una cuenta?
+          <a href="#" id="show-login">Inicia sesión</a>
         </p>
       </div>
     </div>
@@ -108,7 +108,6 @@
     const registerView = document.getElementById('register-view');
     const showRegisterLink = document.getElementById('show-register');
     const showLoginLink = document.getElementById('show-login');
-
     if (
       !modalOverlay ||
       !modalCloseBtn ||
@@ -118,14 +117,12 @@
       !showLoginLink
     )
       return;
-
     function openModal(view = 'login', successMessage = '') {
       const loginErrorMsg = document.getElementById('login-error-message');
       const loginSuccessMsg = document.getElementById('login-success-message');
 
       if (loginErrorMsg) loginErrorMsg.style.display = 'none';
       if (loginSuccessMsg) loginSuccessMsg.style.display = 'none';
-
       if (successMessage && loginSuccessMsg) {
         loginSuccessMsg.textContent = successMessage;
         loginSuccessMsg.style.display = 'block';
@@ -155,7 +152,6 @@
           : undefined;
       openModal(view, successMessage);
     });
-
     // Eventos de los controles del modal
     modalCloseBtn.addEventListener('click', closeModal);
     modalOverlay.addEventListener('click', (e) => {
@@ -185,7 +181,6 @@
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
   } from 'firebase/auth';
-
   document.addEventListener('DOMContentLoaded', () => {
     // Configuración del formulario de login
     const loginForm = document.getElementById('login-form') as HTMLFormElement;
@@ -204,21 +199,16 @@
         '.button-loader'
       ) as HTMLSpanElement;
 
-      // FIX: Explicitly typed the 'message' parameter as string.
       const showLoginError = (message: string) => {
         loginErrorMsg.textContent = message;
         loginErrorMsg.style.display = 'block';
-        // FIX: Added null checks on btnText and btnLoader.
         if (btnText) btnText.style.display = 'inline';
         if (btnLoader) btnLoader.style.display = 'none';
-        // FIX: loginSubmitBtn is already checked above.
         loginSubmitBtn.disabled = false;
       };
-
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         loginSubmitBtn.disabled = true;
-        // FIX: Added null checks.
         if (btnText) btnText.style.display = 'none';
         if (btnLoader) btnLoader.style.display = 'block';
         loginErrorMsg.style.display = 'none';
@@ -245,12 +235,10 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idToken }),
           });
-
           if (response.ok) {
             window.location.href = '/';
           } else {
             const errorData: unknown = await response.json();
-            // FIX: Added a type guard to safely access the 'error' property.
             const errorMessage =
               errorData && typeof errorData === 'object' && 'error' in errorData
                 ? (errorData as { error: string }).error
@@ -258,9 +246,7 @@
             showLoginError(errorMessage);
           }
         } catch (error: unknown) {
-          // FIX: Explicitly typed the catch variable as 'unknown'.
           let errorMessage = 'Credenciales incorrectas.';
-          // FIX: Added a type guard to check if 'error' has a 'code' property.
           if (error && typeof error === 'object' && 'code' in error) {
             if (error.code === 'auth/invalid-credential') {
               errorMessage = 'Credenciales incorrectas.';
@@ -292,10 +278,7 @@
       const btnLoader = registerSubmitBtn.querySelector(
         '.button-loader'
       ) as HTMLSpanElement;
-
-      // FIX: Explicitly typed the 'message' parameter as string.
       const showRegisterError = (message: string) => {
-        // FIX: Added null checks on elements before accessing their properties.
         if (registerErrorMsg) {
           registerErrorMsg.textContent = message;
           registerErrorMsg.style.display = 'block';
@@ -307,7 +290,6 @@
 
       registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        // FIX: Added null checks on elements before accessing their properties.
         if (registerSubmitBtn) registerSubmitBtn.disabled = true;
         if (btnText) btnText.style.display = 'none';
         if (btnLoader) btnLoader.style.display = 'block';
@@ -340,8 +322,6 @@
             })
           );
         } catch (error: unknown) {
-          // FIX: Explicitly typed the catch variable as 'unknown'.
-          // FIX: Added a type guard to check if 'error' has a 'code' property.
           if (error && typeof error === 'object' && 'code' in error) {
             if (error.code === 'auth/email-already-in-use') {
               showRegisterError('Este email ya está registrado.');
