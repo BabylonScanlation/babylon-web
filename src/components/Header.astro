@@ -104,6 +104,9 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
 </script>
 
 <script is:inline>
+  // Importamos las funciones de Firebase en el cliente
+  import { getAuth, onAuthStateChanged } from 'firebase/auth';
+
   document.addEventListener('DOMContentLoaded', () => {
     const hamburgerButton = document.getElementById('hamburger-button');
     const mobileNavPanel = document.getElementById('mobile-nav-panel');
@@ -117,6 +120,15 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
       });
     }
 
+    // Inicializamos Firebase Auth en el cliente
+    const auth = getAuth();
+    let currentUser = auth.currentUser;
+
+    // Escuchamos los cambios en el estado de autenticación
+    onAuthStateChanged(auth, (user) => {
+      currentUser = user;
+    });
+
     // Delegación mejorada para manejar elementos dinámicos
     document.addEventListener('click', (e) => {
       const trigger = e.target.closest(
@@ -124,6 +136,20 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
       );
 
       if (trigger) {
+        // Obtenemos las clases del trigger
+        const triggerClasses = Array.from(trigger.classList);
+
+        // Si el trigger es una estrella o emoji, verificamos si el usuario ya está logeado
+        if (
+          (triggerClasses.includes('star') ||
+            triggerClasses.includes('emoji')) &&
+          currentUser
+        ) {
+          // Si el usuario está logeado, no hacemos nada y dejamos que la lógica del voto se ejecute
+          return;
+        }
+
+        // Si no está logeado o el clic no es en una estrella, abrimos el modal
         e.preventDefault();
         const view = trigger.getAttribute('data-open-modal') || 'login';
 
