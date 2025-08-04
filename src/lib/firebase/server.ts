@@ -1,10 +1,15 @@
+// src/lib/firebase/server.ts
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 const JWKS_URL =
   'https://www.googleapis.com/service_account/v1/jwk/securetoken.google.com';
 
 export async function verifyFirebaseToken(token: string, env: any) {
-  if (!env.FIREBASE_PROJECT_ID) {
+  // Hardcodea tu FIREBASE_PROJECT_ID para prueba
+  const hardcodedProjectId = 'babylon-scanlation-users';
+  const projectIdToUse = hardcodedProjectId || env.FIREBASE_PROJECT_ID;
+
+  if (!projectIdToUse) {
     throw new Error(
       'La variable de entorno FIREBASE_PROJECT_ID no está configurada.'
     );
@@ -14,11 +19,10 @@ export async function verifyFirebaseToken(token: string, env: any) {
 
   try {
     const { payload } = await jwtVerify(token, JWKS, {
-      issuer: `https://securetoken.google.com/${env.FIREBASE_PROJECT_ID}`,
-      audience: env.FIREBASE_PROJECT_ID,
+      issuer: `https://securetoken.google.com/${projectIdToUse}`,
+      audience: projectIdToUse,
     });
 
-    // Ajuste específico para compatibilidad con Cloudflare
     return {
       ...payload,
       sub: payload.sub || payload.user_id,
