@@ -1,3 +1,4 @@
+// src/lib/firebase/client.ts
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import {
   getAuth,
@@ -6,12 +7,12 @@ import {
 } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
-  authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.PUBLIC_FIREBASE_APP_ID,
+  apiKey: 'AIzaSyAee_aheDnkdht9I_eagReWAP25-IaMPtY',
+  authDomain: 'babylon-scanlation-users.firebaseapp.com',
+  projectId: 'babylon-scanlation-users',
+  storageBucket: 'babylon-scanlation-users.firebasestorage.app',
+  messagingSenderId: '1091956230989',
+  appId: '1:1091956230989:web:6184d7f256976c1e570504',
 };
 
 // Inicializar app si no existe
