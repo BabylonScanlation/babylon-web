@@ -81,37 +81,81 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
   </div>
 </header>
 
+<script>
+  // Manejador para el botón de logout en desktop
+  const logoutButton = document.getElementById('logout-button');
+  if (logoutButton) {
+    logoutButton.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.reload();
+    });
+  }
+
+  // Manejador para el botón de logout en mobile
+  const logoutButtonMobile = document.getElementById('logout-button-mobile');
+  if (logoutButtonMobile) {
+    logoutButtonMobile.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.reload();
+    });
+  }
+</script>
+
 <script is:inline>
-  // Script para el menú hamburguesa y para EMITIR la señal del modal
+  // Importamos las funciones de Firebase en el cliente
+  import { getAuth, onAuthStateChanged } from 'firebase/auth';
+
   document.addEventListener('DOMContentLoaded', () => {
-    // Lógica del menú hamburguesa
     const hamburgerButton = document.getElementById('hamburger-button');
     const mobileNavPanel = document.getElementById('mobile-nav-panel');
     const body = document.body;
 
-    hamburgerButton?.addEventListener('click', () => {
-      const isActive = hamburgerButton.classList.toggle('is-active');
-      mobileNavPanel?.classList.toggle('is-active');
-      body.classList.toggle('mobile-nav-open', isActive);
+    if (hamburgerButton && mobileNavPanel) {
+      hamburgerButton.addEventListener('click', () => {
+        const isActive = hamburgerButton.classList.toggle('is-active');
+        mobileNavPanel.classList.toggle('is-active');
+        body.classList.toggle('mobile-nav-open', isActive);
+      });
+    }
+
+    // Inicializamos Firebase Auth en el cliente
+    const auth = getAuth();
+    let currentUser = auth.currentUser;
+
+    // Escuchamos los cambios en el estado de autenticación
+    onAuthStateChanged(auth, (user) => {
+      currentUser = user;
     });
 
-    // ✅ --- LA SOLUCIÓN DEFINITIVA: Event Delegation + Custom Events ---
-    // Escuchamos clics en todo el header.
-    const header = document.querySelector('.site-header');
-    header?.addEventListener('click', (e) => {
-      if (!(e.target instanceof Element)) return;
+    // Delegación mejorada para manejar elementos dinámicos
+    document.addEventListener('click', (e) => {
+      const trigger = e.target.closest(
+        '[data-open-modal], .star, .emoji, .auth-trigger, #show-register, #show-login'
+      );
 
-      const trigger = e.target.closest('[data-open-modal]');
       if (trigger) {
-        e.preventDefault();
-        const view = trigger.getAttribute('data-open-modal');
+        // Obtenemos las clases del trigger
+        const triggerClasses = Array.from(trigger.classList);
 
-        // Emitimos un evento global que el modal puede escuchar.
-        document.dispatchEvent(
-          new CustomEvent('open-auth-modal', {
-            detail: { view: view === 'register' ? 'register' : 'login' },
-          })
-        );
+        // Si el trigger es una estrella o emoji, verificamos si el usuario ya está logeado
+        if (
+          (triggerClasses.includes('star') ||
+            triggerClasses.includes('emoji')) &&
+          currentUser
+        ) {
+          // Si el usuario está logeado, no hacemos nada y dejamos que la lógica del voto se ejecute
+          return;
+        }
+
+        // Si no está logeado o el clic no es en una estrella, abrimos el modal
+        e.preventDefault();
+        const view = trigger.getAttribute('data-open-modal') || 'login';
+
+        // Disparar evento personalizado
+        const event = new CustomEvent('open-auth-modal', {
+          detail: { view },
+        });
+        document.dispatchEvent(event);
       }
     });
   });

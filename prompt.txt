@@ -1,1 +1,0 @@
-Dime los archivos implicados en la aparicion de la ventana modal del login y del registro, y me refiero a todos.
