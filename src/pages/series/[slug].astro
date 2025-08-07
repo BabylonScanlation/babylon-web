@@ -136,8 +136,8 @@ const reactions = [
       <div class="series-detail-page" data-series-id={series.id}>
         <section class="series-hero">
           <div class="series-header-grid">
-            <h1 class="series-title-header">{series.title}</h1>
             <div class="cover-and-rating-wrapper">
+              <h1 class="series-title-header">{series.title}</h1>
               <div class="series-cover">
                 <img
                   src={series.cover_image_url}
@@ -145,6 +145,9 @@ const reactions = [
                   class="cover-image"
                 />
               </div>
+            </div>
+
+            <div class="series-info-panel">
               <div class="rating-section">
                 <div class="stars-container">
                   {stars.map((star) =>
@@ -174,9 +177,7 @@ const reactions = [
                   <span>({series.stats.totalVotes} Votos)</span>
                 </div>
               </div>
-            </div>
 
-            <div class="series-info-panel">
               <div class="info-tabs">
                 <button class="tab active" data-tab="details">
                   Detalles
@@ -192,160 +193,164 @@ const reactions = [
                   Comentarios
                 </button>
               </div>
-              <div id="details-content" class="tab-content active">
-                <div class="series-meta">
-                  <div class="meta-item">
-                    <>
-                      <span class="meta-label">Tipo: </span>
-                      <span class="meta-value">{series.type || 'N/A'}</span>
-                    </>
+
+              <div class="content-wrapper">
+                <div id="details-content" class="tab-content active">
+                  <div class="series-meta">
+                    <div class="meta-item">
+                      <>
+                        <span class="meta-label">Tipo: </span>
+                        <span class="meta-value">{series.type || 'N/A'}</span>
+                      </>
+                    </div>
+                    <div class="meta-item">
+                      <>
+                        <span class="meta-label">Autor: </span>
+                        <span class="meta-value">{series.author || 'N/A'}</span>
+                      </>
+                    </div>
+                    <div class="meta-item">
+                      <>
+                        <span class="meta-label">Artista: </span>
+                        <span class="meta-value">{series.artist || 'N/A'}</span>
+                      </>
+                    </div>
+                    <div class="meta-item">
+                      <>
+                        <span class="meta-label">Serializado por: </span>
+                        <span class="meta-value">
+                          {series.serialized_by || 'N/A'}
+                        </span>
+                      </>
+                    </div>
+                    <div class="meta-item meta-item-full">
+                      <span class="meta-label">Género(s):</span>
+                      <div class="meta-value genre-tags">
+                        {series.genres &&
+                        series.genres.trim().toLowerCase() !== 'n/a' &&
+                        series.genres.trim() !== ''
+                          ? series.genres
+                              .split(',')
+                              .map((genre) => (
+                                <span class="genre-tag">{genre.trim()}</span>
+                              ))
+                          : 'N/A'}
+                      </div>
+                    </div>
                   </div>
-                  <div class="meta-item">
-                    <>
-                      <span class="meta-label">Autor: </span>
-                      <span class="meta-value">{series.author || 'N/A'}</span>
-                    </>
-                  </div>
-                  <div class="meta-item">
-                    <>
-                      <span class="meta-label">Artista: </span>
-                      <span class="meta-value">{series.artist || 'N/A'}</span>
-                    </>
-                  </div>
-                  <div class="meta-item">
-                    <>
-                      <span class="meta-label">Serializado por: </span>
-                      <span class="meta-value">
-                        {series.serialized_by || 'N/A'}
-                      </span>
-                    </>
-                  </div>
-                  <div class="meta-item meta-item-full">
-                    <span class="meta-label">Género(s):</span>
-                    <div class="meta-value genre-tags">
-                      {series.genres &&
-                      series.genres.trim().toLowerCase() !== 'n/a' &&
-                      series.genres.trim() !== ''
-                        ? series.genres
-                            .split(',')
-                            .map((genre) => (
-                              <span class="genre-tag">{genre.trim()}</span>
-                            ))
-                        : 'N/A'}
+                  <div class="series-meta-grid">
+                    <div class="meta-grid-item">
+                      <>
+                        <span>🗓️ Publicado:</span>
+                        <span>{formatFullDate(series.created_at)}</span>
+                      </>
+                    </div>
+                    <div class="meta-grid-item">
+                      <>
+                        <span>📶 Estado:</span>
+                        <span class="status-na">{series.status || 'N/A'}</span>
+                      </>
+                    </div>
+                    <div class="meta-grid-item">
+                      <>
+                        <span>✍️ Publicado por:</span>
+                        <span>{series.published_by || 'N/A'}</span>
+                      </>
+                    </div>
+                    <div class="meta-grid-item">
+                      <>
+                        <span>👁️ Vistas:</span>
+                        <span>{series.views?.toLocaleString() || 0}</span>
+                      </>
+                    </div>
+                    <div class="meta-grid-item full-width-grid">
+                      <>
+                        <span>📚 Nombres alternativos:</span>
+                        <span>{series.alternative_names || 'N/A'}</span>
+                      </>
+                    </div>
+                    <div class="reactions-container">
+                      {reactions.map((reaction) => (
+                        <div class="reaction-item">
+                          {user ? (
+                            <button
+                              class:list={[
+                                'reaction-emoji',
+                                {
+                                  selected:
+                                    series.stats.userReaction ===
+                                    reaction.emoji,
+                                },
+                              ]}
+                              data-emoji={reaction.emoji}
+                              title={reaction.title}
+                            >
+                              {reaction.emoji}
+                            </button>
+                          ) : (
+                            <button
+                              class="reaction-emoji"
+                              data-open-modal="login"
+                              title="Debes tener una cuenta para reaccionar."
+                            >
+                              {reaction.emoji}
+                            </button>
+                          )}
+                          <span class="reaction-count">
+                            {series.stats.reactionCounts[reaction.emoji] || 0}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-                <div class="series-meta-grid">
-                  <div class="meta-grid-item">
-                    <>
-                      <span>🗓️ Publicado:</span>
-                      <span>{formatFullDate(series.created_at)}</span>
-                    </>
-                  </div>
-                  <div class="meta-grid-item">
-                    <>
-                      <span>📶 Estado:</span>
-                      <span class="status-na">{series.status || 'N/A'}</span>
-                    </>
-                  </div>
-                  <div class="meta-grid-item">
-                    <>
-                      <span>✍️ Publicado por:</span>
-                      <span>{series.published_by || 'N/A'}</span>
-                    </>
-                  </div>
-                  <div class="meta-grid-item">
-                    <>
-                      <span>👁️ Vistas:</span>
-                      <span>{series.views?.toLocaleString() || 0}</span>
-                    </>
-                  </div>
-                  <div class="meta-grid-item full-width-grid">
-                    <>
-                      <span>📚 Nombres alternativos:</span>
-                      <span>{series.alternative_names || 'N/A'}</span>
-                    </>
-                  </div>
-                  <div class="reactions-container">
-                    {reactions.map((reaction) => (
-                      <div class="reaction-item">
-                        {user ? (
-                          <button
-                            class:list={[
-                              'reaction-emoji',
-                              {
-                                selected:
-                                  series.stats.userReaction === reaction.emoji,
-                              },
-                            ]}
-                            data-emoji={reaction.emoji}
-                            title={reaction.title}
-                          >
-                            {reaction.emoji}
-                          </button>
-                        ) : (
-                          <button
-                            class="reaction-emoji"
-                            data-open-modal="login"
-                            title="Debes tener una cuenta para reaccionar."
-                          >
-                            {reaction.emoji}
-                          </button>
-                        )}
-                        <span class="reaction-count">
-                          {series.stats.reactionCounts[reaction.emoji] || 0}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                <div id="synopsis-content" class="tab-content synopsis-panel">
+                  <p set:html={formatDescription(series.description)} />
                 </div>
-              </div>
-              <div id="synopsis-content" class="tab-content synopsis-panel">
-                <p set:html={formatDescription(series.description)} />
-              </div>
-              <div id="chapters-content" class="tab-content">
-                <ul class="chapters-list">
-                  {series.chapters.length > 0 ? (
-                    series.chapters.map((chapter) => (
+                <div id="chapters-content" class="tab-content">
+                  <ul class="chapters-list">
+                    {series.chapters.length > 0 ? (
+                      series.chapters.map((chapter) => (
+                        <li>
+                          <a
+                            href={`/series/${slug}/${chapter.chapter_number}`}
+                            title="Ver ahora."
+                          >
+                            <span class="chapter-number">
+                              Capítulo {chapter.chapter_number}
+                            </span>
+
+                            <span class="chapter-separator">|</span>
+                            <span class="chapter-name">
+                              {chapter.title || 'Sin título'}
+                            </span>
+                            <span class="chapter-separator">|</span>
+
+                            <span class="chapter-views">
+                              {chapter.views.toLocaleString()} Vistas
+                            </span>
+                            <span class="chapter-separator">|</span>
+                            <span class="chapter-date">
+                              {formatFullDate(series.created_at)}
+                            </span>
+                          </a>
+                        </li>
+                      ))
+                    ) : (
                       <li>
-                        <a
-                          href={`/series/${slug}/${chapter.chapter_number}`}
-                          title="Ver ahora."
-                        >
-                          <span class="chapter-number">
-                            Capítulo {chapter.chapter_number}
-                          </span>
-
-                          <span class="chapter-separator">|</span>
-                          <span class="chapter-name">
-                            {chapter.title || 'Sin título'}
-                          </span>
-                          <span class="chapter-separator">|</span>
-
-                          <span class="chapter-views">
-                            {chapter.views.toLocaleString()} Vistas
-                          </span>
-                          <span class="chapter-separator">|</span>
-                          <span class="chapter-date">
-                            {formatFullDate(series.created_at)}
-                          </span>
-                        </a>
+                        <p>Aún no hay capítulos disponibles.</p>
                       </li>
-                    ))
-                  ) : (
-                    <li>
-                      <p>Aún no hay capítulos disponibles.</p>
-                    </li>
-                  )}
-                </ul>
-              </div>
-              <div id="comments-content" class="tab-content">
-                <div class="comments-container-wrapper">
-                  <SeriesComments
-                    comments={comments}
-                    seriesId={series.id}
-                    user={user}
-                  />
+                    )}
+                  </ul>
+                </div>
+                <div id="comments-content" class="tab-content">
+                  <div class="comments-container-wrapper">
+                    <SeriesComments
+                      comments={comments}
+                      seriesId={series.id}
+                      user={user}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
