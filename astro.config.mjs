@@ -13,7 +13,7 @@ export default defineConfig({
   vite: {
     resolve: {
       alias: {
-        '@lib': './src/lib',
+        '@lib': '../src/lib',
       },
     },
     // Ya no se necesitan los complejos polyfills ni alias
