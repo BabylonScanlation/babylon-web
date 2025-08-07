@@ -32,14 +32,23 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
     }
 
     const expiresIn = 60 * 60 * 24 * 7; // 7 días
+    const isProduction = import.meta.env.PROD;
 
-    cookies.set('user_session', idToken, {
+    console.log(`[Auth Session] Entorno: ${isProduction ? 'Producción' : 'Desarrollo'}`);
+
+    const cookieOptions = {
       path: '/',
       httpOnly: true,
-      secure: true,
+      secure: isProduction, // <-- LA CORRECCIÓN CLAVE
       maxAge: expiresIn,
-      sameSite: 'lax',
-    });
+      sameSite: 'lax' as const,
+    };
+
+    console.log('[Auth Session] Opciones de la cookie:', cookieOptions);
+
+    cookies.set('user_session', idToken, cookieOptions);
+
+    console.log('[Auth Session] Cookie de sesión establecida correctamente.');
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (error) {
