@@ -11,6 +11,11 @@ export default defineConfig({
     imageService: "cloudflare",
   }),
   vite: {
+    resolve: {
+      alias: {
+        '@lib': './src/lib',
+      },
+    },
     // Ya no se necesitan los complejos polyfills ni alias
     ssr: {
       // Solo nos aseguramos de que firebase-admin (si se usa en otro lugar) sea manejado por Vite
