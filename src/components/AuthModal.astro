@@ -6,281 +6,71 @@
   <div id="auth-modal-card" class="auth-card">
     <button id="auth-modal-close" class="close-btn">&times;</button>
 
+    <!-- Vista de Login -->
     <div id="login-view">
       <h2>Iniciar Sesión</h2>
       <div class="message-container">
-        <p
-          id="login-error-message"
-          class="error-message"
-          style="display: none;"
-        >
-        </p>
+        <p id="login-success-message" class="success-message" style="display: none;"></p>
+        <p id="login-error-message" class="error-message" style="display: none;"></p>
       </div>
       <form id="login-form" class="auth-form">
         <div class="form-group">
           <label for="login-email">Email</label>
-          <input
-            type="email"
-            name="email"
-            id="login-email"
-            placeholder="tu@email.com"
-            required
-          />
+          <input type="email" name="email" id="login-email" placeholder="tu@email.com" required />
         </div>
         <div class="form-group">
           <label for="login-password">Contraseña</label>
           <input type="password" name="password" id="login-password" required />
         </div>
-        <button type="submit" id="login-submit-button">
+        <button type="submit" id="login-submit-button" class="submit-btn">
           <span class="button-text">Entrar</span>
-          <span class="button-loader"></span>
+          <div class="button-loader"></div>
         </button>
       </form>
       <div class="form-footer">
-        <p>
-          ¿No tienes una cuenta? <a href="#" id="show-register"
-            >Regístrate aquí</a>
-        </p>
+        <p>¿No tienes una cuenta? <button id="show-register" class="link-button">Regístrate aquí</button></p>
       </div>
     </div>
 
+    <!-- Vista de Registro -->
     <div id="register-view" style="display: none;">
       <h2>Crear Cuenta</h2>
       <div class="message-container">
-        <p
-          id="register-error-message"
-          class="error-message"
-          style="display: none;"
-        >
-        </p>
+        <p id="register-error-message" class="error-message" style="display: none;"></p>
       </div>
       <form id="register-form" class="auth-form">
         <div class="form-group">
           <label for="reg-email">Email</label>
-          <input
-            type="email"
-            name="email"
-            id="reg-email"
-            placeholder="nombre@ejemplo.com"
-            required
-          />
+          <input type="email" name="email" id="reg-email" placeholder="nombre@ejemplo.com" required />
         </div>
         <div class="form-group">
           <label for="reg-password">Contraseña</label>
-          <input
-            type="password"
-            name="password"
-            id="reg-password"
-            required
-            minlength="6"
-          />
+          <input type="password" name="password" id="reg-password" required minlength="6" />
         </div>
         <div class="form-group">
           <label for="reg-confirm-password">Confirmar Contraseña</label>
-          <input
-            type="password"
-            name="confirmPassword"
-            id="reg-confirm-password"
-            required
-            minlength="6"
-          />
+          <input type="password" name="confirmPassword" id="reg-confirm-password" required minlength="6" />
         </div>
-        <button type="submit" id="register-submit-button">
+        <button type="submit" id="register-submit-button" class="submit-btn">
           <span class="button-text">Registrarse</span>
-          <span class="button-loader"></span>
+          <div class="button-loader"></div>
         </button>
       </form>
       <div class="form-footer">
-        <p>
-          ¿Ya tienes una cuenta? <a href="#" id="show-login">Inicia sesión</a>
-        </p>
+        <p>¿Ya tienes una cuenta? <button id="show-login" class="link-button">Inicia sesión</button></p>
       </div>
     </div>
+
   </div>
 </div>
 
-<script is:inline>
-  // Script para manejar la APERTURA y CIERRE del modal (sin cambios)
-  document.addEventListener('DOMContentLoaded', () => {
-    const modalOverlay = document.getElementById('auth-modal-overlay');
-    const modalCloseBtn = document.getElementById('auth-modal-close');
-    const loginView = document.getElementById('login-view');
-    const registerView = document.getElementById('register-view');
-    const showRegisterLink = document.getElementById('show-register');
-    const showLoginLink = document.getElementById('show-login');
-
-    if (!modalOverlay || !modalCloseBtn || !loginView || !registerView) return;
-
-    function openModal(view = 'login') {
-      if (view === 'login') {
-        loginView.style.display = 'block';
-        registerView.style.display = 'none';
-      } else {
-        loginView.style.display = 'none';
-        registerView.style.display = 'block';
-      }
-      modalOverlay.classList.remove('is-hidden');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeModal() {
-      modalOverlay.classList.add('is-hidden');
-      document.body.style.overflow = '';
-    }
-
-    document.addEventListener('open-auth-modal', (e) => {
-      openModal(e.detail.view);
-    });
-
-    modalCloseBtn.addEventListener('click', closeModal);
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) closeModal();
-    });
-    showRegisterLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      openModal('register');
-    });
-    showLoginLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      openModal('login');
-    });
-  });
-</script>
-
 <script>
-  // Script para la lógica de Firebase y formularios
-  import {
-    signInWithEmailAndPassword,
-    createUserWithEmailAndPassword,
-  } from 'firebase/auth';
-  import { auth } from '@lib/firebase/client';
-
-  // Función auxiliar para mostrar/ocultar el loader del botón
-  function toggleButtonLoading(button: HTMLButtonElement, isLoading: boolean) {
-    const text = button.querySelector('.button-text') as HTMLElement;
-    const loader = button.querySelector('.button-loader') as HTMLElement;
-
-    if (isLoading) {
-      button.disabled = true;
-      text.style.display = 'none';
-      loader.style.display = 'block';
-    } else {
-      button.disabled = false;
-      text.style.display = 'inline';
-      loader.style.display = 'none';
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    // --- LÓGICA DE LOGIN ---
-    const loginForm = document.getElementById('login-form') as HTMLFormElement;
-    const loginErrorMsg = document.getElementById(
-      'login-error-message'
-    ) as HTMLParagraphElement;
-    const loginSubmitBtn = document.getElementById(
-      'login-submit-button'
-    ) as HTMLButtonElement;
-
-    if (loginForm && loginErrorMsg && loginSubmitBtn) {
-      loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        toggleButtonLoading(loginSubmitBtn, true);
-        loginErrorMsg.style.display = 'none';
-
-        const email = (
-          loginForm.elements.namedItem('email') as HTMLInputElement
-        ).value;
-        const password = (
-          loginForm.elements.namedItem('password') as HTMLInputElement
-        ).value;
-
-        try {
-          await signInWithEmailAndPassword(auth, email, password);
-          // Si el login es exitoso, recargamos la página para que el servidor
-          // renderice el estado de "autenticado".
-          window.location.reload();
-        } catch (error: any) {
-          let message = 'Ocurrió un error inesperado.';
-          switch (error.code) {
-            case 'auth/user-not-found':
-            case 'auth/wrong-password':
-              message = 'El email o la contraseña son incorrectos.';
-              break;
-            case 'auth/invalid-email':
-              message = 'El formato del email no es válido.';
-              break;
-          }
-          loginErrorMsg.textContent = message;
-          loginErrorMsg.style.display = 'block';
-        } finally {
-          toggleButtonLoading(loginSubmitBtn, false);
-        }
-      });
-    }
-
-    // --- LÓGICA DE REGISTRO ---
-    const registerForm = document.getElementById(
-      'register-form'
-    ) as HTMLFormElement;
-    const registerErrorMsg = document.getElementById(
-      'register-error-message'
-    ) as HTMLParagraphElement;
-    const registerSubmitBtn = document.getElementById(
-      'register-submit-button'
-    ) as HTMLButtonElement;
-
-    if (registerForm && registerErrorMsg && registerSubmitBtn) {
-      registerForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        toggleButtonLoading(registerSubmitBtn, true);
-        registerErrorMsg.style.display = 'none';
-
-        const email = (
-          registerForm.elements.namedItem('email') as HTMLInputElement
-        ).value;
-        const password = (
-          registerForm.elements.namedItem('password') as HTMLInputElement
-        ).value;
-        const confirmPassword = (
-          registerForm.elements.namedItem('confirmPassword') as HTMLInputElement
-        ).value;
-
-        if (password !== confirmPassword) {
-          registerErrorMsg.textContent = 'Las contraseñas no coinciden.';
-          registerErrorMsg.style.display = 'block';
-          toggleButtonLoading(registerSubmitBtn, false);
-          return;
-        }
-
-        try {
-          await createUserWithEmailAndPassword(auth, email, password);
-          // Al igual que en el login, recargamos para actualizar el estado.
-          window.location.reload();
-        } catch (error: any) {
-          let message = 'Ocurrió un error al crear la cuenta.';
-          switch (error.code) {
-            case 'auth/email-already-in-use':
-              message = 'Este email ya está registrado.';
-              break;
-            case 'auth/weak-password':
-              message = 'La contraseña debe tener al menos 6 caracteres.';
-              break;
-            case 'auth/invalid-email':
-              message = 'El formato del email no es válido.';
-              break;
-          }
-          registerErrorMsg.textContent = message;
-          registerErrorMsg.style.display = 'block';
-        } finally {
-          toggleButtonLoading(registerSubmitBtn, false);
-        }
-      });
-    }
-  });
+  // ¡LA CLAVE! Importamos y ejecutamos la lógica centralizada.
+  import { initializeAuthModal } from '../lib/authModal';
+  initializeAuthModal();
 </script>
 
 <style>
-  /* Tu CSS (sin cambios) */
   .auth-modal-overlay {
     position: fixed;
     top: 0;
@@ -366,7 +156,7 @@
     outline: none;
     border-color: var(--accent-color);
   }
-  .auth-form button {
+  .submit-btn {
     position: relative;
     padding: 0.75rem 1.5rem;
     background-color: var(--accent-color);
@@ -379,11 +169,14 @@
     transition: background-color 0.2s;
     margin-top: 0.5rem;
     min-height: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
-  .auth-form button:hover:not(:disabled) {
+  .submit-btn:hover:not(:disabled) {
     background-color: #009acd;
   }
-  .auth-form button:disabled {
+  .submit-btn:disabled {
     background-color: #555;
     cursor: not-allowed;
   }
@@ -395,12 +188,12 @@
     border-top-color: #fff;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin: 0 auto;
   }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
+  .submit-btn:disabled .button-text {
+    display: none;
+  }
+  .submit-btn:disabled .button-loader {
+    display: block;
   }
   .success-message,
   .error-message {
@@ -423,13 +216,23 @@
     font-size: 0.9rem;
     color: #aaa;
   }
-  .form-footer a {
+  .link-button {
+    background: none;
+    border: none;
+    padding: 0;
     color: var(--accent-color);
     text-decoration: none;
     font-weight: 600;
     cursor: pointer;
+    font-size: inherit;
+    font-family: inherit;
   }
-  .form-footer a:hover {
+  .link-button:hover {
     text-decoration: underline;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>
