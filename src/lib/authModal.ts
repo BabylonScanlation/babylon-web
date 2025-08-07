@@ -159,7 +159,7 @@ export function initializeAuthModal() {
           });
 
           if (response.ok) {
-            window.location.href = '/';
+            window.location.reload();
           } else {
             const errorData = await response.json();
             const errorMessage =
