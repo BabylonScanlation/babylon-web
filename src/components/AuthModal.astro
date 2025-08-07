@@ -10,20 +10,13 @@
       <h2>Iniciar Sesión</h2>
       <div class="message-container">
         <p
-          id="login-success-message"
-          class="success-message"
-          style="display: none;"
-        >
-        </p>
-        <p
           id="login-error-message"
           class="error-message"
           style="display: none;"
         >
         </p>
       </div>
-
-      <form id="login-form" class="auth-form" method="POST">
+      <form id="login-form" class="auth-form">
         <div class="form-group">
           <label for="login-email">Email</label>
           <input
@@ -45,8 +38,8 @@
       </form>
       <div class="form-footer">
         <p>
-          ¿No tienes una cuenta?
-          <a href="#" id="show-register">Regístrate aquí</a>
+          ¿No tienes una cuenta? <a href="#" id="show-register"
+            >Regístrate aquí</a>
         </p>
       </div>
     </div>
@@ -61,7 +54,7 @@
         >
         </p>
       </div>
-      <form id="register-form" class="auth-form" method="POST">
+      <form id="register-form" class="auth-form">
         <div class="form-group">
           <label for="reg-email">Email</label>
           <input
@@ -74,7 +67,13 @@
         </div>
         <div class="form-group">
           <label for="reg-password">Contraseña</label>
-          <input type="password" name="password" id="reg-password" required />
+          <input
+            type="password"
+            name="password"
+            id="reg-password"
+            required
+            minlength="6"
+          />
         </div>
         <div class="form-group">
           <label for="reg-confirm-password">Confirmar Contraseña</label>
@@ -83,6 +82,7 @@
             name="confirmPassword"
             id="reg-confirm-password"
             required
+            minlength="6"
           />
         </div>
         <button type="submit" id="register-submit-button">
@@ -92,15 +92,195 @@
       </form>
       <div class="form-footer">
         <p>
-          ¿Ya tienes una cuenta?
-          <a href="#" id="show-login">Inicia sesión</a>
+          ¿Ya tienes una cuenta? <a href="#" id="show-login">Inicia sesión</a>
         </p>
       </div>
     </div>
   </div>
 </div>
 
+<script is:inline>
+  // Script para manejar la APERTURA y CIERRE del modal (sin cambios)
+  document.addEventListener('DOMContentLoaded', () => {
+    const modalOverlay = document.getElementById('auth-modal-overlay');
+    const modalCloseBtn = document.getElementById('auth-modal-close');
+    const loginView = document.getElementById('login-view');
+    const registerView = document.getElementById('register-view');
+    const showRegisterLink = document.getElementById('show-register');
+    const showLoginLink = document.getElementById('show-login');
+
+    if (!modalOverlay || !modalCloseBtn || !loginView || !registerView) return;
+
+    function openModal(view = 'login') {
+      if (view === 'login') {
+        loginView.style.display = 'block';
+        registerView.style.display = 'none';
+      } else {
+        loginView.style.display = 'none';
+        registerView.style.display = 'block';
+      }
+      modalOverlay.classList.remove('is-hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      modalOverlay.classList.add('is-hidden');
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('open-auth-modal', (e) => {
+      openModal(e.detail.view);
+    });
+
+    modalCloseBtn.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) closeModal();
+    });
+    showRegisterLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModal('register');
+    });
+    showLoginLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModal('login');
+    });
+  });
+</script>
+
+<script>
+  // Script para la lógica de Firebase y formularios
+  import {
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+  } from 'firebase/auth';
+  import { auth } from '@lib/firebase/client';
+
+  // Función auxiliar para mostrar/ocultar el loader del botón
+  function toggleButtonLoading(button: HTMLButtonElement, isLoading: boolean) {
+    const text = button.querySelector('.button-text') as HTMLElement;
+    const loader = button.querySelector('.button-loader') as HTMLElement;
+
+    if (isLoading) {
+      button.disabled = true;
+      text.style.display = 'none';
+      loader.style.display = 'block';
+    } else {
+      button.disabled = false;
+      text.style.display = 'inline';
+      loader.style.display = 'none';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // --- LÓGICA DE LOGIN ---
+    const loginForm = document.getElementById('login-form') as HTMLFormElement;
+    const loginErrorMsg = document.getElementById(
+      'login-error-message'
+    ) as HTMLParagraphElement;
+    const loginSubmitBtn = document.getElementById(
+      'login-submit-button'
+    ) as HTMLButtonElement;
+
+    if (loginForm && loginErrorMsg && loginSubmitBtn) {
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        toggleButtonLoading(loginSubmitBtn, true);
+        loginErrorMsg.style.display = 'none';
+
+        const email = (
+          loginForm.elements.namedItem('email') as HTMLInputElement
+        ).value;
+        const password = (
+          loginForm.elements.namedItem('password') as HTMLInputElement
+        ).value;
+
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          // Si el login es exitoso, recargamos la página para que el servidor
+          // renderice el estado de "autenticado".
+          window.location.reload();
+        } catch (error: any) {
+          let message = 'Ocurrió un error inesperado.';
+          switch (error.code) {
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+              message = 'El email o la contraseña son incorrectos.';
+              break;
+            case 'auth/invalid-email':
+              message = 'El formato del email no es válido.';
+              break;
+          }
+          loginErrorMsg.textContent = message;
+          loginErrorMsg.style.display = 'block';
+        } finally {
+          toggleButtonLoading(loginSubmitBtn, false);
+        }
+      });
+    }
+
+    // --- LÓGICA DE REGISTRO ---
+    const registerForm = document.getElementById(
+      'register-form'
+    ) as HTMLFormElement;
+    const registerErrorMsg = document.getElementById(
+      'register-error-message'
+    ) as HTMLParagraphElement;
+    const registerSubmitBtn = document.getElementById(
+      'register-submit-button'
+    ) as HTMLButtonElement;
+
+    if (registerForm && registerErrorMsg && registerSubmitBtn) {
+      registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        toggleButtonLoading(registerSubmitBtn, true);
+        registerErrorMsg.style.display = 'none';
+
+        const email = (
+          registerForm.elements.namedItem('email') as HTMLInputElement
+        ).value;
+        const password = (
+          registerForm.elements.namedItem('password') as HTMLInputElement
+        ).value;
+        const confirmPassword = (
+          registerForm.elements.namedItem('confirmPassword') as HTMLInputElement
+        ).value;
+
+        if (password !== confirmPassword) {
+          registerErrorMsg.textContent = 'Las contraseñas no coinciden.';
+          registerErrorMsg.style.display = 'block';
+          toggleButtonLoading(registerSubmitBtn, false);
+          return;
+        }
+
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+          // Al igual que en el login, recargamos para actualizar el estado.
+          window.location.reload();
+        } catch (error: any) {
+          let message = 'Ocurrió un error al crear la cuenta.';
+          switch (error.code) {
+            case 'auth/email-already-in-use':
+              message = 'Este email ya está registrado.';
+              break;
+            case 'auth/weak-password':
+              message = 'La contraseña debe tener al menos 6 caracteres.';
+              break;
+            case 'auth/invalid-email':
+              message = 'El formato del email no es válido.';
+              break;
+          }
+          registerErrorMsg.textContent = message;
+          registerErrorMsg.style.display = 'block';
+        } finally {
+          toggleButtonLoading(registerSubmitBtn, false);
+        }
+      });
+    }
+  });
+</script>
+
 <style>
+  /* Tu CSS (sin cambios) */
   .auth-modal-overlay {
     position: fixed;
     top: 0;
@@ -116,12 +296,10 @@
     opacity: 1;
     transition: opacity 0.3s ease-in-out;
   }
-
   .auth-modal-overlay.is-hidden {
     opacity: 0;
     pointer-events: none;
   }
-
   .auth-card {
     position: relative;
     background-color: var(--card-background);
@@ -135,11 +313,9 @@
     transform: scale(1);
     transition: transform 0.3s ease-in-out;
   }
-
   .auth-modal-overlay.is-hidden .auth-card {
     transform: scale(0.95);
   }
-
   .close-btn {
     position: absolute;
     top: 10px;
@@ -151,11 +327,9 @@
     line-height: 1;
     cursor: pointer;
   }
-
   .auth-card h2 {
     font-size: 1.8rem;
   }
-
   .message-container {
     min-height: 40px;
     margin-bottom: 1rem;
@@ -163,17 +337,14 @@
     align-items: center;
     justify-content: center;
   }
-
   .auth-form {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
   }
-
   .form-group {
     text-align: left;
   }
-
   .auth-form label {
     display: block;
     font-weight: 700;
@@ -181,7 +352,6 @@
     color: #ccc;
     margin-bottom: 0.25rem;
   }
-
   .auth-form input {
     width: 100%;
     padding: 0.75rem;
@@ -192,12 +362,10 @@
     font-size: 1rem;
     transition: border-color 0.2s;
   }
-
   .auth-form input:focus {
     outline: none;
     border-color: var(--accent-color);
   }
-
   .auth-form button {
     position: relative;
     padding: 0.75rem 1.5rem;
@@ -212,16 +380,13 @@
     margin-top: 0.5rem;
     min-height: 44px;
   }
-
   .auth-form button:hover:not(:disabled) {
     background-color: #009acd;
   }
-
   .auth-form button:disabled {
     background-color: #555;
     cursor: not-allowed;
   }
-
   .button-loader {
     display: none;
     width: 20px;
@@ -232,13 +397,11 @@
     animation: spin 1s linear infinite;
     margin: 0 auto;
   }
-
   @keyframes spin {
     to {
       transform: rotate(360deg);
     }
   }
-
   .success-message,
   .error-message {
     width: 100%;
@@ -247,30 +410,25 @@
     text-align: center;
     font-size: 0.9rem;
   }
-
   .success-message {
     color: #2ecc71;
     background-color: rgba(46, 204, 113, 0.1);
   }
-
   .error-message {
     color: #ff6b6b;
     background-color: rgba(255, 107, 107, 0.1);
   }
-
   .form-footer {
     margin-top: 1.5rem;
     font-size: 0.9rem;
     color: #aaa;
   }
-
   .form-footer a {
     color: var(--accent-color);
     text-decoration: none;
     font-weight: 600;
     cursor: pointer;
   }
-
   .form-footer a:hover {
     text-decoration: underline;
   }
