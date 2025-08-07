@@ -25,3 +25,4 @@ Thumbs.db
 # Ignorar scripts de utilidad específicos
 cleanup-deployments.js
 create-migrations.js
+prompt.txt
