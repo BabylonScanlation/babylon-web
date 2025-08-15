@@ -71,6 +71,32 @@
       </div>
     </div>
 
+    <!-- Vista de Vinculación de Cuenta -->
+    <div id="link-account-view" style="display: none;">
+      <h2>Vincular Cuenta</h2>
+      <div class="message-container">
+        <p id="link-account-message" class="info-message" style="display: none;"></p>
+        <p id="link-account-error-message" class="error-message" style="display: none;"></p>
+      </div>
+      <form id="link-account-form" class="auth-form">
+        <div class="form-group">
+          <label for="link-email">Email</label>
+          <input type="email" name="email" id="link-email" placeholder="tu@email.com" required readonly />
+        </div>
+        <div class="form-group">
+          <label for="link-password">Contraseña</label>
+          <input type="password" name="password" id="link-password" required />
+        </div>
+        <button type="submit" id="link-account-submit-button" class="submit-btn">
+          <span class="button-text">Vincular Cuenta</span>
+          <div class="button-loader"></div>
+        </button>
+      </form>
+      <div class="form-footer">
+        <button id="cancel-link-account" class="link-button">Cancelar</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -220,6 +246,10 @@
   .error-message {
     color: #ff6b6b;
     background-color: rgba(255, 107, 107, 0.1);
+  }
+  .info-message {
+    color: #3498db;
+    background-color: rgba(52, 152, 219, 0.1);
   }
   .form-footer {
     margin-top: 1.5rem;

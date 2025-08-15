@@ -21,9 +21,31 @@ export function initializeAuthModal() {
     const registerView = document.getElementById('register-view');
     const showRegisterLink = document.getElementById('show-register');
     const showLoginLink = document.getElementById('show-login');
+    const showLoginLink = document.getElementById('show-login');
     const googleSignInButton = document.getElementById('google-sign-in-button');
     const googleSignInButtonRegister = document.getElementById(
       'google-sign-in-button-register'
+    );
+
+    // Link Account View elements
+    const linkAccountView = document.getElementById('link-account-view');
+    const linkAccountMessage = document.getElementById(
+      'link-account-message'
+    ) as HTMLParagraphElement | null;
+    const linkAccountErrorMessage = document.getElementById(
+      'link-account-error-message'
+    ) as HTMLParagraphElement | null;
+    const linkAccountEmailInput = document.getElementById(
+      'link-email'
+    ) as HTMLInputElement | null;
+    const linkAccountPasswordInput = document.getElementById(
+      'link-password'
+    ) as HTMLInputElement | null;
+    const linkAccountSubmitButton = document.getElementById(
+      'link-account-submit-button'
+    ) as HTMLButtonElement | null;
+    const cancelLinkAccountButton = document.getElementById(
+      'cancel-link-account'
     );
 
     if (
@@ -34,7 +56,14 @@ export function initializeAuthModal() {
       !showRegisterLink ||
       !showLoginLink ||
       !googleSignInButton ||
-      !googleSignInButtonRegister
+      !googleSignInButtonRegister ||
+      !linkAccountView ||
+      !linkAccountMessage ||
+      !linkAccountErrorMessage ||
+      !linkAccountEmailInput ||
+      !linkAccountPasswordInput ||
+      !linkAccountSubmitButton ||
+      !cancelLinkAccountButton
     ) {
       // Si algún elemento no se encuentra, la función termina.
       console.error(
@@ -47,6 +76,9 @@ export function initializeAuthModal() {
     const _modalOverlay = modalOverlay!;
     const _loginView = loginView!;
     const _registerView = registerView!;
+    const _linkAccountView = linkAccountView!;
+
+    let pendingCredential: AuthCredential | null = null;
 
     function openModal(view: string = 'login', successMessage: string = '') {
       const loginErrorMsg = document.getElementById(
@@ -65,6 +97,7 @@ export function initializeAuthModal() {
 
       _loginView.style.display = view === 'login' ? 'block' : 'none';
       _registerView.style.display = view === 'register' ? 'block' : 'none';
+      _linkAccountView.style.display = view === 'link' ? 'block' : 'none';
       _modalOverlay.classList.remove('is-hidden');
       document.body.style.overflow = '';
     }
@@ -122,14 +155,100 @@ export function initializeAuthModal() {
           console.error('Error en la sesión de Google:', errorData);
           // Handle error display for Google Sign-In if needed
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Error al iniciar sesión con Google:', error);
-        // Handle error display for Google Sign-In if needed
+        if (error && typeof error === 'object' && 'code' in error) {
+          const firebaseError = error as { code: string; credential?: AuthCredential };
+          if (firebaseError.code === 'auth/account-exists-with-different-credential') {
+            pendingCredential = firebaseError.credential || null;
+            const email = firebaseError.customData?.email as string;
+            if (email && linkAccountEmailInput) {
+              linkAccountEmailInput.value = email;
+            }
+            if (linkAccountMessage) {
+              linkAccountMessage.textContent = `Ya existe una cuenta con el correo ${email}. Por favor, inicia sesión con tu método existente para vincularla.`;
+              linkAccountMessage.style.display = 'block';
+            }
+            openModal('link');
+          } else {
+            // Handle other Firebase errors
+            alert('Error al iniciar sesión con Google: ' + firebaseError.code);
+          }
+        } else {
+          alert('Error desconocido al iniciar sesión con Google.');
+        }
       }
     };
 
     googleSignInButton.addEventListener('click', handleGoogleSignIn);
     googleSignInButtonRegister.addEventListener('click', handleGoogleSignIn);
+
+    // Link Account Form Submission
+    linkAccountSubmitButton.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!pendingCredential) {
+        console.error('No pending credential to link.');
+        return;
+      }
+
+      const email = linkAccountEmailInput?.value;
+      const password = linkAccountPasswordInput?.value;
+
+      if (!email || !password) {
+        if (linkAccountErrorMessage) {
+          linkAccountErrorMessage.textContent = 'Por favor, completa todos los campos.';
+          linkAccountErrorMessage.style.display = 'block';
+        }
+        return;
+      }
+
+      try {
+        // Re-authenticate the user with their existing credentials
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        // Link the pending Google credential to the re-authenticated user
+        await userCredential.user.linkWithCredential(pendingCredential);
+
+        // If linking is successful, proceed to create session
+        const idToken = await userCredential.user.getIdToken();
+        const response = await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+        });
+
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          const errorData = await response.json();
+          console.error('Error al crear sesión después de vincular:', errorData);
+          if (linkAccountErrorMessage) {
+            linkAccountErrorMessage.textContent = 'Error al vincular la cuenta y crear sesión.';
+            linkAccountErrorMessage.style.display = 'block';
+          }
+        }
+      } catch (error: unknown) {
+        console.error('Error durante la vinculación de cuenta:', error);
+        if (linkAccountErrorMessage) {
+          let errorMessage = 'Error al vincular la cuenta. Credenciales incorrectas o problema de red.';
+          if (error && typeof error === 'object' && 'code' in error) {
+            const firebaseError = error as { code: string };
+            if (firebaseError.code === 'auth/invalid-credential') {
+              errorMessage = 'Credenciales incorrectas para la cuenta existente.';
+            } else if (firebaseError.code === 'auth/wrong-password') {
+              errorMessage = 'Contraseña incorrecta para la cuenta existente.';
+            }
+          }
+          linkAccountErrorMessage.textContent = errorMessage;
+          linkAccountErrorMessage.style.display = 'block';
+        }
+      }
+    });
+
+    // Cancel Link Account Button
+    cancelLinkAccountButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeModal();
+    });
   }
 
   // Inicializar cuando el DOM esté listo
