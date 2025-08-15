@@ -287,19 +287,23 @@
     justify-content: center;
     gap: 10px;
     padding: 0.75rem 1.5rem;
-    background-color: #4285f4;
-    color: #fff;
-    border: none;
+    background-color: #F8F8F8; /* Blanco Cuarzo */
+    color: #333; /* Texto oscuro para contraste */
+    border: 1px solid #ccc; /* Borde sutil */
     border-radius: 4px;
     cursor: pointer;
     font-weight: 700;
     font-size: 1rem;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, border-color 0.2s;
     margin-top: 0.5rem;
     min-height: 44px;
+    max-width: 300px; /* Ancho máximo para centrar */
+    margin-left: auto;
+    margin-right: auto;
   }
   .google-btn:hover {
-    background-color: #357ae8;
+    background-color: #e0e0e0; /* Ligeramente más oscuro al pasar el ratón */
+    border-color: #bbb;
   }
   .google-icon {
     width: 20px;
