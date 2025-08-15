@@ -7,9 +7,9 @@ import {
 } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.FIREBASE_API_KEY,
+  apiKey: 'AIzaSyAee_aheDnkdht9I_eagReWAP25-IaMPtY',
   authDomain: 'babylon-scanlation-users.firebaseapp.com',
-  projectId: import.meta.env.FIREBASE_PROJECT_ID,
+  projectId: 'babylon-scanlation-users',
   storageBucket: 'babylon-scanlation-users.firebasestorage.app',
   messagingSenderId: '1091956230989',
   appId: '1:1091956230989:web:6184d7f256976c1e570504',
