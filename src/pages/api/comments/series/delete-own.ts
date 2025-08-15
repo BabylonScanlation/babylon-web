@@ -28,6 +28,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .bind(commentId)
       .first<{ user_id: string }>();
 
+    console.log("Server user.uid:", user.uid);
+    console.log("Comment user_id:", comment?.user_id);
+
     if (!comment) {
       return new Response(JSON.stringify({ error: "Comentario no encontrado" }), { status: 404 });
     }
