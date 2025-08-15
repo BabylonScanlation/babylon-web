@@ -2,6 +2,8 @@ import { auth } from './firebase/client';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
 
 // Declare a custom event map for the Document to include 'open-auth-modal'
@@ -19,6 +21,10 @@ export function initializeAuthModal() {
     const registerView = document.getElementById('register-view');
     const showRegisterLink = document.getElementById('show-register');
     const showLoginLink = document.getElementById('show-login');
+    const googleSignInButton = document.getElementById('google-sign-in-button');
+    const googleSignInButtonRegister = document.getElementById(
+      'google-sign-in-button-register'
+    );
 
     if (
       !modalOverlay ||
@@ -26,7 +32,9 @@ export function initializeAuthModal() {
       !loginView ||
       !registerView ||
       !showRegisterLink ||
-      !showLoginLink
+      !showLoginLink ||
+      !googleSignInButton ||
+      !googleSignInButtonRegister
     ) {
       // Si algún elemento no se encuentra, la función termina.
       console.error(
@@ -93,6 +101,35 @@ export function initializeAuthModal() {
       e.preventDefault();
       openModal('login');
     });
+
+    // Google Sign-In
+    const googleProvider = new GoogleAuthProvider();
+
+    const handleGoogleSignIn = async () => {
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        const idToken = await result.user.getIdToken();
+        const response = await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+        });
+
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          const errorData = await response.json();
+          console.error('Error en la sesión de Google:', errorData);
+          // Handle error display for Google Sign-In if needed
+        }
+      } catch (error) {
+        console.error('Error al iniciar sesión con Google:', error);
+        // Handle error display for Google Sign-In if needed
+      }
+    };
+
+    googleSignInButton.addEventListener('click', handleGoogleSignIn);
+    googleSignInButtonRegister.addEventListener('click', handleGoogleSignIn);
   }
 
   // Inicializar cuando el DOM esté listo
