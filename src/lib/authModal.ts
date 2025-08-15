@@ -21,7 +21,6 @@ export function initializeAuthModal() {
     const registerView = document.getElementById('register-view');
     const showRegisterLink = document.getElementById('show-register');
     const showLoginLink = document.getElementById('show-login');
-    const showLoginLink = document.getElementById('show-login');
     const googleSignInButton = document.getElementById('google-sign-in-button');
     const googleSignInButtonRegister = document.getElementById(
       'google-sign-in-button-register'
