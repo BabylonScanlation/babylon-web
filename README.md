@@ -1,52 +1,67 @@
-# Astro Starter Kit: Basics
+# Babylon Scanlation
 
-```sh
-npm create astro@latest -- --template basics
-```
+Este es el sitio web para el grupo de scanlation Babylon. La plataforma permite a los usuarios leer manga y cómics traducidos por el grupo.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/basics)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/basics/devcontainer.json)
+## 🚀 Estructura del Proyecto
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-![just-the-basics](https://github.com/withastro/astro/assets/2244813/a0a5533c-a856-4198-8470-2d67b1d7c554)
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
+El proyecto está construido con [Astro](https://astro.build/) y utiliza [Cloudflare Pages](https://pages.cloudflare.com/) para el despliegue.
 
 ```text
 /
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
+├── public/            # Archivos estáticos
+├── src/               # Código fuente
+│   ├── components/    # Componentes de Astro
+│   ├── layouts/       # Layouts de página
+│   ├── lib/           # Lógica de negocio (Firebase, DB, etc.)
+│   ├── pages/         # Páginas y endpoints de la API
+│   └── styles/        # Estilos globales
+├── package.json       # Dependencias y scripts
+└── astro.config.mjs   # Configuración de Astro
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+## ⚙️ Configuración y Desarrollo Local
 
-## 🧞 Commands
+### Prerrequisitos
 
-All commands are run from the root of the project, from a terminal:
+*   Node.js
+*   [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/) para interactuar con Cloudflare.
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+### Pasos
 
-## 👀 Want to learn more?
+1.  **Instalar dependencias:**
+    ```sh
+    npm install
+    ```
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+2.  **Sincronizar la base de datos:**
+    Para desarrollo local, puedes sincronizar la base de datos de producción a tu entorno local.
+    ```sh
+    npm run db:sync
+    ```
+
+3.  **Iniciar el servidor de desarrollo:**
+    Esto iniciará el servidor de desarrollo de Astro.
+    ```sh
+    npm run dev
+    ```
+    El sitio estará disponible en `localhost:4321`.
+
+## 🧞 Comandos
+
+Todos los comandos se ejecutan desde la raíz del proyecto:
+
+| Comando           | Acción                                                                 |
+| :---------------- | :--------------------------------------------------------------------- |
+| `npm install`     | Instala las dependencias del proyecto.                                 |
+| `npm run dev`     | Inicia el servidor de desarrollo local.                                |
+| `npm run build`   | Compila el sitio para producción en la carpeta `./dist/`.              |
+| `npm run preview` | Previsualiza la compilación de producción localmente.                  |
+| `npm run deploy`  | Despliega el sitio en Cloudflare Pages.                                |
+| `npm run db:sync` | Sincroniza la base de datos de producción al entorno de desarrollo local. |
+
+## 🛠️ Tecnologías Utilizadas
+
+*   **Framework:** [Astro](https://astro.build/)
+*   **Hosting:** [Cloudflare Pages](https://pages.cloudflare.com/)
+*   **Base de Datos:** [Cloudflare D1](https://developers.cloudflare.com/d1/)
+*   **Autenticación:** [Firebase Authentication](https://firebase.google.com/docs/auth)
