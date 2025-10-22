@@ -21,6 +21,7 @@ interface Props {
 
 const { chapterId, comments = [], user = null } = Astro.props;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const COMMENTS_VISIBLE_LIMIT = 1;
 
 // CORRECCIÓN: Se cambia el límite a 1
@@ -126,12 +127,10 @@ const formatCommentDate = (dateString: string) => {
   define:vars={{
     chapterId,
     comments,
-    COMMENTS_VISIBLE_LIMIT,
     formatCommentDate,
   }}
 >
   function initializeChapterComments() {
-    const COMMENTS_VISIBLE_LIMIT = 1; // Define here
     const commentForm = document.getElementById('comment-form');
     if (commentForm instanceof HTMLFormElement) {
       const commentText = document.getElementById('comment-text');

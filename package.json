@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.0",
-    "@squoosh/lib": "^0.5.3",
     "@zip.js/zip.js": "^2.7.64",
     "astro": "^5.12.0",
     "dotenv": "^17.2.1",

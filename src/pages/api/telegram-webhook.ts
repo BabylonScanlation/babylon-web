@@ -32,7 +32,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const update = await request.json<TelegramUpdate>();
+    const update = (await request.json()) as TelegramUpdate;
     const topicId = update.message?.message_thread_id;
 
     if (update.message?.document?.mime_type === 'application/zip' && topicId) {
@@ -91,7 +91,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`; // New placeholder for chapters
 
         // Update the chapter with the placeholder URL immediately after insertion
-        await db.prepare('UPDATE Chapters SET url_portada = ? WHERE id = ?')
+        await db
+          .prepare('UPDATE Chapters SET url_portada = ? WHERE id = ?')
           .bind(chapterPlaceholderUrl, newChapterId)
           .run();
 
@@ -99,18 +100,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
           `[Webhook] Capítulo ${chapterNumber} de la serie ${seriesId} registrado con ID: ${newChapterId}.`
         );
 
-        const telegramFileResponse = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`);
-        const telegramFileData: TelegramFileResponse = await telegramFileResponse.json();
+        const telegramFileResponse = await fetch(
+          `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`
+        );
+        const telegramFileData: TelegramFileResponse =
+          await telegramFileResponse.json();
 
         if (!telegramFileData.ok) {
-            console.error('[Webhook] Error getting Telegram file path:', telegramFileData);
-            throw new Error('Failed to get Telegram file path.');
+          console.error(
+            '[Webhook] Error getting Telegram file path:',
+            telegramFileData
+          );
+          throw new Error('Failed to get Telegram file path.');
         }
-
-        const filePath = telegramFileData.result.file_path;
-        const originalImageUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${filePath}`;
-
-
       } else {
         console.log(
           `[Webhook] Capítulo ${chapterNumber} de la serie ${seriesId} ya existía o falló el registro.`
