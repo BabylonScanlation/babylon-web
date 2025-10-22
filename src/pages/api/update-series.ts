@@ -55,12 +55,11 @@ export const POST: APIRoute = async (context) => {
 
     // ✅ CONSTRUIR LA CONSULTA DINÁMICAMENTE CON TODOS LOS CAMPOS
     let setClauses = "title = ?, description = ?, status = ?, type = ?, genres = ?, author = ?, artist = ?, published_by = ?, alternative_names = ?, serialized_by = ?, is_hidden = ?";
-    // eslint-disable-next-line prefer-const
-    let bindParams: (string | number | boolean | null)[] = [title, description, status, type, genres, author, artist, published_by, alternative_names, serialized_by, is_hidden];
+    const bindParams: (string | number | boolean | null)[] = [title, description, status, type, genres, author, artist, published_by, alternative_names, serialized_by, is_hidden];
 
     if (coverImageUrlToUpdate) {
         setClauses += ", cover_image_url = ?";
-        bindParams.push(coverImageUrlToUpdate);
+        bindParams = bindParams.concat([coverImageUrlToUpdate]);
     }
     
     bindParams.push(parseInt(seriesId));
