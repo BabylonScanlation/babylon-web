@@ -29,6 +29,7 @@ export const POST: APIRoute = async (context) => {
     const published_by = formData.get('published_by')?.toString() || 'N/A';
     const alternative_names = formData.get('alternative_names')?.toString() || 'N/A';
     const serialized_by = formData.get('serialized_by')?.toString() || 'N/A';
+    const is_hidden = formData.get('is_hidden') === 'on'; // Checkbox value is 'on' if checked
 
     if (!seriesId || !title || !description) {
       const errorUrl = new URL(referer);
@@ -53,8 +54,8 @@ export const POST: APIRoute = async (context) => {
     }
 
     // ✅ CONSTRUIR LA CONSULTA DINÁMICAMENTE CON TODOS LOS CAMPOS
-    let setClauses = "title = ?, description = ?, status = ?, type = ?, genres = ?, author = ?, artist = ?, published_by = ?, alternative_names = ?, serialized_by = ?";
-    let bindParams: (string | number | null)[] = [title, description, status, type, genres, author, artist, published_by, alternative_names, serialized_by];
+    let setClauses = "title = ?, description = ?, status = ?, type = ?, genres = ?, author = ?, artist = ?, published_by = ?, alternative_names = ?, serialized_by = ?, is_hidden = ?";
+    let bindParams: (string | number | boolean | null)[] = [title, description, status, type, genres, author, artist, published_by, alternative_names, serialized_by, is_hidden];
 
     if (coverImageUrlToUpdate) {
         setClauses += ", cover_image_url = ?";

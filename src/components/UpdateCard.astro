@@ -31,6 +31,10 @@ if (interval > 1) return `hace ${Math.floor(interval)} minutos`;
 interface ChapterInfo {
   number: number;
   createdAt: string;
+  url_portada?: string; // Add url_portada here
+  thumbnail_url?: string; // Keep existing thumbnail_url
+  title?: string; // Add title as it's used
+  views?: number; // Add views as it's used
 }
 ---
 
@@ -48,10 +52,19 @@ interface ChapterInfo {
     <h3 class="series-title">{series.title}</h3>
     <div class="chapters-info">
       {series.chapters && series.chapters.map((chapter: ChapterInfo) => (
-        <div class="chapter-details">
-          <span>Capítulo {chapter.number}</span>
-   
-       <time>{timeAgo(chapter.createdAt)}</time>
+        <div class="chapter-entry">
+          {/* Use chapter.url_portada if available, otherwise chapter.thumbnail_url */}
+          {(chapter.url_portada || chapter.thumbnail_url) && (
+            <img src={chapter.url_portada || chapter.thumbnail_url} alt={`Miniatura Capítulo ${chapter.number}`} class="chapter-thumbnail" />
+          )}
+          <div class="chapter-details">
+            <span class="chapter-number">Capítulo {chapter.number}</span>
+            {chapter.title && <span class="chapter-title">{chapter.title}</span>}
+            <div class="chapter-meta">
+              {chapter.views !== undefined && <span class="chapter-views">{chapter.views} vistas</span>}
+              <time class="chapter-time">{timeAgo(chapter.createdAt)}</time>
+            </div>
+          </div>
         </div>
       ))}
     </div>
@@ -122,5 +135,63 @@ text-overflow: ellipsis;
     color: #ccc;
 font-size: 0.7rem; /* Reducido */
     margin-top: 0.15rem; /* Reducido */
+  }
+
+  /* New styles for chapter entries */
+  .chapters-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start; /* Align items to the start */
+  }
+
+  .chapter-entry {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    text-align: left;
+  }
+
+  .chapter-thumbnail {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0; /* Prevent shrinking */
+  }
+
+  .chapter-details {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Allow details to take available space */
+    font-size: 0.8rem;
+  }
+
+  .chapter-number {
+    font-weight: bold;
+    color: #fff;
+  }
+
+  .chapter-title {
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chapter-meta {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    color: #aaa;
+  }
+
+  .chapter-views {
+    /* Styles for views count */
+  }
+
+  .chapter-time {
+    /* Styles for time ago */
   }
 </style>

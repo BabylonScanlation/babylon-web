@@ -11,7 +11,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     const db = locals.runtime.env.DB;
     const user = locals.user;
 
-    const series = await db.prepare("SELECT *, genres as genres FROM Series WHERE slug = ?").bind(slug).first<any>();
+    const series = await db.prepare("SELECT *, genres as genres FROM Series WHERE slug = ? AND is_hidden = FALSE").bind(slug).first<any>();
 
     if (!series) {
       return new Response("Serie no encontrada", { status: 404 });

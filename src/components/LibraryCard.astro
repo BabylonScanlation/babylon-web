@@ -1,13 +1,19 @@
 ---
 // src/components/LibraryCard.astro
-import Image from './Image.astro';
+import type { Series } from '../types';
+
+interface Props {
+  manga: Series & { url_portada?: string }; // Add url_portada to manga type
+}
 
 const { manga } = Astro.props;
+
+const finalCoverUrl = manga.url_portada || manga.cover_image_url;
 ---
 <a href={`/series/${manga.slug}`} class="library-card">
   <div class="card-background">
     <Image 
-      src={manga.cover_image_url} 
+      src={finalCoverUrl} 
       alt={`Portada de ${manga.title}`} 
       width={400} 
       height={600} 

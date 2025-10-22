@@ -19,6 +19,31 @@ bucket_name = "babylon-scanlation-cache"
 binding = "R2_ASSETS"
 bucket_name = "babylon-scanlation-assets"
 
+# --- Cloudflare Queues (Producción) ---
+[[queues.producers]]
+binding = "COVER_GENERATION_QUEUE"
+queue = "cover-generation-queue"
+
+# --- Cloudflare Workers AI (Producción) ---
+
+# --- Worker Consumidor de Portadas (Producción) ---
+[[workers]]
+name = "cover-generator-worker"
+main = "src/workers/cover-generator.ts"
+compatibility_date = "2025-07-18"
+bindings = [
+  { type = "d1", binding = "DB", database_name = "babylon-scanlation-prod", database_id = "5c1ecb07-f1ea-4961-9014-0b8612fc0caf" },
+  { type = "r2_bucket", binding = "R2_ASSETS", bucket_name = "babylon-scanlation-assets" }
+]
+[workers.secrets]
+TELEGRAM_BOT_TOKEN = "7859877057:AAF6DdgA7B1VoZ0YI8Z16ViKv4Z9CkisO7c"
+[[queues.consumers]]
+queue = "cover-generation-queue"
+max_batch_size = 1
+max_batch_timeout = 0
+max_retries = 3
+dead_letter_queue = "cover-generation-dlq"
+
 
 # ---- ENTORNO DE VISTA PREVIA ----
 [env.preview]
@@ -34,3 +59,28 @@ bucket_name = "babylon-scanlation-cache"
 [[env.preview.r2_buckets]]
 binding = "R2_ASSETS"
 bucket_name = "babylon-scanlation-assets"
+
+# --- Cloudflare Queues (Vista Previa) ---
+[[env.preview.queues.producers]]
+binding = "COVER_GENERATION_QUEUE"
+queue = "cover-generation-queue-preview" # Usar una cola diferente para la vista previa
+
+# --- Cloudflare Workers AI (Vista Previa) ---
+
+# --- Worker Consumidor de Portadas (Vista Previa) ---
+[[env.preview.workers]]
+name = "cover-generator-worker-preview"
+main = "src/workers/cover-generator.ts"
+compatibility_date = "2025-07-18"
+bindings = [
+  { type = "d1", binding = "DB", database_name = "babylon-scanlation-preview", database_id = "2dd58a59-9a80-480a-8b6c-c9de96b60462" },
+  { type = "r2_bucket", binding = "R2_ASSETS", bucket_name = "babylon-scanlation-assets" }
+]
+[env.preview.workers.secrets]
+TELEGRAM_BOT_TOKEN = "7859877057:AAF6DdgA7B1VoZ0YI8Z16ViKv4Z9CkisO7c"
+[[env.preview.queues.consumers]]
+queue = "cover-generation-queue-preview"
+max_batch_size = 1
+max_batch_timeout = 0
+max_retries = 3
+dead_letter_queue = "cover-generation-dlq-preview"

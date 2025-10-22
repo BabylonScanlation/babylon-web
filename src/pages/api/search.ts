@@ -17,7 +17,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const searchTerm = `%${query.trim()}%`;
     
     const { results } = await db
-      .prepare("SELECT slug, title, cover_image_url, description, views FROM Series WHERE title LIKE ? ORDER BY title ASC")
+      .prepare("SELECT slug, title, cover_image_url, description, views FROM Series WHERE title LIKE ? AND is_hidden = FALSE ORDER BY title ASC")
       .bind(searchTerm)
       .all();
 

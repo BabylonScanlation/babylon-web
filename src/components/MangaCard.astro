@@ -2,13 +2,15 @@
 // src/components/MangaCard.astro
 import Image from './Image.astro'; // <-- IMPORTANTE: Usamos el nuevo componente
 
-const { imageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props;
+const { imageUrl, title, lastChapter, url, loading = 'lazy', coverUrl } = Astro.props;
+
+const finalImageUrl = coverUrl || imageUrl;
 ---
 
 <a href={url} class="card">
   <div class="image-container">
     <Image 
-      src={imageUrl} 
+      src={finalImageUrl} 
       alt={`Portada de ${title}`} 
       loading={loading}
       width={200}  height={300} class="card-image"

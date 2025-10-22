@@ -2,7 +2,11 @@
 
 // ✅ CORRECCIÓN: Se añade la propiedad opcional 'chapters'
 interface ChapterInfo {
+  id: number; // Assuming chapterId is available
   number: number;
+  title?: string; // Chapter title is optional
+  thumbnail_url?: string; // New field for thumbnail
+  views?: number; // New field for views
   createdAt: string;
 }
 
@@ -15,5 +19,6 @@ export interface Series {
   views?: number; // Conteo de vistas
   lastChapter?: string; 
   lastChapterCreatedAt?: string;
-  chapters?: ChapterInfo[]; // <--- AÑADE ESTA LÍNEA
+  chapters?: ChapterInfo[];
+  is_hidden?: boolean; // Added for visibility control
 }

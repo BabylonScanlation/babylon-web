@@ -24,7 +24,8 @@
 		"firebase": "^12.0.0",
 		"firebase-admin": "^13.4.0",
 		"jose": "^6.0.12",
-		"swiper": "^11.2.10"
+		"swiper": "^11.2.10",
+		"@squoosh/lib": "^0.5.3"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20250801.0",

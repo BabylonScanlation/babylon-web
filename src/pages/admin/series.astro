@@ -27,6 +27,7 @@ interface Series {
   published_by: string | null;
   alternative_names: string | null;
   serialized_by: string | null;
+  is_hidden: boolean; // Added for visibility control
 }
 
 let allSeries: Series[] = [];
@@ -212,6 +213,27 @@ try {
                       />
                     </div>
 
+                    <div class="form-group toggle-visibility-group">
+                      <input
+                        type="hidden"
+                        id={`is_hidden_input-${series.id}`}
+                        name="is_hidden"
+                        value={series.is_hidden ? 'on' : 'off'}
+                      />
+                      <button
+                        type="button"
+                        class:list={[
+                          'toggle-visibility-btn',
+                          { 'is-hidden-true': series.is_hidden },
+                          { 'is-hidden-false': !series.is_hidden },
+                        ]}
+                        data-series-id={series.id}
+                        data-is-hidden={series.is_hidden}
+                      >
+                        {series.is_hidden ? 'MOSTRAR SERIE' : 'OCULTAR SERIE'}
+                      </button>
+                    </div>
+
                     <div class="form-group">
                       <>
                         <label for={`cover-${series.id}`}>
@@ -309,6 +331,34 @@ try {
       )
     }
   </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.toggle-visibility-btn').forEach(button => {
+        button.addEventListener('click', () => {
+          const seriesId = button.dataset.seriesId;
+          const currentIsHidden = button.dataset.isHidden === 'true';
+          const newIsHidden = !currentIsHidden;
+
+          const form = button.closest('form');
+          if (form) {
+            const hiddenInput = form.querySelector(`#is_hidden_input-${seriesId}`);
+            if (hiddenInput instanceof HTMLInputElement) {
+              hiddenInput.value = newIsHidden ? 'on' : 'off';
+            }
+            // Update button text and classes immediately for visual feedback
+            button.dataset.isHidden = newIsHidden.toString();
+            button.textContent = newIsHidden ? 'MOSTRAR SERIE' : 'OCULTAR SERIE';
+            button.classList.toggle('is-hidden-true', newIsHidden);
+            button.classList.toggle('is-hidden-false', !newIsHidden);
+
+            // Submit the form
+            form.submit();
+          }
+        });
+      });
+    });
+  </script>
 </Layout>
 
 <style>
@@ -476,6 +526,64 @@ try {
   .delete-chapter-btn {
     background-color: #c0392b;
   }
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    transform: scale(1.2);
+  }
+
+  .checkbox-group label {
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .delete-btn {
+    background-color: #c0392b;
+  }
+
+  .toggle-visibility-group {
+    margin-top: 1rem;
+  }
+
+  .toggle-visibility-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    font-family: inherit;
+    font-size: inherit;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.2s ease;
+  }
+
+  .toggle-visibility-btn.is-hidden-true {
+    background-color: #28a745; /* Green for "Show Series" */
+    color: white;
+  }
+
+  .toggle-visibility-btn.is-hidden-true:hover {
+    background-color: #218838;
+  }
+
+  .toggle-visibility-btn.is-hidden-false {
+    background-color: #dc3545; /* Red for "Hide Series" */
+    color: white;
+  }
+
+  .toggle-visibility-btn.is-hidden-false:hover {
+    background-color: #c82333;
+  }
+
   @media (max-width: 768px) {
     .series-content {
       grid-template-columns: 1fr;

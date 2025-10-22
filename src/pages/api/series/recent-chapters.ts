@@ -12,7 +12,7 @@ export const GET: APIRoute = async ({ locals }) => {
           c.chapter_number, c.created_at
         FROM Chapters c
         JOIN Series s ON c.series_id = s.id
-        WHERE c.status = 'live' AND c.created_at >= ?
+        WHERE c.status = 'live' AND c.created_at >= ? AND s.is_hidden = FALSE
         ORDER BY s.slug, c.created_at DESC
       `)
       .bind(twoDaysAgo)
