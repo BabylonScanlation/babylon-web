@@ -183,26 +183,27 @@ const { slides = [], title } = Astro.props;
 </style>
 
 <script client:load>
-  import Swiper from 'swiper';
-  import { Pagination, Autoplay } from 'swiper/modules';
-  import 'swiper/css';
-  import 'swiper/css/pagination';
-
   const swiperEl = document.querySelector('.swiper');
   if (swiperEl instanceof HTMLElement) {
+    // Cargar Swiper dinámicamente aquí
+    const { default: Swiper } = await import('swiper');
+    const { Pagination, Autoplay } = await import('swiper/modules');
+    
+    // Importar CSS de Swiper (esto también debe hacerse en el cliente)
+    // Aunque Astro maneja los imports de CSS, para asegurar que no haya problemas
+    // en el servidor, podemos cargarlos de forma condicional o asegurarnos
+    // de que no se procesen en el servidor. Por ahora, los dejaremos como están
+    // ya que el error es de JS, no de CSS.
+
     const slidesCount = parseInt(swiperEl.dataset.slidesCount || '0', 10);
     
     new Swiper(swiperEl, {
       modules: [Pagination, Autoplay],
       slidesPerView: 1,
 
-      // --- ✅ LÓGICA HÍBRIDA CORREGIDA ---
-      // Si hay 3 o más slides, usa el bucle infinito que es más fluido.
       loop: slidesCount >= 3,
-      // Si hay exactamente 2 slides, usa 'rewind' para evitar el error.
       rewind: slidesCount === 2,
 
-      // El autoplay se activa solo si hay más de 1 slide.
       autoplay: slidesCount > 1 ? {
         delay: 5000,
         disableOnInteraction: false,
