@@ -66,7 +66,7 @@ export const POST: APIRoute = async (context) => {
     ]);
 
     return redirect('/admin/series?success=Serie eliminada con éxito');
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('Error in API Delete Series endpoint:', e);
     const errorUrl = new URL(referer);
     errorUrl.searchParams.set('error', `Error al eliminar serie: ${e.message}`);

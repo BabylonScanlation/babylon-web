@@ -5,7 +5,20 @@ import { jwtVerify, importJWK } from 'jose';
 const JWKS_URL =
   'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 
-export async function verifyFirebaseToken(token: string, env: any) {
+interface Env {
+  FIREBASE_PROJECT_ID: string;
+}
+
+interface JWK {
+  kid: string;
+  kty: string;
+  alg: string;
+  use: string;
+  n: string;
+  e: string;
+}
+
+export async function verifyFirebaseToken(token: string, env: Env) {
   const projectIdToUse = env.FIREBASE_PROJECT_ID;
 
   if (!projectIdToUse) {
@@ -25,12 +38,12 @@ export async function verifyFirebaseToken(token: string, env: any) {
     );
     throw new Error('Error al obtener las claves de verificación de Firebase.');
   }
-  const jwks: { keys: any[] } = await res.json();
+  const jwks: { keys: JWK[] } = await res.json();
 
   // Map kid to imported key
   const kidToKey: Record<string, CryptoKey> = {};
   await Promise.all(
-    jwks.keys.map(async (key: any) => {
+    jwks.keys.map(async (key: JWK) => {
       const imported = await importJWK(key, 'RS256');
       if (imported instanceof CryptoKey) {
         kidToKey[key.kid] = imported;

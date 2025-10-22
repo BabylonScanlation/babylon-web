@@ -83,7 +83,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       }),
       { status: 202 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(
       `Error al obtener el capítulo ${slug}/${chapterNumber}:`,
       error

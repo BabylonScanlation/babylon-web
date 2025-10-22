@@ -25,7 +25,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect, locals }) => 
     successUrl.searchParams.set('success', 'Comentario de capítulo eliminado');
     return redirect(successUrl.toString());
 
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("Error al eliminar el comentario de capítulo:", e);
     const errorUrl = new URL(referer);
     errorUrl.searchParams.set('error', 'Error al eliminar el comentario');

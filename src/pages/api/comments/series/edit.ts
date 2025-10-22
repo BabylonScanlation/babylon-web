@@ -49,7 +49,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     return new Response(JSON.stringify(updatedComment), { status: 200 });
 
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("Error al editar el comentario:", e);
     return new Response(JSON.stringify({ error: "Error interno del servidor" }), { status: 500 });
   }

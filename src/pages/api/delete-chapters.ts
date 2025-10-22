@@ -44,7 +44,7 @@ export const POST: APIRoute = async ({
     const successUrl = new URL(referer);
     successUrl.searchParams.set('success', 'Capítulo eliminado con éxito');
     return redirect(successUrl.toString());
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('Error al eliminar el capítulo:', e);
     const errorUrl = new URL(referer);
     errorUrl.searchParams.set(

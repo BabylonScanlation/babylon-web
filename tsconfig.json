@@ -1,6 +1,12 @@
 {
   "extends": "astro/tsconfigs/strictest",
   "compilerOptions": {
+    "outDir": "./dist-workers",
+    "module": "esnext",
+    "target": "es2022",
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
     "jsx": "preserve",
     "jsxImportSource": "astro",
     "baseUrl": ".",
@@ -12,6 +18,6 @@
     },
     "types": ["astro/client"]
   },
-  "include": ["src/**/*.d.ts", "src/**/*.ts", "src/**/*.astro", "worker-configuration.d.ts"],
+  "include": ["src/**/*.d.ts", "src/**/*.ts", "src/**/*.astro"],
   "exclude": ["node_modules", "dist"]
 }

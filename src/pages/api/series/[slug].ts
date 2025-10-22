@@ -1,6 +1,40 @@
 // src/pages/api/series/[slug].ts
 import type { APIRoute } from "astro";
 
+interface SeriesDetails {
+  id: number;
+  title: string;
+  description: string;
+  cover_image_url: string;
+  slug: string;
+  status: string | null;
+  type: string | null;
+  genres: string;
+  author: string | null;
+  artist: string | null;
+  published_by: string | null;
+  alternative_names: string | null;
+  serialized_by: string | null;
+  is_hidden: boolean;
+}
+
+interface ChapterDetails {
+  chapter_number: number;
+  title: string;
+  created_at: string;
+  views: number;
+}
+
+interface RatingRow {
+  rating: number;
+  count: number;
+}
+
+interface ReactionRow {
+  reaction_emoji: string;
+  count: number;
+}
+
 export const GET: APIRoute = async ({ params, locals }) => {
   const { slug } = params;
   if (!slug) {
@@ -11,29 +45,29 @@ export const GET: APIRoute = async ({ params, locals }) => {
     const db = locals.runtime.env.DB;
     const user = locals.user;
 
-    const series = await db.prepare("SELECT *, genres as genres FROM Series WHERE slug = ? AND is_hidden = FALSE").bind(slug).first<any>();
+    const series = await db.prepare("SELECT *, genres as genres FROM Series WHERE slug = ? AND is_hidden = FALSE").bind(slug).first<SeriesDetails>();
 
     if (!series) {
       return new Response("Serie no encontrada", { status: 404 });
     }
 
     const [chaptersResult, ratingsResult, reactionsResult, userRatingResult, userReactionResult] = await Promise.all([
-      db.prepare("SELECT chapter_number, title, created_at, views FROM Chapters WHERE series_id = ? AND status = 'live' ORDER BY chapter_number DESC").bind(series.id).all(),
-      db.prepare("SELECT rating, COUNT(rating) as count FROM SeriesRatings WHERE series_id = ? GROUP BY rating").bind(series.id).all(),
-      db.prepare("SELECT reaction_emoji, COUNT(reaction_emoji) as count FROM SeriesReactions WHERE series_id = ? GROUP BY reaction_emoji").bind(series.id).all(),
+      db.prepare("SELECT chapter_number, title, created_at, views FROM Chapters WHERE series_id = ? AND status = 'live' ORDER BY chapter_number DESC").bind(series.id).all<ChapterDetails[]>(),
+      db.prepare("SELECT rating, COUNT(rating) as count FROM SeriesRatings WHERE series_id = ? GROUP BY rating").bind(series.id).all<RatingRow[]>(),
+      db.prepare("SELECT reaction_emoji, COUNT(reaction_emoji) as count FROM SeriesReactions WHERE series_id = ? GROUP BY reaction_emoji").bind(series.id).all<ReactionRow[]>(),
       user ? db.prepare("SELECT rating FROM SeriesRatings WHERE series_id = ? AND user_id = ?").bind(series.id, user.uid).first<{ rating: number }>() : Promise.resolve(null),
       user ? db.prepare("SELECT reaction_emoji FROM SeriesReactions WHERE series_id = ? AND user_id = ?").bind(series.id, user.uid).first<{ reaction_emoji: string }>() : Promise.resolve(null),
     ]);
 
     let totalVotes = 0;
     let totalRating = 0;
-    ratingsResult.results.forEach((row: any) => {
+    ratingsResult.results.forEach((row: RatingRow) => {
       totalVotes += row.count;
       totalRating += row.rating * row.count;
     });
     const averageRating = totalVotes > 0 ? (totalRating / totalVotes) : 0;
 
-    const reactionCounts = reactionsResult.results.reduce((acc: any, row: any) => {
+    const reactionCounts = reactionsResult.results.reduce((acc: Record<string, number>, row: ReactionRow) => {
         acc[row.reaction_emoji] = row.count;
         return acc;
     }, {});

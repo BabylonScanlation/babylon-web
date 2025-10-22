@@ -13,6 +13,17 @@ interface RuntimeEnv {
   ADMIN_PASSWORD: string;
 }
 
+interface TelegramGetFileResponse {
+  ok: boolean;
+  result?: {
+    file_id: string;
+    file_unique_id: string;
+    file_size?: number;
+    file_path?: string;
+  };
+  description?: string; // For error cases
+}
+
 export async function processAndCacheChapter(
   env: RuntimeEnv,
   fileId: string,
@@ -26,7 +37,7 @@ export async function processAndCacheChapter(
 
     const fileInfoUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`;
     const fileInfoResponse = await fetch(fileInfoUrl);
-    const fileInfo = await fileInfoResponse.json<any>();
+    const fileInfo = await fileInfoResponse.json<TelegramGetFileResponse>();
     if (!fileInfo.ok) {
       console.error(
         `[PROCESO-ON-DEMAND] Error en API de Telegram: ${fileInfo.description}`

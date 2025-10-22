@@ -37,7 +37,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
 
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("Error al registrar la calificación:", e);
     return new Response(JSON.stringify({ error: "Error interno del servidor" }), { status: 500 });
   }

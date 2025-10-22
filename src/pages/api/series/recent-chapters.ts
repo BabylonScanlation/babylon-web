@@ -1,6 +1,14 @@
 // src/pages/api/series/recent-chapters.ts
 import type { APIRoute } from "astro";
 
+interface RecentChapter {
+  slug: string;
+  title: string;
+  cover_image_url: string;
+  chapter_number: number;
+  created_at: string;
+}
+
 export const GET: APIRoute = async ({ locals }) => {
   try {
     const db = locals.runtime.env.DB;
@@ -16,7 +24,7 @@ export const GET: APIRoute = async ({ locals }) => {
         ORDER BY s.slug, c.created_at DESC
       `)
       .bind(twoDaysAgo)
-      .all<any>();
+      .all<RecentChapter>();
 
     const seriesMap = new Map();
     for (const chapter of recentChapters) {

@@ -26,7 +26,7 @@ export const POST: APIRoute = async (context) => {
       console.log(">>> [DEBUG] API Incorrect password, redirecting to /admin?error=Contraseña incorrecta.");
       return redirect('/admin?error=Contraseña incorrecta');
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error(">>> [DEBUG] Error in API Admin Login endpoint:", e);
     return new Response(`Internal Server Error en API Login: ${e.message || e}`, { status: 500 });
   }

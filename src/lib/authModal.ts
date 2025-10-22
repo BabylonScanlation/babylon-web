@@ -4,7 +4,9 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  AuthCredential,
 } from 'firebase/auth';
+import type { AuthError } from 'firebase/auth';
 
 // Declare a custom event map for the Document to include 'open-auth-modal'
 declare global {
@@ -157,9 +159,16 @@ export function initializeAuthModal() {
       } catch (error: unknown) {
         console.error('Error al iniciar sesión con Google:', error);
         if (error && typeof error === 'object' && 'code' in error) {
-          const firebaseError = error as { code: string; credential?: AuthCredential };
-          if (firebaseError.code === 'auth/account-exists-with-different-credential') {
-            pendingCredential = firebaseError.credential || null;
+          interface AuthCredentialError extends AuthError {
+            credential?: AuthCredential;
+          }
+          
+          // ... (rest of the code)
+          
+                    const firebaseError = error as AuthError;
+                    if (firebaseError.code === 'auth/account-exists-with-different-credential') {
+                      const credentialError = error as AuthCredentialError;
+                      pendingCredential = credentialError.credential || null;
             const email = firebaseError.customData?.email as string;
             if (email && linkAccountEmailInput) {
               linkAccountEmailInput.value = email;
@@ -195,7 +204,8 @@ export function initializeAuthModal() {
 
       if (!email || !password) {
         if (linkAccountErrorMessage) {
-          linkAccountErrorMessage.textContent = 'Por favor, completa todos los campos.';
+          linkAccountErrorMessage.textContent =
+            'Por favor, completa todos los campos.';
           linkAccountErrorMessage.style.display = 'block';
         }
         return;
@@ -203,9 +213,16 @@ export function initializeAuthModal() {
 
       try {
         // Re-authenticate the user with their existing credentials
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
         // Link the pending Google credential to the re-authenticated user
-        await userCredential.user.linkWithCredential(pendingCredential);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (userCredential.user as any).linkWithCredential(
+          pendingCredential
+        );
 
         // If linking is successful, proceed to create session
         const idToken = await userCredential.user.getIdToken();
@@ -219,20 +236,26 @@ export function initializeAuthModal() {
           window.location.reload();
         } else {
           const errorData = await response.json();
-          console.error('Error al crear sesión después de vincular:', errorData);
+          console.error(
+            'Error al crear sesión después de vincular:',
+            errorData
+          );
           if (linkAccountErrorMessage) {
-            linkAccountErrorMessage.textContent = 'Error al vincular la cuenta y crear sesión.';
+            linkAccountErrorMessage.textContent =
+              'Error al vincular la cuenta y crear sesión.';
             linkAccountErrorMessage.style.display = 'block';
           }
         }
       } catch (error: unknown) {
         console.error('Error durante la vinculación de cuenta:', error);
         if (linkAccountErrorMessage) {
-          let errorMessage = 'Error al vincular la cuenta. Credenciales incorrectas o problema de red.';
+          let errorMessage =
+            'Error al vincular la cuenta. Credenciales incorrectas o problema de red.';
           if (error && typeof error === 'object' && 'code' in error) {
             const firebaseError = error as { code: string };
             if (firebaseError.code === 'auth/invalid-credential') {
-              errorMessage = 'Credenciales incorrectas para la cuenta existente.';
+              errorMessage =
+                'Credenciales incorrectas para la cuenta existente.';
             } else if (firebaseError.code === 'auth/wrong-password') {
               errorMessage = 'Contraseña incorrecta para la cuenta existente.';
             }

@@ -431,7 +431,7 @@ if (
     const bottomSentinel = document.getElementById(
       'nav-visibility-bottom-sentinel'
     );
-    let sentinelsVisible = { top: false, bottom: false };
+    const sentinelsVisible = { top: false, bottom: false };
 
     const observerCallback = (entries) => {
       if (!mainHeader || !topNavWrapper) return;

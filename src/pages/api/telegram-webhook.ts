@@ -12,6 +12,17 @@ interface TelegramFileResponse {
   };
 }
 
+interface TelegramUpdate {
+  message?: {
+    message_thread_id?: number;
+    document?: {
+      mime_type: string;
+      file_name: string;
+      file_id: string;
+    };
+  };
+}
+
 export const POST: APIRoute = async ({ request, locals }) => {
   const env = locals.runtime.env;
 
@@ -21,7 +32,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const update = await request.json<any>();
+    const update = await request.json<TelegramUpdate>();
     const topicId = update.message?.message_thread_id;
 
     if (update.message?.document?.mime_type === 'application/zip' && topicId) {
@@ -70,13 +81,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
       const chapterIdResult = await db
         .prepare(
-          "INSERT OR IGNORE INTO Chapters (series_id, chapter_number, telegram_file_id, status) VALUES (?, ?, ?, 'live') RETURNING id"
+          "INSERT OR IGNORE INTO Chapters (series_id, chapter_number, telegram_file_id, status, url_portada) VALUES (?, ?, ?, 'live', NULL) RETURNING id"
         )
         .bind(seriesId, chapterNumber, fileId)
         .first<{ id: number }>();
 
       if (chapterIdResult?.id) {
         const newChapterId = chapterIdResult.id;
+        const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`; // New placeholder for chapters
+
+        // Update the chapter with the placeholder URL immediately after insertion
+        await db.prepare('UPDATE Chapters SET url_portada = ? WHERE id = ?')
+          .bind(chapterPlaceholderUrl, newChapterId)
+          .run();
+
         console.log(
           `[Webhook] Capítulo ${chapterNumber} de la serie ${seriesId} registrado con ID: ${newChapterId}.`
         );
@@ -92,15 +110,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const filePath = telegramFileData.result.file_path;
         const originalImageUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${filePath}`;
 
-        await env.COVER_GENERATION_QUEUE.send({
-            chapter_id: newChapterId,
-            original_image_url: originalImageUrl,
-            title: fileName,
-        });
 
-        console.log(
-            `[Webhook] Capítulo ${chapterNumber} de la serie ${seriesId} registrado con ID: ${newChapterId}. Mensaje enviado a la cola de portadas.`
-        );
       } else {
         console.log(
           `[Webhook] Capítulo ${chapterNumber} de la serie ${seriesId} ya existía o falló el registro.`

@@ -55,6 +55,7 @@ export const POST: APIRoute = async (context) => {
 
     // ✅ CONSTRUIR LA CONSULTA DINÁMICAMENTE CON TODOS LOS CAMPOS
     let setClauses = "title = ?, description = ?, status = ?, type = ?, genres = ?, author = ?, artist = ?, published_by = ?, alternative_names = ?, serialized_by = ?, is_hidden = ?";
+    // eslint-disable-next-line prefer-const
     let bindParams: (string | number | boolean | null)[] = [title, description, status, type, genres, author, artist, published_by, alternative_names, serialized_by, is_hidden];
 
     if (coverImageUrlToUpdate) {
@@ -72,7 +73,7 @@ export const POST: APIRoute = async (context) => {
     successUrl.searchParams.set('success', 'Serie actualizada con éxito');
     return redirect(successUrl.toString());
 
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("Error al actualizar la serie:", e);
     const errorUrl = new URL(referer);
     errorUrl.searchParams.set('error', `Error interno al actualizar la serie: ${e.message}`);

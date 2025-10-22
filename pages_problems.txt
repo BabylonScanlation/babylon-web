@@ -1,0 +1,67 @@
+[{
+	"resource": "/babylon-cover-generator/worker.js",
+	"owner": "typescript",
+	"code": "2792",
+	"severity": 8,
+	"message": "Cannot find module '@squoosh/lib/webp/decode'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?",
+	"source": "ts",
+	"startLineNumber": 2,
+	"startColumn": 38,
+	"endLineNumber": 2,
+	"endColumn": 64
+},{
+	"resource": "/babylon-cover-generator/worker.js",
+	"owner": "typescript",
+	"code": "2792",
+	"severity": 8,
+	"message": "Cannot find module '@squoosh/lib/jpeg/decode'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?",
+	"source": "ts",
+	"startLineNumber": 3,
+	"startColumn": 38,
+	"endLineNumber": 3,
+	"endColumn": 64
+},{
+	"resource": "/babylon-cover-generator/worker.js",
+	"owner": "typescript",
+	"code": "2792",
+	"severity": 8,
+	"message": "Cannot find module '@squoosh/lib/png/decode'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?",
+	"source": "ts",
+	"startLineNumber": 4,
+	"startColumn": 37,
+	"endLineNumber": 4,
+	"endColumn": 62
+},{
+	"resource": "/babylon-cover-generator/worker.js",
+	"owner": "typescript",
+	"code": "2792",
+	"severity": 8,
+	"message": "Cannot find module '@squoosh/lib/resize'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?",
+	"source": "ts",
+	"startLineNumber": 5,
+	"startColumn": 24,
+	"endLineNumber": 5,
+	"endColumn": 45
+},{
+	"resource": "/babylon-cover-generator/worker.js",
+	"owner": "typescript",
+	"code": "2792",
+	"severity": 8,
+	"message": "Cannot find module '@squoosh/lib/jpeg/encode'. Did you mean to set the 'moduleResolution' option to 'nodenext', or to add aliases to the 'paths' option?",
+	"source": "ts",
+	"startLineNumber": 6,
+	"startColumn": 38,
+	"endLineNumber": 6,
+	"endColumn": 64
+},{
+	"resource": "/babylon-cover-generator/worker.js",
+	"owner": "typescript",
+	"code": "2304",
+	"severity": 8,
+	"message": "Cannot find name 'ImageData'.",
+	"source": "ts",
+	"startLineNumber": 55,
+	"startColumn": 46,
+	"endLineNumber": 55,
+	"endColumn": 55
+}]

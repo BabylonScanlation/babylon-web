@@ -14,18 +14,20 @@
 		"db:pull": "wrangler d1 export babylon-scanlation-prod --remote --output=./migrations/dump.sql",
 		"db:reset:local": "if exist .wrangler\\state\\v3\\d1 rd /s /q .wrangler\\state\\v3\\d1",
 		"db:local": "wrangler d1 execute babylon-scanlation-prod --local --file=./migrations/dump.sql",
-		"db:sync": "npm run db:pull && npm run db:reset:local && npm run db:local"
+		"db:sync": "npm run db:pull && npm run db:reset:local && npm run db:local",
+		"lint": "eslint . --ext .js,.ts,.astro",
+
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "^12.6.0",
+		"@squoosh/lib": "^0.5.3",
 		"@zip.js/zip.js": "^2.7.64",
 		"astro": "^5.12.0",
 		"dotenv": "^17.2.1",
 		"firebase": "^12.0.0",
 		"firebase-admin": "^13.4.0",
 		"jose": "^6.0.12",
-		"swiper": "^11.2.10",
-		"@squoosh/lib": "^0.5.3"
+		"swiper": "^11.2.10"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20250801.0",
@@ -33,11 +35,13 @@
 		"@typescript-eslint/eslint-plugin": "^8.38.0",
 		"@typescript-eslint/parser": "^8.38.0",
 		"concurrently": "^9.2.0",
+		"esbuild": "^0.25.11",
 		"eslint": "^9.32.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-astro": "^1.3.1",
 		"prettier": "^3.6.2",
 		"prettier-plugin-astro": "^0.14.1",
+		"typescript-eslint": "^8.46.2",
 		"wrangler": "^4.25.0"
 	}
 }

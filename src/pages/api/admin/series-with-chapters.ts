@@ -16,6 +16,27 @@ interface Series {
   serialized_by: string | null;
 }
 
+interface Chapter {
+  id: number;
+  series_id: number;
+  chapter_number: number;
+  title: string;
+}
+
+interface Comment {
+  id: number;
+  chapter_id: number;
+  user_email: string;
+  comment_text: string;
+}
+
+interface SeriesComment {
+  id: number;
+  series_id: number;
+  user_email: string;
+  comment_text: string;
+}
+
 export const GET: APIRoute = async ({ locals, cookies }) => {
   if (cookies.get('session')?.value !== 'admin-logged-in') {
     return new Response(JSON.stringify({ error: 'No autorizado' }), {
@@ -46,22 +67,22 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
         .prepare(
           'SELECT id, series_id, chapter_number, title FROM Chapters ORDER BY chapter_number DESC'
         )
-        .all<any>(),
+        .all<Chapter>(),
       db
         .prepare(
           'SELECT id, chapter_id, user_email, comment_text FROM Comments ORDER BY created_at DESC'
         )
-        .all<any>()
+        .all<Comment>()
         .catch(() => ({ results: [] })),
       db
         .prepare(
           'SELECT id, series_id, user_email, comment_text FROM SeriesComments ORDER BY created_at DESC'
         )
-        .all<any>()
+        .all<SeriesComment>()
         .catch(() => ({ results: [] })),
     ]);
 
-    const commentsByChapterId = new Map<number, any[]>();
+    const commentsByChapterId = new Map<number, Comment[]>();
     for (const comment of chapterCommentsResults.results) {
       if (!commentsByChapterId.has(comment.chapter_id)) {
         commentsByChapterId.set(comment.chapter_id, []);
@@ -69,7 +90,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
       commentsByChapterId.get(comment.chapter_id)?.push(comment);
     }
 
-    const commentsBySeriesId = new Map<number, any[]>();
+    const commentsBySeriesId = new Map<number, SeriesComment[]>();
     for (const comment of seriesCommentsResults.results) {
       if (!commentsBySeriesId.has(comment.series_id)) {
         commentsBySeriesId.set(comment.series_id, []);
@@ -77,7 +98,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
       commentsBySeriesId.get(comment.series_id)?.push(comment);
     }
 
-    const chaptersBySeriesId = new Map<number, any[]>();
+    const chaptersBySeriesId = new Map<number, Chapter[]>();
     for (const chapter of chaptersResults.results) {
       if (!chaptersBySeriesId.has(chapter.series_id)) {
         chaptersBySeriesId.set(chapter.series_id, []);
@@ -97,7 +118,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
     return new Response(JSON.stringify(finalData), {
       headers: { 'content-type': 'application/json' },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(
       'Error crítico al obtener datos para el panel de admin:',
       error

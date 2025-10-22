@@ -49,7 +49,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     console.log(`[Thumbnail Gen] Downloaded .zip file for Chapter ID: ${chapterId}`);
 
     // --- Part 3: Extract Images from .zip ---
-    const { ZipReader, BlobReader, TextWriter, BlobWriter } = await import('@zip.js/zip.js');
+    const { ZipReader, BlobReader, BlobWriter } = await import('@zip.js/zip.js');
     const zipReader = new ZipReader(new BlobReader(new Blob([zipBuffer])));
     const entries = await zipReader.getEntries();
 
@@ -93,7 +93,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Cloudflare Image Resizing parameters (example: 200x200, fit=cover)
     const thumbnailWidth = 200;
-    const thumbnailHeight = 200;
+    const thumbnailHeight = 300; // Cambiado de 200 a 300
     const imageResizingUrl = `${originalImageUrl}?width=${thumbnailWidth}&height=${thumbnailHeight}&fit=cover&format=webp`;
 
     // 3. Fetch the resized image

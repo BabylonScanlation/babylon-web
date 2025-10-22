@@ -16,7 +16,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     return new Response(JSON.stringify(results), {
       headers: { "Content-Type": "application/json" },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("Error fetching comments:", e);
     return new Response(JSON.stringify({ error: "Failed to fetch comments" }), { status: 500 });
   }

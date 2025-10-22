@@ -20,19 +20,30 @@ interface Props {
 }
 
 const { chapterId, comments = [], user = null } = Astro.props;
+
 const COMMENTS_VISIBLE_LIMIT = 1;
+
 // CORRECCIÓN: Se cambia el límite a 1
+
 const formatCommentDate = (dateString: string) => {
+
   if (!dateString) return 'Fecha inválida';
+
   return new Date(dateString).toLocaleString('es-ES', {
+
     day: 'numeric',
+
     month: 'long',
+
     year: 'numeric',
+
     hour: '2-digit',
+
     minute: '2-digit',
+
   });
-};
----
+
+};---
 
 <section class="comments-section">
   <h3>Comentarios (<span id="comment-count">{comments.length}</span>)</h3>
@@ -120,6 +131,7 @@ const formatCommentDate = (dateString: string) => {
   }}
 >
   function initializeChapterComments() {
+    const COMMENTS_VISIBLE_LIMIT = 1; // Define here
     const commentForm = document.getElementById('comment-form');
     if (commentForm instanceof HTMLFormElement) {
       const commentText = document.getElementById('comment-text');

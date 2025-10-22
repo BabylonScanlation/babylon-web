@@ -880,24 +880,38 @@ const reactions = [
       flex-wrap: wrap;
       justify-content: space-between;
       row-gap: 0.25rem;
+      flex-direction: column; /* Cambiar a columna para que los elementos se apilen */
+      align-items: flex-start; /* Alinear a la izquierda */
     }
     .chapter-number {
       order: 1;
+      width: 100%; /* Ocupar todo el ancho */
     }
     .chapter-name {
       width: 100%;
-      order: 3;
+      order: 2; /* Cambiado de 3 a 2 */
       text-align: left;
       margin-top: 0.25rem;
       color: #ccc;
     }
     .chapter-views {
-      order: 2;
+      order: 3; /* Cambiado de 2 a 3 */
       display: inline;
+      width: 100%; /* Ocupar todo el ancho */
+      text-align: left;
+      font-size: 0.8em; /* Reducir tamaño de fuente */
+      color: #888;
     }
-    .chapter-date,
+    .chapter-date {
+      order: 4; /* Añadido */
+      display: block; /* Mostrar la fecha */
+      width: 100%; /* Ocupar todo el ancho */
+      text-align: left;
+      font-size: 0.8em; /* Reducir tamaño de fuente */
+      color: #888;
+    }
     .chapter-separator {
-      display: none;
+      display: none; /* Mantener oculto el separador */
     }
   }
 

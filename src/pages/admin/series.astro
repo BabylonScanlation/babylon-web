@@ -11,6 +11,7 @@ interface Chapter {
   id: number;
   chapter_number: number;
   title: string | null;
+  telegram_file_id: string; // Añadido para la generación de miniaturas
 }
 interface Series {
   id: number;
@@ -298,6 +299,25 @@ try {
                           </button>
                         </form>
 
+                        <div class="chapter-thumbnail-controls">
+                          <button
+                            type="button"
+                            class="generate-thumbnail-btn"
+                            data-chapter-id={chapter.id}
+                            data-telegram-file-id={chapter.telegram_file_id}
+                            title="Generar Miniatura Automáticamente"
+                          >
+                            Generar Miniatura
+                          </button>
+                          <input
+                            type="file"
+                            class="upload-thumbnail-input"
+                            data-chapter-id={chapter.id}
+                            accept="image/jpeg,image/png,image/webp"
+                            title="Subir Miniatura Manualmente"
+                          />
+                        </div>
+
                         <form
                           action="/api/delete-chapters"
                           method="post"
@@ -582,6 +602,33 @@ try {
 
   .toggle-visibility-btn.is-hidden-false:hover {
     background-color: #c82333;
+  }
+
+  .chapter-thumbnail-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap; /* Para que los elementos se ajusten en pantallas pequeñas */
+  }
+  .generate-thumbnail-btn {
+    background-color: #3498db; /* Azul para generar */
+    width: auto; /* Ajustar ancho */
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+  .generate-thumbnail-btn.is-loading {
+    background-color: #2980b9;
+    cursor: not-allowed;
+  }
+  .upload-thumbnail-input {
+    width: auto; /* Ajustar ancho */
+    flex-grow: 1; /* Para que ocupe el espacio restante */
+    font-size: 0.9rem;
+    padding: 0.5rem;
+  }
+  /* Ajustes para los botones de capítulo existentes para que no se vean afectados */
+  .update-chapter-btn, .delete-chapter-btn {
+    margin-top: 0; /* Eliminar el margin-top que afecta a todos los botones */
   }
 
   @media (max-width: 768px) {

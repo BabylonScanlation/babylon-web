@@ -17,7 +17,7 @@ export const POST: APIRoute = async ({ cookies, redirect, request }) => {
       `>>> [DEBUG] Session cookie deleted, redirecting to ${successUrl.toString()}.`
     );
     return redirect(successUrl.toString());
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error(">>> [DEBUG] Error in API Admin Logout endpoint:", e);
     return new Response(
       `Internal Server Error en API Logout: ${e.message || e}`,
