@@ -108,4 +108,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
       JSON.stringify({ error: 'ZIP extraction is temporarily disabled for debugging.' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
+  }
+};
     // --- FIN TEMPORALMENTE DESHABILITADO ---
