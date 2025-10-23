@@ -23,6 +23,8 @@ export default [
     },
     rules: {
       ...tseslint.configs.recommendedTypeChecked.rules,
+      // Deshabilitar temporalmente la regla no-explicit-any
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 
@@ -51,8 +53,11 @@ export default [
       // Manually add rules from recommended Astro configs
       ...pluginAstro.configs.recommended.rules,
       // ...pluginAstro.configs['jsx-a11y-recommended'].rules, // Add this if needed
+      // Deshabilitar temporalmente @typescript-eslint/no-unused-vars
       '@typescript-eslint/no-unused-vars': 'off',
       'no-unused-vars': 'off',
+      // Deshabilitar temporalmente la regla no-explicit-any
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 

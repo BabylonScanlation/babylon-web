@@ -49,7 +49,7 @@ export const POST: APIRoute = async ({
     const errorUrl = new URL(referer);
     errorUrl.searchParams.set(
       'error',
-      `Error al eliminar el capítulo: ${e.message}`
+      `Error al eliminar el capítulo: ${(e instanceof Error ? e.message : String(e))}`
     );
     return redirect(errorUrl.toString());
   }

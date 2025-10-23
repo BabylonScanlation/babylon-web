@@ -26,6 +26,7 @@ Thumbs.db
 cleanup-deployments.js
 create-migrations.js
 prompt.txt
+problems.txt
 
 # Gemini related files
 GEMINI.md

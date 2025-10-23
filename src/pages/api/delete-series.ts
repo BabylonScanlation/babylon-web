@@ -69,7 +69,7 @@ export const POST: APIRoute = async (context) => {
   } catch (e: unknown) {
     console.error('Error in API Delete Series endpoint:', e);
     const errorUrl = new URL(referer);
-    errorUrl.searchParams.set('error', `Error al eliminar serie: ${e.message}`);
+    errorUrl.searchParams.set('error', `Error al eliminar serie: ${(e instanceof Error ? e.message : String(e))}`);
     return redirect(errorUrl.toString());
   }
 };

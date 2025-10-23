@@ -219,7 +219,6 @@ export function initializeAuthModal() {
           password
         );
         // Link the pending Google credential to the re-authenticated user
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (userCredential.user as any).linkWithCredential(
           pendingCredential
         );

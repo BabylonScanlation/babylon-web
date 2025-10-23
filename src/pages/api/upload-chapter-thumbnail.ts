@@ -1,7 +1,7 @@
 // src/pages/api/upload-chapter-thumbnail.ts
 import type { APIRoute } from 'astro';
 import { getDB } from '../../lib/db';
-import { R2Bucket } from '@cloudflare/workers-types'; // Assuming R2Bucket type is available
+import { D1Database, R2Bucket } from '@cloudflare/workers-types'; // Assuming R2Bucket type is available
 
 interface Env {
   DB: D1Database;
@@ -44,7 +44,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const thumbnailKey = `chapter-thumbnails/${chapterId}-${Date.now()}.${thumbnailImage.name.split('.').pop()}`;
 
     // Subir la imagen a R2
-    await env.R2_BUCKET_ASSETS.put(thumbnailKey, thumbnailImage.stream(), {
+    await env.R2_BUCKET_ASSETS.put(thumbnailKey, thumbnailImage.stream() as any, {
       httpMetadata: { contentType: thumbnailImage.type },
     });
 

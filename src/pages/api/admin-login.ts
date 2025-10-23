@@ -28,6 +28,6 @@ export const POST: APIRoute = async (context) => {
     }
   } catch (e: unknown) {
     console.error(">>> [DEBUG] Error in API Admin Login endpoint:", e);
-    return new Response(`Internal Server Error en API Login: ${e.message || e}`, { status: 500 });
+    return new Response(`Internal Server Error en API Login: ${(e instanceof Error ? e.message : String(e))}`, { status: 500 });
   }
 };

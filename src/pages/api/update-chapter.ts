@@ -36,7 +36,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect, locals }) => 
   } catch (e: unknown) {
     console.error("Error al actualizar el título del capítulo:", e);
     const errorUrl = new URL(referer);
-    errorUrl.searchParams.set('error', `Error al actualizar el título: ${e.message}`);
+    errorUrl.searchParams.set('error', `Error al actualizar el título: ${(e instanceof Error ? e.message : String(e))}`);
     return redirect(errorUrl.toString());
   }
 };

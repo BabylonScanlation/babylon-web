@@ -1,5 +1,6 @@
 // src/lib/chapterProcessing.ts
 import { ZipReader, BlobReader, BlobWriter } from '@zip.js/zip.js';
+import { D1Database, R2Bucket } from '@cloudflare/workers-types';
 
 // La interfaz no cambia
 interface RuntimeEnv {
@@ -37,10 +38,10 @@ export async function processAndCacheChapter(
 
     const fileInfoUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`;
     const fileInfoResponse = await fetch(fileInfoUrl);
-    const fileInfo = await fileInfoResponse.json<TelegramGetFileResponse>();
-    if (!fileInfo.ok) {
+    const fileInfo = (await fileInfoResponse.json()) as TelegramGetFileResponse;
+    if (!fileInfo.ok || !fileInfo.result || !fileInfo.result.file_path) {
       console.error(
-        `[PROCESO-ON-DEMAND] Error en API de Telegram: ${fileInfo.description}`
+        `[PROCESO-ON-DEMAND] Error en API de Telegram: ${fileInfo.description || 'No file path'}`
       );
       return;
     }

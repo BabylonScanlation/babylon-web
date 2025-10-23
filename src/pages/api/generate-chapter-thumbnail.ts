@@ -1,8 +1,8 @@
 // src/pages/api/generate-chapter-thumbnail.ts
 import type { APIRoute } from 'astro';
 import { getDB } from '../../lib/db';
-import { R2Bucket } from '@cloudflare/workers-types'; // Assuming R2Bucket type is available
-import { ZipReader, BlobReader, TextWriter, BlobWriter } from '@zip.js/zip.js';
+import { D1Database, R2Bucket } from '@cloudflare/workers-types'; // Assuming R2Bucket type is available
+import { ZipReader, BlobReader, BlobWriter } from '@zip.js/zip.js';
 
 interface Env {
   DB: D1Database;
@@ -15,7 +15,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const db = getDB(env);
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { chapterId, telegramFileId } = await request.json();
 
     if (!chapterId || !telegramFileId) {
@@ -30,7 +29,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Descargar el archivo ZIP de Telegram
     const telegramApiUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${telegramFileId}`;
     const fileInfoResponse = await fetch(telegramApiUrl);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fileInfo: any = await fileInfoResponse.json();
 
     if (!fileInfoResponse.ok || !fileInfo.result || !fileInfo.result.file_path) {
@@ -60,7 +58,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const r2Key = `chapter-thumbnails/${chapterId}/${entry.filename}`;
 
         // Subir la imagen a R2
-        await env.R2_BUCKET_COLD.put(r2Key, imageBlob, {
+        await env.R2_BUCKET_COLD.put(r2Key, imageBlob as any, {
           // contentType: imageBlob.type, // Esto podría ser útil si R2 no lo detecta automáticamente
         });
 
@@ -74,7 +72,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Actualizar la base de datos D1 con las URLs de las miniaturas
     // Aquí asumo que tienes una tabla para almacenar las miniaturas de los capítulos
     // y que chapterId es la clave para relacionarlas.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await db.prepare('INSERT INTO chapter_thumbnails (chapter_id, image_urls) VALUES (?, ?) ON CONFLICT(chapter_id) DO UPDATE SET image_urls = EXCLUDED.image_urls')
       .bind(chapterId, JSON.stringify(imageUrls))
       .run();
@@ -89,7 +86,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   } catch (error) {
     console.error('[Thumbnail Gen] Error:', error);
     return new Response(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       JSON.stringify({ error: 'Internal Server Error', details: (error as Error).message }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

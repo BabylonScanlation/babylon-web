@@ -354,7 +354,8 @@ try {
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('.toggle-visibility-btn').forEach(button => {
+      document.querySelectorAll('.toggle-visibility-btn').forEach(buttonElement => {
+        const button = buttonElement as HTMLElement;
         button.addEventListener('click', () => {
           const seriesId = button.dataset.seriesId;
           const currentIsHidden = button.dataset.isHidden === 'true';

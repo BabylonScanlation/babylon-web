@@ -89,7 +89,11 @@ export const GET: APIRoute = async ({ params, locals }) => {
       error
     );
     return new Response(
-      JSON.stringify({ error: error.message || 'Error interno del servidor' }),
+      JSON.stringify({
+        error:
+          (error instanceof Error ? error.message : String(error)) ||
+          'Error interno del servidor',
+      }),
       { status: 500 }
     );
   }

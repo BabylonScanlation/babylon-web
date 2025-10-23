@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ cookies, redirect, request }) => {
   } catch (e: unknown) {
     console.error(">>> [DEBUG] Error in API Admin Logout endpoint:", e);
     return new Response(
-      `Internal Server Error en API Logout: ${e.message || e}`,
+      `Internal Server Error en API Logout: ${(e instanceof Error ? e.message : String(e))}`,
       { status: 500 }
     );
   }
