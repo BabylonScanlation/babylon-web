@@ -337,8 +337,7 @@ try {
             }
             // Update button text and classes immediately for visual feedback
             button.dataset.isHidden = newIsHidden.toString();
-            button.textContent = newIsHidden ? 'MOSTRAR SERIE' : 'OCULTAR SERIE';
-            button.classList.toggle('is-hidden-true', newIsHidden);
+                          button.textContent = newIsHidden ? 'Mostrar serie' : 'Ocultar serie';            button.classList.toggle('is-hidden-true', newIsHidden);
             button.classList.toggle('is-hidden-false', !newIsHidden);
 
             // Submit the form
