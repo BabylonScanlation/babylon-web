@@ -58,7 +58,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
           `
         SELECT 
           id, title, description, cover_image_url, slug, status, type, genres, 
-          author, artist, published_by, alternative_names, serialized_by 
+          author, artist, published_by, alternative_names, serialized_by, is_hidden
         FROM Series ORDER BY title ASC
       `
         )
