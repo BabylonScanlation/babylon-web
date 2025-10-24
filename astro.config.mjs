@@ -8,7 +8,7 @@ export default defineConfig({
     platformProxy: {
       enabled: true,
     },
-    imageService: "cloudflare",
+    imageService: 'cloudflare',
   }),
   vite: {
     // Ya no se necesitan los complejos polyfills ni alias

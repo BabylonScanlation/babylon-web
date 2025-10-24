@@ -1,7 +1,12 @@
 // src/pages/api/update-chapter.ts
 import type { APIRoute } from 'astro';
 
-export const POST: APIRoute = async ({ request, cookies, redirect, locals }) => {
+export const POST: APIRoute = async ({
+  request,
+  cookies,
+  redirect,
+  locals,
+}) => {
   const referer = request.headers.get('Referer') || '/admin/series';
 
   // 1. Verificar la sesión de administrador
@@ -24,19 +29,24 @@ export const POST: APIRoute = async ({ request, cookies, redirect, locals }) => 
 
     // 3. Actualizar la base de datos
     await db
-      .prepare("UPDATE Chapters SET title = ? WHERE id = ?")
+      .prepare('UPDATE Chapters SET title = ? WHERE id = ?')
       .bind(title, chapterId)
       .run();
 
     // 4. Redirigir con mensaje de éxito
     const successUrl = new URL(referer);
-    successUrl.searchParams.set('success', 'Título del capítulo actualizado con éxito');
+    successUrl.searchParams.set(
+      'success',
+      'Título del capítulo actualizado con éxito'
+    );
     return redirect(successUrl.toString());
-
   } catch (e: unknown) {
-    console.error("Error al actualizar el título del capítulo:", e);
+    console.error('Error al actualizar el título del capítulo:', e);
     const errorUrl = new URL(referer);
-    errorUrl.searchParams.set('error', `Error al actualizar el título: ${(e instanceof Error ? e.message : String(e))}`);
+    errorUrl.searchParams.set(
+      'error',
+      `Error al actualizar el título: ${e instanceof Error ? e.message : String(e)}`
+    );
     return redirect(errorUrl.toString());
   }
 };

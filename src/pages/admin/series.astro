@@ -101,7 +101,14 @@ try {
                     <div class="form-group">
                       <>
                         <label for={`desc-${series.id}`}>Descripción</label>
-<textarea id={`desc-${series.id}`} name="description" rows="4" required>{series.description.trim()}</textarea>
+                        <textarea
+                          id={`desc-${series.id}`}
+                          name="description"
+                          rows="4"
+                          required
+                        >
+                          {series.description.trim()}
+                        </textarea>
                       </>
                     </div>
 
@@ -322,29 +329,36 @@ try {
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('.toggle-visibility-btn').forEach(buttonElement => {
-        const button = buttonElement as HTMLElement;
-        button.addEventListener('click', () => {
-          const seriesId = button.dataset.seriesId;
-          const currentIsHidden = button.dataset.isHidden === 'true';
-          const newIsHidden = !currentIsHidden;
+      document
+        .querySelectorAll('.toggle-visibility-btn')
+        .forEach((buttonElement) => {
+          const button = buttonElement as HTMLElement;
+          button.addEventListener('click', () => {
+            const seriesId = button.dataset.seriesId;
+            const currentIsHidden = button.dataset.isHidden === 'true';
+            const newIsHidden = !currentIsHidden;
 
-          const form = button.closest('form');
-          if (form) {
-            const hiddenInput = form.querySelector(`#is_hidden_input-${seriesId}`);
-            if (hiddenInput instanceof HTMLInputElement) {
-              hiddenInput.value = newIsHidden ? 'on' : 'off';
+            const form = button.closest('form');
+            if (form) {
+              const hiddenInput = form.querySelector(
+                `#is_hidden_input-${seriesId}`
+              );
+              if (hiddenInput instanceof HTMLInputElement) {
+                hiddenInput.value = newIsHidden ? 'on' : 'off';
+              }
+              // Update button text and classes immediately for visual feedback
+              button.dataset.isHidden = newIsHidden.toString();
+              button.textContent = newIsHidden
+                ? 'Mostrar serie'
+                : 'Ocultar serie';
+              button.classList.toggle('is-hidden-true', newIsHidden);
+              button.classList.toggle('is-hidden-false', !newIsHidden);
+
+              // Submit the form
+              form.submit();
             }
-            // Update button text and classes immediately for visual feedback
-            button.dataset.isHidden = newIsHidden.toString();
-                          button.textContent = newIsHidden ? 'Mostrar serie' : 'Ocultar serie';            button.classList.toggle('is-hidden-true', newIsHidden);
-            button.classList.toggle('is-hidden-false', !newIsHidden);
-
-            // Submit the form
-            form.submit();
-          }
+          });
         });
-      });
     });
   </script>
 </Layout>
@@ -521,7 +535,7 @@ try {
     margin-top: 1rem;
   }
 
-  .checkbox-group input[type="checkbox"] {
+  .checkbox-group input[type='checkbox'] {
     width: auto;
     margin: 0;
     transform: scale(1.2);
@@ -595,7 +609,8 @@ try {
     padding: 0.5rem;
   }
   /* Ajustes para los botones de capítulo existentes para que no se vean afectados */
-  .update-chapter-btn, .delete-chapter-btn {
+  .update-chapter-btn,
+  .delete-chapter-btn {
     margin-top: 0; /* Eliminar el margin-top que afecta a todos los botones */
   }
 

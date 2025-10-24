@@ -10,89 +10,108 @@ const smallCardManga2 = mangas[2];
 <section class="featured-section">
   <h2>Lo más destacado</h2>
   <div class="grid-container">
-    
-    {largeCardManga ?
-    (
-      <a href={`/series/${largeCardManga.slug}`} class="featured-card large-card">
-        <Image 
-          src={largeCardManga.cover_image_url} 
-          alt={`Portada de ${largeCardManga.title}`} 
-          class="card-background" 
-          loading="eager" 
-          width={800} 
-          height={520} 
-        />
-        <div class="card-overlay"></div>
-        <div class="card-content">
-          <div class="card-header">
-            <h3>{largeCardManga.title}</h3>
-            <span class="views-tag">{largeCardManga.views?.toLocaleString() || 0} VISTAS</span>
+    {
+      largeCardManga ? (
+        <a
+          href={`/series/${largeCardManga.slug}`}
+          class="featured-card large-card"
+        >
+          <Image
+            src={largeCardManga.cover_image_url}
+            alt={`Portada de ${largeCardManga.title}`}
+            class="card-background"
+            loading="eager"
+            width={800}
+            height={520}
+          />
+          <div class="card-overlay" />
+          <div class="card-content">
+            <div class="card-header">
+              <h3>{largeCardManga.title}</h3>
+              <span class="views-tag">
+                {largeCardManga.views?.toLocaleString() || 0} VISTAS
+              </span>
+            </div>
+            <p>{largeCardManga.description}</p>
           </div>
-          <p>{largeCardManga.description}</p>
-        </div>
-      </a>
-    ) : (
-       <div class="featured-card placeholder large-card"></div>
-    )}
+        </a>
+      ) : (
+        <div class="featured-card placeholder large-card" />
+      )
+    }
 
-    {smallCardManga1 ?
-    (
-      <a href={`/series/${smallCardManga1.slug}`} class="featured-card small-card">
-        <Image 
-          src={smallCardManga1.cover_image_url} 
-          alt={`Portada de ${smallCardManga1.title}`} 
-          class="card-background" 
-          loading="eager" 
-          width={400} 
-          height={250}
-        />
-        <div class="card-overlay"></div>
-        <div class="card-content">
-           <div class="card-header">
-            <h3>{smallCardManga1.title}</h3>
-            <span class="views-tag">{smallCardManga1.views?.toLocaleString() || 0} VISTAS</span>
+    {
+      smallCardManga1 ? (
+        <a
+          href={`/series/${smallCardManga1.slug}`}
+          class="featured-card small-card"
+        >
+          <Image
+            src={smallCardManga1.cover_image_url}
+            alt={`Portada de ${smallCardManga1.title}`}
+            class="card-background"
+            loading="eager"
+            width={400}
+            height={250}
+          />
+          <div class="card-overlay" />
+          <div class="card-content">
+            <div class="card-header">
+              <h3>{smallCardManga1.title}</h3>
+              <span class="views-tag">
+                {smallCardManga1.views?.toLocaleString() || 0} VISTAS
+              </span>
+            </div>
           </div>
-        </div>
-      </a>
-    ) : (
-      <div class="featured-card placeholder small-card"></div>
-     )}
+        </a>
+      ) : (
+        <div class="featured-card placeholder small-card" />
+      )
+    }
 
-    {smallCardManga2 ?
-    (
-      <a href={`/series/${smallCardManga2.slug}`} class="featured-card small-card">
-        <Image 
-          src={smallCardManga2.cover_image_url} 
-          alt={`Portada de ${smallCardManga2.title}`} 
-          class="card-background" 
-          loading="eager" 
-          width={400} 
-          height={250}
-        />
-        <div class="card-overlay"></div>
-        <div class="card-content">
-          <div class="card-header">
-            <h3>{smallCardManga2.title}</h3>
-            <span class="views-tag">{smallCardManga2.views?.toLocaleString() || 0} VISTAS</span>
+    {
+      smallCardManga2 ? (
+        <a
+          href={`/series/${smallCardManga2.slug}`}
+          class="featured-card small-card"
+        >
+          <Image
+            src={smallCardManga2.cover_image_url}
+            alt={`Portada de ${smallCardManga2.title}`}
+            class="card-background"
+            loading="eager"
+            width={400}
+            height={250}
+          />
+          <div class="card-overlay" />
+          <div class="card-content">
+            <div class="card-header">
+              <h3>{smallCardManga2.title}</h3>
+              <span class="views-tag">
+                {smallCardManga2.views?.toLocaleString() || 0} VISTAS
+              </span>
+            </div>
           </div>
-        </div>
-      </a>
-    ) : (
-      
-      <div class="featured-card placeholder small-card"></div>
-    )}
-    
-    {mangas.length === 0 && (
-      <p style="grid-column: 1 / -1; text-align: center; color: #aaa;">No hay series destacadas para mostrar.</p>
-    )}
+        </a>
+      ) : (
+        <div class="featured-card placeholder small-card" />
+      )
+    }
 
+    {
+      mangas.length === 0 && (
+        <p style="grid-column: 1 / -1; text-align: center; color: #aaa;">
+          No hay series destacadas para mostrar.
+        </p>
+      )
+    }
   </div>
 </section>
 
 <style>
   .featured-section {
     max-width: 1200px;
-    margin: 2rem auto; 
+    margin: 2rem auto;
     padding: 0 1rem;
   }
 
@@ -100,10 +119,10 @@ const smallCardManga2 = mangas[2];
     font-size: 1.5rem;
     margin-bottom: 1rem;
   }
-  
+
   .grid-container {
     display: grid;
-    grid-template-columns: 2fr 1fr; 
+    grid-template-columns: 2fr 1fr;
     grid-template-rows: repeat(2, 1fr);
     gap: 1.5rem;
     height: 520px;
@@ -139,7 +158,11 @@ const smallCardManga2 = mangas[2];
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(to top, rgba(0,0,0,0.9) 20%, transparent 80%);
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.9) 20%,
+      transparent 80%
+    );
   }
 
   .card-content {
@@ -157,7 +180,7 @@ const smallCardManga2 = mangas[2];
     gap: 1rem;
     margin-bottom: 0.5rem;
   }
-  
+
   .views-tag {
     background-color: rgba(0, 0, 0, 0.7);
     padding: 0.25rem 0.75rem;
@@ -171,7 +194,7 @@ const smallCardManga2 = mangas[2];
     font-size: 1.75rem;
     margin: 0;
   }
-  
+
   .large-card .card-content p {
     font-size: 0.9rem;
     color: #ccc;
@@ -211,18 +234,18 @@ const smallCardManga2 = mangas[2];
       padding: 1rem;
     }
     .card-content h3 {
-        font-size: 1.2rem;
+      font-size: 1.2rem;
     }
     .large-card .card-content p {
-        -webkit-line-clamp: 2;
-        font-size: 0.8rem;
+      -webkit-line-clamp: 2;
+      font-size: 0.8rem;
     }
     .small-card .card-content h3 {
-        font-size: 1rem;
+      font-size: 1rem;
     }
     .views-tag {
-        font-size: 0.7rem;
-        padding: 0.2rem 0.5rem;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
     }
   }
 </style>

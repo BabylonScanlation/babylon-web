@@ -5,7 +5,7 @@ import type { Series } from '../types';
 interface Props {
   title: string;
   subtitle?: string;
- mangas: Series[];
+  mangas: Series[];
 }
 
 const { title, subtitle, mangas = [] } = Astro.props;
@@ -17,44 +17,44 @@ const { title, subtitle, mangas = [] } = Astro.props;
     {subtitle && <small>{subtitle}</small>}
   </div>
 
-  {mangas && mangas.length > 0 ?
- (
-    <div class="grid-container">
-      {mangas.map(manga => (
-        <MangaCard
-          imageUrl={manga.cover_image_url}
-          title={manga.title}
-          lastChapter={''}
-          url={`/series/${manga.slug}`}
-        />
-      ))}
-    </div>
-  ) : (
-     <p>No hay mangas populares en este momento.</p>
-  )}
+  {
+    mangas && mangas.length > 0 ? (
+      <div class="grid-container">
+        {mangas.map((manga) => (
+          <MangaCard
+            imageUrl={manga.cover_image_url}
+            title={manga.title}
+            lastChapter={''}
+            url={`/series/${manga.slug}`}
+          />
+        ))}
+      </div>
+    ) : (
+      <p>No hay mangas populares en este momento.</p>
+    )
+  }
 </section>
 
 <style>
   .slider-section {
- 
     max-width: 1200px;
     margin: 3rem auto;
     padding: 0 1rem;
   }
   .title-container {
     display: flex;
- align-items: baseline;
+    align-items: baseline;
     margin-bottom: 1rem;
   }
   .title-container h2 {
     font-size: 1.5rem;
- }
+  }
   .title-container small {
     font-size: 0.9rem;
     color: #aaa;
     font-weight: 400;
     margin-left: 0.5rem;
- }
+  }
   .grid-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

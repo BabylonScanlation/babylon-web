@@ -33,8 +33,7 @@ let pageImageUrls: string[] = [];
 let error: string | null = null;
 let loadingMessage: string | null = null;
 let seriesId: number | null = null;
-let chapterId: number |
-null = null;
+let chapterId: number | null = null;
 let isProcessing = false;
 let allChapters: Chapter[] = [];
 let seriesTitle: string | null = null;
@@ -346,13 +345,13 @@ if (
       }
     </main>
   </div>
-    {
-      pageImageUrls.length > 0 && chapterId && (
-        <div class="comments-wrapper" id="comments-wrapper">
-          <Comments comments={comments} chapterId={chapterId} user={user} />
-        </div>
-      )
-    }
+  {
+    pageImageUrls.length > 0 && chapterId && (
+      <div class="comments-wrapper" id="comments-wrapper">
+        <Comments comments={comments} chapterId={chapterId} user={user} />
+      </div>
+    )
+  }
 
   <div id="nav-visibility-bottom-sentinel"></div>
 </Layout>
@@ -600,7 +599,6 @@ if (
     height: auto;
     transition: height 0.2s ease-out; /* Transición suave para altura */
   }
-
 
   :global(header),
   .reader-top-nav-wrapper {
@@ -853,11 +851,11 @@ if (
     align-items: center;
     gap: 1rem;
     width: 100%;
-	margin: 0 auto;
+    margin: 0 auto;
     max-width: 100%;
   }
   #single-page-image {
-	width: 100%;
+    width: 100%;
     max-width: 100%;
     height: auto;
     display: block;

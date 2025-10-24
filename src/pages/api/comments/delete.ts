@@ -1,7 +1,12 @@
 // src/pages/api/comments/delete.ts
 import type { APIRoute } from 'astro';
 
-export const POST: APIRoute = async ({ request, cookies, redirect, locals }) => {
+export const POST: APIRoute = async ({
+  request,
+  cookies,
+  redirect,
+  locals,
+}) => {
   const referer = request.headers.get('Referer') || '/admin/comments';
 
   if (cookies.get('session')?.value !== 'admin-logged-in') {
@@ -19,14 +24,13 @@ export const POST: APIRoute = async ({ request, cookies, redirect, locals }) => 
       return redirect(errorUrl.toString());
     }
 
-    await db.prepare("DELETE FROM Comments WHERE id = ?").bind(commentId).run();
+    await db.prepare('DELETE FROM Comments WHERE id = ?').bind(commentId).run();
 
     const successUrl = new URL(referer);
     successUrl.searchParams.set('success', 'Comentario de capítulo eliminado');
     return redirect(successUrl.toString());
-
   } catch (e: unknown) {
-    console.error("Error al eliminar el comentario de capítulo:", e);
+    console.error('Error al eliminar el comentario de capítulo:', e);
     const errorUrl = new URL(referer);
     errorUrl.searchParams.set('error', 'Error al eliminar el comentario');
     return redirect(errorUrl.toString());

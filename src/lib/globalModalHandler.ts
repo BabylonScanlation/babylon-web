@@ -4,9 +4,11 @@ document.addEventListener('click', (e) => {
 
   if (openModalButton) {
     const view = openModalButton.getAttribute('data-open-modal') || 'login';
-    document.dispatchEvent(new CustomEvent('open-auth-modal', {
-      detail: { view },
-      bubbles: true,
-    }));
+    document.dispatchEvent(
+      new CustomEvent('open-auth-modal', {
+        detail: { view },
+        bubbles: true,
+      })
+    );
   }
 });

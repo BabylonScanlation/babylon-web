@@ -1,20 +1,20 @@
-import globals from "globals";
-import pluginJs from "@eslint/js";
-import tseslint from "typescript-eslint";
-import pluginAstro from "eslint-plugin-astro";
-import prettier from "eslint-config-prettier";
-import astroParser from "astro-eslint-parser";
+import globals from 'globals';
+import pluginJs from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import pluginAstro from 'eslint-plugin-astro';
+import prettier from 'eslint-config-prettier';
+import astroParser from 'astro-eslint-parser';
 
 export default [
   {
-    ignores: ["node_modules", "dist", ".astro", ".wrangler"],
+    ignores: ['node_modules', 'dist', '.astro', '.wrangler'],
   },
   pluginJs.configs.recommended, // General JS recommended rules
   ...tseslint.configs.recommended, // General TS recommended rules
 
   // Configuration for .ts and .tsx files (type-aware)
   {
-    files: ["**/*.ts", "**/*.tsx"],
+    files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
       parserOptions: {
         project: true,
@@ -24,7 +24,7 @@ export default [
     rules: {
       ...tseslint.configs.recommendedTypeChecked.rules,
       // Deshabilitar temporalmente la regla no-explicit-any
-      "@typescript-eslint/no-explicit-any": "off",
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 
@@ -35,12 +35,12 @@ export default [
   // Override/add specific rules for .astro files if needed,
   // especially for TypeScript parsing within Astro components
   {
-    files: ["**/*.astro"],
+    files: ['**/*.astro'],
     languageOptions: {
       parser: astroParser,
       parserOptions: {
         parser: tseslint.parser,
-        extraFileExtensions: [".astro"],
+        extraFileExtensions: ['.astro'],
         project: true, // Enable type-aware linting for TS in Astro files
         tsconfigRootDir: import.meta.dirname,
       },
@@ -57,31 +57,31 @@ export default [
       '@typescript-eslint/no-unused-vars': 'off',
       'no-unused-vars': 'off',
       // Deshabilitar temporalmente la regla no-explicit-any
-      "@typescript-eslint/no-explicit-any": "off",
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 
   prettier, // Prettier config
   {
-    files: ["dist-workers/**/*.js"],
+    files: ['dist-workers/**/*.js'],
     languageOptions: {
       globals: {
-        console: "readonly",
-        fetch: "readonly",
-        ImageData: "readonly",
+        console: 'readonly',
+        fetch: 'readonly',
+        ImageData: 'readonly',
       },
     },
   },
   {
-    files: ["*.cjs"],
+    files: ['*.cjs'],
     languageOptions: {
       globals: {
-        module: "readonly",
-        require: "readonly",
+        module: 'readonly',
+        require: 'readonly',
       },
     },
     rules: {
-      "no-undef": "off",
+      'no-undef': 'off',
     },
   },
 ];

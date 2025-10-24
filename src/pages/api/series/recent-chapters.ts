@@ -1,5 +1,5 @@
 // src/pages/api/series/recent-chapters.ts
-import type { APIRoute } from "astro";
+import type { APIRoute } from 'astro';
 
 interface RecentChapter {
   slug: string;
@@ -12,9 +12,12 @@ interface RecentChapter {
 export const GET: APIRoute = async ({ locals }) => {
   try {
     const db = locals.runtime.env.DB;
-    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const twoDaysAgo = new Date(
+      Date.now() - 2 * 24 * 60 * 60 * 1000
+    ).toISOString();
     const { results: recentChapters } = await db
-      .prepare(`
+      .prepare(
+        `
         SELECT
           s.slug, s.title, s.cover_image_url,
           c.chapter_number, c.created_at
@@ -22,7 +25,8 @@ export const GET: APIRoute = async ({ locals }) => {
         JOIN Series s ON c.series_id = s.id
         WHERE c.status = 'live' AND c.created_at >= ? AND s.is_hidden = FALSE
         ORDER BY s.slug, c.created_at DESC
-      `)
+      `
+      )
       .bind(twoDaysAgo)
       .all<RecentChapter>();
 
@@ -38,24 +42,31 @@ export const GET: APIRoute = async ({ locals }) => {
       }
       const series = seriesMap.get(chapter.slug);
       if (series.chapters.length < 2) {
-        series.chapters.push({ number: chapter.chapter_number, createdAt: chapter.created_at });
+        series.chapters.push({
+          number: chapter.chapter_number,
+          createdAt: chapter.created_at,
+        });
       }
     }
-    const seriesWithRecentChapters = Array.from(seriesMap.values()).sort((a, b) => {
+    const seriesWithRecentChapters = Array.from(seriesMap.values()).sort(
+      (a, b) => {
         const dateA = new Date(a.chapters[0].createdAt).getTime();
         const dateB = new Date(b.chapters[0].createdAt).getTime();
         return dateB - dateA;
-    });
+      }
+    );
 
     return new Response(JSON.stringify(seriesWithRecentChapters), {
       headers: {
-        "content-type": "application/json",
+        'content-type': 'application/json',
         // ✅ AÑADIDO: Evita que esta respuesta se guarde en caché
-        "Cache-Control": "no-store, max-age=0",
+        'Cache-Control': 'no-store, max-age=0',
       },
     });
   } catch (error) {
     console.error(error);
-    return new Response("Error al obtener las series con capítulos recientes", { status: 500 });
+    return new Response('Error al obtener las series con capítulos recientes', {
+      status: 500,
+    });
   }
 };

@@ -11,8 +11,16 @@ interface Props {
   height: number;
 }
 
-const { src, alt, class: className, loading = 'lazy', width, height } = Astro.props;
+const {
+  src,
+  alt,
+  class: className,
+  loading = 'lazy',
+  width,
+  height,
+} = Astro.props;
 ---
+
 <img
   src={src}
   alt={alt}

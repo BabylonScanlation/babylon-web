@@ -10,13 +10,29 @@
     <div id="login-view">
       <h2>Iniciar Sesión</h2>
       <div class="message-container">
-        <p id="login-success-message" class="success-message" style="display: none;"></p>
-        <p id="login-error-message" class="error-message" style="display: none;"></p>
+        <p
+          id="login-success-message"
+          class="success-message"
+          style="display: none;"
+        >
+        </p>
+        <p
+          id="login-error-message"
+          class="error-message"
+          style="display: none;"
+        >
+        </p>
       </div>
       <form id="login-form" class="auth-form">
         <div class="form-group">
           <label for="login-email">Email</label>
-          <input type="email" name="email" id="login-email" placeholder="tu@email.com" required />
+          <input
+            type="email"
+            name="email"
+            id="login-email"
+            placeholder="tu@email.com"
+            required
+          />
         </div>
         <div class="form-group">
           <label for="login-password">Contraseña</label>
@@ -29,11 +45,18 @@
       </form>
       <div class="divider">O</div>
       <button id="google-sign-in-button" class="google-btn">
-        <img src="https://static.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google icon" class="google-icon" />
+        <img
+          src="https://static.cdnlogo.com/logos/g/35/google-icon.svg"
+          alt="Google icon"
+          class="google-icon"
+        />
         Continuar con Google
       </button>
       <div class="form-footer">
-        <p>¿No tienes una cuenta? <button id="show-register" class="link-button">Regístrate aquí</button></p>
+        <p>
+          ¿No tienes una cuenta? <button id="show-register" class="link-button"
+            >Regístrate aquí</button>
+        </p>
       </div>
     </div>
 
@@ -41,20 +64,43 @@
     <div id="register-view" style="display: none;">
       <h2>Crear Cuenta</h2>
       <div class="message-container">
-        <p id="register-error-message" class="error-message" style="display: none;"></p>
+        <p
+          id="register-error-message"
+          class="error-message"
+          style="display: none;"
+        >
+        </p>
       </div>
       <form id="register-form" class="auth-form">
         <div class="form-group">
           <label for="reg-email">Email</label>
-          <input type="email" name="email" id="reg-email" placeholder="nombre@ejemplo.com" required />
+          <input
+            type="email"
+            name="email"
+            id="reg-email"
+            placeholder="nombre@ejemplo.com"
+            required
+          />
         </div>
         <div class="form-group">
           <label for="reg-password">Contraseña</label>
-          <input type="password" name="password" id="reg-password" required minlength="6" />
+          <input
+            type="password"
+            name="password"
+            id="reg-password"
+            required
+            minlength="6"
+          />
         </div>
         <div class="form-group">
           <label for="reg-confirm-password">Confirmar Contraseña</label>
-          <input type="password" name="confirmPassword" id="reg-confirm-password" required minlength="6" />
+          <input
+            type="password"
+            name="confirmPassword"
+            id="reg-confirm-password"
+            required
+            minlength="6"
+          />
         </div>
         <button type="submit" id="register-submit-button" class="submit-btn">
           <span class="button-text">Registrarse</span>
@@ -63,11 +109,18 @@
       </form>
       <div class="divider">O</div>
       <button id="google-sign-in-button-register" class="google-btn">
-        <img src="https://static.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google icon" class="google-icon" />
+        <img
+          src="https://static.cdnlogo.com/logos/g/35/google-icon.svg"
+          alt="Google icon"
+          class="google-icon"
+        />
         Continuar con Google
       </button>
       <div class="form-footer">
-        <p>¿Ya tienes una cuenta? <button id="show-login" class="link-button">Inicia sesión</button></p>
+        <p>
+          ¿Ya tienes una cuenta? <button id="show-login" class="link-button"
+            >Inicia sesión</button>
+        </p>
       </div>
     </div>
 
@@ -75,19 +128,40 @@
     <div id="link-account-view" style="display: none;">
       <h2>Vincular Cuenta</h2>
       <div class="message-container">
-        <p id="link-account-message" class="info-message" style="display: none;"></p>
-        <p id="link-account-error-message" class="error-message" style="display: none;"></p>
+        <p
+          id="link-account-message"
+          class="info-message"
+          style="display: none;"
+        >
+        </p>
+        <p
+          id="link-account-error-message"
+          class="error-message"
+          style="display: none;"
+        >
+        </p>
       </div>
       <form id="link-account-form" class="auth-form">
         <div class="form-group">
           <label for="link-email">Email</label>
-          <input type="email" name="email" id="link-email" placeholder="tu@email.com" required readonly />
+          <input
+            type="email"
+            name="email"
+            id="link-email"
+            placeholder="tu@email.com"
+            required
+            readonly
+          />
         </div>
         <div class="form-group">
           <label for="link-password">Contraseña</label>
           <input type="password" name="password" id="link-password" required />
         </div>
-        <button type="submit" id="link-account-submit-button" class="submit-btn">
+        <button
+          type="submit"
+          id="link-account-submit-button"
+          class="submit-btn"
+        >
           <span class="button-text">Vincular Cuenta</span>
           <div class="button-loader"></div>
         </button>
@@ -96,7 +170,6 @@
         <button id="cancel-link-account" class="link-button">Cancelar</button>
       </div>
     </div>
-
   </div>
 </div>
 
@@ -287,14 +360,16 @@
     justify-content: center;
     gap: 10px;
     padding: 0.75rem 1.5rem;
-    background-color: #F8F8F8; /* Blanco Cuarzo */
+    background-color: #f8f8f8; /* Blanco Cuarzo */
     color: #333; /* Texto oscuro para contraste */
     border: 1px solid #ccc; /* Borde sutil */
     border-radius: 4px;
     cursor: pointer;
     font-weight: 700;
     font-size: 1rem;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s;
     margin-top: 0.5rem;
     min-height: 44px;
     max-width: 300px; /* Ancho máximo para centrar */

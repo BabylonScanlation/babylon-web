@@ -13,15 +13,17 @@ const { mangas = [], title } = Astro.props;
 <section class="manga-list-section">
   {title && <h2>{title}</h2>}
   <ul>
-    {mangas && mangas.length > 0 ? (
-      mangas.map((manga) => (
-        <li>
-          <LibraryCard manga={manga} />
-        </li>
-      ))
-    ) : (
-      <p>No hay mangas en la biblioteca.</p>
-    )}
+    {
+      mangas && mangas.length > 0 ? (
+        mangas.map((manga) => (
+          <li>
+            <LibraryCard manga={manga} />
+          </li>
+        ))
+      ) : (
+        <p>No hay mangas en la biblioteca.</p>
+      )
+    }
   </ul>
 </section>
 

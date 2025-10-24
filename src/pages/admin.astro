@@ -21,17 +21,20 @@ const error = Astro.url.searchParams.get('error');
     {error && <p class="error-message">{error}</p>}
 
     <div class="admin-actions">
-        <form action="/api/admin-logout" method="post">
-            <button type="submit" class="logout-btn">Cerrar Sesión</button>
-        </form>
+      <form action="/api/admin-logout" method="post">
+        <button type="submit" class="logout-btn">Cerrar Sesión</button>
+      </form>
     </div>
 
     <div class="admin-dashboard">
       <a href="/admin/series" class="dashboard-card">
         <h2>Gestionar Series</h2>
-        <p>Edita los detalles de las series y elimina capítulos o series completas.</p>
+        <p>
+          Edita los detalles de las series y elimina capítulos o series
+          completas.
+        </p>
       </a>
-      
+
       <a href="/admin/comments" class="dashboard-card">
         <h2>Gestionar Comentarios</h2>
         <p>Modera y elimina los comentarios de las series y capítulos.</p>
@@ -40,7 +43,6 @@ const error = Astro.url.searchParams.get('error');
       <a href="/admin/upload" class="dashboard-card">
         <h2>Subir Capítulos</h2>
         <p>Sube nuevos capítulos para las series existentes vía Telegram.</p>
-      
       </a>
     </div>
   </main>
@@ -83,15 +85,18 @@ const error = Astro.url.searchParams.get('error');
     background-color: var(--card-background);
     padding: 1.5rem;
     border-radius: 8px;
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    transition:
+      transform 0.2s ease-in-out,
+      box-shadow 0.2s ease-in-out;
     border: 1px solid transparent;
   }
   .dashboard-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
     border-color: var(--accent-color);
   }
-  .success-message, .error-message {
+  .success-message,
+  .error-message {
     padding: 1rem;
     margin-bottom: 1rem;
     border-radius: 4px;

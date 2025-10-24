@@ -17,7 +17,7 @@ export interface Series {
   cover_image_url: string;
   description?: string; // La descripción es opcional
   views?: number; // Conteo de vistas
-  lastChapter?: string; 
+  lastChapter?: string;
   lastChapterCreatedAt?: string;
   chapters?: ChapterInfo[];
   is_hidden?: boolean; // Added for visibility control

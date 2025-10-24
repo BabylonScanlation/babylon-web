@@ -7,22 +7,23 @@ interface Props {
   title?: string;
 }
 
-const { mangas = [], title = "Últimos Capítulos Publicados" } = Astro.props;
+const { mangas = [], title = 'Últimos Capítulos Publicados' } = Astro.props;
 ---
 
 <section class="recent-updates-section">
   <h2>{title}</h2>
-  
-  {mangas && mangas.length > 0 ? (
-    <div class="grid-container">
-      {mangas.map((manga) => (
-        <UpdateCard series={manga} />
-      ))}
-    </div>
-  ) : (
-     <p>No hay capítulos recientes para mostrar.</p>
-  )}
 
+  {
+    mangas && mangas.length > 0 ? (
+      <div class="grid-container">
+        {mangas.map((manga) => (
+          <UpdateCard series={manga} />
+        ))}
+      </div>
+    ) : (
+      <p>No hay capítulos recientes para mostrar.</p>
+    )
+  }
 </section>
 
 <style>

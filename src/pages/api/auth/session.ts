@@ -34,7 +34,9 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
     const expiresIn = 60 * 60 * 24 * 7; // 7 días
     const isProduction = import.meta.env.PROD;
 
-    console.log(`[Auth Session] Entorno: ${isProduction ? 'Producción' : 'Desarrollo'}`);
+    console.log(
+      `[Auth Session] Entorno: ${isProduction ? 'Producción' : 'Desarrollo'}`
+    );
 
     const cookieOptions = {
       path: '/',

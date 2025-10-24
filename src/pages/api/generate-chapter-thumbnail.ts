@@ -24,15 +24,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    console.log(`[Thumbnail Gen] Starting for Chapter ID: ${chapterId}, Telegram File ID: ${telegramFileId}`);
+    console.log(
+      `[Thumbnail Gen] Starting for Chapter ID: ${chapterId}, Telegram File ID: ${telegramFileId}`
+    );
 
     // Descargar el archivo ZIP de Telegram
     const telegramApiUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${telegramFileId}`;
     const fileInfoResponse = await fetch(telegramApiUrl);
     const fileInfo: any = await fileInfoResponse.json();
 
-    if (!fileInfoResponse.ok || !fileInfo.result || !fileInfo.result.file_path) {
-      throw new Error(`Failed to get file info from Telegram: ${fileInfo.description || 'Unknown error'}`);
+    if (
+      !fileInfoResponse.ok ||
+      !fileInfo.result ||
+      !fileInfo.result.file_path
+    ) {
+      throw new Error(
+        `Failed to get file info from Telegram: ${fileInfo.description || 'Unknown error'}`
+      );
     }
 
     const filePath = fileInfo.result.file_path;
@@ -40,7 +48,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const zipResponse = await fetch(fileDownloadUrl);
     if (!zipResponse.ok) {
-      throw new Error(`Failed to download ZIP from Telegram: ${zipResponse.statusText}`);
+      throw new Error(
+        `Failed to download ZIP from Telegram: ${zipResponse.statusText}`
+      );
     }
 
     // Obtener el ArrayBuffer del ZIP
@@ -72,21 +82,31 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Actualizar la base de datos D1 con las URLs de las miniaturas
     // Aquí asumo que tienes una tabla para almacenar las miniaturas de los capítulos
     // y que chapterId es la clave para relacionarlas.
-    await db.prepare('INSERT INTO chapter_thumbnails (chapter_id, image_urls) VALUES (?, ?) ON CONFLICT(chapter_id) DO UPDATE SET image_urls = EXCLUDED.image_urls')
+    await db
+      .prepare(
+        'INSERT INTO chapter_thumbnails (chapter_id, image_urls) VALUES (?, ?) ON CONFLICT(chapter_id) DO UPDATE SET image_urls = EXCLUDED.image_urls'
+      )
       .bind(chapterId, JSON.stringify(imageUrls))
       .run();
 
-    console.log(`[Thumbnail Gen] Completed for Chapter ID: ${chapterId}. Uploaded ${imageUrls.length} images.`);
-
-    return new Response(
-      JSON.stringify({ message: 'Thumbnails generated and uploaded successfully', imageUrls }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    console.log(
+      `[Thumbnail Gen] Completed for Chapter ID: ${chapterId}. Uploaded ${imageUrls.length} images.`
     );
 
+    return new Response(
+      JSON.stringify({
+        message: 'Thumbnails generated and uploaded successfully',
+        imageUrls,
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
     console.error('[Thumbnail Gen] Error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal Server Error', details: (error as Error).message }),
+      JSON.stringify({
+        error: 'Internal Server Error',
+        details: (error as Error).message,
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

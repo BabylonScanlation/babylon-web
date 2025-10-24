@@ -162,13 +162,16 @@ export function initializeAuthModal() {
           interface AuthCredentialError extends AuthError {
             credential?: AuthCredential;
           }
-          
+
           // ... (rest of the code)
-          
-                    const firebaseError = error as AuthError;
-                    if (firebaseError.code === 'auth/account-exists-with-different-credential') {
-                      const credentialError = error as AuthCredentialError;
-                      pendingCredential = credentialError.credential || null;
+
+          const firebaseError = error as AuthError;
+          if (
+            firebaseError.code ===
+            'auth/account-exists-with-different-credential'
+          ) {
+            const credentialError = error as AuthCredentialError;
+            pendingCredential = credentialError.credential || null;
             const email = firebaseError.customData?.email as string;
             if (email && linkAccountEmailInput) {
               linkAccountEmailInput.value = email;

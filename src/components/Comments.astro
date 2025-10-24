@@ -26,11 +26,9 @@ const COMMENTS_VISIBLE_LIMIT = 1;
 // CORRECCIÓN: Se cambia el límite a 1
 
 const formatCommentDate = (dateString: string) => {
-
   if (!dateString) return 'Fecha inválida';
 
   return new Date(dateString).toLocaleString('es-ES', {
-
     day: 'numeric',
 
     month: 'long',
@@ -40,10 +38,9 @@ const formatCommentDate = (dateString: string) => {
     hour: '2-digit',
 
     minute: '2-digit',
-
   });
-
-};---
+};
+---
 
 <section class="comments-section">
   <h3>Comentarios (<span id="comment-count">{comments.length}</span>)</h3>

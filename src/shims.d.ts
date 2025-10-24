@@ -11,11 +11,17 @@ declare module '@squoosh/lib/png/decode' {
 }
 
 declare module '@squoosh/lib/resize' {
-  export function resize(image: ImageData, options: { width: number; height: number; fitMethod: string }): Promise<ImageData>;
+  export function resize(
+    image: ImageData,
+    options: { width: number; height: number; fitMethod: string }
+  ): Promise<ImageData>;
 }
 
 declare module '@squoosh/lib/jpeg/encode' {
-  export function encode(image: ImageData, options: { quality: number }): Promise<{ binary: Uint8Array }>;
+  export function encode(
+    image: ImageData,
+    options: { quality: number }
+  ): Promise<{ binary: Uint8Array }>;
 }
 
 declare module '@squoosh/lib/webp/encode' {
@@ -64,5 +70,8 @@ declare module '@squoosh/lib/webp/encode' {
     binary: Uint8Array;
   }
 
-  export function encode(image: ImageData, options: WebPEncodeOptions): Promise<WebPEncodeResult>;
+  export function encode(
+    image: ImageData,
+    options: WebPEncodeOptions
+  ): Promise<WebPEncodeResult>;
 }

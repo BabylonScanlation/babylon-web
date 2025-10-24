@@ -27,15 +27,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (!thumbnailImage || !(thumbnailImage instanceof File)) {
       return new Response(
-        JSON.stringify({ error: 'thumbnailImage is required and must be a file' }),
+        JSON.stringify({
+          error: 'thumbnailImage is required and must be a file',
+        }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     // Validar tipo de archivo (opcional, pero buena práctica)
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(thumbnailImage.type)) {
+    if (
+      !['image/jpeg', 'image/png', 'image/webp'].includes(thumbnailImage.type)
+    ) {
       return new Response(
-        JSON.stringify({ error: 'Invalid image type. Only JPEG, PNG, WEBP are allowed.' }),
+        JSON.stringify({
+          error: 'Invalid image type. Only JPEG, PNG, WEBP are allowed.',
+        }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -44,9 +50,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const thumbnailKey = `chapter-thumbnails/${chapterId}-${Date.now()}.${thumbnailImage.name.split('.').pop()}`;
 
     // Subir la imagen a R2
-    await env.R2_BUCKET_ASSETS.put(thumbnailKey, thumbnailImage.stream() as any, {
-      httpMetadata: { contentType: thumbnailImage.type },
-    });
+    await env.R2_BUCKET_ASSETS.put(
+      thumbnailKey,
+      thumbnailImage.stream() as any,
+      {
+        httpMetadata: { contentType: thumbnailImage.type },
+      }
+    );
 
     const thumbnailUrl = `${env.R2_PUBLIC_URL_ASSETS}/${thumbnailKey}`;
 
@@ -56,16 +66,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .bind(thumbnailUrl, parseInt(chapterId))
       .run();
 
-    console.log(`[Manual Thumbnail Upload] Thumbnail URL updated for Chapter ID: ${chapterId}`);
-
-    return new Response(
-      JSON.stringify({ success: true, thumbnailUrl }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    console.log(
+      `[Manual Thumbnail Upload] Thumbnail URL updated for Chapter ID: ${chapterId}`
     );
+
+    return new Response(JSON.stringify({ success: true, thumbnailUrl }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('[Manual Thumbnail Upload] Error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal Server Error', details: (error as Error).message }),
+      JSON.stringify({
+        error: 'Internal Server Error',
+        details: (error as Error).message,
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
