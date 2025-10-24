@@ -195,54 +195,29 @@ try {
                         placeholder="Ej: Acción, Aventura"
                       />
                     </div>
-                    <div class="form-group">
-                      <label for={`alternative_names-${series.id}`}>
-                        Nombres alternativos (separados por coma)
-                      </label>
-                      <input
-                        type="text"
-                        id={`alternative_names-${series.id}`}
-                        name="alternative_names"
-                        value={series.alternative_names || ''}
-                      />
-                    </div>
-
-                    <div class="form-group toggle-visibility-group">
-                      <input
-                        type="hidden"
-                        id={`is_hidden_input-${series.id}`}
-                        name="is_hidden"
-                        value={series.is_hidden ? 'on' : 'off'}
-                      />
-                      <button
-                        type="button"
-                        class:list={[
-                          'toggle-visibility-btn',
-                          { 'is-hidden-true': series.is_hidden },
-                          { 'is-hidden-false': !series.is_hidden },
-                        ]}
-                        data-series-id={series.id}
-                        data-is-hidden={series.is_hidden}
-                      >
-                        {series.is_hidden ? 'MOSTRAR SERIE' : 'OCULTAR SERIE'}
-                      </button>
-                    </div>
-
-                    <div class="form-group">
-                      <>
-                        <label for={`cover-${series.id}`}>
-                          Cambiar Portada (Opcional)
-                        </label>
-                        <input
-                          type="file"
-                          id={`cover-${series.id}`}
-                          name="coverImage"
-                          accept="image/jpeg,image/png,image/webp"
-                        />
-                      </>
-                    </div>
                     <button type="submit">Actualizar Serie</button>
                   </form>
+
+                  <div class="form-group toggle-visibility-group">
+                    <input
+                      type="hidden"
+                      id={`is_hidden_input-${series.id}`}
+                      name="is_hidden"
+                      value={series.is_hidden ? 'on' : 'off'}
+                    />
+                    <button
+                      type="button"
+                      class:list={[
+                        'toggle-visibility-btn',
+                        { 'is-hidden-true': series.is_hidden },
+                        { 'is-hidden-false': !series.is_hidden },
+                      ]}
+                      data-series-id={series.id}
+                      data-is-hidden={series.is_hidden}
+                    >
+                      {series.is_hidden ? 'MOSTRAR SERIE' : 'OCULTAR SERIE'}
+                    </button>
+                  </div>
 
                   <form
                     action="/api/delete-series"
