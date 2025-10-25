@@ -20,6 +20,7 @@ yarn-error.log*
 
 # OS generated files
 .DS_Store
+.vscode
 Thumbs.db
 
 # Ignorar scripts de utilidad específicos
