@@ -21,6 +21,7 @@ interface Chapter {
   series_id: number;
   chapter_number: number;
   title: string;
+  telegram_file_id: string;
 }
 
 interface Comment {
@@ -65,7 +66,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
         .all<Series>(),
       db
         .prepare(
-          'SELECT id, series_id, chapter_number, title FROM Chapters ORDER BY chapter_number DESC'
+          'SELECT id, series_id, chapter_number, title, telegram_file_id FROM Chapters ORDER BY chapter_number DESC'
         )
         .all<Chapter>(),
       db
