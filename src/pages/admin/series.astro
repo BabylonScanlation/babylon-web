@@ -289,15 +289,16 @@ try {
                           </form>
 
                           <div class="chapter-thumbnail-controls">
-                                                      <button
-                                                        type="button"
-                                                        class="generate-thumbnail-btn"
-                                                        data-chapter-id={chapter.id}
-                                                        data-telegram-file-id={chapter.telegram_file_id}
-                                                        data-series-slug={series.slug}
-                                                        data-chapter-number={chapter.chapter_number}
-                                                        title="Generar Miniatura Automáticamente"
-                                                      >                              Generar Miniatura
+                                                                                <button
+                                                                                  type="button"
+                                                                                  class="generate-thumbnail-btn"
+                                                                                  data-chapter-id={chapter.id}
+                                                                                  data-telegram-file-id={chapter.telegram_file_id}
+                                                                                  data-series-slug={series.slug}
+                                                                                  data-chapter-number={chapter.chapter_number}
+                                                                                  title="Generar Miniatura Automáticamente"
+                                                                                  disabled={!chapter.telegram_file_id}
+                                                                                >                              Generar Miniatura
                             </button>
                             <input
                               type="file"
