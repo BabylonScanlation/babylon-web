@@ -106,9 +106,7 @@ try {
                           name="description"
                           rows="4"
                           required
-                        >
-                          {series.description.trim()}
-                        </textarea>
+                        >{series.description.trim()}</textarea>
                       </>
                     </div>
 
@@ -222,7 +220,7 @@ try {
                       data-series-id={series.id}
                       data-is-hidden={series.is_hidden}
                     >
-                      {series.is_hidden ? 'MOSTRAR SERIE' : 'OCULTAR SERIE'}
+                      {series.is_hidden ? 'Mostrar Serie' : 'Ocultar Serie'}
                     </button>
                   </div>
 
@@ -551,21 +549,18 @@ try {
   }
 
   .toggle-visibility-group {
-    margin-top: 1rem;
+    /* Removed explicit margin-top to rely on parent gap for consistent spacing */
   }
 
   .toggle-visibility-btn {
     padding: 0.75rem 1.5rem;
     border-radius: 4px;
     font-weight: bold;
-    text-align: center;
-    white-space: nowrap;
     font-family: inherit;
     font-size: inherit;
     border: none;
     cursor: pointer;
     width: 100%;
-    transition: background-color 0.2s ease;
   }
 
   .toggle-visibility-btn.is-hidden-true {
@@ -578,12 +573,12 @@ try {
   }
 
   .toggle-visibility-btn.is-hidden-false {
-    background-color: #dc3545; /* Red for "Hide Series" */
+    background-color: #c0392b; /* Red for "Hide Series" */
     color: white;
   }
 
   .toggle-visibility-btn.is-hidden-false:hover {
-    background-color: #c82333;
+    background-color: #a93226; /* Darker shade of #c0392b */
   }
 
   .chapter-thumbnail-controls {
