@@ -204,7 +204,9 @@ try {
                   </form>
 
                   <div class="action-buttons-row">
-                    <button type="submit" form={`update-series-form-${series.id}`} class="update-series-button">Actualizar Serie</button>
+                    <div class="update-button-wrapper">
+                      <button type="submit" form={`update-series-form-${series.id}`} class="update-series-button">Actualizar Serie</button>
+                    </div>
 
                     <div class="form-group toggle-visibility-group">
                       <input
@@ -449,13 +451,14 @@ try {
     margin-top: 1rem; /* Add some space above these buttons */
   }
 
-  .action-buttons-row > .update-series-button,
+  .action-buttons-row > .update-button-wrapper,
   .action-buttons-row > .form-group {
     flex: 1;
     margin-top: 0; /* Reset margin-top inherited from general button style */
   }
 
-  .action-buttons-row > .update-series-button {
+  .action-buttons-row > .update-button-wrapper > .update-series-button {
+    width: 100%;
     font-weight: bold;
   }
 
