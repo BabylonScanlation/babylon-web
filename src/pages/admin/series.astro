@@ -7,11 +7,14 @@ if (sessionCookie?.value !== 'admin-logged-in') {
   return Astro.redirect('/admin-login');
 }
 
+const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
+
 interface Chapter {
   id: number;
   chapter_number: number;
   title: string | null;
   telegram_file_id: string; // Añadido para la generación de miniaturas
+  url_portada: string | null; // URL de la portada del capítulo
 }
 interface Series {
   id: number;
@@ -248,53 +251,61 @@ try {
                   <ul>
                     {series.chapters.map((chapter) => (
                       <li class="chapter-item">
-                        <form
-                          action="/api/update-chapter"
-                          method="post"
-                          class="update-chapter-form"
-                        >
-                          <span class="chapter-number-label">
-                            Cap. {chapter.chapter_number}
-                          </span>
-
-                          <input
-                            type="text"
-                            name="title"
-                            value={chapter.title || ''}
-                            placeholder="Sin título"
-                            class="chapter-title-input"
-                          />
-                          <input
-                            type="hidden"
-                            name="chapterId"
-                            value={chapter.id}
-                          />
-                          <button
-                            type="submit"
-                            class="update-chapter-btn"
-                            title="Guardar Título"
+                        <img
+                          src={chapter.url_portada || `${r2PublicUrlAssets}/covers/placeholder-chapter.jpg`}
+                          alt={`Miniatura del Capítulo ${chapter.chapter_number}`}
+                          class="chapter-thumbnail-img"
+                          onerror="this.onerror=null;this.src='${r2PublicUrlAssets}/covers/placeholder-chapter.jpg';"
+                        />
+                        <div class="chapter-details-and-controls">
+                          <form
+                            action="/api/update-chapter"
+                            method="post"
+                            class="update-chapter-form"
                           >
-                            ✓
-                          </button>
-                        </form>
+                            <span class="chapter-number-label">
+                              Cap. {chapter.chapter_number}
+                            </span>
 
-                        <div class="chapter-thumbnail-controls">
-                          <button
-                            type="button"
-                            class="generate-thumbnail-btn"
-                            data-chapter-id={chapter.id}
-                            data-telegram-file-id={chapter.telegram_file_id}
-                            title="Generar Miniatura Automáticamente"
-                          >
-                            Generar Miniatura
-                          </button>
-                          <input
-                            type="file"
-                            class="upload-thumbnail-input"
-                            data-chapter-id={chapter.id}
-                            accept="image/jpeg,image/png,image/webp"
-                            title="Subir Miniatura Manualmente"
-                          />
+                            <input
+                              type="text"
+                              name="title"
+                              value={chapter.title || ''}
+                              placeholder="Sin título"
+                              class="chapter-title-input"
+                            />
+                            <input
+                              type="hidden"
+                              name="chapterId"
+                              value={chapter.id}
+                            />
+                            <button
+                              type="submit"
+                              class="update-chapter-btn"
+                              title="Guardar Título"
+                            >
+                              ✓
+                            </button>
+                          </form>
+
+                          <div class="chapter-thumbnail-controls">
+                            <button
+                              type="button"
+                              class="generate-thumbnail-btn"
+                              data-chapter-id={chapter.id}
+                              data-telegram-file-id={chapter.telegram_file_id}
+                              title="Generar Miniatura Automáticamente"
+                            >
+                              Generar Miniatura
+                            </button>
+                            <input
+                              type="file"
+                              class="upload-thumbnail-input"
+                              data-chapter-id={chapter.id}
+                              accept="image/jpeg,image/png,image/webp"
+                              title="Subir Miniatura Manualmente"
+                            />
+                          </div>
                         </div>
 
                         <form
@@ -417,7 +428,7 @@ try {
     padding: 1.5rem;
     border-top: 1px solid #444;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 2fr;
     gap: 2rem;
   }
   .series-info-and-forms {
@@ -519,13 +530,20 @@ try {
   }
   .chapter-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 0.75rem;
     border: 1px solid #444;
     border-radius: 4px;
   }
+
+  .chapter-details-and-controls {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    gap: 0.5rem; /* Space between update form and thumbnail controls */
+  }
+
   .update-chapter-form {
     flex-grow: 1;
     display: flex;
