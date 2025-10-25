@@ -79,149 +79,151 @@ try {
                 </div>
 
                 <div class="forms-container">
-                  <form
-                    action="/api/update-series"
-                    method="post"
-                    enctype="multipart/form-data"
-                    class="admin-form"
-                  >
-                    <input type="hidden" name="seriesId" value={series.id} />
-                    <div class="form-group">
-                      <>
-                        <label for={`title-${series.id}`}>Título</label>
+                  <div class="action-buttons-group">
+                    <form
+                      action="/api/update-series"
+                      method="post"
+                      enctype="multipart/form-data"
+                      class="admin-form"
+                    >
+                      <input type="hidden" name="seriesId" value={series.id} />
+                      <div class="form-group">
+                        <>
+                          <label for={`title-${series.id}`}>Título</label>
+                          <input
+                            type="text"
+                            id={`title-${series.id}`}
+                            name="title"
+                            value={series.title}
+                            required
+                          />
+                        </>
+                      </div>
+                      <div class="form-group">
+                        <>
+                          <label for={`desc-${series.id}`}>Descripción</label>
+                                                  <textarea
+                                                    id={`desc-${series.id}`}
+                                                    name="description"
+                                                    rows="4"
+                                                    required
+                                                  >{series.description.trim()}</textarea>
+                        </>
+                      </div>
+
+                      <div class="form-grid">
+                        <div class="form-group">
+                          <>
+                            <label for={`status-${series.id}`}>Estado</label>
+                            <input
+                              type="text"
+                              id={`status-${series.id}`}
+                              name="status"
+                              value={series.status || ''}
+                              placeholder="Ej: En emisión"
+                            />
+                          </>
+                        </div>
+                        <div class="form-group">
+                          <>
+                            <label for={`type-${series.id}`}>Tipo</label>
+                            <input
+                              type="text"
+                              id={`type-${series.id}`}
+                              name="type"
+                              value={series.type || ''}
+                              placeholder="Ej: Manga"
+                            />
+                          </>
+                        </div>
+                        <div class="form-group">
+                          <>
+                            <label for={`author-${series.id}`}>Autor</label>
+                            <input
+                              type="text"
+                              id={`author-${series.id}`}
+                              name="author"
+                              value={series.author || ''}
+                              placeholder="Autor de la obra"
+                            />
+                          </>
+                        </div>
+                        <div class="form-group">
+                          <>
+                            <label for={`artist-${series.id}`}>Artista</label>
+                            <input
+                              type="text"
+                              id={`artist-${series.id}`}
+                              name="artist"
+                              value={series.artist || ''}
+                              placeholder="Artista de la obra"
+                            />
+                          </>
+                        </div>
+                        <div class="form-group">
+                          <>
+                            <label for={`published_by-${series.id}`}>
+                              Publicado por
+                            </label>
+                            <input
+                              type="text"
+                              id={`published_by-${series.id}`}
+                              name="published_by"
+                              value={series.published_by || ''}
+                              placeholder="Ej: Shueisha"
+                            />
+                          </>
+                        </div>
+                        <div class="form-group">
+                          <>
+                            <label for={`serialized_by-${series.id}`}>
+                              Serializado por
+                            </label>
+                            <input
+                              type="text"
+                              id={`serialized_by-${series.id}`}
+                              name="serialized_by"
+                              value={series.serialized_by || ''}
+                              placeholder="Ej: Weekly Shōnen Jump"
+                            />
+                          </>
+                        </div>
+                      </div>
+                      <div class="form-group">
+                        <label for={`genres-${series.id}`}>
+                          Géneros (separados por coma)
+                        </label>
                         <input
                           type="text"
-                          id={`title-${series.id}`}
-                          name="title"
-                          value={series.title}
-                          required
+                          id={`genres-${series.id}`}
+                          name="genres"
+                          value={series.genres || ''}
+                          placeholder="Ej: Acción, Aventura"
                         />
-                      </>
-                    </div>
-                    <div class="form-group">
-                      <>
-                        <label for={`desc-${series.id}`}>Descripción</label>
-                                                <textarea
-                                                  id={`desc-${series.id}`}
-                                                  name="description"
-                                                  rows="4"
-                                                  required
-                                                >{series.description.trim()}</textarea>
-                      </>
-                    </div>
+                      </div>
+                      <button type="submit">Actualizar Serie</button>
+                    </form>
 
-                    <div class="form-grid">
-                      <div class="form-group">
-                        <>
-                          <label for={`status-${series.id}`}>Estado</label>
-                          <input
-                            type="text"
-                            id={`status-${series.id}`}
-                            name="status"
-                            value={series.status || ''}
-                            placeholder="Ej: En emisión"
-                          />
-                        </>
-                      </div>
-                      <div class="form-group">
-                        <>
-                          <label for={`type-${series.id}`}>Tipo</label>
-                          <input
-                            type="text"
-                            id={`type-${series.id}`}
-                            name="type"
-                            value={series.type || ''}
-                            placeholder="Ej: Manga"
-                          />
-                        </>
-                      </div>
-                      <div class="form-group">
-                        <>
-                          <label for={`author-${series.id}`}>Autor</label>
-                          <input
-                            type="text"
-                            id={`author-${series.id}`}
-                            name="author"
-                            value={series.author || ''}
-                            placeholder="Autor de la obra"
-                          />
-                        </>
-                      </div>
-                      <div class="form-group">
-                        <>
-                          <label for={`artist-${series.id}`}>Artista</label>
-                          <input
-                            type="text"
-                            id={`artist-${series.id}`}
-                            name="artist"
-                            value={series.artist || ''}
-                            placeholder="Artista de la obra"
-                          />
-                        </>
-                      </div>
-                      <div class="form-group">
-                        <>
-                          <label for={`published_by-${series.id}`}>
-                            Publicado por
-                          </label>
-                          <input
-                            type="text"
-                            id={`published_by-${series.id}`}
-                            name="published_by"
-                            value={series.published_by || ''}
-                            placeholder="Ej: Shueisha"
-                          />
-                        </>
-                      </div>
-                      <div class="form-group">
-                        <>
-                          <label for={`serialized_by-${series.id}`}>
-                            Serializado por
-                          </label>
-                          <input
-                            type="text"
-                            id={`serialized_by-${series.id}`}
-                            name="serialized_by"
-                            value={series.serialized_by || ''}
-                            placeholder="Ej: Weekly Shōnen Jump"
-                          />
-                        </>
-                      </div>
-                    </div>
-                    <div class="form-group">
-                      <label for={`genres-${series.id}`}>
-                        Géneros (separados por coma)
-                      </label>
+                    <div class="form-group toggle-visibility-group">
                       <input
-                        type="text"
-                        id={`genres-${series.id}`}
-                        name="genres"
-                        value={series.genres || ''}
-                        placeholder="Ej: Acción, Aventura"
+                        type="hidden"
+                        id={`is_hidden_input-${series.id}`}
+                        name="is_hidden"
+                        value={series.is_hidden ? 'on' : 'off'}
                       />
+                      <button
+                        type="button"
+                        class:list={[
+                          'toggle-visibility-btn',
+                          { 'is-hidden-true': series.is_hidden },
+                          { 'is-hidden-false': !series.is_hidden },
+                        ]}
+                        data-series-id={series.id}
+                        data-is-hidden={series.is_hidden}
+                      >
+                        {series.is_hidden ? 'Mostrar Serie' : 'Ocultar Serie'}
+                      </button>
                     </div>
-                    <button type="submit">Actualizar Serie</button>
-                  </form>
-
-                  <div class="form-group toggle-visibility-group">
-                    <input
-                      type="hidden"
-                      id={`is_hidden_input-${series.id}`}
-                      name="is_hidden"
-                      value={series.is_hidden ? 'on' : 'off'}
-                    />
-                    <button
-                      type="button"
-                      class:list={[
-                        'toggle-visibility-btn',
-                        { 'is-hidden-true': series.is_hidden },
-                        { 'is-hidden-false': !series.is_hidden },
-                      ]}
-                      data-series-id={series.id}
-                      data-is-hidden={series.is_hidden}
-                    >
-                      {series.is_hidden ? 'Mostrar Serie' : 'Ocultar Serie'}
-                    </button>
                   </div>
 
                   <form
@@ -438,6 +440,16 @@ try {
     flex-direction: column;
     gap: 1.5rem;
   }
+
+  .action-buttons-group {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .action-buttons-group > form,
+  .action-buttons-group > .toggle-visibility-group {
+    flex: 1;
+  }
   .admin-form {
     display: flex;
     flex-direction: column;
@@ -560,15 +572,14 @@ try {
   }
 
   .toggle-visibility-btn {
-    padding: 0.5rem 1rem;
+    padding: 0.75rem 1.5rem;
     border-radius: 4px;
     font-weight: normal;
     text-align: center;
     font-family: inherit;
-    font-size: 0.9rem;
     border: none;
     cursor: pointer;
-    width: auto;
+    width: 100%;
   }
 
   .toggle-visibility-btn.is-hidden-true {
