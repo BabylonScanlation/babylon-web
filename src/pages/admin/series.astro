@@ -289,14 +289,15 @@ try {
                           </form>
 
                           <div class="chapter-thumbnail-controls">
-                            <button
-                              type="button"
-                              class="generate-thumbnail-btn"
-                              data-chapter-id={chapter.id}
-                              data-telegram-file-id={chapter.telegram_file_id}
-                              title="Generar Miniatura Automáticamente"
-                            >
-                              Generar Miniatura
+                                                      <button
+                                                        type="button"
+                                                        class="generate-thumbnail-btn"
+                                                        data-chapter-id={chapter.id}
+                                                        data-telegram-file-id={chapter.telegram_file_id}
+                                                        data-series-slug={series.slug}
+                                                        data-chapter-number={chapter.chapter_number}
+                                                        title="Generar Miniatura Automáticamente"
+                                                      >                              Generar Miniatura
                             </button>
                             <input
                               type="file"
@@ -371,6 +372,60 @@ try {
 
               // Submit the form
               form.submit();
+            }
+          });
+        });
+
+      document
+        .querySelectorAll('.generate-thumbnail-btn')
+        .forEach((buttonElement) => {
+          const button = buttonElement as HTMLButtonElement;
+          button.addEventListener('click', async () => {
+            const chapterId = button.dataset.chapterId;
+            const telegramFileId = button.dataset.telegramFileId;
+            const seriesSlug = button.dataset.seriesSlug;
+            const chapterNumber = button.dataset.chapterNumber;
+
+            if (!chapterId || !telegramFileId || !seriesSlug || !chapterNumber) {
+              alert('Error: Faltan datos para generar la miniatura.');
+              return;
+            }
+
+            button.disabled = true;
+            button.textContent = 'Generando...';
+            button.classList.add('is-loading');
+
+            try {
+              const response = await fetch('/api/generate-chapter-thumbnail', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  chapterId: parseInt(chapterId),
+                  telegramFileId,
+                  seriesSlug,
+                  chapterNumber: parseFloat(chapterNumber),
+                }),
+              });
+
+              const result = await response.json();
+
+              if (response.ok) {
+                alert('Miniatura generada y actualizada con éxito!');
+                // Update the image src on the page
+                const imgElement = button.closest('.chapter-item')?.querySelector('.chapter-thumbnail-img') as HTMLImageElement;
+                if (imgElement && result.thumbnailUrl) {
+                  imgElement.src = result.thumbnailUrl;
+                }
+              } else {
+                alert(`Error al generar miniatura: ${result.details || result.error}`);
+              }
+            } catch (error) {
+              console.error('Error al generar miniatura:', error);
+              alert('Error de red o interno al generar miniatura.');
+            } finally {
+              button.disabled = false;
+              button.textContent = 'Generar Miniatura';
+              button.classList.remove('is-loading');
             }
           });
         });
@@ -514,7 +569,6 @@ try {
     font-weight: bold;
   }
   .chapters-list {
-    max-height: 450px;
     overflow-y: auto;
     padding-right: 10px;
   }
