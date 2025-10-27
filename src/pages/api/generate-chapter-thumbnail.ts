@@ -173,8 +173,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const tempImageUrl = `${env.R2_PUBLIC_URL_ASSETS}/${tempR2Key}`;
 
     // 4. Call Cloudflare Image Resizing API to get the resized image
-    const resizeApiUrl = `${tempImageUrl}?width=200&height=300&fit=cover`;
-    const resizedImageResponse = await fetch(resizeApiUrl);
+    const targetWidth = 200;
+    const targetHeight = 300;
+    const resizeApiUrl = `${tempImageUrl}?width=${targetWidth}&height=${targetHeight}&fit=crop&gravity=center`; // Cambiado fit=cover por fit=crop&gravity=center
+
+    console.log(`[Thumbnail Gen] Requesting resized image using CROP from: ${resizeApiUrl}`); // Actualiza el log si quieres
 
     if (!resizedImageResponse.ok) {
       throw new Error(`Failed to resize image: ${resizedImageResponse.statusText}`);
