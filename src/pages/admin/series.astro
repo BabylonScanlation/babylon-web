@@ -345,37 +345,56 @@ try {
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      // --- INICIO CÓDIGO MODIFICADO PARA VISIBILIDAD ---
       document
         .querySelectorAll('.toggle-visibility-btn')
         .forEach((buttonElement) => {
-          const button = buttonElement as HTMLElement;
-          button.addEventListener('click', () => {
+          const button = buttonElement as HTMLButtonElement; // Aseguramos que es un botón
+          button.addEventListener('click', async () => { // Hacemos la función async
             const seriesId = button.dataset.seriesId;
             const currentIsHidden = button.dataset.isHidden === 'true';
             const newIsHidden = !currentIsHidden;
 
-            const form = button.closest('form');
-            if (form) {
-              const hiddenInput = form.querySelector(
-                `#is_hidden_input-${seriesId}`
-              );
-              if (hiddenInput instanceof HTMLInputElement) {
-                hiddenInput.value = newIsHidden ? 'on' : 'off';
+            // Guardamos el texto original por si falla
+            const originalText = button.textContent;
+            // Cambiamos el estado visualmente DE INMEDIATO
+            button.disabled = true;
+            button.textContent = newIsHidden ? 'Mostrando...' : 'Ocultando...';
+            button.classList.add('is-loading'); // Añadimos clase para posible estilo de carga
+
+            try {
+              const response = await fetch('/api/series/toggle-visibility', { // Nuevo endpoint
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ seriesId: parseInt(seriesId!), isHidden: newIsHidden }),
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Error al cambiar visibilidad');
               }
-              // Update button text and classes immediately for visual feedback
+
+              // Éxito: Actualizamos permanentemente el estado visual del botón
               button.dataset.isHidden = newIsHidden.toString();
-              button.textContent = newIsHidden
-                ? 'Mostrar serie'
-                : 'Ocultar serie';
+              button.textContent = newIsHidden ? 'Mostrar Serie' : 'Ocultar Serie'; // Texto final
               button.classList.toggle('is-hidden-true', newIsHidden);
               button.classList.toggle('is-hidden-false', !newIsHidden);
 
-              // Submit the form
-              form.submit();
+            } catch (error) {
+              console.error('Error al cambiar visibilidad:', error);
+              alert(`Error: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+              // Revertimos el texto si falla
+              button.textContent = originalText;
+            } finally {
+              // Habilitamos el botón y quitamos estado de carga
+              button.disabled = false;
+              button.classList.remove('is-loading');
             }
           });
         });
+      // --- FIN CÓDIGO MODIFICADO PARA VISIBILIDAD ---
 
+      // --- El código para generar miniaturas permanece igual ---
       document
         .querySelectorAll('.generate-thumbnail-btn')
         .forEach((buttonElement) => {
@@ -411,7 +430,6 @@ try {
 
               if (response.ok) {
                 alert('Miniatura generada y actualizada con éxito!');
-                // Update the image src on the page
                 const imgElement = button.closest('.chapter-item')?.querySelector('.chapter-thumbnail-img') as HTMLImageElement;
                 if (imgElement && result.thumbnailUrl) {
                   imgElement.src = result.thumbnailUrl;
@@ -429,6 +447,54 @@ try {
             }
           });
         });
+        
+      // Codigo para subir miniatura manualmente
+      document.querySelectorAll('.upload-thumbnail-input').forEach(inputElement => {
+        const input = inputElement as HTMLInputElement;
+        input.addEventListener('change', async (event) => {
+            const target = event.target as HTMLInputElement;
+            const file = target.files?.[0];
+            const chapterId = input.dataset.chapterId;
+            const imgElement = input.closest('.chapter-item')?.querySelector('.chapter-thumbnail-img') as HTMLImageElement;
+
+            if (!file || !chapterId || !imgElement) {
+                alert('Falta archivo, ID de capítulo o elemento de imagen.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('chapterId', chapterId);
+            formData.append('thumbnailImage', file);
+
+            // Guardar src original y mostrar estado de carga
+            const originalSrc = imgElement.src;
+            imgElement.style.opacity = '0.5'; // Indicar carga
+
+            try {
+                const response = await fetch('/api/upload-chapter-thumbnail', {
+                    method: 'POST',
+                    body: formData,
+                    // No necesitas 'Content-Type', el navegador lo pone con FormData
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.thumbnailUrl) {
+                    imgElement.src = result.thumbnailUrl + `?t=${Date.now()}`; // Forzar recarga
+                    alert('Miniatura subida y actualizada con éxito.');
+                } else {
+                    throw new Error(result.error || result.details || 'Error al subir la miniatura.');
+                }
+            } catch (error) {
+                console.error('Error al subir la miniatura:', error);
+                alert(`Error: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+                imgElement.src = originalSrc; // Restaurar imagen original si falla
+            } finally {
+                 imgElement.style.opacity = '1'; // Restaurar opacidad
+                 target.value = ''; // Limpiar el input para permitir subir el mismo archivo de nuevo
+            }
+        });
+    });
     });
   </script>
 </Layout>
