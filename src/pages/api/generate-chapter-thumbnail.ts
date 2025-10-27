@@ -14,6 +14,7 @@ interface Env {
   R2_CACHE: R2Bucket; // Asegurarse de que esté definida
   R2_ASSETS: R2Bucket;
   R2_PUBLIC_URL_ASSETS: string;
+  R2_PUBLIC_URL_CACHE: string;
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -33,8 +34,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       console.error(
         '[Thumbnail Gen API] Error al parsear JSON del body:',
         parseError
-      );
-      // Intenta loguear el texto raw si falla el parseo
+      ); // Intenta loguear el texto raw si falla el parseo
       try {
         const rawText = await request.text(); // Necesitas clonar si usas request.json() después
         console.error('[Thumbnail Gen API] Cuerpo raw recibido:', rawText);
@@ -52,17 +52,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const chapterId = requestBody?.chapterId;
     const telegramFileId = requestBody?.telegramFileId;
     const seriesSlug = requestBody?.seriesSlug;
-    const chapterNumber = requestBody?.chapterNumber;
+    const chapterNumber = requestBody?.chapterNumber; // --- VALIDACIÓN MEJORADA EN BACKEND ---
 
-    // --- VALIDACIÓN MEJORADA EN BACKEND ---
     if (
       chapterId === undefined ||
       chapterId === null ||
       !telegramFileId || // Check truthiness (string no puede ser 0)
       !seriesSlug || // Check truthiness (string no puede ser 0)
       chapterNumber === undefined ||
-      chapterNumber === null // Permitir 0, pero no null/undefined
+      chapterNumber === null
     ) {
+      // Permitir 0, pero no null/undefined
       // Loguea qué campo específico falló (si es posible)
       console.error(
         '[Thumbnail Gen API] Parámetros faltantes o inválidos. Valores:',
@@ -75,14 +75,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
-    }
-    // --- FIN VALIDACIÓN MEJORADA ---
-
+    } // --- FIN VALIDACIÓN MEJORADA ---
     // Convertir a números después de validar que existen
     const chapterIdNum = Number(chapterId);
-    const chapterNumberNum = Number(chapterNumber);
+    const chapterNumberNum = Number(chapterNumber); // Verificar si la conversión falló (importante para números)
 
-    // Verificar si la conversión falló (importante para números)
     if (isNaN(chapterIdNum) || isNaN(chapterNumberNum)) {
       console.error(
         '[Thumbnail Gen API] Conversión numérica inválida. Recibido:',
@@ -101,38 +98,77 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
 
     let imageBlob: Blob | null = null;
-    let imageExtension: string | null = null;
+    let imageExtension: string | null = null; // 1. Try to get image from R2_CACHE first
 
-    // 1. Try to get image from R2_CACHE first
     const manifestKey = `${seriesSlug}/${chapterNumberNum}/manifest.json`;
     const manifestObject = await env.R2_CACHE.get(manifestKey);
 
     if (manifestObject) {
-      console.log(`[Thumbnail Gen] Manifest found in R2_CACHE for ${seriesSlug}/${chapterNumberNum}. Using cached images.`);
+      console.log(
+        `[Thumbnail Gen] Manifest found in R2_CACHE for ${seriesSlug}/${chapterNumberNum}. Using cached images.`
+      );
       const manifestContent = (await manifestObject.json()) as ChapterManifest;
       const imageUrls = manifestContent.imageUrls; // These are R2_CACHE keys
 
       if (imageUrls && imageUrls.length > 0) {
-        const firstImageR2Key = imageUrls[0];
-        console.log(`[Thumbnail Gen] Extracted R2_CACHE key: ${firstImageR2Key}`);
-        if (typeof firstImageR2Key === 'string') {
-          const cachedImage = await env.R2_CACHE.get(firstImageR2Key);
+        const firstImageUrl = imageUrls[0]; // Renombrado para claridad
+        // --- INICIO CORRECCIÓN EXTRACCIÓN DE CLAVE R2_CACHE ---
+
+        let r2Key: string | null = null;
+        if (
+          typeof firstImageUrl === 'string' &&
+          env.R2_PUBLIC_URL_CACHE &&
+          firstImageUrl.startsWith(env.R2_PUBLIC_URL_CACHE)
+        ) {
+          // Quita el prefijo de la URL pública
+          r2Key = firstImageUrl.substring(env.R2_PUBLIC_URL_CACHE.length); // Quita la barra inicial si existe
+          if (r2Key.startsWith('/')) {
+            r2Key = r2Key.substring(1);
+          }
+          console.log(`[Thumbnail Gen] Extracted R2_CACHE key: ${r2Key}`);
+        } else {
+          console.warn(
+            `[Thumbnail Gen] Invalid first image URL (${firstImageUrl}) or R2_PUBLIC_URL_CACHE (${env.R2_PUBLIC_URL_CACHE}) not set/matching. Cannot use cache.`
+          );
+        } // --- FIN CORRECCIÓN EXTRACCIÓN DE CLAVE R2_CACHE ---
+        if (r2Key) {
+          // Solo intenta obtener de caché si pudimos extraer una clave válida
+          const cachedImage = await env.R2_CACHE.get(r2Key); // Usa la clave extraída 'r2Key'
 
           if (cachedImage) {
-            imageBlob = (await cachedImage.blob() as unknown) as Blob; // Explicit cast to global Blob
-            const ext = firstImageR2Key.split('.').pop();
+            // Convert the Cloudflare Workers' body to a DOM-compatible Blob to avoid TS Blob type mismatch.
+            try {
+              const arrayBuffer = await cachedImage.arrayBuffer();
+              imageBlob = new Blob([arrayBuffer], {
+                type:
+                  (cachedImage.httpMetadata &&
+                    (cachedImage.httpMetadata as any).contentType) ||
+                  'application/octet-stream',
+              });
+            } catch {
+              // Fallback: force-cast if arrayBuffer isn't available for some implementation
+              imageBlob = (await cachedImage.blob()) as unknown as Blob;
+            }
+            const ext = r2Key.split('.').pop();
             if (typeof ext === 'string') {
               imageExtension = ext;
             }
-            console.log(`[Thumbnail Gen] Image loaded successfully from R2_CACHE: ${firstImageR2Key}`);
+            console.log(
+              `[Thumbnail Gen] Image loaded successfully from R2_CACHE key: ${r2Key}`
+            );
           } else {
-            console.warn(`[Thumbnail Gen] First image not found in R2_CACHE for key: ${firstImageR2Key}. Falling back to Telegram.`);
+            console.warn(
+              `[Thumbnail Gen] Image object not found in R2_CACHE for key: ${r2Key}. Falling back to Telegram.`
+            );
           }
         }
+      } else {
+        console.warn(
+          `[Thumbnail Gen] Manifest found but contains no image URLs. Falling back to Telegram.`
+        );
       }
-    }
+    } // 2. If not found in R2_CACHE, download from Telegram
 
-    // 2. If not found in R2_CACHE, download from Telegram
     if (!imageBlob) {
       console.log(
         `[Thumbnail Gen] Image not found in R2_CACHE. Downloading from Telegram for ${seriesSlug}/${chapterNumber}.`
@@ -192,23 +228,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (!imageBlob || !imageExtension) {
       throw new Error('Could not obtain image for thumbnail generation.');
-    }
+    } // 3. Upload the original image to a temporary R2 location for resizing
 
-    // 3. Upload the original image to a temporary R2 location for resizing
     const tempR2Key = `temp-chapter-originals/${chapterIdNum}.${imageExtension}`;
-    console.log(`[Thumbnail Gen] INTENTANDO subir temporal a R2_ASSETS: ${tempR2Key}, Tamaño: ${imageBlob.size}, Tipo: ${imageBlob.type}`);
+    console.log(
+      `[Thumbnail Gen] INTENTANDO subir temporal a R2_ASSETS: ${tempR2Key}, Tamaño: ${imageBlob.size}, Tipo: ${imageBlob.type}`
+    );
     try {
       await env.R2_ASSETS.put(tempR2Key, imageBlob as any, {
         httpMetadata: { contentType: imageBlob.type },
       });
-      console.log(`[Thumbnail Gen] ÉXITO al subir temporal a R2_ASSETS: ${tempR2Key}`);
+      console.log(
+        `[Thumbnail Gen] ÉXITO al subir temporal a R2_ASSETS: ${tempR2Key}`
+      );
     } catch (uploadError) {
-      console.error(`[Thumbnail Gen] FALLO DIRECTO al subir temporal a R2_ASSETS: ${tempR2Key}`, uploadError);
-      throw new Error(`Failed to upload temporary image to R2_ASSETS: ${(uploadError as Error).message}`);
+      console.error(
+        `[Thumbnail Gen] FALLO DIRECTO al subir temporal a R2_ASSETS: ${tempR2Key}`,
+        uploadError
+      );
+      throw new Error(
+        `Failed to upload temporary image to R2_ASSETS: ${(uploadError as Error).message}`
+      );
     }
-    const tempImageUrl = `${env.R2_PUBLIC_URL_ASSETS}/${tempR2Key}`;
+    const tempImageUrl = `${env.R2_PUBLIC_URL_ASSETS}/${tempR2Key}`; // 4. Call Cloudflare Image Resizing API to get the resized image
 
-    // 4. Call Cloudflare Image Resizing API to get the resized image
     const targetWidth = 200;
     const targetHeight = 300;
     const resizeApiUrl = `${tempImageUrl}?width=${targetWidth}&height=${targetHeight}&fit=crop&gravity=center`; // Cambiado fit=cover por fit=crop&gravity=center
@@ -216,39 +259,47 @@ export const POST: APIRoute = async ({ request, locals }) => {
     console.log(
       `[Thumbnail Gen] Requesting resized image using CROP from: ${resizeApiUrl}`
     ); // Actualiza el log si quieres
-
     // Fetch the resized image from the resize URL and validate the response
-        console.log(`[Thumbnail Gen] Solicitando imagen redimensionada desde: ${resizeApiUrl}`);
-        let resizedImageResponse: Response;
-        try {
-          resizedImageResponse = await fetch(resizeApiUrl);
-        } catch (fetchError) {
-          console.error(`[Thumbnail Gen] ERROR DURANTE fetch a Image Resizing API para ${resizeApiUrl}:`, fetchError);
-          throw new Error(`Network or internal error fetching resized image: ${(fetchError as Error).message}`);
-        }
-    
-        if (!resizedImageResponse.ok) {
-          console.error(`[Thumbnail Gen] Image Resizing API respondió con error ${resizedImageResponse.status} para ${resizeApiUrl}.`);
-          throw new Error(`Failed to resize image: ${resizedImageResponse.statusText}`);
-        }
 
-    const resizedImageBlob = await resizedImageResponse.blob();
+    console.log(
+      `[Thumbnail Gen] Solicitando imagen redimensionada desde: ${resizeApiUrl}`
+    );
+    let resizedImageResponse: Response;
+    try {
+      resizedImageResponse = await fetch(resizeApiUrl);
+    } catch (fetchError) {
+      console.error(
+        `[Thumbnail Gen] ERROR DURANTE fetch a Image Resizing API para ${resizeApiUrl}:`,
+        fetchError
+      );
+      throw new Error(
+        `Network or internal error fetching resized image: ${(fetchError as Error).message}`
+      );
+    }
 
-    // 5. Upload the resized image to R2_ASSETS
+    if (!resizedImageResponse.ok) {
+      console.error(
+        `[Thumbnail Gen] Image Resizing API respondió con error ${resizedImageResponse.status} para ${resizeApiUrl}.`
+      );
+      throw new Error(
+        `Failed to resize image: ${resizedImageResponse.statusText}`
+      );
+    }
+
+    const resizedImageBlob = await resizedImageResponse.blob(); // 5. Upload the resized image to R2_ASSETS
+
     const finalR2Key = `series-covers/${seriesSlug}/${chapterId}.jpg`; // Always save as JPG for consistency
     await env.R2_ASSETS.put(finalR2Key, resizedImageBlob as any, {
       httpMetadata: { contentType: 'image/jpeg' }, // Assuming JPG output from resizing
-    });
+    }); // 6. Update the D1 database with the direct URL to the resized image
 
-    // 6. Update the D1 database with the direct URL to the resized image
     const finalThumbnailUrl = `${env.R2_PUBLIC_URL_ASSETS}/${finalR2Key}`;
 
     await db
       .prepare('UPDATE Chapters SET url_portada = ? WHERE id = ?')
       .bind(finalThumbnailUrl, chapterIdNum)
-      .run();
+      .run(); // 7. Clean up temporary original image from R2_ASSETS
 
-    // 7. Clean up temporary original image from R2_ASSETS
     await env.R2_ASSETS.delete(tempR2Key);
 
     console.log(
