@@ -117,7 +117,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
     }));
 
     return new Response(JSON.stringify(finalData), {
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', 'Cache-Control': 'no-store, must-revalidate' },
     });
   } catch (error: unknown) {
     console.error(
