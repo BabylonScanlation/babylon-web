@@ -405,10 +405,14 @@ try {
             const seriesSlug = button.dataset.seriesSlug;
             const chapterNumber = button.dataset.chapterNumber;
 
-            if (!chapterId || !telegramFileId || !seriesSlug || !chapterNumber) {
-              alert('Error: Faltan datos para generar la miniatura.');
-              return;
+            // --- VALIDACIÓN MEJORADA ---
+            if (!chapterId || !telegramFileId || !seriesSlug || chapterNumber === undefined || chapterNumber === null || chapterNumber === '') {
+              alert('Error: Faltan datos necesarios (ID capítulo, ID Telegram, Slug Serie o Número Capítulo) para generar la miniatura. Verifica que el capítulo tenga un archivo de Telegram asociado.');
+              console.error('Datos faltantes:', { chapterId, telegramFileId, seriesSlug, chapterNumber }); // Log para depuración
+              return; // Detiene la ejecución si falta algo
             }
+            // --- FIN VALIDACIÓN MEJORADA ---
+
 
             button.disabled = true;
             button.textContent = 'Generando...';

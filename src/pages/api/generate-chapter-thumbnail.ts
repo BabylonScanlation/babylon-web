@@ -11,7 +11,7 @@ interface ChapterManifest {
 interface Env {
   DB: D1Database;
   TELEGRAM_BOT_TOKEN: string;
-  R2_BUCKET_COLD: R2Bucket;
+  R2_CACHE: R2Bucket;      // Asegurarse de que esté definida
   R2_ASSETS: R2Bucket;
   R2_PUBLIC_URL_ASSETS: string;
 }
@@ -19,27 +19,72 @@ interface Env {
 export const POST: APIRoute = async ({ request, locals }) => {
   const env = locals.runtime.env as Env;
   const db = getDB(env);
+  let requestBody: any = {}; // Variable para guardar el body
 
   try {
-    const { chapterId, telegramFileId, seriesSlug, chapterNumber } = await request.json();
+    // Intenta leer y loguear el cuerpo ANTES de cualquier otra cosa
+    try {
+        requestBody = await request.json();
+        console.log('[Thumbnail Gen API] Body recibido:', JSON.stringify(requestBody)); // Loguea el cuerpo parseado
+    } catch (parseError) {
+        console.error('[Thumbnail Gen API] Error al parsear JSON del body:', parseError);
+        // Intenta loguear el texto raw si falla el parseo
+        try {
+            const rawText = await request.text(); // Necesitas clonar si usas request.json() después
+            console.error('[Thumbnail Gen API] Cuerpo raw recibido:', rawText);
+        } catch (rawReadError) {
+             console.error('[Thumbnail Gen API] No se pudo leer el cuerpo raw.');
+        }
+        return new Response( JSON.stringify({ error: 'Cuerpo de la petición inválido (no es JSON)' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+    }
 
-    if (!chapterId || !telegramFileId || !seriesSlug || !chapterNumber) {
+    const chapterId = requestBody?.chapterId;
+    const telegramFileId = requestBody?.telegramFileId;
+    const seriesSlug = requestBody?.seriesSlug;
+    const chapterNumber = requestBody?.chapterNumber;
+
+    // --- VALIDACIÓN MEJORADA EN BACKEND ---
+    if (
+      chapterId === undefined || chapterId === null ||
+      !telegramFileId || // Check truthiness (string no puede ser 0)
+      !seriesSlug ||    // Check truthiness (string no puede ser 0)
+      chapterNumber === undefined || chapterNumber === null // Permitir 0, pero no null/undefined
+    ) {
+      // Loguea qué campo específico falló (si es posible)
+      console.error('[Thumbnail Gen API] Parámetros faltantes o inválidos. Valores:', { chapterId, telegramFileId, seriesSlug, chapterNumber });
       return new Response(
-        JSON.stringify({ error: 'chapterId, telegramFileId, seriesSlug, and chapterNumber are required' }),
+        JSON.stringify({ error: 'chapterId, telegramFileId, seriesSlug, and chapterNumber son requeridos y deben tener valores válidos.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
+    // --- FIN VALIDACIÓN MEJORADA ---
+
+    // Convertir a números después de validar que existen
+    const chapterIdNum = Number(chapterId);
+    const chapterNumberNum = Number(chapterNumber);
+
+    // Verificar si la conversión falló (importante para números)
+     if (isNaN(chapterIdNum) || isNaN(chapterNumberNum)) {
+       console.error('[Thumbnail Gen API] Conversión numérica inválida. Recibido:', requestBody);
+       return new Response(
+         JSON.stringify({ error: 'chapterId y chapterNumber deben ser números válidos.' }),
+         { status: 400, headers: { 'Content-Type': 'application/json' } }
+       );
+     }
+
 
     console.log(
-      `[Thumbnail Gen] Starting for Chapter ID: ${chapterId}, Series: ${seriesSlug}, Chapter: ${chapterNumber}`
+      `[Thumbnail Gen] Starting for Chapter ID: ${chapterIdNum}, Series: ${seriesSlug}, Chapter: ${chapterNumberNum}`
     );
 
     let imageBlob: Blob | null = null;
     let imageExtension: string | null = null;
 
     // 1. Try to get image from R2_CACHE first
-    const manifestKey = `${seriesSlug}/${chapterNumber}/manifest.json`;
-    const manifestObject = await env.R2_BUCKET_COLD.get(manifestKey);
+    const manifestKey = `${seriesSlug}/${chapterNumberNum}/manifest.json`;
+    const manifestObject = await env.R2_CACHE.get(manifestKey);
 
     if (manifestObject) {
       console.log(`[Thumbnail Gen] Manifest found in R2_CACHE for ${seriesSlug}/${chapterNumber}. Using cached images.`);
@@ -50,7 +95,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         // Get the first image from R2_CACHE
         const firstImageR2Key = imageUrls[0];
         if (typeof firstImageR2Key === 'string') { // Explicitly check type
-          const cachedImage = await env.R2_BUCKET_COLD.get(firstImageR2Key);
+          const cachedImage = await env.R2_CACHE.get(firstImageR2Key);
 
           if (cachedImage) {
             imageBlob = (await cachedImage.blob() as unknown) as Blob; // Explicit cast to global Blob
@@ -122,7 +167,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // 3. Upload the original image to a temporary R2 location for resizing
     const tempR2Key = `temp-chapter-originals/${chapterId}.${imageExtension}`;
-    await env.R2_BUCKET_COLD.put(tempR2Key, imageBlob as any, {
+    await env.R2_CACHE.put(tempR2Key, imageBlob as any, {
       httpMetadata: { contentType: imageBlob.type },
     });
     const tempImageUrl = `${env.R2_PUBLIC_URL_ASSETS}/${tempR2Key}`;
@@ -148,14 +193,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     await db
       .prepare('UPDATE Chapters SET url_portada = ? WHERE id = ?')
-      .bind(finalThumbnailUrl, chapterId)
+      .bind(finalThumbnailUrl, chapterIdNum)
       .run();
 
     // 7. Clean up temporary original image from R2_BUCKET_COLD
-    await env.R2_BUCKET_COLD.delete(tempR2Key);
+    await env.R2_CACHE.delete(tempR2Key);
 
     console.log(
-      `[Thumbnail Gen] Completed for Chapter ID: ${chapterId}. Cover image updated.`
+      `[Thumbnail Gen] Completed for Chapter ID: ${chapterIdNum}. Cover image updated.`
     );
 
     return new Response(
