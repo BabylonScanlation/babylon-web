@@ -4,19 +4,28 @@ pages_build_output_dir = "dist"
 compatibility_date = "2025-07-18"
 compatibility_flags = ["nodejs_compat"]
 
-# --- D1 (Producción) ---
+# --- D1 (PRODUCCIÓN y LOCAL - Mismo Binding Name) ---
 [[d1_databases]]
-binding = "DB" 
+binding = "DB" # Nombre usado en el código (Astro.locals.runtime.env.DB)
 database_name = "babylon-scanlation-prod"
 database_id = "5c1ecb07-f1ea-4961-9014-0b8612fc0caf"
+preview_database_id = "5c1ecb07-f1ea-4961-9014-0b8612fc0caf" 
 
-# --- R2 (Producción) ---
+# --- R2 (PRODUCCIÓN y LOCAL - Mismo Binding Name) ---
 [[r2_buckets]]
-binding = "R2_CACHE"
+binding = "R2_CACHE" # Nombre usado en el código (Astro.locals.runtime.env.R2_CACHE)
 bucket_name = "babylon-scanlation-cache"
+preview_bucket_name = "babylon-scanlation-cache"
 
 [[r2_buckets]]
-binding = "R2_ASSETS"
+binding = "R2_ASSETS" # Nombre usado en el código (Astro.locals.runtime.env.R2_ASSETS)
 bucket_name = "babylon-scanlation-assets"
+preview_bucket_name = "babylon-scanlation-assets"
 
-# --- Cloudflare Queues (Producción) ---
+# --- Configuración DEV para el puerto ---
+[dev]
+ip = "localhost"
+port = 8788
+local_protocol = "http"
+
+# No necesitas añadir [vars] ni otros bindings aquí; Wrangler ya lo hace.

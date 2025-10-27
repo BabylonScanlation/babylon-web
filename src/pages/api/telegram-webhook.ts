@@ -100,19 +100,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           `[Webhook] Capítulo ${chapterNumber} de la serie ${seriesId} registrado con ID: ${newChapterId}.`
         );
 
-        const telegramFileResponse = await fetch(
-          `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`
-        );
-        const telegramFileData: TelegramFileResponse =
-          await telegramFileResponse.json();
 
-        if (!telegramFileData.ok) {
-          console.error(
-            '[Webhook] Error getting Telegram file path:',
-            telegramFileData
-          );
-          throw new Error('Failed to get Telegram file path.');
-        }
       } else {
         console.log(
           `[Webhook] Capítulo ${chapterNumber} de la serie ${seriesId} ya existía o falló el registro.`

@@ -28,6 +28,8 @@ cleanup-deployments.js
 create-migrations.js
 prompt.txt
 problems.txt
+ideas.txt
+readAI.txt
 
 # Gemini related files
 GEMINI.md
