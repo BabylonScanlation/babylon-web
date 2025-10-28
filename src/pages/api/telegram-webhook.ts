@@ -53,7 +53,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           .bind(
             newSeriesTitle,
             newSeriesSlug,
-            'Descripción próximamente...',
+            'Descripción próximamente...'.trim(), // Aplicar .trim() explícitamente
             placeholderUrl,
             topicId
           )
