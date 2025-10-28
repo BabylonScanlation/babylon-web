@@ -1,0 +1,29 @@
+---
+// src/components/AdminDescriptionTextarea.astro
+interface Props {
+  id: string;
+  name: string;
+  rows: number;
+  required: boolean;
+  value: string;
+}
+
+const { id, name, rows, required, value } = Astro.props;
+---
+<textarea
+  id={id}
+  name={name}
+  rows={rows}
+  required={required}
+>{value.trim()}</textarea>
+
+<style>
+  textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #333;
+    border: 1px solid #555;
+    color: var(--font-color);
+    border-radius: 4px;
+  }
+</style>

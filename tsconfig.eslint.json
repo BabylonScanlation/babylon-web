@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/**/*.d.ts",
+    "src/**/*.ts",
+    "src/**/*.astro",
+    "eslint.config.mjs" // Incluir el propio archivo de configuración de ESLint
+  ]
+}

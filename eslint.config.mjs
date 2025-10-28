@@ -41,7 +41,7 @@ export default [
       parserOptions: {
         parser: tseslint.parser,
         extraFileExtensions: ['.astro'],
-        project: true, // Enable type-aware linting for TS in Astro files
+        project: './tsconfig.eslint.json', // Enable type-aware linting for TS in Astro files
         tsconfigRootDir: import.meta.dirname,
       },
       globals: {

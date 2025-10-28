@@ -110,11 +110,15 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
       });
     }
 
-    const finalData = seriesResults.results.map((series: Series) => ({
-      ...series,
-      chapters: chaptersBySeriesId.get(series.id) || [],
-      seriesComments: commentsBySeriesId.get(series.id) || [],
-    }));
+    const finalData = seriesResults.results.map((series: Series) => {
+      const trimmedDescription = series.description.trim();
+      return {
+        ...series,
+        description: trimmedDescription, // Aplicar .trim() aquí
+        chapters: chaptersBySeriesId.get(series.id) || [],
+        seriesComments: commentsBySeriesId.get(series.id) || [],
+      };
+    });
 
     return new Response(JSON.stringify(finalData), {
       headers: { 'content-type': 'application/json' },
