@@ -15,6 +15,7 @@ export default defineConfig({
     ssr: {
       // Solo nos aseguramos de que firebase-admin (si se usa en otro lugar) sea manejado por Vite
       noExternal: ['firebase-admin'],
+      external: ['@cloudflare/workers-types'],
     },
   },
 });

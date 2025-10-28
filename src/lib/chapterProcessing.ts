@@ -1,6 +1,6 @@
 // src/lib/chapterProcessing.ts
 import { ZipReader, BlobReader, BlobWriter } from '@zip.js/zip.js';
-import { D1Database, R2Bucket } from '@cloudflare/workers-types';
+import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 
 // La interfaz no cambia
 interface RuntimeEnv {

@@ -1,7 +1,7 @@
 // src/pages/api/upload-chapter-thumbnail.ts
 import type { APIRoute } from 'astro';
 import { getDB } from '../../lib/db';
-import { D1Database, R2Bucket } from '@cloudflare/workers-types'; // Assuming R2Bucket type is available
+import type { D1Database, R2Bucket } from '@cloudflare/workers-types'; // Assuming R2Bucket type is available
 
 interface Env {
   DB: D1Database;

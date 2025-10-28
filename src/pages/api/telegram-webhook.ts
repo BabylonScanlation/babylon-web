@@ -1,17 +1,6 @@
 // src/pages/api/telegram-webhook.ts
 import type { APIRoute } from 'astro';
 
-// Define interface for Telegram getFile response
-interface TelegramFileResponse {
-  ok: boolean;
-  result: {
-    file_id: string;
-    file_unique_id: string;
-    file_size: number;
-    file_path: string; // This is what we need
-  };
-}
-
 interface TelegramUpdate {
   message?: {
     message_thread_id?: number;
@@ -99,8 +88,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
         console.log(
           `[Webhook] Capítulo ${chapterNumber} de la serie ${seriesId} registrado con ID: ${newChapterId}.`
         );
-
-
       } else {
         console.log(
           `[Webhook] Capítulo ${chapterNumber} de la serie ${seriesId} ya existía o falló el registro.`

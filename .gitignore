@@ -24,6 +24,7 @@ yarn-error.log*
 Thumbs.db
 
 # Ignorar scripts de utilidad específicos
+delclodep.py
 cleanup-deployments.js
 create-migrations.js
 prompt.txt
