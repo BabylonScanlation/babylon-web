@@ -18,6 +18,7 @@ interface ChapterAPIResponse {
   imageUrls?: string[];
   message?: string;
   error?: string;
+  chapterCoverUrl?: string | null;
 }
 interface Comment {
   id: number;
@@ -39,6 +40,8 @@ let allChapters: Chapter[] = [];
 let seriesTitle: string | null = null;
 let comments: Comment[] = [];
 
+let chapterCoverUrl: string | null = null; // Declare chapterCoverUrl here
+
 try {
   // Obtenemos la información general de la serie
   const seriesResponse = await fetch(new URL(`/api/series/${slug}`, Astro.url));
@@ -56,6 +59,12 @@ try {
 
   seriesId = data.seriesId;
   chapterId = data.chapterId;
+  chapterCoverUrl = data.chapterCoverUrl || null; // Assign chapterCoverUrl from API response
+
+  console.log('>>> [DEBUG chapter-view] chapterCoverUrl from API:', chapterCoverUrl);
+  console.log('>>> [DEBUG chapter-view] isProcessing:', isProcessing);
+  console.log('>>> [DEBUG chapter-view] pageImageUrls.length:', pageImageUrls.length);
+
   if (chapterResponse.status === 200 && data.imageUrls) {
     isProcessing = false;
     pageImageUrls = data.imageUrls;
@@ -340,7 +349,14 @@ if (
 
       {
         !error && !isProcessing && pageImageUrls.length === 0 && (
-          <p>Cargando páginas...</p>
+          <div class="no-images-placeholder">
+            {chapterCoverUrl ? (
+              <img src={chapterCoverUrl} alt="Portada del capítulo" class="chapter-cover-placeholder" />
+            ) : (
+              <p>No se encontraron imágenes para este capítulo.</p>
+            )}
+            <p>Cargando páginas...</p>
+          </div>
         )
       }
     </main>
@@ -364,6 +380,7 @@ if (
     seriesId,
     chapterId,
     pageImageUrls,
+    chapterCoverUrl, // Use the chapterCoverUrl variable
   }}
 >
   if (seriesId)
@@ -892,6 +909,27 @@ if (
     color: #555;
     cursor: not-allowed;
     border-color: #333;
+  }
+
+  .no-images-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1rem;
+    text-align: center;
+    border: 1px solid #333;
+    background-color: var(--card-background);
+    border-radius: 8px;
+    margin-top: 2rem;
+  }
+
+  .chapter-cover-placeholder {
+    max-width: 300px;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border: 2px solid #444;
   }
 
   .loading-overlay {

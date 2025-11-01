@@ -21,13 +21,18 @@ declare global {
         FIREBASE_PRIVATE_KEY?: string;
       }>;
       db: D1Database;
-      // 👇 LA CORRECCIÓN ESTÁ AQUÍ 👇
       user:
         | {
             uid: string;
             email?: string | null;
+            isAdmin?: boolean; // Added for admin users
+            emailVerified?: boolean; // Added for consistency with Firebase payload
           }
-        | undefined; // <--- Añadimos "| undefined" para permitir que el usuario no exista
+        | undefined;
     }
   }
+}
+
+declare module 'astro' {
+  interface Locals extends App.Locals {}
 }

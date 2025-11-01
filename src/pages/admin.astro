@@ -20,12 +20,6 @@ const error = Astro.url.searchParams.get('error');
     {success && <p class="success-message">{success}</p>}
     {error && <p class="error-message">{error}</p>}
 
-    <div class="admin-actions">
-      <form action="/api/admin-logout" method="post">
-        <button type="submit" class="logout-btn">Cerrar Sesión</button>
-      </form>
-    </div>
-
     <div class="admin-dashboard">
       <a href="/admin/series" class="dashboard-card">
         <h2>Gestionar Series</h2>
@@ -44,6 +38,12 @@ const error = Astro.url.searchParams.get('error');
         <h2>Subir Capítulos</h2>
         <p>Sube nuevos capítulos para las series existentes vía Telegram.</p>
       </a>
+    </div>
+
+    <div class="logout-container">
+      <form action="/api/admin-logout" method="post">
+        <button type="submit" class="logout-btn">Cerrar Sesión</button>
+      </form>
     </div>
   </main>
 </Layout>
@@ -66,6 +66,11 @@ const error = Astro.url.searchParams.get('error');
     display: flex;
     justify-content: flex-end;
     margin-bottom: 2rem;
+  }
+  .logout-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
   }
   .logout-btn {
     padding: 0.75rem 1.5rem;

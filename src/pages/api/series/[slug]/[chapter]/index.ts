@@ -15,7 +15,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
   try {
     const chapterQuery = `
-        SELECT c.id as chapterId, s.id as seriesId, c.telegram_file_id as telegramFileId
+        SELECT c.id as chapterId, s.id as seriesId, c.telegram_file_id as telegramFileId, c.url_portada as chapterCoverUrl
         FROM Chapters c
         JOIN Series s ON c.series_id = s.id
         WHERE s.slug = ?1 AND c.chapter_number = ?2 AND c.status = 'live'
@@ -23,7 +23,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     const chapterData = await db
       .prepare(chapterQuery)
       .bind(slug, chapterNumber)
-      .first<{ chapterId: number; seriesId: number; telegramFileId: string }>();
+      .first<{ chapterId: number; seriesId: number; telegramFileId: string; chapterCoverUrl: string | null }>();
 
     if (!chapterData) {
       return new Response(
@@ -42,6 +42,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
           ...manifestContent,
           seriesId: chapterData.seriesId,
           chapterId: chapterData.chapterId,
+          chapterCoverUrl: chapterData.chapterCoverUrl, // Include chapter cover URL
         }),
         { status: 200 }
       );
@@ -52,6 +53,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
         JSON.stringify({
           error:
             'El capítulo existe pero no tiene un archivo de Telegram asociado.',
+          chapterCoverUrl: chapterData.chapterCoverUrl, // Include chapter cover URL even on error
         }),
         { status: 500 }
       );
@@ -80,6 +82,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
           'Aguarde, el capítulo se está cargando desde nuestros servidores. Esto puede tardar unos segundos.',
         seriesId: chapterData.seriesId,
         chapterId: chapterData.chapterId,
+        chapterCoverUrl: chapterData.chapterCoverUrl, // Include chapter cover URL
       }),
       { status: 202 }
     );

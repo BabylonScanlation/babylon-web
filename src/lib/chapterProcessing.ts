@@ -2,6 +2,16 @@
 import { ZipReader, BlobReader, BlobWriter } from '@zip.js/zip.js';
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 
+// Define a type that represents a file entry with the getData method
+interface FileEntryWithGetData extends ZipReader.Entry {
+  getData(writer: BlobWriter): Promise<Blob>;
+}
+
+// User-defined type guard to check if an Entry is a file and has getData
+function isFileEntryWithGetData(entry: ZipReader.Entry): entry is FileEntryWithGetData {
+  return !entry.directory && typeof (entry as FileEntryWithGetData).getData === 'function';
+}
+
 // La interfaz no cambia
 interface RuntimeEnv {
   DB: D1Database;
@@ -73,7 +83,11 @@ export async function processAndCacheChapter(
       const pageNumberMatch = entry.filename.match(/(\d+)/);
       if (!pageNumberMatch) return null;
       const pageNumber = parseInt(pageNumberMatch[0], 10);
-      if (typeof entry.getData !== 'function') return null;
+
+      if (!isFileEntryWithGetData(entry)) {
+        console.warn(`[PROCESO-ON-DEMAND] Entry ${entry.filename} is not a file entry with getData.`);
+        return null;
+      }
 
       const imageBlob = await entry.getData(new BlobWriter());
       const imageBuffer = await imageBlob.arrayBuffer();

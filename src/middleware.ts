@@ -11,8 +11,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   context.locals.user = undefined;
   const sessionCookie = context.cookies.get('user_session')?.value;
+  const adminSessionCookie = context.cookies.get('session')?.value;
 
-  if (sessionCookie) {
+  if (adminSessionCookie === 'admin-logged-in') {
+    context.locals.user = {
+      uid: 'admin', // A placeholder UID for admin
+      email: 'admin@example.com', // A placeholder email for admin
+      isAdmin: true,
+    };
+  } else if (sessionCookie) {
     try {
       const payload = (await verifyFirebaseToken(
         sessionCookie,
@@ -28,7 +35,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
           uid: String(payload.sub),
           email: payload.email || null,
           emailVerified: payload.email_verified || false,
-        } as { uid: string; email?: string | null; emailVerified?: boolean };
+        };
       }
     } catch (error) {
       console.error('Error verificando token de sesión:', error);

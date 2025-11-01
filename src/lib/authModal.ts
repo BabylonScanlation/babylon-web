@@ -309,7 +309,7 @@ export function initializeAuthModal() {
         if (loginSubmitBtn) loginSubmitBtn.disabled = false;
       };
 
-      loginForm.addEventListener('submit', async (e) => {
+      loginSubmitBtn.addEventListener('click', async (e) => {
         e.preventDefault();
         if (loginSubmitBtn) loginSubmitBtn.disabled = true;
         if (btnText instanceof HTMLElement) btnText.style.display = 'none';
@@ -318,10 +318,39 @@ export function initializeAuthModal() {
 
         const formData = new FormData(loginForm);
         const email = formData.get('email')?.toString().trim();
-        const password = formData.get('password')?.toString();
+        const password = formData.get('password')?.toString().trim(); // Trimmed here
 
-        if (!email || !password) {
-          showLoginError('Por favor, completa todos los campos.');
+        if (!password) {
+          showLoginError('Por favor, completa el campo de contraseña.');
+          return;
+        }
+
+        // --- Admin Check ---
+        const adminCheckResponse = await fetch('/api/auth/check-admin-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
+        });
+        const adminCheckData = await adminCheckResponse.json();
+
+        if (adminCheckData.isAdmin) {
+          const setAdminSessionResponse = await fetch('/api/auth/set-admin-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}), // No body needed for setting session
+          });
+
+          if (setAdminSessionResponse.ok) {
+            window.location.href = '/admin';
+            return;
+          } else {
+            showLoginError('Error al establecer la sesión de administrador.');
+            return;
+          }
+        }
+
+        if (!email) {
+          showLoginError('El email es obligatorio para el inicio de sesión normal.');
           return;
         }
 
@@ -349,10 +378,9 @@ export function initializeAuthModal() {
             showLoginError(errorMessage);
           }
         } catch (error: unknown) {
-          // Changed to unknown
           let errorMessage = 'Credenciales incorrectas.';
           if (error && typeof error === 'object' && 'code' in error) {
-            const firebaseError = error as { code: string }; // Type assertion for Firebase error
+            const firebaseError = error as { code: string };
             if (firebaseError.code === 'auth/invalid-credential') {
               errorMessage = 'Credenciales incorrectas.';
             } else if (firebaseError.code === 'auth/user-not-found') {
