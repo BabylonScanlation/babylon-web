@@ -11,11 +11,13 @@
     "cf-typegen": "wrangler types",
     "dev:cf": "concurrently \"wrangler pages dev --proxy 8789\" \"astro dev --port 8789\"",
     "start": "astro start",
-    "db:pull": "wrangler d1 export babylon-scanlation-prod --remote --output=./migrations/dump.sql",
+    "db:pull": "wrangler d1 export babylon-scanlation-prod --remote --output=./db_snapshots/dump.sql",
     "db:reset:local": "if exist .wrangler\\state\\v3\\d1 rd /s /q .wrangler\\state\\v3\\d1",
-    "db:local": "wrangler d1 execute babylon-scanlation-prod --local --file=./migrations/dump.sql",
+    "db:local": "wrangler d1 execute babylon-scanlation-prod --local --file=./db_snapshots/dump.sql",
     "db:sync": "npm run db:pull && npm run db:reset:local && npm run db:local",
-    "dev:full": "npm run db:sync && npm run dev:cf"
+    "db:migrate": "wrangler d1 migrations apply babylon-scanlation-prod --local",
+    "db:reset-and-migrate:local": "npm run db:reset:local && npm run db:local && npm run db:migrate",
+    "dev:full": "npm run db:reset-and-migrate:local && npm run dev:cf"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.6.0",

@@ -43,5 +43,26 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   }
 
+  const adminPaths = [
+    '/admin',
+    '/admin-login',
+    '/admin/comments',
+    '/admin/series',
+    '/admin/upload',
+    '/admin/news',
+  ];
+
+  const currentPath = context.url.pathname;
+
+  if (
+    adminPaths.some((path) => currentPath.startsWith(path)) &&
+    !context.locals.user?.isAdmin
+  ) {
+    if (currentPath !== '/') {
+      // Avoid redirect loop if already on homepage
+      return context.redirect('/');
+    }
+  }
+
   return next();
 });

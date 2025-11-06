@@ -1,0 +1,30 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { SITE_TITLE } from '../../consts';
+import AdminNewsList from '../../components/AdminNewsList.astro';
+import AdminNewsForm from '../../components/AdminNewsForm.astro';
+// Removed: import { getSession } from 'auth-astro/server';
+
+// Removed: const session = await getSession(Astro.request);
+
+if (!Astro.locals.user?.isAdmin) { // Modified condition
+  return Astro.redirect('/admin-login');
+}
+---
+
+<Layout title={`Admin News - ${SITE_TITLE}`}>
+  <main class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-6">Gestión de Noticias</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div>
+        <h2 class="text-2xl font-semibold mb-4">Crear/Editar Noticia</h2>
+        <AdminNewsForm />
+      </div>
+      <div>
+        <h2 class="text-2xl font-semibold mb-4">Noticias Existentes</h2>
+        <AdminNewsList />
+      </div>
+    </div>
+  </main>
+</Layout>

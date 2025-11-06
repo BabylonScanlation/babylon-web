@@ -1,15 +1,18 @@
 // src/lib/chapterProcessing.ts
-import { ZipReader, BlobReader, BlobWriter } from '@zip.js/zip.js';
+import { ZipReader, BlobReader, BlobWriter, type Entry } from '@zip.js/zip.js';
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 
 // Define a type that represents a file entry with the getData method
-interface FileEntryWithGetData extends ZipReader.Entry {
+type FileEntryWithGetData = Entry & {
   getData(writer: BlobWriter): Promise<Blob>;
 }
 
 // User-defined type guard to check if an Entry is a file and has getData
-function isFileEntryWithGetData(entry: ZipReader.Entry): entry is FileEntryWithGetData {
-  return !entry.directory && typeof (entry as FileEntryWithGetData).getData === 'function';
+function isFileEntryWithGetData(entry: Entry): entry is FileEntryWithGetData {
+  return (
+    !entry.directory &&
+    typeof (entry as FileEntryWithGetData).getData === 'function'
+  );
 }
 
 // La interfaz no cambia
@@ -85,7 +88,9 @@ export async function processAndCacheChapter(
       const pageNumber = parseInt(pageNumberMatch[0], 10);
 
       if (!isFileEntryWithGetData(entry)) {
-        console.warn(`[PROCESO-ON-DEMAND] Entry ${entry.filename} is not a file entry with getData.`);
+        console.warn(
+          `[PROCESO-ON-DEMAND] Entry ${entry.filename} is not a file entry with getData.`
+        );
         return null;
       }
 
