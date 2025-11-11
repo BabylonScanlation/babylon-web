@@ -12,6 +12,7 @@ dist/
 
 # Database
 migrations/
+db_snapshots/
 
 # Log files
 npm-debug.log*

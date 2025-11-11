@@ -61,9 +61,15 @@ try {
   chapterId = data.chapterId;
   chapterCoverUrl = data.chapterCoverUrl || null; // Assign chapterCoverUrl from API response
 
-  console.log('>>> [DEBUG chapter-view] chapterCoverUrl from API:', chapterCoverUrl);
+  console.log(
+    '>>> [DEBUG chapter-view] chapterCoverUrl from API:',
+    chapterCoverUrl
+  );
   console.log('>>> [DEBUG chapter-view] isProcessing:', isProcessing);
-  console.log('>>> [DEBUG chapter-view] pageImageUrls.length:', pageImageUrls.length);
+  console.log(
+    '>>> [DEBUG chapter-view] pageImageUrls.length:',
+    pageImageUrls.length
+  );
 
   if (chapterResponse.status === 200 && data.imageUrls) {
     isProcessing = false;
@@ -351,7 +357,11 @@ if (
         !error && !isProcessing && pageImageUrls.length === 0 && (
           <div class="no-images-placeholder">
             {chapterCoverUrl ? (
-              <img src={chapterCoverUrl} alt="Portada del capítulo" class="chapter-cover-placeholder" />
+              <img
+                src={chapterCoverUrl}
+                alt="Portada del capítulo"
+                class="chapter-cover-placeholder"
+              />
             ) : (
               <p>No se encontraron imágenes para este capítulo.</p>
             )}
@@ -380,7 +390,6 @@ if (
     seriesId,
     chapterId,
     pageImageUrls,
-    chapterCoverUrl, // Use the chapterCoverUrl variable
   }}
 >
   if (seriesId)

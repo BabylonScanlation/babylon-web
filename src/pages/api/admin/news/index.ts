@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { getDB, getAllNews, createNews } from '../../../../src/lib/db';
+import { getDB, getAllNews, createNews } from 'src/lib/db';
 
-export const GET: APIRoute = async ({ request, locals }) => {
+export const GET: APIRoute = async ({ locals }) => {
   if (!locals.user?.isAdmin) {
     return new Response('Unauthorized', { status: 401 });
   }

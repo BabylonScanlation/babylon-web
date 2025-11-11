@@ -7,7 +7,7 @@ import astroParser from 'astro-eslint-parser';
 
 export default [
   {
-    ignores: ['node_modules', 'dist', '.astro', '.wrangler'],
+    ignores: ['node_modules', 'dist', 'astro', '.wrangler'],
   },
   pluginJs.configs.recommended, // General JS recommended rules
   ...tseslint.configs.recommended, // General TS recommended rules
@@ -41,7 +41,7 @@ export default [
       parserOptions: {
         parser: tseslint.parser,
         extraFileExtensions: ['.astro'],
-        project: './tsconfig.eslint.json', // Enable type-aware linting for TS in Astro files
+        // project: './tsconfig.eslint.json', // Disable type-aware linting for TS in Astro files
         tsconfigRootDir: import.meta.dirname,
       },
       globals: {

@@ -1,4 +1,4 @@
---- 
+---
 import { getDB, getAllNews, deleteNews } from '../lib/db';
 // Removed: import { getSession } from 'auth-astro/server';
 
@@ -20,49 +20,60 @@ if (Astro.request.method === 'POST') {
 ---
 
 <div class="bg-white shadow-md rounded-lg p-4">
-  {newsItems.length === 0 ? (
-    <p>No hay noticias aún.</p>
-  ) : (
-    <ul>
-      {newsItems.map((news) => (
-        <li class="border-b py-2 flex justify-between items-center">
-          <div>
-            <h3 class="text-lg font-semibold">{news.title}</h3>
-            <p class="text-sm text-gray-600">Estado: {news.status}</p>
-            {news.seriesId && <p class="text-sm text-gray-600">ID de Serie: {news.seriesId}</p>}
-            <p class="text-xs text-gray-500">Publicado por: {news.publishedBy} el {new Date(news.createdAt).toLocaleDateString()}</p>
-          </div>
-          <div class="flex space-x-2">
-            <button
-              class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm"
-              onclick={`window.dispatchEvent(new CustomEvent('edit-news', { detail: '${news.id}' }))`}
-            >
-              Editar
-            </button>
-            <form method="POST">
-              <input type="hidden" name="action" value="delete" />
-              <input type="hidden" name="newsId" value={news.id} />
+  {
+    newsItems.length === 0 ? (
+      <p>No hay noticias aún.</p>
+    ) : (
+      <ul>
+        {newsItems.map((news) => (
+          <li class="border-b py-2 flex justify-between items-center">
+            <div>
+              <h3 class="text-lg font-semibold">{news.title}</h3>
+              <p class="text-sm text-gray-600">Estado: {news.status}</p>
+              {news.seriesId && (
+                <p class="text-sm text-gray-600">
+                  ID de Serie: {news.seriesId}
+                </p>
+              )}
+              <p class="text-xs text-gray-500">
+                Publicado por: {news.publishedBy} el{' '}
+                {new Date(news.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+            <div class="flex space-x-2">
               <button
-                type="submit"
-                class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm"
-                onclick="return confirm('¿Estás seguro de que quieres eliminar esta noticia?');"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm edit-news-button"
+                data-news-id={news.id}
               >
-                Eliminar
+                Editar
               </button>
-            </form>
-          </div>
-        </li>
-      ))}
-    </ul>
-  )}
+              <form method="POST">
+                <input type="hidden" name="action" value="delete" />
+                <input type="hidden" name="newsId" value={news.id} />
+                <button
+                  type="submit"
+                  class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm"
+                  onclick="return confirm('¿Estás seguro de que quieres eliminar esta noticia?');"
+                >
+                  Eliminar
+                </button>
+              </form>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
 </div>
 
 <script>
-  // This script listens for 'edit-news' events and can be used to populate the form
-  document.addEventListener('edit-news', (event: CustomEvent) => {
-    const newsId = event.detail;
-    // In a real app, you'd fetch the news item by ID and populate the form
-    console.log('Edit news with ID:', newsId);
-    // For now, we'll just log it. The AdminNewsForm would handle the actual editing.
+  document.addEventListener('click', (event) => {
+    const target = event.target as HTMLElement;
+    if (target.classList.contains('edit-news-button')) {
+      const newsId = target.dataset.newsId;
+      if (newsId) {
+        window.dispatchEvent(new CustomEvent('edit-news', { detail: newsId }));
+      }
+    }
   });
 </script>

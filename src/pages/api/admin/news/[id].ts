@@ -1,7 +1,8 @@
-import type { APIRoute } from 'astro';
-import { getDB, getNewsById, updateNews, deleteNews } from '../../../../src/lib/db';
+import type { APIRoute, APIContext } from 'astro';
+import { getDB, getNewsById, updateNews, deleteNews } from 'src/lib/db';
+import { getSession } from '@lib/session';
 
-export const GET: APIRoute = async ({ params, request, locals }) => {
+export const GET: APIRoute = async ({ params, locals }) => {
   if (!locals.user?.isAdmin) {
     return new Response('Unauthorized', { status: 401 });
   }
@@ -50,10 +51,9 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     return new Response('Internal Server Error', { status: 500 });
   }
 };
-
 export const DELETE: APIRoute = async ({ params, request, locals }) => {
-  const session = await getSession(request);
-  if (!session || !locals.user?.isAdmin) {
+  const userSession = getSession({ params, request, locals } as APIContext);
+  if (!userSession || !locals.user?.isAdmin) {
     return new Response('Unauthorized', { status: 401 });
   }
 
@@ -66,7 +66,9 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
   try {
     const success = await deleteNews(db, id);
     if (!success) {
-      return new Response('News item not found or could not be deleted', { status: 404 });
+      return new Response('News item not found or could not be deleted', {
+        status: 404,
+      });
     }
     return new Response(null, { status: 204 }); // No Content
   } catch (error) {

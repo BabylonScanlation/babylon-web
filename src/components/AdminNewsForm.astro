@@ -21,7 +21,12 @@ if (Astro.request.method === 'POST') {
 
   if (newsId) {
     // Update existing news
-    await updateNews(db, newsId, { title, content, status, seriesId: seriesId || null }); // Pass seriesId
+    await updateNews(db, newsId, {
+      title,
+      content,
+      status,
+      seriesId: seriesId || null,
+    }); // Pass seriesId
     // Handle image upload if provided
     if (imageFile && imageFile.size > 0) {
       const uploadResponse = await fetch('/api/admin/news/upload-image', {
@@ -75,11 +80,17 @@ if (Astro.request.method === 'POST') {
 }
 ---
 
-<form method="POST" enctype="multipart/form-data" class="bg-white shadow-md rounded-lg p-4 space-y-4">
+<form
+  method="POST"
+  enctype="multipart/form-data"
+  class="bg-white shadow-md rounded-lg p-4 space-y-4"
+>
   <input type="hidden" name="newsId" value={editingNewsId} />
 
   <div>
-    <label for="title" class="block text-sm font-medium text-gray-700">Título</label>
+    <label for="title" class="block text-sm font-medium text-gray-700"
+      >Título</label
+    >
     <input
       type="text"
       id="title"
@@ -91,30 +102,42 @@ if (Astro.request.method === 'POST') {
   </div>
 
   <div>
-    <label for="content" class="block text-sm font-medium text-gray-700">Contenido</label>
+    <label for="content" class="block text-sm font-medium text-gray-700"
+      >Contenido</label
+    >
     <textarea
       id="content"
       name="content"
       rows="5"
       required
       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-    >{initialNewsData.content}</textarea>
+      >{initialNewsData.content}</textarea
+    >
   </div>
 
   <div>
-    <label for="status" class="block text-sm font-medium text-gray-700">Estado</label>
+    <label for="status" class="block text-sm font-medium text-gray-700"
+      >Estado</label
+    >
     <select
       id="status"
       name="status"
       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
     >
-      <option value="draft" selected={initialNewsData.status === 'draft'}>Borrador</option>
-      <option value="published" selected={initialNewsData.status === 'published'}>Publicado</option>
+      <option value="draft" selected={initialNewsData.status === 'draft'}
+        >Borrador</option
+      >
+      <option
+        value="published"
+        selected={initialNewsData.status === 'published'}>Publicado</option
+      >
     </select>
   </div>
 
   <div>
-    <label for="seriesId" class="block text-sm font-medium text-gray-700">ID de Serie (opcional)</label>
+    <label for="seriesId" class="block text-sm font-medium text-gray-700"
+      >ID de Serie (opcional)</label
+    >
     <input
       type="text"
       id="seriesId"
@@ -126,7 +149,9 @@ if (Astro.request.method === 'POST') {
   </div>
 
   <div>
-    <label for="image" class="block text-sm font-medium text-gray-700">Imagen (opcional)</label>
+    <label for="image" class="block text-sm font-medium text-gray-700"
+      >Imagen (opcional)</label
+    >
     <input
       type="file"
       id="image"
@@ -146,8 +171,8 @@ if (Astro.request.method === 'POST') {
 
 <script>
   // Client-side script to handle editing news items
-  document.addEventListener('edit-news', async (event: CustomEvent) => {
-    const newsId = event.detail;
+  document.addEventListener('edit-news', async (event: Event) => {
+    const newsId = (event as CustomEvent<string>).detail;
     const form = document.querySelector('form');
     if (!form) return;
 
@@ -159,11 +184,16 @@ if (Astro.request.method === 'POST') {
       const newsItem = await response.json();
 
       // Populate the form
-      (form.elements.namedItem('newsId') as HTMLInputElement).value = newsItem.id;
-      (form.elements.namedItem('title') as HTMLInputElement).value = newsItem.title;
-      (form.elements.namedItem('content') as HTMLTextAreaElement).value = newsItem.content;
-      (form.elements.namedItem('status') as HTMLSelectElement).value = newsItem.status;
-      (form.elements.namedItem('seriesId') as HTMLInputElement).value = newsItem.seriesId || ''; // Populate seriesId
+      (form.elements.namedItem('newsId') as HTMLInputElement).value =
+        newsItem.id;
+      (form.elements.namedItem('title') as HTMLInputElement).value =
+        newsItem.title;
+      (form.elements.namedItem('content') as HTMLTextAreaElement).value =
+        newsItem.content;
+      (form.elements.namedItem('status') as HTMLSelectElement).value =
+        newsItem.status;
+      (form.elements.namedItem('seriesId') as HTMLInputElement).value =
+        newsItem.seriesId || ''; // Populate seriesId
 
       // Scroll to form
       form.scrollIntoView({ behavior: 'smooth' });
