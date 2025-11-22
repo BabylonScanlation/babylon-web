@@ -2,13 +2,6 @@
 // src/pages/admin.astro
 import Layout from '../layouts/Layout.astro';
 
-const sessionCookie = Astro.cookies.get('session');
-const isAdmin = sessionCookie?.value === 'admin-logged-in';
-
-if (!isAdmin) {
-  return Astro.redirect('/admin-login');
-}
-
 const success = Astro.url.searchParams.get('success');
 const error = Astro.url.searchParams.get('error');
 ---
@@ -45,11 +38,7 @@ const error = Astro.url.searchParams.get('error');
       </a>
     </div>
 
-    <div class="logout-container">
-      <form action="/api/admin-logout" method="post">
-        <button type="submit" class="logout-btn">Cerrar Sesión</button>
-      </form>
-    </div>
+    <!-- El botón de logout ahora está en el Header -->
   </main>
 </Layout>
 

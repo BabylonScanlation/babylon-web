@@ -53,9 +53,15 @@ export async function createNews(
   return newsItem;
 }
 
-export async function getNewsById(db: D1Database, id: string): Promise<NewsItem | null> {
-  const { results } = await db.prepare('SELECT * FROM News WHERE id = ?').bind(id).all<NewsItem>();
-    return results?.[0] || null; // Use optional chaining and nullish coalescing
+export async function getNewsById(
+  db: D1Database,
+  id: string
+): Promise<NewsItem | null> {
+  const { results } = await db
+    .prepare('SELECT * FROM News WHERE id = ?')
+    .bind(id)
+    .all<NewsItem>();
+  return results?.[0] || null; // Use optional chaining and nullish coalescing
 }
 
 export async function getAllNews(
@@ -64,14 +70,15 @@ export async function getAllNews(
   seriesId?: string | null // Added seriesId parameter
 ): Promise<NewsItem[]> {
   let query = 'SELECT * FROM News';
-  let params: (string | number | null)[] = [];
+  const params: (string | number | null)[] = [];
   const conditions: string[] = [];
 
   if (status) {
     conditions.push('status = ?');
     params.push(status);
   }
-  if (seriesId !== undefined) { // Check for undefined to allow null seriesId
+  if (seriesId !== undefined) {
+    // Check for undefined to allow null seriesId
     conditions.push('seriesId = ?');
     params.push(seriesId);
   }
@@ -81,7 +88,10 @@ export async function getAllNews(
   }
 
   query += ' ORDER BY createdAt DESC';
-  const { results } = await db.prepare(query).bind(...params).all<NewsItem>();
+  const { results } = await db
+    .prepare(query)
+    .bind(...params)
+    .all<NewsItem>();
   return results || [];
 }
 
@@ -108,7 +118,10 @@ export async function updateNews(
 }
 
 export async function deleteNews(db: D1Database, id: string): Promise<boolean> {
-  const { success } = await db.prepare('DELETE FROM News WHERE id = ?').bind(id).run();
+  const { success } = await db
+    .prepare('DELETE FROM News WHERE id = ?')
+    .bind(id)
+    .run();
   return success;
 }
 
@@ -135,15 +148,26 @@ export async function addNewsImage(
   return newsImageItem;
 }
 
-export async function getNewsImages(db: D1Database, newsId: string): Promise<NewsImageItem[]> {
+export async function getNewsImages(
+  db: D1Database,
+  newsId: string
+): Promise<NewsImageItem[]> {
   const { results } = await db
-    .prepare('SELECT * FROM NewsImage WHERE newsId = ? ORDER BY displayOrder ASC')
+    .prepare(
+      'SELECT * FROM NewsImage WHERE newsId = ? ORDER BY displayOrder ASC'
+    )
     .bind(newsId)
     .all<NewsImageItem>();
   return results || [];
 }
 
-export async function deleteNewsImage(db: D1Database, id: string): Promise<boolean> {
-  const { success } = await db.prepare('DELETE FROM NewsImage WHERE id = ?').bind(id).run();
+export async function deleteNewsImage(
+  db: D1Database,
+  id: string
+): Promise<boolean> {
+  const { success } = await db
+    .prepare('DELETE FROM NewsImage WHERE id = ?')
+    .bind(id)
+    .run();
   return success;
 }

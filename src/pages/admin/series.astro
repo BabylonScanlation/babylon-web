@@ -3,11 +3,6 @@
 import Layout from '../../layouts/Layout.astro';
 import AdminDescriptionTextarea from '../../components/AdminDescriptionTextarea.astro';
 
-const sessionCookie = Astro.cookies.get('session');
-if (sessionCookie?.value !== 'admin-logged-in') {
-  return Astro.redirect('/admin-login');
-}
-
 const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
 
 interface Chapter {
@@ -40,10 +35,12 @@ const success = Astro.url.searchParams.get('success');
 let error = Astro.url.searchParams.get('error');
 
 try {
+  // Solución: Propagar manualmente las cabeceras (incluyendo la cookie) 
+  // a la petición fetch del lado del servidor.
   const response = await fetch(
     new URL('/api/admin/series-with-chapters', Astro.url),
     {
-      headers: { Cookie: `session=${sessionCookie.value}` },
+      headers: Astro.request.headers,
     }
   );
 

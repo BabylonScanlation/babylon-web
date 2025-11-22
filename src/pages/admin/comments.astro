@@ -2,11 +2,6 @@
 // src/pages/admin/comments.astro
 import Layout from '../../layouts/Layout.astro';
 
-const sessionCookie = Astro.cookies.get('session');
-if (sessionCookie?.value !== 'admin-logged-in') {
-  return Astro.redirect('/admin-login');
-}
-
 interface Comment {
   id: number;
   user_email: string;
@@ -27,10 +22,12 @@ interface Series {
 let allSeries: Series[] = [];
 
 try {
+  // Solución: Propagar manualmente las cabeceras (incluyendo la cookie) 
+  // a la petición fetch del lado del servidor.
   const response = await fetch(
     new URL('/api/admin/series-with-chapters', Astro.url),
     {
-      headers: { Cookie: `session=${sessionCookie.value}` },
+      headers: Astro.request.headers,
     }
   );
 

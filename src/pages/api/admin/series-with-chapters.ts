@@ -38,8 +38,8 @@ interface SeriesComment {
   comment_text: string;
 }
 
-export const GET: APIRoute = async ({ locals, cookies }) => {
-  if (cookies.get('session')?.value !== 'admin-logged-in') {
+export const GET: APIRoute = async ({ locals }) => {
+  if (!locals.user?.isAdmin) {
     return new Response(JSON.stringify({ error: 'No autorizado' }), {
       status: 401,
     });

@@ -1,40 +1,47 @@
+// src/middleware.ts
 import { defineMiddleware } from 'astro:middleware';
 import { getDB } from './lib/db';
 import { verifyFirebaseToken } from './lib/firebase/server';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const runtime = context.locals.runtime;
-
-  if (runtime?.env?.DB) {
-    context.locals.db = getDB(runtime.env);
-  }
-
+  const db = runtime?.env?.DB ? getDB(runtime.env) : undefined;
+  context.locals.db = db;
   context.locals.user = undefined;
-  const sessionCookie = context.cookies.get('user_session')?.value;
-  const adminSessionCookie = context.cookies.get('session')?.value;
 
-  if (adminSessionCookie === 'admin-logged-in') {
-    context.locals.user = {
-      uid: 'admin', // A placeholder UID for admin
-      email: 'admin@example.com', // A placeholder email for admin
-      isAdmin: true,
-    };
-  } else if (sessionCookie) {
+  const sessionCookie = context.cookies.get('user_session')?.value;
+
+  if (sessionCookie && db) {
     try {
-      const payload = (await verifyFirebaseToken(
-        sessionCookie,
-        runtime.env
-      )) as {
+      const payload = await verifyFirebaseToken(sessionCookie, runtime.env) as {
         sub: string;
         email?: string;
         email_verified?: boolean;
       };
 
       if (payload && payload.sub) {
+        let isAdmin = false;
+        const uid = String(payload.sub);
+        
+        const superAdminUid = runtime.env.SUPER_ADMIN_UID;
+        if (superAdminUid && uid === superAdminUid) {
+          isAdmin = true;
+        } else {
+          const userRole = await db
+            .prepare('SELECT role FROM UserRoles WHERE user_id = ?')
+            .bind(uid)
+            .first<{ role: string }>();
+          
+          if (userRole && userRole.role === 'admin') {
+            isAdmin = true;
+          }
+        }
+        
         context.locals.user = {
-          uid: String(payload.sub),
+          uid,
           email: payload.email || null,
           emailVerified: payload.email_verified || false,
+          isAdmin,
         };
       }
     } catch (error) {
@@ -43,25 +50,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   }
 
-  const adminPaths = [
-    '/admin',
-    '/admin-login',
-    '/admin/comments',
-    '/admin/series',
-    '/admin/upload',
-    '/admin/news',
-  ];
-
   const currentPath = context.url.pathname;
-
-  if (
-    adminPaths.some((path) => currentPath.startsWith(path)) &&
-    !context.locals.user?.isAdmin
-  ) {
-    if (currentPath !== '/') {
-      // Avoid redirect loop if already on homepage
-      return context.redirect('/');
-    }
+  
+  if (currentPath.startsWith('/admin') && !context.locals.user?.isAdmin) {
+    return context.redirect('/');
   }
 
   return next();

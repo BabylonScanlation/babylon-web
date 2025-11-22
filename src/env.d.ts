@@ -34,5 +34,5 @@ declare global {
 }
 
 declare module 'astro' {
-  interface Locals extends App.Locals {}
+  type Locals = App.Locals;
 }

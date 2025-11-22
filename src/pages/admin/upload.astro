@@ -1,11 +1,5 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-// Se elimina la importación duplicada de Header.astro
-
-const sessionCookie = Astro.cookies.get('session');
-if (sessionCookie?.value !== 'admin-logged-in') {
-  return Astro.redirect('/admin-login');
-}
 ---
 
 <Layout title="Subir Capítulos">

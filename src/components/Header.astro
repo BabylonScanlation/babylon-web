@@ -25,14 +25,20 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
       <div class="user-actions">
         {
           user ? (
-            <form method="POST" action={user.isAdmin ? "/api/admin-logout" : "/api/auth/logout"}>
-              <button type="submit" class="logout-btn">
-                CERRAR SESIÓN
-              </button>
-            </form>
+            <>
+              {user.isAdmin && (
+                <a href="/admin" class="admin-panel-link">
+                  PANEL ADMIN
+                </a>
+              )}
+              <form method="POST" action="/api/auth/logout">
+                <button type="submit" class="logout-btn">
+                  CERRAR SESIÓN
+                </button>
+              </form>
+            </>
           ) : (
             <>
-              {/* ✅ ¡CRUCIAL! Estos botones ahora tienen data-attributes */}
               <button data-open-modal="login" class="login-btn">
                 INICIAR SESIÓN
               </button>
@@ -60,14 +66,20 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     <div class="user-actions-mobile">
       {
         user ? (
-          <form method="POST" action="/api/auth/logout">
-            <button type="submit" class="logout-btn">
-              CERRAR SESIÓN
-            </button>
-          </form>
+          <>
+            {user.isAdmin && (
+              <a href="/admin" class="admin-panel-link">
+                PANEL ADMIN
+              </a>
+            )}
+            <form method="POST" action="/api/auth/logout">
+              <button type="submit" class="logout-btn">
+                CERRAR SESIÓN
+              </button>
+            </form>
+          </>
         ) : (
           <>
-            {/* ✅ También en la vista móvil */}
             <button data-open-modal="login" class="login-btn">
               INICIAR SESIÓN
             </button>
@@ -95,8 +107,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
       body.classList.toggle('mobile-nav-open', isActive);
     });
 
-    // ✅ --- LA SOLUCIÓN DEFINITIVA: Event Delegation + Custom Events ---
-    // Escuchamos clics en todo el header.
+    // Event Delegation + Custom Events
     const header = document.querySelector('.site-header');
     header?.addEventListener('click', (e) => {
       if (!(e.target instanceof Element)) return;
@@ -106,7 +117,6 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
         e.preventDefault();
         const view = trigger.getAttribute('data-open-modal');
 
-        // Emitimos un evento global que el modal puede escuchar.
         document.dispatchEvent(
           new CustomEvent('open-auth-modal', {
             detail: { view: view === 'register' ? 'register' : 'login' },
@@ -118,7 +128,6 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
 </script>
 
 <style>
-  /* Tu CSS (sin cambios) */
   :global(body.mobile-nav-open) {
     overflow: hidden;
   }
@@ -216,6 +225,25 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
   .logout-btn:hover {
     background-color: #777;
   }
+  .admin-panel-link {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    font-family: inherit;
+    font-size: inherit;
+    background-color: var(--accent-color); /* Color distintivo */
+    color: white;
+    text-decoration: none; /* Asegurarse de que no tenga subrayado */
+    display: flex; /* Para centrar el texto verticalmente si es necesario */
+    align-items: center;
+    justify-content: center;
+    height: 100%; /* Ajustar la altura al contenedor flex */
+  }
+  .admin-panel-link:hover {
+    filter: brightness(1.1); /* Efecto hover */
+  }
   .hamburger {
     display: none;
     cursor: pointer;
@@ -256,7 +284,8 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
   }
   .user-actions-mobile .login-btn,
   .user-actions-mobile .register-btn,
-  .user-actions-mobile .logout-btn {
+  .user-actions-mobile .logout-btn,
+  .user-actions-mobile .admin-panel-link {
     width: 100%;
     padding: 1rem;
     font-size: 1.1rem;
