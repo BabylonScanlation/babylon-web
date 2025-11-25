@@ -1,0 +1,227 @@
+---
+// src/components/AdminSeriesNewsForm.astro
+interface Props {
+  seriesId: number;
+  seriesTitle: string;
+}
+
+const { seriesId, seriesTitle } = Astro.props;
+---
+
+<div id="admin-news-form-container" class="admin-news-form">
+  <h3>Publicar Nueva Noticia</h3>
+  <form id="series-news-form" data-series-id={seriesId} data-series-title={seriesTitle}>
+    <div class="input-group">
+      <label for="authorName">Tu Nombre de Autor</label>
+      <input type="text" name="authorName" id="authorName" placeholder="Ej: Daftely" required />
+    </div>
+    <div class="input-group">
+      <label for="content">Mensaje de la Noticia</label>
+      <textarea
+        name="content"
+        id="content"
+        placeholder="Escribe la noticia aquí..."
+        required
+      ></textarea>
+    </div>
+    <div class="input-group">
+      <label for="image">Añadir Imagen (Opcional)</label>
+      <input type="file" name="image" id="image" accept="image/png, image/jpeg, image/webp, image/gif" />
+    </div>
+    <div class="form-actions">
+        <button type="submit">Publicar Noticia</button>
+        <p id="form-status"></p>
+    </div>
+  </form>
+</div>
+
+<script>
+  const form = document.getElementById('series-news-form');
+  const statusEl = document.getElementById('form-status');
+  const authorNameInput = document.getElementById('authorName');
+
+  const AUTHOR_NAME_KEY = 'news_author_name';
+
+  // Load saved author name on component load
+  if (authorNameInput instanceof HTMLInputElement) {
+    const savedName = localStorage.getItem(AUTHOR_NAME_KEY);
+    if (savedName) {
+      authorNameInput.value = savedName;
+    }
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!(form instanceof HTMLFormElement)) return;
+    
+    const seriesId = form.dataset.seriesId;
+    const seriesTitle = form.dataset.seriesTitle;
+    const formData = new FormData(form);
+    const content = formData.get('content')?.toString().trim();
+    const authorName = formData.get('authorName')?.toString().trim();
+    const imageFile = formData.get('image');
+
+    if (!content || !seriesId || !authorName) {
+      statusEl.textContent = "El nombre y el contenido no pueden estar vacíos.";
+      statusEl.className = 'error';
+      return;
+    }
+
+    // Save author name for next time
+    localStorage.setItem(AUTHOR_NAME_KEY, authorName);
+
+    statusEl.textContent = 'Publicando...';
+    statusEl.className = 'loading';
+
+    try {
+      // Step 1: Create the news item with text content
+      const title = `Noticia para ${seriesTitle}: ${new Date().toLocaleDateString()}`;
+
+      const createNewsResponse = await fetch('/api/admin/news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          content,
+          seriesId,
+          authorName,
+          status: 'published',
+        }),
+      });
+
+      if (!createNewsResponse.ok) {
+        const errorData = await createNewsResponse.text();
+        throw new Error(`Error al crear la noticia: ${createNewsResponse.status} ${errorData}`);
+      }
+      
+      const newNewsItem = await createNewsResponse.json();
+      const newsId = newNewsItem.id;
+
+      // Step 2: If there's an image, upload it.
+      if (imageFile instanceof File && imageFile.size > 0) {
+        statusEl.textContent = 'Subiendo imagen...';
+        const imageFormData = new FormData();
+        imageFormData.append('image', imageFile);
+        imageFormData.append('newsId', newsId);
+
+        const uploadResponse = await fetch('/api/admin/news/upload-image', {
+          method: 'POST',
+          body: imageFormData,
+        });
+
+        if (!uploadResponse.ok) {
+          // The news post was created, but image failed. Inform the user.
+          throw new Error('La noticia se publicó, pero falló la subida de la imagen.');
+        }
+      }
+
+      statusEl.textContent = 'Publicado con éxito.';
+      statusEl.className = 'success';
+      form.reset();
+      // Restore author name after reset
+      if(authorNameInput instanceof HTMLInputElement) authorNameInput.value = authorName;
+
+      // Dispatch custom event to tell the feed to refresh
+      document.dispatchEvent(new CustomEvent('refresh-news-feed'));
+
+    } catch (error) {
+      console.error('Failed to post news:', error);
+      statusEl.textContent = error.message || 'Fallo al publicar la noticia.';
+      statusEl.className = 'error';
+    } finally {
+        setTimeout(() => {
+            statusEl.textContent = '';
+            statusEl.className = '';
+        }, 7000);
+    }
+  });
+</script>
+
+<style>
+  .admin-news-form {
+    background-color: #2a2a2e;
+    border: 1px solid #444;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+  }
+  .admin-news-form h3 {
+    margin-top: 0;
+    font-size: 1.25rem;
+    border-bottom: 1px solid #444;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .input-group {
+    margin-bottom: 1rem;
+  }
+  .input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #ccc;
+  }
+  .admin-news-form input[type="text"],
+  .admin-news-form textarea {
+    width: 100%;
+    background-color: #1c1c1e;
+    border: 1px solid #555;
+    color: var(--font-color);
+    padding: 0.75rem;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 1rem;
+  }
+  .admin-news-form textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+  .admin-news-form input[type="file"] {
+      padding: 0.5rem;
+      background-color: #333;
+  }
+  .admin-news-form input[type="file"]::file-selector-button {
+      background-color: #555;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 1rem;
+  }
+
+  .form-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1rem;
+  }
+  .admin-news-form button {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  .admin-news-form button:hover {
+    filter: brightness(1.1);
+  }
+
+  #form-status {
+      margin: 0;
+      font-weight: bold;
+  }
+  #form-status.success {
+      color: #4ade80; /* green-400 */
+  }
+  #form-status.error {
+      color: #f87171; /* red-400 */
+  }
+  #form-status.loading {
+      color: #60a5fa; /* blue-400 */
+  }
+</style>

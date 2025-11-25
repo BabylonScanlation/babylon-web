@@ -1,0 +1,88 @@
+---
+// src/components/NewsPost.astro
+import type { NewsItem } from '../lib/db';
+
+interface Props {
+  newsItem: NewsItem & { imageUrls: string[]; authorName: string };
+}
+
+const { newsItem } = Astro.props;
+
+// Helper to format the date
+function formatDate(timestamp: number) {
+  return new Date(timestamp).toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+---
+
+<div class="news-post">
+  <div class="post-header">
+    <span class="author-name">{newsItem.authorName}</span>
+    <span class="post-date">{formatDate(newsItem.createdAt)}</span>
+  </div>
+  <div class="post-content">
+    <p>{newsItem.content}</p>
+  </div>
+  {newsItem.imageUrls && newsItem.imageUrls.length > 0 && (
+    <div class="post-images">
+      {newsItem.imageUrls.map(url => (
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          <img src={url} alt="Imagen de la noticia" loading="lazy" />
+        </a>
+      ))}
+    </div>
+  )}
+</div>
+
+<style>
+  .news-post {
+    background-color: #222;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  .post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #444;
+  }
+  .author-name {
+    font-weight: bold;
+    color: var(--accent-color);
+  }
+  .post-date {
+    font-size: 0.8rem;
+    color: #999;
+  }
+  .post-content p {
+    margin: 0;
+    line-height: 1.6;
+    white-space: pre-wrap; /* Preserve whitespace and newlines */
+  }
+  .post-images {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .post-images img {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    border: 1px solid #444;
+    transition: transform 0.2s ease;
+  }
+  .post-images a:hover img {
+      transform: scale(1.05);
+  }
+</style>

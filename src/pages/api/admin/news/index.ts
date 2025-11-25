@@ -20,17 +20,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const db = getDB(locals.runtime.env);
   try {
-    const { title, content, status, seriesId } = await request.json(); // Added seriesId
-    if (!title || !content || !status) {
+    const { title, content, status, seriesId, authorName } = await request.json();
+    if (!title || !content || !status || !authorName) {
       return new Response('Missing required fields', { status: 400 });
     }
 
     const newNews = await createNews(db, {
       title,
       content,
-      publishedBy: locals.user.uid, // Assuming uid is the admin identifier
+      publishedBy: locals.user.uid,
       status,
-      seriesId: seriesId || null, // Pass seriesId
+      seriesId: seriesId || null,
+      authorName,
     });
 
     return new Response(JSON.stringify(newNews), {

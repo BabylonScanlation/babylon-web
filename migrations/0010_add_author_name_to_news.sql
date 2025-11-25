@@ -1,0 +1,1 @@
+ALTER TABLE News ADD COLUMN authorName TEXT;

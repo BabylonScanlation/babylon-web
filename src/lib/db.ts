@@ -15,7 +15,8 @@ export interface NewsItem {
   updatedAt: number;
   publishedBy: string;
   status: 'draft' | 'published';
-  seriesId: string | null; // Added seriesId
+  seriesId: string | null;
+  authorName: string; 
 }
 
 export interface NewsImageItem {
@@ -37,7 +38,7 @@ export async function createNews(
   const newsItem: NewsItem = { ...news, id, createdAt: now, updatedAt: now };
   await db
     .prepare(
-      'INSERT INTO News (id, title, content, createdAt, updatedAt, publishedBy, status, seriesId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO News (id, title, content, createdAt, updatedAt, publishedBy, status, seriesId, authorName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     )
     .bind(
       newsItem.id,
@@ -47,7 +48,8 @@ export async function createNews(
       newsItem.updatedAt,
       newsItem.publishedBy,
       newsItem.status,
-      newsItem.seriesId || null // Include seriesId
+      newsItem.seriesId || null,
+      newsItem.authorName
     )
     .run();
   return newsItem;
