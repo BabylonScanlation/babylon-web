@@ -1,6 +1,5 @@
-import type { APIRoute, APIContext } from 'astro';
-import { getDB, getNewsById, updateNews, deleteNews } from 'src/lib/db';
-import { getSession } from '@lib/session';
+import type { APIRoute } from 'astro';
+import { getDB, getNewsById, updateNews, deleteNews, getNewsImages } from 'src/lib/db';
 
 export const GET: APIRoute = async ({ params, locals }) => {
   if (!locals.user?.isAdmin) {
@@ -51,7 +50,6 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     return new Response('Internal Server Error', { status: 500 });
   }
 };
-import { getDB, getNewsById, updateNews, deleteNews, getNewsImages } from 'src/lib/db';
 
 export const DELETE: APIRoute = async ({ params, locals }) => {
   if (!locals.user?.isAdmin) {
