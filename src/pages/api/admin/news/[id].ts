@@ -51,9 +51,10 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     return new Response('Internal Server Error', { status: 500 });
   }
 };
-export const DELETE: APIRoute = async ({ params, request, locals }) => {
-  const userSession = getSession({ params, request, locals } as APIContext);
-  if (!userSession || !locals.user?.isAdmin) {
+import { getDB, getNewsById, updateNews, deleteNews, getNewsImages } from 'src/lib/db';
+
+export const DELETE: APIRoute = async ({ params, locals }) => {
+  if (!locals.user?.isAdmin) {
     return new Response('Unauthorized', { status: 401 });
   }
 
@@ -63,13 +64,28 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
   }
 
   const db = getDB(locals.runtime.env);
+  const r2Assets = locals.runtime.env.R2_ASSETS;
+
   try {
+    // Step 1: Find images associated with the news item
+    const images = await getNewsImages(db, id);
+    
+    // Step 2: If images exist, delete them from R2
+    if (images && images.length > 0) {
+      const keys = images.map(img => img.r2Key);
+      await r2Assets.delete(keys);
+    }
+
+    // Step 3: Delete the news item from the database
+    // The ON DELETE CASCADE constraint will handle deleting the NewsImage records
     const success = await deleteNews(db, id);
+
     if (!success) {
       return new Response('News item not found or could not be deleted', {
         status: 404,
       });
     }
+    
     return new Response(null, { status: 204 }); // No Content
   } catch (error) {
     console.error(`Error deleting news item ${id}:`, error);
