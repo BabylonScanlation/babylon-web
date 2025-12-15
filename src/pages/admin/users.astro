@@ -1,0 +1,240 @@
+---
+// src/pages/admin/users.astro
+import Layout from '../../layouts/Layout.astro';
+
+// El middleware ya protege esta página, así que si llegamos aquí, somos admin.
+const { user } = Astro.locals;
+if (!user?.isAdmin) {
+  // Doble check por si acaso
+  return Astro.redirect('/');
+}
+
+// Estos datos se obtendrán del lado del cliente para que la página sea dinámica
+---
+<Layout title="Gestionar Administradores">
+  <main class="admin-container">
+    <a href="/admin" class="back-link">&larr; Volver al Panel</a>
+    <h1>Gestionar Administradores</h1>
+
+    <div class="card">
+      <h2>Añadir Nuevo Administrador</h2>
+      <form id="add-admin-form" class="admin-form">
+        <div class="form-group">
+          <label for="user-identifier">Email o UID del Usuario</label>
+          <input type="text" id="user-identifier" name="identifier" placeholder="email@example.com o UID" required />
+        </div>
+        <button type="submit">Añadir Administrador</button>
+        <p id="add-error" class="error-message" style="display: none;"></p>
+        <p id="add-success" class="success-message" style="display: none;"></p>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Administradores Actuales</h2>
+      <ul id="admin-list" class="admin-list">
+        <!-- La lista se poblará dinámicamente -->
+        <li>Cargando...</li>
+      </ul>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  /* Estilos básicos para la página de admin */
+  .admin-container {
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .back-link {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    color: var(--accent-color);
+  }
+  .card {
+    background-color: var(--card-background);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid #333;
+  }
+  .admin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #333;
+    border: 1px solid #555;
+    color: var(--font-color);
+    border-radius: 4px;
+  }
+  button {
+    padding: 0.75rem 1.5rem;
+    background-color: var(--accent-color);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    align-self: flex-start;
+  }
+  .error-message, .success-message {
+    padding: 1rem;
+    margin-top: 1rem;
+    border-radius: 4px;
+    text-align: center;
+  }
+  .error-message { background-color: rgba(231, 76, 60, 0.2); color: #e74c3c; }
+  .success-message { background-color: rgba(46, 204, 113, 0.2); color: #2ecc71; }
+  .admin-list {
+    list-style: none;
+    padding: 0;
+  }
+  .admin-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-bottom: 1px solid #444;
+  }
+  .admin-list li:last-child {
+    border-bottom: none;
+  }
+  .remove-btn {
+    background-color: #c0392b;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+  }
+</style>
+
+<script>
+  // Script del lado del cliente para gestionar la lógica
+  document.addEventListener('DOMContentLoaded', () => {
+    const adminList = document.getElementById('admin-list');
+    const addForm = document.getElementById('add-admin-form');
+    const addError = document.getElementById('add-error');
+    const addSuccess = document.getElementById('add-success');
+
+    if (!adminList || !addForm || !addError || !addSuccess) return;
+
+    interface Admin {
+      user_id: string;
+      email?: string;
+    }
+
+    // Función para cargar la lista de administradores
+    async function loadAdmins() {
+      if (!adminList) return;
+      try {
+        const response = await fetch('/api/admin/users/list');
+        if (!response.ok) throw new Error('No se pudo cargar la lista.');
+        
+        const admins: Admin[] = await response.json();
+        adminList.innerHTML = ''; // Limpiar lista
+
+        if (admins.length === 0) {
+          adminList.innerHTML = '<li>No hay administradores secundarios.</li>';
+          return;
+        }
+
+        admins.forEach((admin: Admin) => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <span>${admin.email || admin.user_id} <small>(${admin.user_id})</small></span>
+            <button class="remove-btn" data-uid="${admin.user_id}">Quitar</button>
+          `;
+          adminList.appendChild(li);
+        });
+      } catch (error) {
+        if (adminList) {
+          if (error instanceof Error) {
+            adminList.innerHTML = `<li>Error cargando administradores: ${error.message}</li>`;
+          } else {
+            adminList.innerHTML = `<li>Error cargando administradores</li>`;
+          }
+        }
+      }
+    }
+
+    // Cargar la lista al iniciar
+    loadAdmins();
+
+    // Manejar el formulario para añadir admin
+    addForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      addError.style.display = 'none';
+      addSuccess.style.display = 'none';
+
+      const formData = new FormData(addForm as HTMLFormElement);
+      const identifier = formData.get('identifier');
+
+      try {
+        const response = await fetch('/api/admin/users/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Error desconocido.');
+        }
+
+        addSuccess.textContent = `Usuario ${result.email || result.uid} añadido como administrador.`;
+        addSuccess.style.display = 'block';
+        (addForm as HTMLFormElement).reset();
+        loadAdmins(); // Recargar la lista
+      } catch (error) {
+        if (error instanceof Error) {
+          addError.textContent = error.message;
+        } else {
+          addError.textContent = 'An unknown error occurred.';
+        }
+        addError.style.display = 'block';
+      }
+    });
+
+    // Manejar clics para eliminar admin (delegación de eventos)
+    adminList.addEventListener('click', async (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('remove-btn')) {
+        const button = target;
+        const uid = button.dataset.uid;
+        
+        if (!confirm(`¿Estás seguro de que quieres quitar los privilegios de administrador a ${uid}?`)) {
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/admin/users/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uid }),
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || 'Error desconocido.');
+          }
+          
+          alert('Administrador eliminado con éxito.');
+          loadAdmins(); // Recargar la lista
+        } catch (error) {
+          if (error instanceof Error) {
+            alert(`Error: ${error.message}`);
+          } else {
+            alert('An unknown error occurred.');
+          }
+        }
+      }
+    });
+  });
+</script>

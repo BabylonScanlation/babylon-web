@@ -1,0 +1,239 @@
+---
+// src/components/HeroCarousel.astro
+import type { Series } from '../types';
+
+interface Props {
+  slides: Series[];
+  title?: string;
+}
+
+const { slides = [], title } = Astro.props;
+---
+
+<section class="hero-carousel-section">
+  {title && <h2 class="carousel-title">{title}</h2>}
+  <div class="swiper" data-slides-count={slides.length}>
+    <div class="swiper-wrapper">
+      {
+        slides.map((slide) => (
+          <div class="swiper-slide">
+            <div
+              class="slide-background-blur"
+              style={`background-image: url(${slide.cover_image_url})`}
+            />
+            <div class="gradient-overlay" />
+
+            <div class="slide-content-wrapper">
+              <img
+                src={slide.cover_image_url}
+                alt={`Portada de ${slide.title}`}
+                class="slide-cover-art"
+              />
+
+              <div class="text-container">
+                <h3>{slide.title}</h3>
+                <p>{slide.description}</p>
+                <div class="tag-buttons">
+                  <a href={`/series/${slide.slug}`} class="main-action">
+                    LEER AHORA
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+    <div class="swiper-pagination"></div>
+  </div>
+</section>
+
+<style>
+  /* ... (tus estilos existentes permanecen sin cambios) ... */
+  .hero-carousel-section {
+    width: 100%;
+  }
+  .carousel-title {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    color: var(--font-color);
+    text-align: center;
+    margin-top: 0;
+    padding-top: 0;
+  }
+  .swiper {
+    width: 100%;
+    height: 500px;
+    position: relative;
+    margin-top: 0;
+    overflow: hidden;
+  }
+  .swiper-slide {
+    position: relative;
+    overflow: hidden;
+  }
+  .slide-background-blur {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    filter: blur(10px) brightness(0.5);
+    transform: scale(1.1);
+  }
+  .gradient-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      to top,
+      rgba(18, 18, 18, 1) 10%,
+      rgba(18, 18, 18, 0.5) 50%,
+      transparent 100%
+    );
+    z-index: 1;
+  }
+  .slide-content-wrapper {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3rem;
+    width: 100%;
+    height: 100%;
+    padding: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .slide-cover-art {
+    width: 220px;
+    height: auto;
+    aspect-ratio: 2 / 3;
+    border-radius: 8px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .text-container {
+    color: #fff;
+    max-width: 600px;
+  }
+  .text-container h3,
+  .text-container p {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+  .text-container h3 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .text-container p {
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+    color: #ccc;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .tag-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .main-action {
+    background-color: var(--accent-color);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+  .swiper-pagination-bullet {
+    background-color: #fff;
+    opacity: 0.7;
+  }
+  .swiper-pagination-bullet-active {
+    background-color: var(--accent-color);
+    opacity: 1;
+    width: 12px;
+    height: 12px;
+  }
+  @media (max-width: 768px) {
+    .swiper {
+      height: auto;
+      min-height: 420px;
+    }
+    .slide-content-wrapper {
+      flex-direction: column;
+      text-align: center;
+      gap: 1.5rem;
+      padding: 3rem 1.5rem;
+    }
+    .slide-cover-art {
+      width: 150px;
+    }
+    .text-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .text-container h3 {
+      font-size: 1.8rem;
+    }
+    .text-container p {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      font-size: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+    .tag-buttons {
+      justify-content: center;
+    }
+  }
+</style>
+
+<script>
+  const swiperEl = document.querySelector('.swiper');
+  if (swiperEl instanceof HTMLElement) {
+    // Cargar Swiper dinámicamente aquí
+    const { default: Swiper } = await import('swiper');
+    const { Pagination, Autoplay } = await import('swiper/modules');
+
+    // Importar CSS de Swiper (esto también debe hacerse en el cliente)
+    // Aunque Astro maneja los imports de CSS, para asegurar que no haya problemas
+    // en el servidor, podemos cargarlos de forma condicional o asegurarnos
+    // de que no se procesen en el servidor. Por ahora, los dejaremos como están
+    // ya que el error es de JS, no de CSS.
+
+    const slidesCount = parseInt(swiperEl.dataset.slidesCount || '0', 10);
+
+    new Swiper(swiperEl, {
+      modules: [Pagination, Autoplay],
+      slidesPerView: 1,
+
+      loop: slidesCount >= 3,
+      rewind: slidesCount === 2,
+
+      autoplay:
+        slidesCount > 1
+          ? {
+              delay: 5000,
+              disableOnInteraction: false,
+            }
+          : false,
+
+      pagination: {
+        el: '.swiper-pagination',
+        clickable: true,
+      },
+      observer: true,
+      observeParents: true,
+    });
+  }
+</script>

@@ -1,0 +1,127 @@
+---
+// src/pages/search.astro
+import Layout from '../layouts/Layout.astro';
+import MangaList from '../components/MangaList.astro';
+import type { Series } from '../types';
+
+const query = Astro.url.searchParams.get('q')?.trim() || '';
+let searchResults: Series[] = [];
+let error: string | null = null;
+
+if (query) {
+  try {
+    const response = await fetch(
+      new URL(`/api/search?q=${encodeURIComponent(query)}`, Astro.url)
+    );
+    if (response.ok) {
+      searchResults = await response.json();
+    } else {
+      error = 'Hubo un error al contactar el servidor de búsqueda.';
+    }
+  } catch (e) {
+    console.error(e);
+    error = 'No se pudo realizar la búsqueda en este momento.';
+  }
+}
+---
+
+<Layout title={`Búsqueda: ${query || 'Buscar'}`}>
+  <main class="search-page-container">
+    <div class="results-folder">
+      <div class="folder-tab">
+        <h1>Resultados de búsqueda</h1>
+        {
+          query && (
+            <p class="search-term">
+              Mostrando resultados para: <strong>"{query}"</strong>
+            </p>
+          )
+        }
+      </div>
+
+      <div class="folder-frame">
+        {
+          query &&
+            !error &&
+            (searchResults.length > 0 ? (
+              <MangaList mangas={searchResults} title="" />
+            ) : (
+              <p class="no-results">
+                No se encontraron series que coincidan con tu búsqueda.
+              </p>
+            ))
+        }
+
+        {
+          !query && (
+            <p class="no-results">
+              Usa la barra de búsqueda en la parte superior para encontrar una
+              serie.
+            </p>
+          )
+        }
+
+        {error && <p class="error-message">{error}</p>}
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .search-page-container {
+    padding: 2rem 1rem;
+  }
+
+  /* ✅ NUEVOS ESTILOS PARA LA CARPETA */
+  .results-folder {
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .folder-tab {
+    position: relative;
+    z-index: 2; /* Para que se ponga por encima del marco */
+    display: inline-block; /* Para que se ajuste al contenido */
+    padding: 0.75rem 1.5rem;
+    margin-left: 2rem;
+    margin-bottom: -2px; /* Superposición para el efecto de carpeta */
+    background-color: var(
+      --background-color
+    ); /* Oculta la línea superior del marco */
+    border: 2px solid #d4af37; /* Un tono dorado */
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .folder-tab h1 {
+    font-size: 1.5rem;
+    margin: 0;
+  }
+
+  .folder-tab .search-term {
+    margin: 0.25rem 0 0;
+    font-size: 0.9rem;
+    color: #ccc;
+  }
+
+  .folder-frame {
+    border: 2px solid #d4af37; /* Mismo tono dorado */
+    border-radius: 8px;
+    padding: 2rem;
+  }
+
+  .no-results,
+  .error-message {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #aaa;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .error-message {
+    color: #ff6b6b;
+  }
+</style>

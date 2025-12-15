@@ -1,0 +1,55 @@
+---
+import LibraryCard from './LibraryCard.astro';
+import type { Series } from '../types';
+
+interface Props {
+  mangas: Series[];
+  title?: string;
+}
+
+const { mangas = [], title } = Astro.props;
+---
+
+<section class="manga-list-section">
+  {title && <h2>{title}</h2>}
+  <ul>
+    {
+      mangas && mangas.length > 0 ? (
+        mangas.map((manga) => (
+          <li>
+            <LibraryCard manga={manga} />
+          </li>
+        ))
+      ) : (
+        <p>No hay mangas en la biblioteca.</p>
+      )
+    }
+  </ul>
+</section>
+
+<style>
+  /* ✅ CAMBIO: Eliminamos padding para que se ajuste al nuevo marco */
+  .manga-list-section {
+    padding: 0;
+  }
+  h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: #eee;
+    padding-bottom: 0.5rem;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+  p {
+    color: #aaa;
+    font-style: italic;
+  }
+</style>

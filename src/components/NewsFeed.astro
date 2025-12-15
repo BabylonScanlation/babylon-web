@@ -1,0 +1,337 @@
+---
+// src/components/NewsFeed.astro
+import type { User } from '../types';
+
+interface Props {
+  seriesId: number;
+  user: User | undefined;
+}
+
+const { seriesId, user } = Astro.props;
+// Pass user data to the client-side script
+const isAdmin = user?.isAdmin ?? false;
+---
+
+<div id="news-feed-container" data-series-id={seriesId} data-is-admin={isAdmin}>
+  <p class="loading-message">Cargando noticias...</p>
+</div>
+
+<script>
+  // --- HELPERS ---
+  function formatDate(timestamp: number | string | Date) {
+    return new Date(timestamp).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  interface NewsItem {
+    id: string;
+    authorName: string;
+    createdAt: number;
+    content: string;
+    imageUrls: string[];
+  }
+
+  // --- DOM ELEMENT CREATION ---
+  function createNewsPostElement(newsItem: NewsItem, isAdmin: boolean) {
+    const newsPost = document.createElement('div');
+    newsPost.className = 'news-post';
+    newsPost.dataset.newsId = newsItem.id;
+
+    let imagesHTML = '';
+    if (newsItem.imageUrls && newsItem.imageUrls.length > 0) {
+      const imageLinks = newsItem.imageUrls.map(url => `
+        <a href="${url}" target="_blank" rel="noopener noreferrer">
+          <img src="${url}" alt="Imagen de la noticia" loading="lazy" />
+        </a>
+      `).join('');
+      imagesHTML = `<div class="post-images">${imageLinks}</div>`;
+    }
+
+    const adminActionsHTML = isAdmin ? `
+      <div class="admin-actions">
+        <button class="edit-btn">Editar</button>
+        <button class="delete-btn">Eliminar</button>
+      </div>
+    ` : '';
+
+    newsPost.innerHTML = `
+      <div class="post-header">
+        <span class="author-name">${newsItem.authorName || 'Anónimo'}</span>
+        <div class="header-right">
+            <span class="post-date">${formatDate(newsItem.createdAt)}</span>
+            ${adminActionsHTML}
+        </div>
+      </div>
+      <div class="post-content">
+        <p>${newsItem.content}</p>
+      </div>
+      ${imagesHTML}
+    `;
+    return newsPost;
+  }
+
+  // --- API CALLS ---
+  async function deleteNewsItem(newsId: string) {
+    const response = await fetch(`/api/admin/news/${newsId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      throw new Error('No se pudo eliminar la noticia.');
+    }
+  }
+
+  async function updateNewsItem(newsId: string, newContent: string) {
+      const response = await fetch(`/api/admin/news/${newsId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: newContent })
+      });
+      if (!response.ok) {
+          throw new Error('No se pudo actualizar la noticia.');
+      }
+      return await response.json();
+  }
+
+
+  // --- EVENT HANDLERS ---
+  function handleDeleteClick(e: Event) {
+    const target = e.target as HTMLElement;
+    const postElement = target.closest('.news-post') as HTMLElement;
+    const newsId = postElement.dataset.newsId;
+
+    if (confirm('¿Estás seguro de que quieres eliminar esta noticia?')) {
+      if (newsId) {
+        deleteNewsItem(newsId)
+          .then(() => postElement.remove())
+          .catch(err => alert(err.message));
+      }
+    }
+  }
+
+  function handleEditClick(e: Event) {
+    const target = e.target as HTMLElement;
+    const postElement = target.closest('.news-post') as HTMLElement;
+    const contentDiv = postElement.querySelector('.post-content') as HTMLElement;
+    const originalParagraph = contentDiv.querySelector('p');
+    
+    // Store original content in case of cancellation
+    const originalContent = originalParagraph?.textContent || '';
+    postElement.dataset.originalContent = originalContent;
+
+    const editControls = `
+        <div class="edit-controls">
+            <button class="save-edit-btn">Guardar</button>
+            <button class="cancel-edit-btn">Cancelar</button>
+        </div>
+    `;
+
+    // Replace paragraph with textarea
+    contentDiv.innerHTML = `
+        <textarea class="edit-textarea">${originalContent}</textarea>
+        ${editControls}
+    `;
+  }
+
+  function handleCancelClick(e: Event) {
+      const target = e.target as HTMLElement;
+      const postElement = target.closest('.news-post') as HTMLElement;
+      const contentDiv = postElement.querySelector('.post-content') as HTMLElement;
+      const originalContent = postElement.dataset.originalContent;
+      // Restore original content
+      contentDiv.innerHTML = `<p>${originalContent}</p>`;
+  }
+
+  async function handleSaveClick(e: Event) {
+      const target = e.target as HTMLElement;
+      const postElement = target.closest('.news-post') as HTMLElement;
+      const newsId = postElement.dataset.newsId;
+      const contentDiv = postElement.querySelector('.post-content') as HTMLElement;
+      const textarea = contentDiv.querySelector('.edit-textarea') as HTMLTextAreaElement;
+      const newContent = textarea.value;
+
+      if(newsId) {
+        try {
+            await updateNewsItem(newsId, newContent);
+            // Restore paragraph with new content
+            contentDiv.innerHTML = `<p>${newContent}</p>`;
+        } catch (err) {
+            alert((err as Error).message);
+            // On failure, restore original content
+            handleCancelClick(e);
+        }
+      }
+  }
+
+
+  // --- MAIN LOGIC ---
+  let newsContainer: HTMLElement | null; // Define globally in the script
+
+  async function loadNewsFeed() {
+    if (!newsContainer) return;
+
+    const seriesId = newsContainer.dataset.seriesId;
+    const isAdmin = newsContainer.dataset.isAdmin === 'true';
+    if (!seriesId) return;
+
+    try {
+      const response = await fetch(`/api/news/series/${seriesId}`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const newsItems = await response.json();
+
+      newsContainer.innerHTML = ''; // Clear loading message
+
+      if (newsItems.length === 0) {
+        newsContainer.innerHTML = '<p class="no-news-message">No hay noticias para esta serie aún.</p>';
+      } else {
+        newsItems.forEach((newsItem: NewsItem) => {
+          const postElement = createNewsPostElement(newsItem, isAdmin);
+          if (newsContainer) {
+            newsContainer.appendChild(postElement);
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch news:", error);
+      newsContainer.innerHTML = '<p class="error-message">No se pudieron cargar las noticias.</p>';
+    }
+  }
+  
+  function initializeNewsFeed() {
+    newsContainer = document.getElementById('news-feed-container');
+    loadNewsFeed();
+
+    // Event delegation for actions
+    newsContainer?.addEventListener('click', (e) => {
+        const target = e.target as Element;
+        if(target.matches('.delete-btn')) handleDeleteClick(e);
+        if(target.matches('.edit-btn')) handleEditClick(e);
+        if(target.matches('.save-edit-btn')) handleSaveClick(e);
+        if(target.matches('.cancel-edit-btn')) handleCancelClick(e);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initializeNewsFeed);
+  document.addEventListener('refresh-news-feed', loadNewsFeed);
+</script>
+
+<style>
+  #news-feed-container {
+    padding-top: 1rem;
+  }
+  .loading-message, .no-news-message, .error-message {
+    color: #aaa;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  /* Using :global to style dynamically created elements */
+  :global(.news-post) {
+    background-color: #222;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    position: relative;
+  }
+  :global(.post-header) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #444;
+  }
+  :global(.header-right) {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+  }
+  :global(.author-name) {
+    font-weight: bold;
+    color: var(--accent-color);
+  }
+  :global(.post-date) {
+    font-size: 0.8rem;
+    color: #999;
+  }
+  :global(.post-content p) {
+    margin: 0;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  :global(.post-images) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  :global(.post-images img) {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    border: 1px solid #444;
+    transition: transform 0.2s ease;
+  }
+  :global(.post-images a:hover img) {
+    transform: scale(1.05);
+  }
+  :global(.admin-actions) {
+      display: flex;
+      gap: 0.5rem;
+  }
+  :global(.admin-actions button) {
+      background: #444;
+      color: white;
+      border: 1px solid #666;
+      border-radius: 4px;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+  }
+  :global(.admin-actions .delete-btn:hover) {
+      background: #c94a4a;
+  }
+  :global(.admin-actions .edit-btn:hover) {
+      background: #4a8ac9;
+  }
+  :global(.edit-textarea) {
+      width: 100%;
+      min-height: 100px;
+      background-color: #1c1c1e;
+      border: 1px solid #555;
+      color: var(--font-color);
+      padding: 0.75rem;
+      border-radius: 4px;
+      resize: vertical;
+      font-family: inherit;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+  }
+  :global(.edit-controls) {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+  }
+  :global(.edit-controls button) {
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+  }
+  :global(.save-edit-btn) {
+      background-color: var(--accent-color);
+      color: white;
+  }
+   :global(.cancel-edit-btn) {
+      background-color: #555;
+      color: white;
+  }
+</style>

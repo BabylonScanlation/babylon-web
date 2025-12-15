@@ -1,0 +1,94 @@
+---
+// src/components/LibraryCard.astro
+import type { Series } from '../types';
+import Image from './Image.astro';
+
+interface Props {
+  manga: Series & { url_portada?: string }; // Add url_portada to manga type
+}
+
+const { manga } = Astro.props;
+
+const finalCoverUrl = manga.url_portada || manga.cover_image_url;
+---
+
+<a href={`/series/${manga.slug}`} class="library-card">
+  <div class="card-background">
+    <Image
+      src={finalCoverUrl}
+      alt={`Portada de ${manga.title}`}
+      width={400}
+      height={600}
+      loading="lazy"
+    />
+  </div>
+  <div class="card-overlay">
+    <h3 class="series-title">{manga.title}</h3>
+    <p class="views-count">{manga.views?.toLocaleString() || 0} Vistas</p>
+  </div>
+</a>
+
+<style>
+  .library-card {
+    display: block;
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 2 / 3;
+    transition: transform 0.2s ease-in-out;
+  }
+  .library-card:hover {
+    transform: translateY(-5px);
+  }
+  .card-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .card-background img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .card-overlay {
+    position: absolute;
+    /* --- CAMBIOS AQUÍ --- */
+    bottom: 0.5rem;
+    /* Separación desde abajo */
+    left: 0.5rem;
+    /* Separación desde la izquierda */
+    right: 0.5rem;
+    /* Separación desde la derecha */
+    border-radius: 12px;
+    /* Bordes redondeados */
+    padding: 0.5rem 0.75rem;
+    /* Padding reducido para hacerlo más pequeño */
+
+    background: rgba(20, 20, 20, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    /* --- FIN DE CAMBIOS --- */
+  }
+  .series-title {
+    font-size: 0.9rem;
+    /* Tamaño de fuente reducido */
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+  .views-count {
+    font-size: 0.75rem;
+    /* Tamaño de fuente reducido */
+    color: #e0e0e0;
+    margin-top: 0.1rem;
+    /* Margen reducido */
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  }
+</style>

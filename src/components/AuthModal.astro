@@ -1,0 +1,395 @@
+---
+// src/components/AuthModal.astro
+---
+
+<div id="auth-modal-overlay" class="auth-modal-overlay is-hidden">
+  <div id="auth-modal-card" class="auth-card">
+    <button id="auth-modal-close" class="close-btn">&times;</button>
+
+    <!-- Vista de Login -->
+    <div id="login-view">
+      <h2>Iniciar Sesión</h2>
+      <div class="message-container">
+        <p
+          id="login-success-message"
+          class="success-message"
+          style="display: none;"
+        >
+        </p>
+        <p
+          id="login-error-message"
+          class="error-message"
+          style="display: none;"
+        >
+        </p>
+      </div>
+      <form id="login-form" class="auth-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input
+            type="email"
+            name="email"
+            id="login-email"
+            placeholder="tu@email.com"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Contraseña</label>
+          <input type="password" name="password" id="login-password" required />
+        </div>
+        <button type="submit" id="login-submit-button" class="submit-btn">
+          <span class="button-text">Entrar</span>
+          <div class="button-loader"></div>
+        </button>
+      </form>
+      <div class="divider">O</div>
+      <button id="google-sign-in-button" class="google-btn">
+        <img
+          src="https://static.cdnlogo.com/logos/g/35/google-icon.svg"
+          alt="Google icon"
+          class="google-icon"
+        />
+        Continuar con Google
+      </button>
+      <div class="form-footer">
+        <p>
+          ¿No tienes una cuenta? <button id="show-register" class="link-button"
+            >Regístrate aquí</button
+          >
+        </p>
+      </div>
+    </div>
+
+    <!-- Vista de Registro -->
+    <div id="register-view" style="display: none;">
+      <h2>Crear Cuenta</h2>
+      <div class="message-container">
+        <p
+          id="register-error-message"
+          class="error-message"
+          style="display: none;"
+        >
+        </p>
+      </div>
+      <form id="register-form" class="auth-form">
+        <div class="form-group">
+          <label for="reg-email">Email</label>
+          <input
+            type="email"
+            name="email"
+            id="reg-email"
+            placeholder="nombre@ejemplo.com"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Contraseña</label>
+          <input
+            type="password"
+            name="password"
+            id="reg-password"
+            required
+            minlength="6"
+          />
+        </div>
+        <div class="form-group">
+          <label for="reg-confirm-password">Confirmar Contraseña</label>
+          <input
+            type="password"
+            name="confirmPassword"
+            id="reg-confirm-password"
+            required
+            minlength="6"
+          />
+        </div>
+        <button type="submit" id="register-submit-button" class="submit-btn">
+          <span class="button-text">Registrarse</span>
+          <div class="button-loader"></div>
+        </button>
+      </form>
+      <div class="divider">O</div>
+      <button id="google-sign-in-button-register" class="google-btn">
+        <img
+          src="https://static.cdnlogo.com/logos/g/35/google-icon.svg"
+          alt="Google icon"
+          class="google-icon"
+        />
+        Continuar con Google
+      </button>
+      <div class="form-footer">
+        <p>
+          ¿Ya tienes una cuenta? <button id="show-login" class="link-button"
+            >Inicia sesión</button
+          >
+        </p>
+      </div>
+    </div>
+
+    <!-- Vista de Vinculación de Cuenta -->
+    <div id="link-account-view" style="display: none;">
+      <h2>Vincular Cuenta</h2>
+      <div class="message-container">
+        <p
+          id="link-account-message"
+          class="info-message"
+          style="display: none;"
+        >
+        </p>
+        <p
+          id="link-account-error-message"
+          class="error-message"
+          style="display: none;"
+        >
+        </p>
+      </div>
+      <form id="link-account-form" class="auth-form">
+        <div class="form-group">
+          <label for="link-email">Email</label>
+          <input
+            type="email"
+            name="email"
+            id="link-email"
+            placeholder="tu@email.com"
+            required
+            readonly
+          />
+        </div>
+        <div class="form-group">
+          <label for="link-password">Contraseña</label>
+          <input type="password" name="password" id="link-password" required />
+        </div>
+        <button
+          type="submit"
+          id="link-account-submit-button"
+          class="submit-btn"
+        >
+          <span class="button-text">Vincular Cuenta</span>
+          <div class="button-loader"></div>
+        </button>
+      </form>
+      <div class="form-footer">
+        <button id="cancel-link-account" class="link-button">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  console.log('>>> [DEBUG AuthModal.astro] Script loaded and executing.');
+  // ¡LA CLAVE! Importamos y ejecutamos la lógica centralizada.
+  import { initializeAuthModal } from '../lib/authModal';
+  initializeAuthModal();
+</script>
+
+<style>
+  .auth-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+  }
+  .auth-modal-overlay.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .auth-card {
+    position: relative;
+    background-color: var(--card-background);
+    padding: 2.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.5);
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    color: var(--font-color);
+    transform: scale(1);
+    transition: transform 0.3s ease-in-out;
+  }
+  .auth-modal-overlay.is-hidden .auth-card {
+    transform: scale(0.95);
+  }
+  .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 2.5rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .auth-card h2 {
+    font-size: 1.8rem;
+  }
+  .message-container {
+    min-height: 40px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .form-group {
+    text-align: left;
+  }
+  .auth-form label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #ccc;
+    margin-bottom: 0.25rem;
+  }
+  .auth-form input {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #333;
+    border: 1px solid #555;
+    color: var(--font-color);
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+  }
+  .auth-form input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+  }
+  .submit-btn {
+    position: relative;
+    padding: 0.75rem 1.5rem;
+    background-color: var(--accent-color);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+    margin-top: 0.5rem;
+    min-height: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .submit-btn:hover:not(:disabled) {
+    background-color: #009acd;
+  }
+  .submit-btn:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+  }
+  .button-loader {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  .submit-btn:disabled .button-text {
+    display: none;
+  }
+  .submit-btn:disabled .button-loader {
+    display: block;
+  }
+  .success-message,
+  .error-message {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+  .success-message {
+    color: #2ecc71;
+    background-color: rgba(46, 204, 113, 0.1);
+  }
+  .error-message {
+    color: #ff6b6b;
+    background-color: rgba(255, 107, 107, 0.1);
+  }
+  .info-message {
+    color: #3498db;
+    background-color: rgba(52, 152, 219, 0.1);
+  }
+  .form-footer {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: #aaa;
+  }
+  .link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent-color);
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: inherit;
+    font-family: inherit;
+  }
+  .link-button:hover {
+    text-decoration: underline;
+  }
+  .divider {
+    margin: 1.5rem 0;
+    text-align: center;
+    border-bottom: 1px solid #555;
+    line-height: 0.1em;
+    color: #aaa;
+  }
+  .divider span {
+    background: var(--card-background);
+    padding: 0 10px;
+  }
+  .google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0.75rem 1.5rem;
+    background-color: #f8f8f8; /* Blanco Cuarzo */
+    color: #333; /* Texto oscuro para contraste */
+    border: 1px solid #ccc; /* Borde sutil */
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1rem;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s;
+    margin-top: 0.5rem;
+    min-height: 44px;
+    max-width: 300px; /* Ancho máximo para centrar */
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .google-btn:hover {
+    background-color: #e0e0e0; /* Ligeramente más oscuro al pasar el ratón */
+    border-color: #bbb;
+  }
+  .google-icon {
+    width: 20px;
+    height: 20px;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+</style>

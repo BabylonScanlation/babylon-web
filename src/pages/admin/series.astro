@@ -1,0 +1,1980 @@
+---
+// src/pages/admin/series.astro
+import Layout from '../../layouts/Layout.astro';
+import AdminDescriptionTextarea from '../../components/AdminDescriptionTextarea.astro';
+
+const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
+
+interface Chapter {
+  id: number;
+  chapter_number: number;
+  title: string | null;
+  telegram_file_id: string;
+  url_portada: string | null;
+}
+interface Series {
+  id: number;
+  title: string;
+  description: string;
+  cover_image_url: string;
+  slug: string;
+  chapters: Chapter[];
+  status: string | null;
+  type: string | null;
+  genres: string | null;
+  author: string | null;
+  artist: string | null;
+  published_by: string | null;
+  alternative_names: string | null;
+  serialized_by: string | null;
+  is_hidden: boolean;
+}
+
+let allSeries: Series[] = [];
+const success = Astro.url.searchParams.get('success');
+let error = Astro.url.searchParams.get('error');
+
+try {
+  // Solución: Propagar manualmente las cabeceras (incluyendo la cookie) 
+  // a la petición fetch del lado del servidor.
+  const response = await fetch(
+    new URL('/api/admin/series-with-chapters', Astro.url),
+    {
+      headers: Astro.request.headers,
+    }
+  );
+
+  if (response.ok) {
+    allSeries = await response.json();
+  } else {
+    error = `Error al cargar las series: ${response.statusText}`;
+  }
+} catch (e) {
+  console.error(e);
+  error = 'No se pudo conectar con la API para cargar las series.';
+}
+---
+
+<Layout title="Gestionar Series">
+  <link
+    slot="head"
+    rel="stylesheet"
+    href="/node_modules/cropperjs/dist/cropper.css"
+  />
+  <main class="admin-container">
+    <a href="/admin" class="back-link">&larr; Volver al Panel</a>
+    <h1>Gestionar Series y Capítulos</h1>
+
+    {success && <p class="success-message">{success}</p>}
+    {error && <p class="error-message">{error}</p>}
+
+    {
+      allSeries.length > 0 ? (
+        allSeries.map((series) => (
+          <details class="series-details">
+            <summary>{series.title}</summary>
+            <div class="series-content">
+              <div class="series-info-and-forms">
+                <div class="current-cover">
+                  <p>Portada Actual</p>
+                  <img
+                    src={series.cover_image_url}
+                    alt={`Portada de ${series.title}`}
+                    class="cover-preview-img"
+                  />
+                </div>
+                <div class="forms-container">
+                  <form
+                    action="/api/update-series"
+                    method="post"
+                    enctype="multipart/form-data"
+                    class="admin-form"
+                    id={`update-series-form-${series.id}`}
+                  >
+                    <input type="hidden" name="seriesId" value={series.id} />
+                    {/* Campos del formulario de serie (Título, Descripción, etc.) */}
+                    <div class="form-group">
+                      <>
+                        <label for={`title-${series.id}`}>Título</label>
+                        <input
+                          type="text"
+                          id={`title-${series.id}`}
+                          name="title"
+                          value={series.title}
+                          required
+                        />
+                      </>
+                    </div>
+                    <div class="form-group">
+                      <>
+                        <label for={`desc-${series.id}`}>Descripción</label>
+                        <AdminDescriptionTextarea
+                          id={`desc-${series.id}`}
+                          name="description"
+                          rows={4}
+                          required={true}
+                          value={series.description}
+                        />
+                      </>
+                    </div>
+                    <div class="form-group">
+                      <label for={`coverImage-${series.id}`}>
+                        Nueva Portada (Opcional)
+                      </label>
+                      <input
+                        type="file"
+                        id={`coverImage-${series.id}`}
+                        name="coverImage"
+                        accept="image/jpeg,image/png,image/webp"
+                      />
+                    </div>
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label for={`status-${series.id}`}>Estado</label>
+                        <input
+                          type="text"
+                          id={`status-${series.id}`}
+                          name="status"
+                          value={series.status || ''}
+                          placeholder="Ej: En emisión"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label for={`type-${series.id}`}>Tipo</label>
+                        <input
+                          type="text"
+                          id={`type-${series.id}`}
+                          name="type"
+                          value={series.type || ''}
+                          placeholder="Ej: Manga"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label for={`author-${series.id}`}>Autor</label>
+                        <input
+                          type="text"
+                          id={`author-${series.id}`}
+                          name="author"
+                          value={series.author || ''}
+                          placeholder="Autor de la obra"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label for={`artist-${series.id}`}>Artista</label>
+                        <input
+                          type="text"
+                          id={`artist-${series.id}`}
+                          name="artist"
+                          value={series.artist || ''}
+                          placeholder="Artista de la obra"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label for={`published_by-${series.id}`}>
+                          Publicado por
+                        </label>
+                        <input
+                          type="text"
+                          id={`published_by-${series.id}`}
+                          name="published_by"
+                          value={series.published_by || ''}
+                          placeholder="Ej: Shueisha"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label for={`serialized_by-${series.id}`}>
+                          Serializado por
+                        </label>
+                        <input
+                          type="text"
+                          id={`serialized_by-${series.id}`}
+                          name="serialized_by"
+                          value={series.serialized_by || ''}
+                          placeholder="Ej: Weekly Shōnen Jump"
+                        />
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for={`alternative_names-${series.id}`}>
+                        Nombres Alternativos (separados por coma)
+                      </label>
+                      <input
+                        type="text"
+                        id={`alternative_names-${series.id}`}
+                        name="alternative_names"
+                        value={series.alternative_names || ''}
+                        placeholder="Ej: Alias 1, Alias 2"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label for={`genres-${series.id}`}>
+                        Géneros (separados por coma)
+                      </label>
+                      <input
+                        type="text"
+                        id={`genres-${series.id}`}
+                        name="genres"
+                        value={series.genres || ''}
+                        placeholder="Ej: Acción, Aventura"
+                      />
+                    </div>
+                    <div class="action-buttons-row">
+                      <div class="update-button-wrapper">
+                        <button
+                          type="submit"
+                          form={`update-series-form-${series.id}`}
+                          class="update-series-button"
+                        >
+                          Actualizar Serie
+                        </button>
+                      </div>
+                      <div class="form-group toggle-visibility-group">
+                        <input
+                          type="hidden"
+                          id={`is_hidden_input-${series.id}`}
+                          name="is_hidden"
+                          value={series.is_hidden ? 'on' : 'off'}
+                        />
+                        <button
+                          type="button"
+                          class:list={[
+                            'toggle-visibility-btn',
+                            { 'is-hidden-true': series.is_hidden },
+                            { 'is-hidden-false': !series.is_hidden },
+                          ]}
+                          data-series-id={series.id}
+                          data-is-hidden={series.is_hidden.toString()}
+                        >
+                          {series.is_hidden ? 'Mostrar Serie' : 'Ocultar Serie'}
+                        </button>
+                      </div>
+                    </div>
+                  </form>{' '}
+                  {/* Cierre del form de actualizar serie */}
+                  <form
+                    action="/api/delete-series"
+                    method="post"
+                    onsubmit="return confirm('¿Estás seguro de que quieres eliminar TODA la serie?\nEsta acción no se puede deshacer.');"
+                  >
+                    <input type="hidden" name="seriesId" value={series.id} />
+                    <button type="submit" class="delete-btn">
+                      Eliminar Serie Completa
+                    </button>
+                  </form>{' '}
+                  {/* Cierre del form de eliminar serie */}
+                </div>{' '}
+                {/* Cierre de forms-container */}
+              </div>{' '}
+              {/* Cierre de series-info-and-forms */}
+              <div class="chapters-list">
+                <h3>Capítulos ({series.chapters.length})</h3>
+                {series.chapters.length > 0 ? (
+                  <ul>
+                    {series.chapters.map((chapter) => (
+                      <li class="chapter-item">
+                        <img
+                          src={
+                            chapter.url_portada ||
+                            `${r2PublicUrlAssets}/covers/placeholder-chapter.jpg`
+                          }
+                          alt={`Miniatura del Capítulo ${chapter.chapter_number}`}
+                          class="chapter-thumbnail-img"
+                          onerror={`this.onerror=null; this.src='${r2PublicUrlAssets}/covers/placeholder-chapter.jpg';`}
+                        />
+                        <div class="chapter-details-and-controls">
+                          <form
+                            action="/api/update-chapter"
+                            method="post"
+                            class="update-chapter-form"
+                          >
+                            <span class="chapter-number-label">
+                              Cap. {chapter.chapter_number}
+                            </span>
+                            <input
+                              type="text"
+                              name="title"
+                              value={chapter.title || ''}
+                              placeholder="Sin título"
+                              class="chapter-title-input"
+                            />
+                            <input
+                              type="hidden"
+                              name="chapterId"
+                              value={chapter.id}
+                            />
+                            <button
+                              type="submit"
+                              class="update-chapter-btn"
+                              title="Guardar Título"
+                            >
+                              ✓
+                            </button>
+                          </form>
+
+                          <div class="chapter-thumbnail-controls">
+                            {/* NUEVO BOTÓN */}
+                            <button
+                              type="button"
+                              class="crop-thumbnail-btn"
+                              data-chapter-id={chapter.id}
+                              data-series-slug={series.slug}
+                              data-chapter-number={chapter.chapter_number}
+                              title="Seleccionar y Recortar Portada"
+                            >
+                              Recortar Portada
+                            </button>
+                            {/* FIN NUEVO BOTÓN */}
+
+                            <input
+                              type="file"
+                              class="upload-thumbnail-input"
+                              data-chapter-id={chapter.id}
+                              accept="image/jpeg,image/png,image/webp"
+                              title="Subir Miniatura Manualmente"
+                            />
+                          </div>
+                        </div>
+
+                        <form
+                          action="/api/delete-chapters"
+                          method="post"
+                          onsubmit="return confirm('¿Seguro que quieres eliminar este capítulo?');"
+                        >
+                          <input
+                            type="hidden"
+                            name="chapterId"
+                            value={chapter.id}
+                          />
+                          <button
+                            type="submit"
+                            class="delete-chapter-btn"
+                            title="Eliminar Capítulo"
+                          >
+                            ✗
+                          </button>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No hay capítulos para esta serie.</p>
+                )}
+              </div>{' '}
+              {/* Cierre de chapters-list */}
+            </div>{' '}
+            {/* Cierre de series-content */}
+          </details> // Cierre de series-details
+        ))
+      ) : (
+        <p>No se encontraron series para mostrar.</p>
+      )
+    }
+  </main>
+
+  {/* INICIO NUEVO MODAL */}
+  <div id="cropper-modal" class="cropper-modal-overlay is-hidden">
+    <div class="cropper-modal-panel">
+      <div class="modal-header">
+        <h3>
+          Recortar Miniatura del Capítulo <span id="cropper-chapter-number"
+          ></span>
+        </h3>
+        <button id="close-cropper-modal-btn" class="close-modal-btn"
+          >&times;</button
+        >
+      </div>
+      <div class="modal-body">
+        <p id="image-selection-message">
+          Selecciona la imagen que quieres usar como miniatura:
+        </p>
+        <div
+          id="loading-spinner-container"
+          style="display: none; text-align: center; padding: 2rem;"
+        >
+          <div class="spinner"></div>
+          <p style="margin-top: 1rem;">Cargando imágenes del capítulo...</p>
+        </div>
+        <div id="image-selection-container" class="image-selection-grid">
+          {/* Aquí se cargarán las imágenes del capítulo dinámicamente */}
+        </div>
+        <div id="cropper-container" style="display: none;">
+          <p>Ajusta el recuadro para seleccionar la miniatura (aspecto 2:3).</p>
+          <div class="img-container">
+            <img id="cropper-image" src="" alt="Imagen para recortar" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancel-crop-btn" class="modal-btn cancel-btn"
+          >Cancelar</button
+        >
+        <button id="confirm-crop-btn" class="modal-btn confirm-btn" disabled
+          >Confirmar Recorte</button
+        >
+      </div>
+      <p
+        id="cropper-error"
+        class="error-message"
+        style="display:none; margin-top: 1rem;"
+      >
+      </p>
+    </div>
+  </div>
+  {/* FIN NUEVO MODAL */}
+</Layout>
+
+<style>
+  /* --- Tus estilos existentes --- */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .admin-container {
+    padding: 2rem;
+    max-width: 1350px;
+    margin: 0 auto;
+  }
+  h1 {
+    margin-bottom: 1.5rem;
+  }
+  .back-link {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    color: var(--accent-color);
+  }
+  .success-message,
+  .error-message {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    text-align: center;
+  }
+  .success-message {
+    background-color: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+  }
+  .error-message {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+  }
+  .series-details {
+    background-color: var(--card-background);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border: 1px solid #333;
+  }
+  .series-details summary {
+    padding: 1rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .series-content {
+    padding: 1.5rem;
+    border-top: 1px solid #444;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+  }
+  .series-info-and-forms {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .current-cover {
+    text-align: center;
+  }
+  .current-cover p {
+    font-weight: bold;
+    margin-bottom: 0.75rem;
+  }
+  .cover-preview-img {
+    max-width: 180px;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    border: 2px solid #444;
+  }
+  .forms-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .action-buttons-row {
+    display: flex;
+    gap: 1rem;
+  }
+  .action-buttons-row > .update-button-wrapper,
+  .action-buttons-row > .form-group {
+    flex: 1;
+    margin-top: 0; /* Reset margin-top inherited from general button style */
+  }
+  .action-buttons-row > .update-button-wrapper > .update-series-button {
+    width: 100%;
+    font-weight: bold;
+  }
+  .action-buttons-row > .form-group > button {
+    width: 100%; /* Ensure the toggle button takes full width within its flex item */
+  }
+  .admin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .admin-form input[type="text"], /* Aplicar solo a text inputs */
+  .admin-form textarea,
+  .admin-form input[type="file"] /* Aplicar también a file inputs */ {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #333;
+    border: 1px solid #555;
+    color: var(--font-color);
+    border-radius: 4px;
+  }
+
+  /* Estilo específico para input file para que no herede todo */
+  .admin-form input[type='file'] {
+    padding: 0.5rem; /* Ajustar padding si es necesario */
+    line-height: 1.5; /* Ajustar línea para mejor apariencia */
+  }
+
+  .admin-form button {
+    font-weight: bold;
+  }
+  button {
+    padding: 0.75rem 1.5rem;
+    background-color: var(--accent-color);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    width: 100%;
+  }
+  .delete-btn {
+    background-color: #c0392b;
+    font-weight: bold;
+  }
+  .chapters-list {
+    /* max-height: 600px; */ /* Considera si necesitas limitar la altura */
+    overflow-y: auto;
+    padding-right: 10px; /* Espacio para scrollbar si aparece */
+    border: 1px solid #444; /* Borde alrededor de la lista */
+    border-radius: 8px; /* Bordes redondeados */
+    padding: 1rem; /* Padding interno */
+    background-color: #2a2a2a; /* Fondo ligeramente diferente */
+  }
+  .chapters-list h3 {
+    margin-bottom: 1rem;
+    margin-top: 0; /* Reset margin top */
+    padding-bottom: 0.5rem; /* Espacio bajo el título */
+    border-bottom: 1px solid #555; /* Línea separadora */
+  }
+  .chapters-list ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0;
+    margin: 0; /* Reset margin */
+  }
+  .chapter-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem; /* Aumentar padding */
+    border: 1px solid #444;
+    border-radius: 6px; /* Bordes más redondeados */
+    background-color: #333; /* Fondo para cada item */
+  }
+  .chapter-thumbnail-img {
+    width: 50px; /* Ancho fijo */
+    height: 75px; /* Alto fijo (proporción 2:3) */
+    object-fit: cover; /* Asegura que la imagen cubra el área */
+    border-radius: 4px; /* Bordes redondeados */
+    flex-shrink: 0; /* Evitar que se encoja */
+    border: 1px solid #555; /* Borde sutil */
+  }
+  .chapter-details-and-controls {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    gap: 0.5rem; /* Space between update form and thumbnail controls */
+  }
+  .update-chapter-form {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .chapter-number-label {
+    white-space: nowrap;
+    font-weight: bold; /* Hacer número más visible */
+    color: #ccc; /* Color gris claro */
+  }
+  .chapter-title-input {
+    width: 100%;
+    background-color: #444; /* Fondo un poco más claro */
+    border: 1px solid #666; /* Borde un poco más claro */
+    color: var(--font-color);
+    border-radius: 4px;
+    padding: 0.5rem;
+  }
+  .update-chapter-btn,
+  .delete-chapter-btn {
+    padding: 0;
+    margin: 0;
+    width: 30px; /* Ligeramente más pequeño */
+    height: 30px; /* Ligeramente más pequeño */
+    font-size: 1.1rem; /* Ligeramente más pequeño */
+    flex-shrink: 0;
+    line-height: 30px; /* Centrar icono */
+    border-radius: 50%; /* Hacerlos redondos */
+  }
+  .update-chapter-btn {
+    background-color: #27ae60;
+  }
+  .delete-chapter-btn {
+    background-color: #c0392b;
+  }
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  .checkbox-group input[type='checkbox'] {
+    width: auto;
+    margin: 0;
+    transform: scale(1.2);
+  }
+  .checkbox-group label {
+    margin: 0;
+    cursor: pointer;
+  }
+  .delete-btn {
+    background-color: #c0392b;
+    font-weight: bold;
+  }
+  .toggle-visibility-group {
+    /* Removed explicit margin-top to rely on parent gap for consistent spacing */
+  }
+  .toggle-visibility-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-weight: bold;
+    text-align: center;
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    line-height: 1; /* Reset line-height */
+  }
+  .toggle-visibility-btn.is-hidden-true {
+    background-color: #28a745; /* Green for "Show Series" */
+    color: white;
+  }
+  .toggle-visibility-btn.is-hidden-true:hover {
+    background-color: #218838;
+  }
+  .toggle-visibility-btn.is-hidden-false {
+    background-color: #c0392b; /* Red for "Hide Series" */
+    color: white;
+  }
+  .toggle-visibility-btn.is-hidden-false:hover {
+    background-color: #a93226; /* Darker shade of #c0392b */
+  }
+  .chapter-thumbnail-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap; /* Para que los elementos se ajusten en pantallas pequeñas */
+  }
+  .generate-thumbnail-btn {
+    background-color: #3498db; /* Azul para generar */
+    width: auto; /* Ajustar ancho */
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    margin-top: 0; /* Reset margin */
+  }
+  .generate-thumbnail-btn.is-loading {
+    background-color: #2980b9;
+    cursor: not-allowed;
+  }
+  .generate-thumbnail-btn:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+  }
+  .generate-thumbnail-btn:disabled:hover {
+    background-color: #666;
+  }
+  .upload-thumbnail-input {
+    width: auto; /* Ajustar ancho */
+    flex-grow: 1; /* Para que ocupe el espacio restante */
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    margin-top: 0; /* Reset margin */
+    line-height: 1.5;
+  }
+  /* Ajustes para los botones de capítulo existentes para que no se vean afectados */
+  .update-chapter-btn,
+  .delete-chapter-btn {
+    margin-top: 0; /* Eliminar el margin-top que afecta a todos los botones */
+  }
+
+  @media (max-width: 900px) {
+    /* Aumentar breakpoint para mejor responsive */
+    .series-content {
+      grid-template-columns: 1fr; /* Cambiar a una columna antes */
+    }
+    .chapters-list {
+      margin-top: 2rem;
+      max-height: none; /* Quitar límite de altura en móvil si lo prefieres */
+    }
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+    .action-buttons-row {
+      flex-direction: column; /* Apilar botones en móvil */
+    }
+  }
+
+  @media (max-width: 600px) {
+    /* Estilos adicionales para pantallas más pequeñas */
+    .chapter-item {
+      flex-direction: column; /* Apilar elementos del capítulo */
+      align-items: flex-start; /* Alinear a la izquierda */
+    }
+    .update-chapter-form {
+      width: 100%; /* Ocupar todo el ancho */
+    }
+    .chapter-thumbnail-controls {
+      width: 100%;
+    }
+    .delete-chapter-btn {
+      align-self: flex-end; /* Mover el botón de eliminar a la derecha */
+      margin-top: -35px; /* Ajuste para que quede al lado */
+    }
+    .chapter-thumbnail-img {
+      align-self: center; /* Centrar miniatura */
+      margin-bottom: 0.5rem; /* Espacio bajo miniatura */
+    }
+  }
+
+  /* --- ESTILOS PARA EL NUEVO BOTÓN Y MODAL DE RECORTE --- */
+  .crop-thumbnail-btn {
+    background-color: #e67e22; /* Naranja */
+    width: auto;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    margin-top: 0; /* Asegurar que no herede margen */
+  }
+  .crop-thumbnail-btn:hover {
+    background-color: #d35400;
+  }
+
+  .cropper-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+  }
+  .cropper-modal-overlay.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .cropper-modal-panel {
+    background: var(--card-background);
+    width: 90%;
+    max-width: 900px; /* Más ancho para ver imágenes */
+    max-height: 90vh;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Evitar que el contenido se desborde */
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #444;
+  }
+  .modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+  .close-modal-btn {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0; /* Reset padding */
+    width: auto; /* Reset width */
+    margin-top: 0; /* Reset margin */
+  }
+  .modal-body {
+    padding: 1.5rem;
+    overflow-y: auto; /* Permitir scroll si el contenido es largo */
+    flex-grow: 1;
+  }
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #444;
+  }
+  .modal-btn {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    width: auto; /* Reset width */
+    margin-top: 0; /* Reset margin */
+  }
+  .cancel-btn {
+    background-color: #555;
+    color: white;
+  }
+  .confirm-btn {
+    background-color: var(--accent-color);
+    color: white;
+  }
+  .confirm-btn:disabled {
+    background-color: #444;
+    cursor: not-allowed;
+  }
+
+  /* Contenedor para Cropper */
+  .img-container {
+    max-height: 60vh; /* Limitar altura */
+    margin-top: 1rem;
+    background-color: #222; /* Fondo oscuro para la imagen */
+  }
+
+  #cropper-image {
+    display: block;
+    max-width: 100%; /* Asegura que la imagen no se desborde */
+    /* Cropper.js gestionará la altura */
+  }
+
+  /* Estilos específicos de Cropper.js */
+  .cropper-view-box,
+  .cropper-face {
+    border-radius: 4px; /* Bordes redondeados para el área de recorte */
+    outline: rgba(255, 255, 255, 0.75) solid 1px; /* Mejorar visibilidad */
+    outline-offset: -1px;
+  }
+  .cropper-line {
+    background-color: rgba(255, 255, 255, 0.7); /* Líneas más visibles */
+  }
+  .cropper-point {
+    background-color: rgba(255, 255, 255, 0.9); /* Puntos más visibles */
+    opacity: 0.75;
+    width: 10px; /* Puntos un poco más grandes */
+    height: 10px;
+  }
+
+  /* Grid para selección de imágenes */
+  .image-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); /* 5 columnas de igual ancho */
+    gap: 1rem;
+    margin-top: 1rem;
+    max-height: 40vh; /* Limitar altura para que no ocupe todo */
+    overflow-y: auto;
+    padding: 5px; /* Pequeño padding para que no pegue a los bordes */
+    background-color: #2a2a2a; /* Fondo para el grid */
+    border-radius: 4px;
+  }
+  /* --- NUEVOS ESTILOS PARA LA SELECCIÓN DE IMAGEN --- */
+  .image-selection-item {
+    position: relative; /* Necesario para posicionar el número */
+    border: 3px solid transparent; /* Mover el borde al wrapper */
+    border-radius: 4px; /* Mover border-radius */
+    overflow: hidden; /* Asegurar que el span no se salga */
+    transition:
+      border-color 0.2s,
+      transform 0.2s;
+    aspect-ratio: 2 / 3; /* Mantener proporción */
+    cursor: pointer;
+  }
+  .image-selection-item img {
+    display: block; /* Asegurar que llene el div */
+    width: 100%;
+    height: 100%; /* Llenar el contenedor */
+    object-fit: cover;
+    /* Quitar borde y radius de la imagen */
+  }
+  .image-selection-item:hover {
+    border-color: var(--accent-color);
+    transform: scale(1.05);
+  }
+  .image-selection-item.selected {
+    border-color: #2ecc71; /* Verde para la seleccionada */
+    box-shadow: 0 0 10px #2ecc71;
+    transform: scale(1.03); /* Un poco menos de escala al seleccionar */
+  }
+  .image-selection-item span {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: bold;
+  }
+
+  #image-selection-message {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+  }
+
+  .spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid var(--accent-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+</style>
+
+<script>
+  import Cropper from 'cropperjs'; 
+
+  interface CropperImageElement extends HTMLImageElement {
+    __readyListener?: EventListener | null;
+    __cropListener?: EventListener | null;
+  }
+
+  console.log('[DEBUG] Script execution started.');
+
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('[DEBUG] DOMContentLoaded event fired.');
+
+    // --- CÓDIGO VISIBILITY BUTTON ---
+    console.log('[DEBUG] Setting up visibility button listeners...');
+    document
+      .querySelectorAll('.toggle-visibility-btn')
+      .forEach((buttonElement) => {
+        const button = buttonElement as HTMLButtonElement;
+        button.addEventListener('click', async () => {
+          console.log(
+            `[DEBUG] Visibility button clicked for seriesId: ${button.dataset.seriesId}`
+          );
+          const seriesId = button.dataset.seriesId;
+          const isHiddenInput = document.getElementById(
+            `is_hidden_input-${seriesId}`
+          ) as HTMLInputElement;
+          if (!seriesId || !isHiddenInput) {
+            console.error('[DEBUG] Missing seriesId or hidden input element.');
+            return;
+          }
+
+          const currentlyHidden = isHiddenInput.value === 'on';
+          console.log(`[DEBUG] Current hidden state: ${currentlyHidden}`);
+
+          // Alternar el estado
+          const newHiddenState = !currentlyHidden;
+          isHiddenInput.value = newHiddenState ? 'on' : 'off';
+
+          // Actualizar el botón visualmente
+          if (newHiddenState) {
+            button.textContent = 'Mostrar Serie';
+            button.classList.remove('is-hidden-false');
+            button.classList.add('is-hidden-true');
+          } else {
+            button.textContent = 'Ocultar Serie';
+            button.classList.remove('is-hidden-true');
+            button.classList.add('is-hidden-false');
+          }
+
+          console.log(`[DEBUG] New hidden state set to: ${newHiddenState}`);
+
+          // NEW: Make API call to persist the change
+          try {
+            const response = await fetch('/api/series/toggle-visibility', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ seriesId, isHidden: newHiddenState }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(
+                errorData.message || 'Error al actualizar la visibilidad.'
+              );
+            }
+            console.log(
+              `[DEBUG] Series ${seriesId} visibility updated to ${newHiddenState} successfully.`
+            );
+          } catch (apiError) {
+            console.error('[DEBUG] API Error toggling visibility:', apiError);
+            alert(
+              `Error al actualizar la visibilidad: ${apiError instanceof Error ? apiError.message : String(apiError)}`
+            );
+            // Revert UI on error
+            isHiddenInput.value = currentlyHidden ? 'on' : 'off';
+            if (currentlyHidden) {
+              button.textContent = 'Ocultar Serie';
+              button.classList.remove('is-hidden-true');
+              button.classList.add('is-hidden-false');
+            } else {
+              button.textContent = 'Mostrar Serie';
+              button.classList.remove('is-hidden-false');
+              button.classList.add('is-hidden-true');
+            }
+          }
+        });
+      });
+    console.log('[DEBUG] Visibility button listeners set up.');
+
+    // --- CÓDIGO PARA RECORTADOR ---
+    console.log('[DEBUG] Setting up Cropper variables and functions...');
+    const cropperModal = document.getElementById(
+      'cropper-modal'
+    ) as HTMLElement;
+    const closeCropperBtn = document.getElementById('close-cropper-modal-btn');
+    const cropperImage = document.getElementById(
+      'cropper-image'
+    ) as CropperImageElement;
+    const imageSelectionContainer = document.getElementById(
+      'image-selection-container'
+    );
+    const cropperContainer = document.getElementById('cropper-container');
+    const confirmCropBtn = document.getElementById(
+      'confirm-crop-btn'
+    ) as HTMLButtonElement;
+    const cancelCropBtn = document.getElementById('cancel-crop-btn');
+    const cropperErrorEl = document.getElementById(
+      'cropper-error'
+    ) as HTMLElement;
+    const imageSelectionMessage = document.getElementById(
+      'image-selection-message'
+    );
+    const cropperChapterNumberSpan = document.getElementById(
+      'cropper-chapter-number'
+    );
+
+    // --- NUEVAS REFERENCIAS AL SPINNER ---
+    const loadingSpinnerContainer = document.getElementById(
+      'loading-spinner-container'
+    ) as HTMLElement;
+    const loadingSpinnerMessage = loadingSpinnerContainer?.querySelector(
+      'p'
+    ) as HTMLParagraphElement;
+    // --- FIN NUEVAS REFERENCIAS ---
+
+    let cropperInstance: Cropper | null = null;
+    let currentChapterId: string | null = null;
+    let CropperConstructor: typeof Cropper | null = null;
+    let currentObjectUrl: string | null = null;
+
+    // --- NUEVA VARIABLE PARA POLLING ---
+    let pollingInterval: number | null = null; // Usaremos number para setTimeout
+    // --- FIN NUEVA VARIABLE ---
+
+    console.log('[DEBUG] Cropper variables initialized.');
+
+    // --- NUEVA FUNCIÓN PARA LIMPIAR POLLING ---
+    const clearPolling = () => {
+      if (pollingInterval) {
+        console.log('[DEBUG] Clearing polling timer:', pollingInterval);
+        clearTimeout(pollingInterval);
+        pollingInterval = null;
+      }
+    };
+    // --- FIN NUEVA FUNCIÓN ---
+
+    // Función para cerrar y resetear el modal
+    const closeCropperModal = () => {
+      console.log('[DEBUG] closeCropperModal called.');
+
+      // --- AÑADIDO: Limpiar polling al cerrar ---
+      clearPolling();
+      // --- FIN AÑADIDO ---
+
+      if (cropperImage) {
+        const readyListenerRef = cropperImage.__readyListener;
+        if (readyListenerRef) {
+          console.log("[DEBUG] Removing 'ready' event listener.");
+          cropperImage.removeEventListener('ready', readyListenerRef);
+          cropperImage.__readyListener = null;
+        }
+        const cropListenerRef = cropperImage.__cropListener;
+        if (cropListenerRef) {
+          console.log("[DEBUG] Removing 'crop' event listener.");
+          cropperImage.removeEventListener('crop', cropListenerRef);
+          cropperImage.__cropListener = null;
+        }
+      }
+
+      if (cropperInstance) {
+        console.log('[DEBUG] Destroying existing cropper instance.');
+        try {
+          cropperInstance.destroy();
+          console.log('[DEBUG] Cropper instance destroyed.');
+        } catch (_e) {
+          console.error(_e);
+        }
+        cropperInstance = null;
+      }
+      if (currentObjectUrl) {
+        console.log('[DEBUG] Revoking Object URL:', currentObjectUrl);
+        URL.revokeObjectURL(currentObjectUrl);
+        currentObjectUrl = null;
+      }
+      if (cropperModal) {
+        console.log('[DEBUG] Hiding cropper modal.');
+        cropperModal.classList.add('is-hidden');
+      }
+      if (cropperImage) {
+        console.log('[DEBUG] Clearing cropper image src.');
+        cropperImage.src = ''; // Limpiar src
+        // Limpiar listeners explícitamente al cerrar
+        cropperImage.onload = null;
+        cropperImage.onerror = null;
+      }
+      if (imageSelectionContainer) imageSelectionContainer.innerHTML = '';
+      if (cropperContainer) cropperContainer.style.display = 'none';
+
+      // --- MODIFICADO: Resetear visibilidad de contenedores ---
+      if (imageSelectionContainer)
+        imageSelectionContainer.style.display = 'grid'; // Reset to 'grid'
+      if (imageSelectionMessage) imageSelectionMessage.style.display = 'block';
+      if (loadingSpinnerContainer)
+        loadingSpinnerContainer.style.display = 'none'; // Ocultar spinner
+      // --- FIN MODIFICADO ---
+
+      if (confirmCropBtn) {
+        confirmCropBtn.disabled = true;
+        confirmCropBtn.textContent = 'Confirmar Recorte';
+      }
+      if (cropperErrorEl) cropperErrorEl.style.display = 'none';
+
+      // --- AÑADIDO: Habilitar botón de recorte original ---
+      // Encontrar el botón que abrió este modal y rehabilitarlo
+      if (currentChapterId) {
+        const originalButton = document.querySelector(
+          `.crop-thumbnail-btn[data-chapter-id="${currentChapterId}"]`
+        ) as HTMLButtonElement | null;
+        if (originalButton) {
+          console.log('[DEBUG] Re-enabling original crop button.');
+          originalButton.disabled = false;
+        }
+      }
+      // --- FIN AÑADIDO ---
+
+      currentChapterId = null;
+      console.log('[DEBUG] closeCropperModal finished.');
+    };
+
+    // Eventos para cerrar el modal
+    console.log('[DEBUG] Setting up modal close listeners...');
+    closeCropperBtn?.addEventListener('click', () => {
+      console.log('[DEBUG] Close button clicked.');
+      closeCropperModal();
+    });
+    cancelCropBtn?.addEventListener('click', () => {
+      console.log('[DEBUG] Cancel button clicked.');
+      closeCropperModal();
+    });
+    cropperModal?.addEventListener('click', (e) => {
+      if (e.target === cropperModal) {
+        console.log('[DEBUG] Modal overlay clicked.');
+        closeCropperModal();
+      }
+    });
+    console.log('[DEBUG] Modal close listeners set up.');
+
+    // --- NUEVA FUNCIÓN DE POLLING ---
+    /**
+     * Inicia el sondeo para obtener las imágenes del capítulo.
+     * @param {string} apiUrl - La URL de la API a consultar.
+     * @param {HTMLButtonElement} originalButton - El botón que inició la acción.
+     * @param {number} [maxAttempts=12] - Número máximo de reintentos (12 * 5s = 60s).
+     * @param {number} [currentAttempt=1] - Contador de intento actual.
+     */
+    const pollForImages = (
+      apiUrl: string,
+      originalButton: HTMLButtonElement,
+      maxAttempts = 12,
+      currentAttempt = 1
+    ) => {
+      console.log(
+        `[DEBUG] Polling attempt ${currentAttempt}/${maxAttempts} for ${apiUrl}`
+      );
+
+      if (currentAttempt > maxAttempts) {
+        console.error('[DEBUG] Polling timeout reached.');
+        if (cropperErrorEl) {
+          cropperErrorEl.textContent =
+            'El capítulo tardó demasiado en procesar. Inténtalo de nuevo más tarde.';
+          cropperErrorEl.style.display = 'block';
+        }
+        if (loadingSpinnerContainer)
+          loadingSpinnerContainer.style.display = 'none';
+        originalButton.disabled = false; // Habilitar botón original
+        return; // Detener sondeo
+      }
+
+      // Configurar el próximo sondeo
+      pollingInterval = window.setTimeout(async () => {
+        try {
+          const response = await fetch(apiUrl);
+          console.log(`[DEBUG] Polling response status: ${response.status}`);
+
+          if (response.status === 200) {
+            console.log('[DEBUG] Polling successful! Status 200.');
+            const data = await response.json();
+            if (data.error) {
+              throw new Error(
+                data.error || 'Error en datos de API tras sondeo.'
+              );
+            }
+            // Éxito: Ocultar spinner y poblar imágenes
+            await populateImageSelection(data.imageUrls);
+            originalButton.disabled = false; // Habilitar
+          } else if (response.status === 202) {
+            console.log(
+              '[DEBUG] Status 202, still processing. Continuing poll...'
+            );
+            // Actualizar mensaje de spinner
+            if (loadingSpinnerMessage) {
+              loadingSpinnerMessage.textContent = `El capítulo aún se está procesando... (Intento ${currentAttempt}/${maxAttempts})`;
+            }
+            // Continuar con el siguiente intento
+            pollForImages(
+              apiUrl,
+              originalButton,
+              maxAttempts,
+              currentAttempt + 1
+            );
+          } else {
+            // Otro error
+            throw new Error(
+              `Error en el sondeo: ${response.statusText} (Status: ${response.status})`
+            );
+          }
+        } catch (error) {
+          console.error('[DEBUG] Error during polling fetch:', error);
+          if (cropperErrorEl) {
+            cropperErrorEl.textContent =
+              error instanceof Error
+                ? error.message
+                : 'Error desconocido durante el sondeo.';
+            cropperErrorEl.style.display = 'block';
+          }
+          if (loadingSpinnerContainer)
+            loadingSpinnerContainer.style.display = 'none';
+          originalButton.disabled = false; // Habilitar
+        }
+      }, 5000); // Esperar 5 segundos
+    };
+    // --- FIN NUEVA FUNCIÓN DE POLLING ---
+
+    // --- NUEVA FUNCIÓN PARA POBLAR IMÁGENES (refactorizada) ---
+    const populateImageSelection = async (imageUrls: string[] | undefined) => {
+      if (!imageUrls || imageUrls.length === 0) {
+        console.error('[DEBUG] No image URLs found in API response.');
+        throw new Error('No se encontraron imágenes para este capítulo.');
+      }
+      console.log(`[DEBUG] Found ${imageUrls.length} image URLs.`);
+
+      // Importar Cropper dinámicamente (solo una vez)
+      if (!CropperConstructor) {
+        console.log(
+          '[DEBUG] CropperConstructor not found, attempting dynamic import...'
+        );
+        try {
+          const CropperModule = await import('cropperjs');
+          CropperConstructor = CropperModule.default;
+          console.log('[DEBUG] Cropper.js dynamically imported successfully.');
+        } catch (error) {
+          console.error(
+            '[DEBUG] Failed to load Cropper.js dynamically:',
+            error
+          );
+          alert('Error cargando la herramienta de recorte.');
+          closeCropperModal(); // Cierra el modal si falla la importación
+          return; // Salir de la función
+        }
+      } else {
+        console.log('[DEBUG] CropperConstructor already loaded.');
+      }
+
+      if (imageSelectionContainer && CropperConstructor) {
+        console.log('[DEBUG] Populating image selection container...');
+        imageSelectionContainer.innerHTML = ''; // Limpiar "Cargando..."
+
+        // --- AÑADIDO: Ocultar spinner, mostrar grid ---
+        if (loadingSpinnerContainer)
+          loadingSpinnerContainer.style.display = 'none';
+        if (imageSelectionContainer)
+          imageSelectionContainer.style.display = 'grid';
+        if (imageSelectionMessage)
+          imageSelectionMessage.style.display = 'block';
+        // --- FIN AÑADIDO ---
+
+        imageUrls.forEach((url, index) => {
+          const wrapper = document.createElement('div');
+          wrapper.classList.add('image-selection-item');
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = `Página ${index + 1}`;
+          img.loading = 'lazy';
+          const pageNumSpan = document.createElement('span');
+          // pageNumSpan.classList.add('page-number-overlay'); // Clase no encontrada, pero el estilo se aplica al span
+          pageNumSpan.textContent = `${index + 1}`;
+          wrapper.appendChild(img);
+          wrapper.appendChild(pageNumSpan);
+
+          wrapper.addEventListener('click', async () => {
+            console.log(`[DEBUG] Image wrapper clicked: ${url}`);
+            // Resaltar
+            imageSelectionContainer
+              .querySelectorAll('.image-selection-item')
+              .forEach((el) => el.classList.remove('selected'));
+            wrapper.classList.add('selected');
+            // Ocultar/Mostrar contenedores
+            if (imageSelectionContainer)
+              imageSelectionContainer.style.display = 'none';
+            if (imageSelectionMessage)
+              imageSelectionMessage.style.display = 'none';
+            if (cropperContainer) cropperContainer.style.display = 'block';
+
+            // Limpiar instancia y Object URL anteriores
+            if (cropperInstance) {
+              console.log(
+                '[DEBUG] Destroying previous cropper instance before creating/replacing.'
+              );
+              try {
+                cropperInstance.destroy();
+              } catch (_e) {
+                console.error(_e);
+              }
+              cropperInstance = null;
+            }
+            if (currentObjectUrl) {
+              console.log(
+                '[DEBUG] Revoking previous Object URL:',
+                currentObjectUrl
+              );
+              URL.revokeObjectURL(currentObjectUrl);
+              currentObjectUrl = null;
+            }
+            if (cropperImage) {
+              cropperImage.src = ''; // Limpiar src previo
+              cropperImage.onload = null;
+              cropperImage.onerror = null;
+            }
+            if (confirmCropBtn) confirmCropBtn.disabled = true;
+            if (cropperErrorEl) cropperErrorEl.style.display = 'none';
+            console.log('[DEBUG] Cleaned up previous instance and URL.');
+
+            try {
+              // 1. Fetch la imagen como Blob
+              console.log(
+                `[DEBUG] Fetching image blob from selected URL: ${img.src}`
+              );
+              const response = await fetch(img.src);
+              console.log(
+                `[DEBUG] Blob fetch response status: ${response.status}`
+              );
+              if (!response.ok) {
+                throw new Error(
+                  `Error fetching image blob: ${response.status} ${response.statusText}`
+                );
+              }
+              const blob = await response.blob();
+              console.log('[DEBUG] Image blob fetched successfully.');
+
+              // 2. Crear Object URL
+              currentObjectUrl = URL.createObjectURL(blob);
+              console.log('[DEBUG] Object URL created:', currentObjectUrl);
+
+              // 3. Asignar Object URL y listeners
+              if (cropperImage && cropperContainer && CropperConstructor) {
+                console.log(
+                  '[DEBUG] Setting up cropperImage onload and onerror for Object URL.'
+                );
+
+                cropperImage.onload = () => {
+                  console.log(
+                    '[DEBUG] cropperImage.onload triggered with Object URL.'
+                  );
+                  if (
+                    !cropperContainer ||
+                    !cropperImage ||
+                    !imageSelectionContainer ||
+                    !imageSelectionMessage
+                  ) {
+                    console.error(
+                      '[DEBUG] One or more required elements missing in onload.'
+                    );
+                    return;
+                  }
+                  if (!cropperImage.isConnected) {
+                    console.warn(
+                      '[DEBUG] cropperImage is disconnected from DOM in onload. Aborting init.'
+                    );
+                    if (currentObjectUrl) {
+                      URL.revokeObjectURL(currentObjectUrl);
+                      currentObjectUrl = null;
+                    }
+                    return;
+                  }
+
+                  if (cropperInstance) {
+                    console.warn(
+                      '[DEBUG] Unexpected: cropperInstance exists at start of onload. Destroying.'
+                    );
+                    try {
+                      cropperInstance.destroy();
+                    } catch (e) {
+                      console.error(e);
+                    }
+                    cropperInstance = null;
+                  }
+
+                  imageSelectionContainer.style.display = 'none';
+                  imageSelectionMessage.style.display = 'none';
+                  cropperContainer.style.display = 'block';
+                  cropperImage.style.display = 'block';
+                  cropperImage.style.maxWidth = '100%';
+                  const offsetH = cropperContainer.offsetHeight;
+                  console.log(
+                    `[DEBUG] Container offsetHeight after reflow force: ${offsetH}`
+                  );
+
+                  try {
+                    if (
+                      cropperImage.naturalWidth > 0 &&
+                      cropperImage.naturalHeight > 0
+                    ) {
+                      console.log(
+                        `[DEBUG] Image dimensions OK before init: ${cropperImage.naturalWidth}x${cropperImage.naturalHeight}`
+                      );
+
+                      const cropperOptions: Cropper.Options = {
+                        aspectRatio: 2 / 3,
+                        dragMode: 'move',
+                        cropBoxResizable: false,
+                        cropBoxMovable: false, // Prevent moving the crop box
+                        viewMode: 1,
+                        autoCropArea: 0.8,
+                        movable: true,
+                        zoomable: true,
+                        rotatable: false,
+                        scalable: false,
+                        background: false,
+                        ready: () => {
+                          console.log(
+                            '[DEBUG] Cropper ready! (triggered via OPTIONS)'
+                          );
+                          if (confirmCropBtn) {
+                            confirmCropBtn.disabled = false;
+                            console.log(
+                              '[DEBUG] Confirm button enabled via ready OPTION.'
+                            );
+                          } else {
+                            console.warn(
+                              '[DEBUG] confirmCropBtn not found in ready option callback.'
+                            );
+                          }
+                        },
+                      };
+
+                      const readyListener = () => {
+                        console.log(
+                          '[DEBUG] Cropper ready! (EVENT LISTENER attached before new)'
+                        );
+                        if (confirmCropBtn && confirmCropBtn.disabled) {
+                          confirmCropBtn.disabled = false;
+                          console.log(
+                            '[DEBUG] Confirm button enabled via EVENT LISTENER.'
+                          );
+                        } else if (confirmCropBtn) {
+                          console.log(
+                            '[DEBUG] Confirm button already enabled when EVENT LISTENER fired.'
+                          );
+                        }
+                      };
+                      console.log(
+                        "[DEBUG] Adding explicit 'ready' event listener BEFORE new Cropper()..."
+                      );
+                      cropperImage.addEventListener('ready', readyListener, {
+                        once: true,
+                      });
+
+                      const cropListener = (event: Event) => {
+                        const customEvent = event as CustomEvent;
+                        console.log(
+                          "[DEBUG] Cropper 'crop' event fired:",
+                          customEvent.detail
+                        );
+                      };
+                      console.log(
+                        "[DEBUG] Adding explicit 'crop' event listener..."
+                      );
+                      cropperImage.addEventListener(
+                        'crop',
+                        cropListener
+                      );
+
+                      console.log(
+                        '[DEBUG] Initializing Cropper with options:',
+                        cropperOptions
+                      );
+                      if (CropperConstructor) {
+                        cropperInstance = new CropperConstructor(
+                          cropperImage,
+                          cropperOptions
+                        );
+                      }
+                      console.log(
+                        '[DEBUG] Cropper instance CREATED:',
+                        cropperInstance
+                      );
+
+                      cropperImage.__readyListener = readyListener;
+                      cropperImage.__cropListener = cropListener;
+                    } else {
+                      console.error(
+                        '[DEBUG] Image dimensions INVALID before init (0 width or height). Cannot initialize Cropper.'
+                      );
+                      if (cropperErrorEl) {
+                        cropperErrorEl.textContent =
+                          'Error: La imagen seleccionada no tiene dimensiones válidas (0px).';
+                        cropperErrorEl.style.display = 'block';
+                      }
+                      if (confirmCropBtn) confirmCropBtn.disabled = true;
+                    }
+                  } catch (initError) {
+                    console.error(
+                      '[DEBUG] Error during Cropper initialization:',
+                      initError
+                    );
+                    if (cropperErrorEl) {
+                      cropperErrorEl.textContent = `Error inicializando recorte: ${initError instanceof Error ? initError.message : String(initError)}`;
+                      cropperErrorEl.style.display = 'block';
+                    }
+                    if (confirmCropBtn) confirmCropBtn.disabled = true;
+                    if (currentObjectUrl) {
+                      URL.revokeObjectURL(currentObjectUrl);
+                      currentObjectUrl = null;
+                    }
+                  }
+                };
+                cropperImage.onerror = () => {
+                  console.error(
+                    '[DEBUG] cropperImage.onerror triggered with Object URL:',
+                    currentObjectUrl
+                  );
+                  if (cropperErrorEl) {
+                    cropperErrorEl.textContent =
+                      'Error al cargar la imagen desde Object URL en el recortador.';
+                    cropperErrorEl.style.display = 'block';
+                  }
+                  if (confirmCropBtn) confirmCropBtn.disabled = true;
+                  if (currentObjectUrl) {
+                    URL.revokeObjectURL(currentObjectUrl);
+                    currentObjectUrl = null;
+                  }
+                  // Limpiar instancia si se creó antes del error
+                  if (cropperInstance) {
+                    try {
+                      cropperInstance.destroy();
+                    } catch (e) {
+                      console.error(e);
+                    }
+                    cropperInstance = null;
+                  }
+                };
+
+                // Asignar el Object URL al src
+                console.log('[DEBUG] Assigning Object URL to cropperImage.src');
+                cropperImage.src = currentObjectUrl;
+              } else {
+                console.error(
+                  '[DEBUG] cropperImage element not found when assigning Object URL.'
+                );
+                if (currentObjectUrl) {
+                  URL.revokeObjectURL(currentObjectUrl);
+                  currentObjectUrl = null;
+                }
+              }
+            } catch (fetchError) {
+              console.error('[DEBUG] Error fetching image blob:', fetchError);
+              if (cropperErrorEl) {
+                cropperErrorEl.textContent = `Error cargando datos de imagen: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`;
+                cropperErrorEl.style.display = 'block';
+              }
+              if (confirmCropBtn) confirmCropBtn.disabled = true;
+            }
+          }); // Fin wrapper.addEventListener('click')
+          imageSelectionContainer.appendChild(wrapper);
+        }); // Fin imageUrls.forEach
+        console.log('[DEBUG] Image selection container populated.');
+      } else {
+        console.error(
+          '[DEBUG] imageSelectionContainer or CropperConstructor is missing.'
+        );
+      }
+    };
+    // --- FIN NUEVA FUNCIÓN ---
+
+    // --- MANEJADOR DE CLIC DE "RECORTAR PORTADA" (MODIFICADO) ---
+    console.log('[DEBUG] Setting up crop button listeners...');
+    document
+      .querySelectorAll('.crop-thumbnail-btn')
+      .forEach((buttonElement) => {
+        const button = buttonElement as HTMLButtonElement;
+        button.addEventListener('click', async () => {
+          console.log(
+            `[DEBUG] Crop button clicked for chapterId: ${button.dataset.chapterId}`
+          );
+          currentChapterId = button.dataset.chapterId ?? null;
+          const seriesSlug = button.dataset.seriesSlug;
+          const chapterNumber = button.dataset.chapterNumber;
+
+          if (!currentChapterId || !seriesSlug || !chapterNumber) {
+            console.error('[DEBUG] Missing data attributes on crop button.');
+            alert('Error: Faltan datos del capítulo.');
+            return;
+          }
+
+          // --- AÑADIDO: Deshabilitar botón y mostrar spinner ---
+          button.disabled = true; // Deshabilitar este botón
+          console.log('[DEBUG] Original crop button disabled.');
+
+          if (cropperModal) cropperModal.classList.remove('is-hidden');
+          console.log('[DEBUG] Cropper modal opened.');
+
+          if (cropperChapterNumberSpan)
+            cropperChapterNumberSpan.textContent = chapterNumber;
+          if (cropperErrorEl) cropperErrorEl.style.display = 'none';
+
+          // Ocultar grid y mostrar spinner
+          if (imageSelectionContainer)
+            imageSelectionContainer.style.display = 'none';
+          if (imageSelectionMessage)
+            imageSelectionMessage.style.display = 'none';
+          if (loadingSpinnerContainer)
+            loadingSpinnerContainer.style.display = 'block';
+          if (loadingSpinnerMessage)
+            loadingSpinnerMessage.textContent =
+              'Cargando imágenes del capítulo...';
+          // --- FIN AÑADIDO ---
+
+          const apiUrl = `/api/series/${seriesSlug}/${chapterNumber}`;
+
+          try {
+            console.log(
+              `[DEBUG] Fetching image URLs for ${seriesSlug}/${chapterNumber}...`
+            );
+            const response = await fetch(apiUrl);
+            console.log(
+              `[DEBUG] Image URL fetch response status: ${response.status}`
+            );
+
+            const data = await response.json(); // Leer JSON en todos los casos
+
+            if (response.status === 200) {
+              console.log('[DEBUG] Status 200 OK received.');
+              if (data.error) {
+                throw new Error(data.error || 'Error en los datos de la API.');
+              }
+              // Éxito: Ocultar spinner y poblar imágenes
+              await populateImageSelection(data.imageUrls);
+              button.disabled = false; // Habilitar botón original
+            } else if (response.status === 202) {
+              console.warn('[DEBUG] Status 202 Accepted. Starting polling...');
+              if (loadingSpinnerMessage) {
+                loadingSpinnerMessage.textContent =
+                  'El capítulo aún se está procesando... Preparando sondeo...';
+              }
+              // Iniciar sondeo. El botón se habilitará por la función de sondeo.
+              pollForImages(apiUrl, button);
+            } else {
+              // Otro error
+              console.error('[DEBUG] API returned error:', data);
+              throw new Error(
+                data.message ||
+                  data.error ||
+                  `Error al obtener imágenes: ${response.statusText} (Status: ${response.status})`
+              );
+            }
+          } catch (error) {
+            console.error('[DEBUG] Error fetching chapter image URLs:', error);
+            if (cropperErrorEl) {
+              cropperErrorEl.textContent =
+                error instanceof Error
+                  ? error.message
+                  : 'Error desconocido cargando imágenes.';
+              cropperErrorEl.style.display = 'block';
+            }
+            // --- AÑADIDO: Ocultar spinner y habilitar botón en error ---
+            if (loadingSpinnerContainer)
+              loadingSpinnerContainer.style.display = 'none';
+            button.disabled = false;
+            // --- FIN AÑADIDO ---
+          }
+        }); // Fin button.addEventListener('click')
+      }); // Fin document.querySelectorAll('.crop-thumbnail-btn').forEach
+    console.log('[DEBUG] Crop button listeners set up.');
+    // --- FIN MANEJADOR MODIFICADO ---
+
+    // Event listener para el botón "Confirmar Recorte"
+    confirmCropBtn?.addEventListener('click', () => {
+      console.log('[DEBUG] Confirm crop button clicked.');
+      if (!cropperInstance || !currentChapterId) {
+        console.error(
+          '[DEBUG] Cropper instance or chapterId missing on confirm click.'
+        );
+        return;
+      }
+
+      confirmCropBtn.disabled = true;
+      confirmCropBtn.textContent = 'Procesando...';
+      if (cropperErrorEl) cropperErrorEl.style.display = 'none';
+      console.log(
+        '[DEBUG] Confirm button disabled, text changed to Processing...'
+      );
+
+      try {
+        console.log('[DEBUG] Calling getCroppedCanvas...');
+        const canvas = cropperInstance.getCroppedCanvas({
+          width: 200,
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'medium',
+        });
+        if (!canvas) {
+          throw new Error('No se pudo generar el canvas recortado.');
+        }
+        console.log('[DEBUG] Canvas created successfully.');
+
+        canvas.toBlob(
+          async (blob: Blob | null) => {
+            if (!blob) {
+              console.error('[DEBUG] Failed to convert canvas to Blob.');
+              throw new Error('Error al convertir la imagen recortada a Blob.');
+            }
+            console.log('[DEBUG] Blob created successfully from canvas.');
+
+            const formData = new FormData();
+            formData.append('chapterId', currentChapterId!);
+            formData.append(
+              'thumbnailImage',
+              blob!,
+              `thumbnail-${currentChapterId}.webp`
+            );
+            console.log('[DEBUG] FormData prepared for upload.');
+
+            try {
+              console.log(
+                '[DEBUG] Sending POST request to /api/upload-chapter-thumbnail'
+              );
+              const response = await fetch('/api/upload-chapter-thumbnail', {
+                method: 'POST',
+                body: formData,
+              });
+              console.log(`[DEBUG] Upload response status: ${response.status}`);
+              const result = await response.json();
+
+              if (!response.ok) {
+                console.error('[DEBUG] Upload failed:', result);
+                throw new Error(
+                  result.error ||
+                    result.details ||
+                    'Error en el servidor al subir la miniatura.'
+                );
+              }
+              console.log('[DEBUG] Upload successful:', result);
+
+              // Éxito: Actualizar la imagen en la página principal y cerrar modal
+              const chapterItem = document
+                .querySelector(
+                  `.chapter-item button.crop-thumbnail-btn[data-chapter-id="${currentChapterId}"]`
+                )
+                ?.closest('.chapter-item');
+              const imgElement = chapterItem?.querySelector(
+                '.chapter-thumbnail-img'
+              ) as HTMLImageElement | null;
+              if (imgElement && result.thumbnailUrl) {
+                const newSrc = `${result.thumbnailUrl}?t=${Date.now()}`;
+                console.log('[DEBUG] Updating thumbnail img src to:', newSrc);
+                imgElement.src = newSrc;
+              } else {
+                console.warn(
+                  '[DEBUG] Could not find thumbnail img element to update.'
+                );
+              }
+              alert('Miniatura actualizada con éxito!');
+              closeCropperModal();
+            } catch (uploadError) {
+              console.error(
+                '[DEBUG] Error during thumbnail upload:',
+                uploadError
+              );
+              if (cropperErrorEl) {
+                cropperErrorEl.textContent =
+                  uploadError instanceof Error
+                    ? uploadError.message
+                    : 'Error desconocido al subir.';
+                cropperErrorEl.style.display = 'block';
+              }
+            } finally {
+              // Asegurarse de rehabilitar el botón si falla la subida
+              if (confirmCropBtn) {
+                console.log(
+                  '[DEBUG] Re-enabling confirm button after upload attempt.'
+                );
+                confirmCropBtn.disabled = false;
+                confirmCropBtn.textContent = 'Confirmar Recorte';
+              }
+            }
+          },
+          'image/webp',
+          0.85
+        ); // Fin toBlob
+      } catch (cropError) {
+        console.error(
+          '[DEBUG] Error during getCroppedCanvas or toBlob:',
+          cropError
+        );
+        if (cropperErrorEl) {
+          cropperErrorEl.textContent =
+            cropError instanceof Error
+              ? cropError.message
+              : 'Error al generar el recorte.';
+          cropperErrorEl.style.display = 'block';
+        }
+        // Rehabilitar botón si falla el recorte
+        if (confirmCropBtn) {
+          console.log('[DEBUG] Re-enabling confirm button after crop error.');
+          confirmCropBtn.disabled = false;
+          confirmCropBtn.textContent = 'Confirmar Recorte';
+        }
+      }
+    }); // Fin confirmCropBtn listener
+
+    // --- CÓDIGO PARA SUBIDA MANUAL ---
+    console.log('[DEBUG] Setting up manual upload listeners...');
+    document
+      .querySelectorAll('.upload-thumbnail-input')
+      .forEach((inputElement) => {
+        const input = inputElement as HTMLInputElement;
+        input.addEventListener('change', async () => {
+          console.log(
+            `[DEBUG] Manual upload input changed for chapterId: ${input.dataset.chapterId}`
+          );
+          const chapterId = input.dataset.chapterId;
+          if (!chapterId || !input.files || input.files.length === 0) {
+            console.error('[DEBUG] No chapterId or no file selected.');
+            return;
+          }
+          const file = input.files![0] as File; // Line 1557
+          console.log(
+            `[DEBUG] Selected file: ${file.name}, size: ${file.size} bytes`
+          );
+
+          const formData = new FormData();
+          formData.append('chapterId', chapterId);
+          formData.append('thumbnailImage', file); // No need for '!' here as it's already asserted
+          console.log('[DEBUG] FormData prepared for manual upload.');
+
+          try {
+            console.log(
+              '[DEBUG] Sending POST request to /api/upload-chapter-thumbnail (manual upload)'
+            );
+            const response = await fetch('/api/upload-chapter-thumbnail', {
+              method: 'POST',
+              body: formData,
+            });
+            console.log(
+              `[DEBUG] Manual upload response status: ${response.status}`
+            );
+            const result = await response.json();
+
+            if (!response.ok) {
+              console.error('[DEBUG] Manual upload failed:', result);
+              throw new Error(
+                result.error ||
+                  result.details ||
+                  'Error en el servidor al subir la miniatura.'
+              );
+            }
+            console.log('[DEBUG] Manual upload successful:', result);
+
+            // Éxito: Actualizar la imagen en la página principal
+            const chapterItem = document
+              .querySelector(
+                `.chapter-item input.upload-thumbnail-input[data-chapter-id="${chapterId}"]`
+              )
+              ?.closest('.chapter-item');
+            const imgElement = chapterItem?.querySelector(
+              '.chapter-thumbnail-img'
+            ) as HTMLImageElement | null;
+            if (imgElement && result.thumbnailUrl) {
+              const newSrc = `${result.thumbnailUrl}?t=${Date.now()}`;
+              console.log('[DEBUG] Updating thumbnail img src to:', newSrc);
+              imgElement.src = newSrc;
+            } else {
+              console.warn(
+                '[DEBUG] Could not find thumbnail img element to update after manual upload.'
+              );
+            }
+            alert('Miniatura subida con éxito!');
+          } catch (uploadError) {
+            console.error(
+              '[DEBUG] Error during manual thumbnail upload:',
+              uploadError
+            );
+            alert(
+              uploadError instanceof Error
+                ? uploadError.message
+                : 'Error desconocido al subir la miniatura.'
+            );
+          } finally {
+            // Reset input
+            input.value = '';
+          }
+        });
+      });
+    console.log('[DEBUG] Manual upload listeners set up.');
+
+    console.log('[DEBUG] DOMContentLoaded handler finished.');
+  }); // Cierre del addEventListener 'DOMContentLoaded'
+</script>

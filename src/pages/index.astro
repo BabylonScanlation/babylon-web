@@ -1,0 +1,201 @@
+---
+import Layout from '../layouts/Layout.astro';
+import HeroCarousel from '../components/HeroCarousel.astro';
+import FeaturedGrid from '../components/FeaturedGrid.astro';
+import RecentUpdatesGrid from '../components/RecentUpdatesGrid.astro';
+import MangaList from '../components/MangaList.astro';
+import type { Series } from '../types';
+
+const { runtime } = Astro.locals;
+const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
+
+let recentSeries: Series[] = [];
+let popularSeries: Series[] = [];
+let seriesWithRecentChapters: Series[] = [];
+let allSeriesAlphabetical: Series[] = [];
+let hasContent = false;
+
+try {
+  const filterValidSeries = (series: Series[]) =>
+    series.filter((s) => s && s.title && s.cover_image_url);
+
+  const recentSeriesResponse = await fetch(
+    new URL('/api/series/recent', Astro.url)
+  );
+  if (recentSeriesResponse.ok) {
+    recentSeries = filterValidSeries(await recentSeriesResponse.json());
+  }
+
+  const popularSeriesResponse = await fetch(
+    new URL('/api/series/popular', Astro.url)
+  );
+  if (popularSeriesResponse.ok) {
+    popularSeries = filterValidSeries(await popularSeriesResponse.json());
+  }
+
+  const recentChaptersResponse = await fetch(
+    new URL('/api/series/recent-chapters', Astro.url)
+  );
+  if (recentChaptersResponse.ok) {
+    seriesWithRecentChapters = filterValidSeries(
+      await recentChaptersResponse.json()
+    ).map((s) => ({
+      ...s,
+      lastChapter: s.lastChapter ? `Capítulo ${s.lastChapter}` : 'N/A',
+    }));
+  }
+
+  const allSeriesResponse = await fetch(new URL('/api/series', Astro.url));
+  if (allSeriesResponse.ok) {
+    allSeriesAlphabetical = filterValidSeries(await allSeriesResponse.json());
+  }
+} catch (error) {
+  console.error('Error al obtener las listas de series:', error);
+}
+
+const combinedSeries = [...popularSeries, ...recentSeries];
+const uniqueSeries = Array.from(
+  new Map(combinedSeries.map((s) => [s.slug, s])).values()
+);
+const featuredGridData = uniqueSeries.slice(0, 3);
+
+hasContent =
+  recentSeries.length > 0 ||
+  featuredGridData.length > 0 ||
+  seriesWithRecentChapters.length > 0 ||
+  allSeriesAlphabetical.length > 0;
+---
+
+<Layout title="Babylon Scanlation">
+  {
+    hasContent ? (
+      <div class="main-content-wrapper">
+        {recentSeries.length > 0 && <HeroCarousel slides={recentSeries} />}
+        <div class="main-sections-container">
+          {featuredGridData.length > 0 && (
+            <FeaturedGrid mangas={featuredGridData} />
+          )}
+          {seriesWithRecentChapters.length > 0 && (
+            <RecentUpdatesGrid
+              mangas={seriesWithRecentChapters}
+              title="Últimos Capítulos Publicados"
+            />
+          )}
+          {allSeriesAlphabetical.length > 0 && (
+            <section class="full-library-section">
+              <div
+                id="all-mangas-container"
+                class="manga-list-collapsible is-hidden"
+              >
+                <MangaList
+                  mangas={allSeriesAlphabetical}
+                  title="Nuestra Biblioteca (A-Z)"
+                />
+              </div>
+              <div class="view-all-container">
+                <button id="toggle-library-btn" class="view-all-btn">
+                  VER TODA LA BIBLIOTECA
+                </button>
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
+    ) : (
+      <div class="empty-state-container">
+        <img
+          src={`${r2PublicUrlAssets}/iconpage/babylon-logo-3.webp`}
+          alt="Babylon Scanlation Logo"
+          class="empty-state-logo"
+        />
+        <p class="empty-state-text">
+          Lo sentimos... aún no hay series disponibles.
+          <br />
+          Vuelva en otro momento.
+        </p>
+      </div>
+    )
+  }
+</Layout>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const toggleButton = document.getElementById('toggle-library-btn');
+    const libraryContainer = document.getElementById('all-mangas-container');
+    toggleButton?.addEventListener('click', () => {
+      const isHidden = libraryContainer?.classList.toggle('is-hidden');
+      toggleButton.textContent = isHidden
+        ? 'VER TODA LA BIBLIOTECA'
+        : 'OCULTAR BIBLIOTECA';
+    });
+  });
+</script>
+
+<style>
+  .main-content-wrapper {
+    width: 100%;
+  }
+  .main-sections-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    width: 100%;
+  }
+
+  .empty-state-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    text-align: center;
+    padding: 1rem;
+  }
+
+  .empty-state-logo {
+    max-width: 250px;
+    width: 50%;
+    opacity: 0.7;
+  }
+  .empty-state-text {
+    color: #aaa;
+    font-size: 1.1rem;
+    max-width: 400px;
+    line-height: 1.6;
+  }
+  .full-library-section {
+    margin: 2rem auto 0;
+  }
+  .manga-list-collapsible {
+    transition:
+      max-height 0.5s ease-in-out,
+      opacity 0.5s ease-in-out;
+    overflow: hidden;
+    max-height: 10000px;
+    opacity: 1;
+  }
+  .manga-list-collapsible.is-hidden {
+    max-height: 0;
+    opacity: 0;
+  }
+  .view-all-container {
+    text-align: center;
+    margin-top: 1.5rem;
+    margin-bottom: 0;
+  }
+  .view-all-btn {
+    background-color: var(--card-background);
+    color: var(--font-color);
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-weight: bold;
+    border: 1px solid #333;
+    transition: background-color 0.2s;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  .view-all-btn:hover {
+    background-color: #333;
+  }
+</style>
