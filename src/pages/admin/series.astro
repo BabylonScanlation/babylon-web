@@ -1219,18 +1219,11 @@ try {
     console.log('[DEBUG] Modal close listeners set up.');
 
     // --- NUEVA FUNCIÓN DE POLLING ---
-    /**
-     * Inicia el sondeo para obtener las imágenes del capítulo.
-     * @param {string} apiUrl - La URL de la API a consultar.
-     * @param {HTMLButtonElement} originalButton - El botón que inició la acción.
-     * @param {number} [maxAttempts=12] - Número máximo de reintentos (12 * 5s = 60s).
-     * @param {number} [currentAttempt=1] - Contador de intento actual.
-     */
     const pollForImages = (
       apiUrl: string,
       originalButton: HTMLButtonElement,
-      maxAttempts = 12,
-      currentAttempt = 1
+      maxAttempts: number = 12,
+      currentAttempt: number = 1
     ) => {
       console.log(
         `[DEBUG] Polling attempt ${currentAttempt}/${maxAttempts} for ${apiUrl}`

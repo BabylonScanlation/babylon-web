@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 
 export const POST: APIRoute = async (context) => {
-  const { request, cookies, redirect, locals } = context;
+  const { request, redirect, locals } = context;
   const referer = request.headers.get('Referer') || '/admin/series';
 
   try {
