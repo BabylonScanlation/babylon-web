@@ -5,7 +5,7 @@ interface ViewRequestBody {
   chapterId: number;
 }
 
-export const POST: APIRoute = async ({ request, locals, cookies, clientAddress }) => {
+export const POST: APIRoute = async ({ request, locals, clientAddress }) => {
   try {
     const { chapterId } = (await request.json()) as ViewRequestBody;
     if (!chapterId) {
@@ -13,36 +13,14 @@ export const POST: APIRoute = async ({ request, locals, cookies, clientAddress }
     }
 
     const db = locals.runtime.env.DB;
+    const ipAddress = clientAddress;
 
-    // --- Lógica de Identidad de Invitado ---
-    let guestId = cookies.get('guest_id')?.value;
-
-    if (!guestId) {
-      // Si no hay cookie, es un visitante nuevo o uno que limpió sus datos.
-      guestId = crypto.randomUUID();
-      console.log(`Nuevo guest_id generado: ${guestId}`);
-
-      // Guardamos el nuevo usuario anónimo en la base de datos
-      await db.prepare(
-        'INSERT INTO AnonymousUsers (guest_id, last_ip_address) VALUES (?, ?)'
-      ).bind(guestId, clientAddress).run();
-
-      // Establecemos la cookie para futuras visitas
-      cookies.set('guest_id', guestId, {
-        path: '/',
-        maxAge: 60 * 60 * 24 * 365 * 2, // 2 años
-        httpOnly: true,
-        secure: import.meta.env.PROD, // Solo secure en producción
-      });
-    }
-
-    // --- Registro de Vista con guest_id ---
-    // 1. Intenta insertar la vista usando el guest_id.
+    // 1. Intenta insertar la vista usando la ip_address.
     const insertResult = await db
       .prepare(
-        'INSERT OR IGNORE INTO ChapterViews (chapter_id, guest_id) VALUES (?, ?)'
+        'INSERT OR IGNORE INTO ChapterViews (chapter_id, ip_address) VALUES (?, ?)'
       )
-      .bind(chapterId, guestId)
+      .bind(chapterId, ipAddress)
       .run();
 
     // 2. Si la inserción fue exitosa (se añadió una fila nueva),

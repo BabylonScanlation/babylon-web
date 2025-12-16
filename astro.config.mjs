@@ -17,5 +17,8 @@ export default defineConfig({
       noExternal: ['firebase-admin'],
       external: ['@cloudflare/workers-types'],
     },
+    optimizeDeps: {
+      exclude: ['swiper', 'swiper/modules'],
+    },
   },
 });

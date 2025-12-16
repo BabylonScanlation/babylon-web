@@ -10,7 +10,14 @@ export const GET: APIRoute = async ({ locals }) => {
     const newsWithImages = await Promise.all(
       publishedNews.map(async (newsItem) => {
         const images = await getNewsImages(db, newsItem.id);
-        const imageUrls = images.map(img => `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`);
+        const imageUrls = images.map(img => {
+          if (!locals.runtime.env.R2_PUBLIC_URL_ASSETS) {
+            console.error('R2_PUBLIC_URL_ASSETS is not defined in environment.');
+            // Return a placeholder or throw an error depending on desired behavior
+            return '/placeholder-image.jpg'; // Example: return a placeholder
+          }
+          return `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`;
+        });
         return { ...newsItem, imageUrls };
       })
     );
@@ -20,6 +27,10 @@ export const GET: APIRoute = async ({ locals }) => {
     });
   } catch (error) {
     console.error('Error fetching public news:', error);
-    return new Response('Internal Server Error', { status: 500 });
+    // Return a more informative error response
+    return new Response(JSON.stringify({
+        error: 'Error interno del servidor al obtener noticias',
+        details: error instanceof Error ? error.message : String(error)
+    }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 };

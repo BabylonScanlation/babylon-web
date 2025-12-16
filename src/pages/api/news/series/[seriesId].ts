@@ -12,7 +12,12 @@ export const GET: APIRoute = async ({ params, locals }) => {
   const db = getDB(locals.runtime.env);
 
   try {
-    const newsForSeries = await getAllNews(db, 'published', seriesId);
+    const numericSeriesId = parseInt(seriesId, 10);
+    if (isNaN(numericSeriesId)) {
+        return new Response('Invalid Series ID', { status: 400 });
+    }
+
+    const newsForSeries = await getAllNews(db, 'published', numericSeriesId);
 
     if (newsForSeries.length === 0) {
       return new Response(JSON.stringify([]), {

@@ -15,7 +15,7 @@ export interface NewsItem {
   updatedAt: number;
   publishedBy: string;
   status: 'draft' | 'published';
-  seriesId: string | null;
+  seriesId: number | null;
   authorName: string;
 }
 
@@ -48,7 +48,7 @@ export async function createNews(
       newsItem.updatedAt,
       newsItem.publishedBy,
       newsItem.status,
-      newsItem.seriesId || null,
+      newsItem.seriesId, // seriesId is already number | null
       newsItem.authorName
     )
     .run();
@@ -63,13 +63,13 @@ export async function getNewsById(
     .prepare('SELECT * FROM News WHERE id = ?')
     .bind(id)
     .all<NewsItem>();
-  return results?.[0] || null; // Use optional chaining and nullish coalescing
+  return results?.[0] || null;
 }
 
 export async function getAllNews(
   db: D1Database,
   status?: 'draft' | 'published',
-  seriesId?: string | null // Added seriesId parameter
+  seriesId?: number | null // Updated to number | null
 ): Promise<NewsItem[]> {
   let query = 'SELECT * FROM News';
   const params: (string | number | null)[] = [];
@@ -80,9 +80,8 @@ export async function getAllNews(
     params.push(status);
   }
   if (seriesId !== undefined) {
-    // Check for undefined to allow null seriesId
     conditions.push('seriesId = ?');
-    params.push(seriesId);
+    params.push(seriesId); // Pass directly as number | null
   }
 
   if (conditions.length > 0) {
@@ -104,17 +103,57 @@ export async function updateNews(
 ): Promise<NewsItem | null> {
   const now = Date.now();
   const fields = Object.keys(updates)
-    .map((key) => `${key} = ?`)
+    .map((key) => {
+      // Handle seriesId specifically if it's being updated
+      if (key === 'seriesId') {
+        // Ensure that seriesId is treated as number | null for binding
+        const value = updates[key as keyof typeof updates];
+        if (value === '') return `seriesId = NULL`; // Treat empty string as NULL for integer column
+        if (typeof value === 'string') return `seriesId = ${parseInt(value, 10)}`; // Parse string to int
+      }
+      return `${key} = ?`;
+    })
     .join(', ');
-  const values = Object.values(updates);
+  
+  // Filter out seriesId from values if handled separately, or adjust if parsing string to int
+  const values = Object.entries(updates)
+    .filter(([key]) => key !== 'seriesId')
+    .map(([, value]) => value);
 
-  if (fields.length === 0) {
+  // If seriesId is updated, it's handled in the fields string.
+  // Otherwise, if it's in values, it should already be number | null.
+  
+  // This part needs careful handling to avoid duplicating seriesId or missing it if it's null.
+  // A more robust way would be to construct values dynamically from fields.
+  
+  // Let's refine the updateNews construction:
+  const updateFields: string[] = [];
+  const updateValues: (string | number | boolean | null)[] = [];
+
+  for (const [key, value] of Object.entries(updates)) {
+      if (key === 'seriesId') {
+          if (value === '' || value === null) {
+              updateFields.push('seriesId = NULL');
+          } else if (typeof value === 'string') {
+              updateFields.push('seriesId = ?');
+              updateValues.push(parseInt(value, 10)); // Ensure it's parsed to number
+          } else { // Already a number
+              updateFields.push('seriesId = ?');
+              updateValues.push(value);
+          }
+      } else {
+          updateFields.push(`${key} = ?`);
+          updateValues.push(value);
+      }
+  }
+
+  if (updateFields.length === 0) {
     return getNewsById(db, id); // No updates to apply
   }
 
   await db
-    .prepare(`UPDATE News SET ${fields}, updatedAt = ? WHERE id = ?`)
-    .bind(...values, now, id)
+    .prepare(`UPDATE News SET ${updateFields.join(', ')}, updatedAt = ? WHERE id = ?`)
+    .bind(...updateValues, now, id)
     .run();
   return getNewsById(db, id);
 }
