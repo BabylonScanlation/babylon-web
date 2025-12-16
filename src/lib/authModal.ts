@@ -17,7 +17,8 @@ declare global {
 }
 
 export function initializeAuthModal() {
-  function setupAuthModal() {
+  const setup = () => {
+    // --- Element Queries ---
     const modalOverlay = document.getElementById('auth-modal-overlay');
     const modalCloseBtn = document.getElementById('auth-modal-close');
     const loginView = document.getElementById('login-view');
@@ -28,8 +29,6 @@ export function initializeAuthModal() {
     const googleSignInButtonRegister = document.getElementById(
       'google-sign-in-button-register'
     );
-
-    // Link Account View elements
     const linkAccountView = document.getElementById('link-account-view');
     const linkAccountMessage = document.getElementById(
       'link-account-message'
@@ -49,240 +48,6 @@ export function initializeAuthModal() {
     const cancelLinkAccountButton = document.getElementById(
       'cancel-link-account'
     );
-
-    if (
-      !modalOverlay ||
-      !modalCloseBtn ||
-      !loginView ||
-      !registerView ||
-      !showRegisterLink ||
-      !showLoginLink ||
-      !googleSignInButton ||
-      !googleSignInButtonRegister ||
-      !linkAccountView ||
-      !linkAccountMessage ||
-      !linkAccountErrorMessage ||
-      !linkAccountEmailInput ||
-      !linkAccountPasswordInput ||
-      !linkAccountSubmitButton ||
-      !cancelLinkAccountButton
-    ) {
-      // Si algún elemento no se encuentra, la función termina.
-      console.error(
-        'AuthModal: No se encontraron todos los elementos necesarios.'
-      );
-      return;
-    }
-
-    // Assert non-null after the check
-    const _modalOverlay = modalOverlay!;
-    const _loginView = loginView!;
-    const _registerView = registerView!;
-    const _linkAccountView = linkAccountView!;
-
-    let pendingCredential: AuthCredential | null = null;
-
-    function openModal(view: string = 'login', successMessage: string = '') {
-      const loginErrorMsg = document.getElementById(
-        'login-error-message'
-      ) as HTMLParagraphElement | null;
-      const loginSuccessMsg = document.getElementById(
-        'login-success-message'
-      ) as HTMLParagraphElement | null;
-
-      if (loginErrorMsg) loginErrorMsg.style.display = 'none';
-      if (loginSuccessMsg) loginSuccessMsg.style.display = 'none';
-      if (successMessage && loginSuccessMsg) {
-        loginSuccessMsg.textContent = successMessage;
-        loginSuccessMsg.style.display = 'block';
-      }
-
-      _loginView.style.display = view === 'login' ? 'block' : 'none';
-      _registerView.style.display = view === 'register' ? 'block' : 'none';
-      _linkAccountView.style.display = view === 'link' ? 'block' : 'none';
-      _modalOverlay.classList.remove('is-hidden');
-      document.body.style.overflow = '';
-    }
-
-    function closeModal() {
-      _modalOverlay.classList.add('is-hidden');
-      document.body.style.overflow = '';
-    }
-
-    // Evento personalizado para abrir el modal
-    document.addEventListener('open-auth-modal', (e: CustomEvent) => {
-      const detail = e.detail;
-      const view =
-        detail && typeof detail === 'object' && 'view' in detail
-          ? (detail.view as string)
-          : undefined;
-      const successMessage =
-        detail && typeof detail === 'object' && 'successMessage' in detail
-          ? (detail.successMessage as string)
-          : undefined;
-      openModal(view, successMessage);
-    });
-
-    // Eventos de los controles del modal
-    modalCloseBtn.addEventListener('click', closeModal);
-    _modalOverlay.addEventListener('click', (e) => {
-      if (e.target === _modalOverlay) closeModal();
-    });
-    showRegisterLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      openModal('register');
-    });
-    showLoginLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      openModal('login');
-    });
-
-    // Google Sign-In
-    const googleProvider = new GoogleAuthProvider();
-
-    const handleGoogleSignIn = async () => {
-      try {
-        const result = await signInWithPopup(auth, googleProvider);
-        const idToken = await result.user.getIdToken();
-        const response = await fetch('/api/auth/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken }),
-        });
-
-        if (response.ok) {
-          window.location.reload();
-        } else {
-          const errorData = await response.json();
-          console.error('Error en la sesión de Google:', errorData);
-          // Handle error display for Google Sign-In if needed
-        }
-      } catch (error: unknown) {
-        console.error('Error al iniciar sesión con Google:', error);
-        if (error && typeof error === 'object' && 'code' in error) {
-          interface AuthCredentialError extends AuthError {
-            credential?: AuthCredential;
-          }
-
-          // ... (rest of the code)
-
-          const firebaseError = error as AuthError;
-          if (
-            firebaseError.code ===
-            'auth/account-exists-with-different-credential'
-          ) {
-            const credentialError = error as AuthCredentialError;
-            pendingCredential = credentialError.credential || null;
-            const email = firebaseError.customData?.email as string;
-            if (email && linkAccountEmailInput) {
-              linkAccountEmailInput.value = email;
-            }
-            if (linkAccountMessage) {
-              linkAccountMessage.textContent = `Ya existe una cuenta con el correo ${email}. Por favor, inicia sesión con tu método existente para vincularla.`;
-              linkAccountMessage.style.display = 'block';
-            }
-            openModal('link');
-          } else {
-            // Handle other Firebase errors
-            alert('Error al iniciar sesión con Google: ' + firebaseError.code);
-          }
-        } else {
-          alert('Error desconocido al iniciar sesión con Google.');
-        }
-      }
-    };
-
-    googleSignInButton.addEventListener('click', handleGoogleSignIn);
-    googleSignInButtonRegister.addEventListener('click', handleGoogleSignIn);
-
-    // Link Account Form Submission
-    linkAccountSubmitButton.addEventListener('click', async (e) => {
-      e.preventDefault();
-      if (!pendingCredential) {
-        console.error('No pending credential to link.');
-        return;
-      }
-
-      const email = linkAccountEmailInput?.value;
-      const password = linkAccountPasswordInput?.value;
-
-      if (!email || !password) {
-        if (linkAccountErrorMessage) {
-          linkAccountErrorMessage.textContent =
-            'Por favor, completa todos los campos.';
-          linkAccountErrorMessage.style.display = 'block';
-        }
-        return;
-      }
-
-      try {
-        // Re-authenticate the user with their existing credentials
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
-        // Link the pending Google credential to the re-authenticated user
-        await linkWithCredential(userCredential.user, pendingCredential);
-
-        // If linking is successful, proceed to create session
-        const idToken = await userCredential.user.getIdToken();
-        const response = await fetch('/api/auth/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken }),
-        });
-
-        if (response.ok) {
-          window.location.reload();
-        } else {
-          const errorData = await response.json();
-          console.error(
-            'Error al crear sesión después de vincular:',
-            errorData
-          );
-          if (linkAccountErrorMessage) {
-            linkAccountErrorMessage.textContent =
-              'Error al vincular la cuenta y crear sesión.';
-            linkAccountErrorMessage.style.display = 'block';
-          }
-        }
-      } catch (error: unknown) {
-        console.error('Error durante la vinculación de cuenta:', error);
-        if (linkAccountErrorMessage) {
-          let errorMessage =
-            'Error al vincular la cuenta. Credenciales incorrectas o problema de red.';
-          if (error && typeof error === 'object' && 'code' in error) {
-            const firebaseError = error as { code: string };
-            if (firebaseError.code === 'auth/invalid-credential') {
-              errorMessage =
-                'Credenciales incorrectas para la cuenta existente.';
-            } else if (firebaseError.code === 'auth/wrong-password') {
-              errorMessage = 'Contraseña incorrecta para la cuenta existente.';
-            }
-          }
-          linkAccountErrorMessage.textContent = errorMessage;
-          linkAccountErrorMessage.style.display = 'block';
-        }
-      }
-    });
-
-    // Cancel Link Account Button
-    cancelLinkAccountButton.addEventListener('click', (e) => {
-      e.preventDefault();
-      closeModal();
-    });
-  }
-
-  // Inicializar cuando el DOM esté listo
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupAuthModal);
-  } else {
-    setupAuthModal();
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    // Configuración del formulario de login
     const loginForm = document.getElementById('login-form');
     const loginErrorMsg = document.getElementById(
       'login-error-message'
@@ -290,41 +55,117 @@ export function initializeAuthModal() {
     const loginSubmitBtn = document.getElementById(
       'login-submit-button'
     ) as HTMLButtonElement | null;
+    const registerForm = document.getElementById('register-form');
+    const registerErrorMsg = document.getElementById(
+      'register-error-message'
+    ) as HTMLParagraphElement | null;
+    const registerSubmitBtn = document.getElementById(
+      'register-submit-button'
+    ) as HTMLButtonElement | null;
 
-    if (
-      loginForm instanceof HTMLFormElement &&
-      loginErrorMsg &&
-      loginSubmitBtn
-    ) {
-      const btnText = loginSubmitBtn.querySelector('.button-text');
-      const btnLoader = loginSubmitBtn.querySelector('.button-loader');
-      const showLoginError = (message: string) => {
-        if (loginErrorMsg) {
-          loginErrorMsg.textContent = message;
-          loginErrorMsg.style.display = 'block';
+    if (!modalOverlay || !modalCloseBtn || !loginView || !registerView) {
+      return;
+    }
+
+    let pendingCredential: AuthCredential | null = null;
+    
+    function openModal(view: string = 'login', successMessage: string = '') {
+        if (loginErrorMsg) loginErrorMsg.style.display = 'none';
+        if (registerErrorMsg) registerErrorMsg.style.display = 'none';
+        const loginSuccessMsg = document.getElementById('login-success-message') as HTMLParagraphElement | null;
+        if (loginSuccessMsg) loginSuccessMsg.style.display = 'none';
+  
+        if (successMessage && loginSuccessMsg) {
+          loginSuccessMsg.textContent = successMessage;
+          loginSuccessMsg.style.display = 'block';
         }
-        if (btnText instanceof HTMLElement) btnText.style.display = 'inline';
-        if (btnLoader instanceof HTMLElement) btnLoader.style.display = 'none';
-        if (loginSubmitBtn) loginSubmitBtn.disabled = false;
-      };
+  
+        loginView.style.display = view === 'login' ? 'block' : 'none';
+        registerView.style.display = view === 'register' ? 'block' : 'none';
+        if (linkAccountView) linkAccountView.style.display = view === 'link' ? 'block' : 'none';
+        modalOverlay.classList.remove('is-hidden');
+    }
 
+    function closeModal() {
+      modalOverlay.classList.add('is-hidden');
+    }
+
+    document.addEventListener('open-auth-modal', (e: CustomEvent) => {
+      openModal(e.detail?.view, e.detail?.successMessage);
+    });
+
+    modalCloseBtn.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) closeModal();
+    });
+    showRegisterLink?.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModal('register');
+    });
+    showLoginLink?.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModal('login');
+    });
+
+    // --- GOOGLE SIGN-IN (POPUP FLOW - Corrected) ---
+    const googleProvider = new GoogleAuthProvider();
+    const handleGoogleSignIn = () => { // NOT async
+      signInWithPopup(auth, googleProvider)
+        .then(async (result) => {
+          // This async work happens *after* the popup is handled
+          const idToken = await result.user.getIdToken();
+          const response = await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
+          });
+
+          if (response.ok) {
+            window.location.reload();
+          } else {
+            alert('Error al crear la sesión en el servidor.');
+          }
+        })
+        .catch((error) => {
+          console.error("Error durante el inicio de sesión con Google:", error);
+          if (error.code === 'auth/cancelled-popup-request') {
+            // User closed the popup. This can be ignored silently.
+            console.log("Popup de Google cerrado por el usuario.");
+          } else if (error.code === 'auth/account-exists-with-different-credential') {
+            pendingCredential = error.credential;
+            const email = error.customData?.email;
+            if (email && linkAccountEmailInput) linkAccountEmailInput.value = email;
+            if (linkAccountMessage) {
+              linkAccountMessage.textContent = `Ya existe una cuenta con el correo ${email}. Por favor, inicia sesión con tu método existente para vincularla.`;
+              linkAccountMessage.style.display = 'block';
+            }
+            openModal('link');
+          } else {
+            alert('Ha ocurrido un error al iniciar sesión con Google.');
+          }
+        });
+    };
+
+    googleSignInButton?.addEventListener('click', handleGoogleSignIn);
+    googleSignInButtonRegister?.addEventListener('click', handleGoogleSignIn);
+
+    // --- FULL EMAIL/PASSWORD AND LINKING LOGIC ---
+    if (loginForm && loginErrorMsg && loginSubmitBtn) {
       loginSubmitBtn.addEventListener('click', async (e) => {
         e.preventDefault();
-        if (loginSubmitBtn) loginSubmitBtn.disabled = true;
-        if (btnText instanceof HTMLElement) btnText.style.display = 'none';
-        if (btnLoader instanceof HTMLElement) btnLoader.style.display = 'block';
-        if (loginErrorMsg) loginErrorMsg.style.display = 'none';
-
-        const formData = new FormData(loginForm);
+        loginSubmitBtn.disabled = true;
+        loginErrorMsg.style.display = 'none';
+        const formData = new FormData(loginForm as HTMLFormElement);
         const email = formData.get('email')?.toString().trim();
-        const password = formData.get('password')?.toString().trim(); // Trimmed here
+        const password = formData.get('password')?.toString().trim();
 
         if (!password) {
-          showLoginError('Por favor, completa el campo de contraseña.');
+          loginErrorMsg.textContent = 'Por favor, completa el campo de contraseña.';
+          loginErrorMsg.style.display = 'block';
+          loginSubmitBtn.disabled = false;
           return;
         }
 
-        // --- Admin Check ---
         const adminCheckResponse = await fetch('/api/auth/check-admin-password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -336,139 +177,137 @@ export function initializeAuthModal() {
           const setAdminSessionResponse = await fetch('/api/auth/set-admin-session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({}), // No body needed for setting session
+            body: JSON.stringify({}),
           });
-
           if (setAdminSessionResponse.ok) {
             window.location.href = '/admin';
-            return;
           } else {
-            showLoginError('Error al establecer la sesión de administrador.');
-            return;
+            loginErrorMsg.textContent = 'Error al establecer la sesión de administrador.';
+            loginErrorMsg.style.display = 'block';
           }
+          loginSubmitBtn.disabled = false;
+          return;
         }
 
         if (!email) {
-          showLoginError('El email es obligatorio para el inicio de sesión normal.');
+          loginErrorMsg.textContent = 'El email es obligatorio para el inicio de sesión normal.';
+          loginErrorMsg.style.display = 'block';
+          loginSubmitBtn.disabled = false;
           return;
         }
 
         try {
-          const userCredential = await signInWithEmailAndPassword(
-            auth,
-            email,
-            password
-          );
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
           const idToken = await userCredential.user.getIdToken();
           const response = await fetch('/api/auth/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idToken }),
           });
-
           if (response.ok) {
             window.location.reload();
           } else {
-            const errorData = await response.json();
-            const errorMessage =
-              errorData && typeof errorData === 'object' && 'error' in errorData
-                ? (errorData.error as string)
-                : 'Error del servidor al iniciar sesión.';
-            showLoginError(errorMessage);
+            loginErrorMsg.textContent = (await response.json()).error || 'Error del servidor.';
+            loginErrorMsg.style.display = 'block';
           }
-        } catch (error: unknown) {
-          let errorMessage = 'Credenciales incorrectas.';
-          if (error && typeof error === 'object' && 'code' in error) {
-            const firebaseError = error as { code: string };
-            if (firebaseError.code === 'auth/invalid-credential') {
-              errorMessage = 'Credenciales incorrectas.';
-            } else if (firebaseError.code === 'auth/user-not-found') {
-              errorMessage = 'Usuario no encontrado.';
-            } else if (firebaseError.code === 'auth/wrong-password') {
-              errorMessage = 'Contraseña incorrecta.';
-            }
-          }
-          showLoginError(errorMessage);
+        } catch (error) {
+          loginErrorMsg.textContent = 'Credenciales incorrectas o usuario no encontrado.';
+          loginErrorMsg.style.display = 'block';
         }
+        loginSubmitBtn.disabled = false;
       });
     }
 
-    // Configuración del formulario de registro
-    const registerForm = document.getElementById('register-form');
-    const registerErrorMsg = document.getElementById(
-      'register-error-message'
-    ) as HTMLParagraphElement | null;
-    const registerSubmitBtn = document.getElementById(
-      'register-submit-button'
-    ) as HTMLButtonElement | null;
-
-    if (
-      registerForm instanceof HTMLFormElement &&
-      registerErrorMsg &&
-      registerSubmitBtn
-    ) {
-      const btnText = registerSubmitBtn.querySelector('.button-text');
-      const btnLoader = registerSubmitBtn.querySelector('.button-loader');
-      const showRegisterError = (message: string) => {
-        if (registerErrorMsg) {
-          registerErrorMsg.textContent = message;
-          registerErrorMsg.style.display = 'block';
-        }
-        if (btnText instanceof HTMLElement) btnText.style.display = 'inline';
-        if (btnLoader instanceof HTMLElement) btnLoader.style.display = 'none';
-        if (registerSubmitBtn) registerSubmitBtn.disabled = false;
-      };
-
+    if (registerForm && registerErrorMsg && registerSubmitBtn) {
       registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (registerSubmitBtn) registerSubmitBtn.disabled = true;
-        if (btnText instanceof HTMLElement) btnText.style.display = 'none';
-        if (btnLoader instanceof HTMLElement) btnLoader.style.display = 'block';
-        if (registerErrorMsg) registerErrorMsg.style.display = 'none';
+        registerSubmitBtn.disabled = true;
+        registerErrorMsg.style.display = 'none';
 
-        const formData = new FormData(registerForm);
+        const formData = new FormData(registerForm as HTMLFormElement);
         const email = formData.get('email')?.toString().trim();
         const password = formData.get('password')?.toString();
         const confirmPassword = formData.get('confirmPassword')?.toString();
 
         if (!email || !password || !confirmPassword) {
-          showRegisterError('Por favor, completa todos los campos.');
+          registerErrorMsg.textContent = 'Por favor, completa todos los campos.';
+          registerErrorMsg.style.display = 'block';
+          registerSubmitBtn.disabled = false;
           return;
         }
         if (password !== confirmPassword) {
-          showRegisterError('Las contraseñas no coinciden.');
+          registerErrorMsg.textContent = 'Las contraseñas no coinciden.';
+          registerErrorMsg.style.display = 'block';
+          registerSubmitBtn.disabled = false;
           return;
         }
 
         try {
           await createUserWithEmailAndPassword(auth, email, password);
-          document.dispatchEvent(
-            new CustomEvent('open-auth-modal', {
-              detail: {
-                view: 'login',
-                successMessage:
-                  '¡Registro exitoso! Ahora puedes iniciar sesión.',
-              },
-            })
-          );
-        } catch (error: unknown) {
-          // Changed to unknown
-          if (error && typeof error === 'object' && 'code' in error) {
-            const firebaseError = error as { code: string }; // Type assertion for Firebase error
-            if (firebaseError.code === 'auth/email-already-in-use') {
-              showRegisterError('Este email ya está registrado.');
-            } else if (firebaseError.code === 'auth/weak-password') {
-              showRegisterError(
-                'La contraseña debe tener al menos 6 caracteres.'
-              );
-            } else {
-              showRegisterError('Error al registrar la cuenta.');
-            }
+          openModal('login', '¡Registro exitoso! Ahora puedes iniciar sesión.');
+        } catch (error: any) {
+          if (error.code === 'auth/email-already-in-use') {
+            registerErrorMsg.textContent = 'Este email ya está registrado.';
+          } else if (error.code === 'auth/weak-password') {
+            registerErrorMsg.textContent = 'La contraseña debe tener al menos 6 caracteres.';
           } else {
-            showRegisterError('Error al registrar la cuenta.');
+            registerErrorMsg.textContent = 'Error al registrar la cuenta.';
+          }
+          registerErrorMsg.style.display = 'block';
+        }
+        registerSubmitBtn.disabled = false;
+      });
+    }
+
+    if (linkAccountSubmitButton) {
+      linkAccountSubmitButton.addEventListener('click', async (e) => {
+        e.preventDefault();
+        if (!pendingCredential) {
+          console.error('No pending credential to link.');
+          return;
+        }
+        const email = linkAccountEmailInput?.value;
+        const password = linkAccountPasswordInput?.value;
+
+        if (!email || !password) {
+          if (linkAccountErrorMessage) {
+            linkAccountErrorMessage.textContent = 'Por favor, completa todos los campos.';
+            linkAccountErrorMessage.style.display = 'block';
+          }
+          return;
+        }
+        try {
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          await linkWithCredential(userCredential.user, pendingCredential);
+          const idToken = await userCredential.user.getIdToken();
+          const response = await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken }),
+          });
+          if (response.ok) {
+            window.location.reload();
+          } else {
+            throw new Error('Error al crear sesión después de vincular.');
+          }
+        } catch (error) {
+          if (linkAccountErrorMessage) {
+            linkAccountErrorMessage.textContent = 'Error al vincular: credenciales incorrectas o problema de red.';
+            linkAccountErrorMessage.style.display = 'block';
           }
         }
       });
     }
-  });
+    
+    cancelLinkAccountButton?.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeModal();
+    });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setup);
+  } else {
+    setup();
+  }
 }
