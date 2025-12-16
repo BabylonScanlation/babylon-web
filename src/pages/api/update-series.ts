@@ -6,7 +6,7 @@ export const POST: APIRoute = async (context) => {
   const referer = request.headers.get('Referer') || '/admin/series';
 
   try {
-    if (cookies.get('session')?.value !== 'admin-logged-in') {
+    if (!locals.user?.isAdmin) {
       return redirect('/admin/series?error=No autorizado');
     }
 

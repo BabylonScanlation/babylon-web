@@ -10,7 +10,7 @@ export const POST: APIRoute = async ({
   const referer = request.headers.get('Referer') || '/admin/series';
 
   // 1. Verificar la sesión de administrador
-  if (cookies.get('session')?.value !== 'admin-logged-in') {
+  if (!locals.user?.isAdmin) {
     return redirect('/admin?error=No autorizado');
   }
 
