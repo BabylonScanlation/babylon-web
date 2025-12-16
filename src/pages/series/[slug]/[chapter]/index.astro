@@ -682,6 +682,8 @@ if (
     display: flex;
     align-items: center;
     gap: 1rem;
+    min-width: 0; /* Add this line */
+    flex-shrink: 1; /* Add this line */
   }
   .chapter-nav a {
     color: var(--font-color);
@@ -1060,6 +1062,15 @@ if (
     }
     #content-sizer {
       max-width: 95vw;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .chapter-nav {
+      gap: 0.5rem; /* Reduce gap */
+    }
+    .chapter-number {
+      font-size: 0.9rem;
     }
   }
 </style>
