@@ -2,239 +2,144 @@
 // src/pages/admin/users.astro
 import Layout from '../../layouts/Layout.astro';
 
-// El middleware ya protege esta página, así que si llegamos aquí, somos admin.
-const { user } = Astro.locals;
-if (!user?.isAdmin) {
-  // Doble check por si acaso
-  return Astro.redirect('/');
+const { user, runtime } = Astro.locals;
+const superAdminUid = runtime.env.SUPER_ADMIN_UID;
+
+// Solo el Super Admin puede acceder a esta página
+if (!user?.isAdmin || user.uid !== superAdminUid) {
+  return Astro.redirect('/admin?error=No tienes permiso para gestionar usuarios.');
 }
 
-// Estos datos se obtendrán del lado del cliente para que la página sea dinámica
+const success = Astro.url.searchParams.get('success');
+const error = Astro.url.searchParams.get('error');
+
+interface AdminUser {
+  uid: string;
+  email: string;
+}
+
+let admins: AdminUser[] = [];
+try {
+  const response = await fetch(new URL('/api/admin/users', Astro.url));
+  if (response.ok) {
+    admins = await response.json();
+  } else {
+    console.error('Error fetching admins:', await response.text());
+  }
+} catch (e) {
+  console.error('Error fetching admins:', e);
+}
 ---
+
 <Layout title="Gestionar Administradores">
   <main class="admin-container">
-    <a href="/admin" class="back-link">&larr; Volver al Panel</a>
     <h1>Gestionar Administradores</h1>
 
-    <div class="card">
+    {success && <p class="success-message">{success}</p>}
+    {error && <p class="error-message">{error}</p>}
+
+    <div class="admin-section">
       <h2>Añadir Nuevo Administrador</h2>
-      <form id="add-admin-form" class="admin-form">
-        <div class="form-group">
-          <label for="user-identifier">Email o UID del Usuario</label>
-          <input type="text" id="user-identifier" name="identifier" placeholder="email@example.com o UID" required />
-        </div>
+      <form action="/api/admin/users" method="post" class="user-form">
+        <label for="uid">UID de Firebase del Usuario</label>
+        <input type="text" id="uid" name="uid" required />
         <button type="submit">Añadir Administrador</button>
-        <p id="add-error" class="error-message" style="display: none;"></p>
-        <p id="add-success" class="success-message" style="display: none;"></p>
       </form>
     </div>
 
-    <div class="card">
+    <div class="admin-section">
       <h2>Administradores Actuales</h2>
-      <ul id="admin-list" class="admin-list">
-        <!-- La lista se poblará dinámicamente -->
-        <li>Cargando...</li>
+      <ul class="user-list">
+        {admins.map(admin => (
+          <li>
+            <span>{admin.email} ({admin.uid})</span>
+            <form action="/api/admin/users" method="post">
+              <input type="hidden" name="_method" value="DELETE" />
+              <input type="hidden" name="uid" value={admin.uid} />
+              <button type="submit" class="delete-btn">Eliminar</button>
+            </form>
+          </li>
+        ))}
       </ul>
     </div>
   </main>
 </Layout>
 
 <style>
-  /* Estilos básicos para la página de admin */
   .admin-container {
     padding: 2rem;
-    max-width: 800px;
+    max-width: 900px;
     margin: 0 auto;
+    color: #fff;
   }
-  .back-link {
-    display: inline-block;
-    margin-bottom: 1.5rem;
-    color: var(--accent-color);
+  h1, h2 {
+    border-bottom: 1px solid #444;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
   }
-  .card {
+  .admin-section {
     background-color: var(--card-background);
-    border-radius: 8px;
     padding: 1.5rem;
+    border-radius: 8px;
     margin-bottom: 2rem;
-    border: 1px solid #333;
   }
-  .admin-form {
+  .user-form {
     display: flex;
     flex-direction: column;
     gap: 1rem;
   }
-  .form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-  }
-  input[type="text"] {
-    width: 100%;
-    padding: 0.75rem;
-    background-color: #333;
-    border: 1px solid #555;
-    color: var(--font-color);
+  .user-form input {
+    padding: 0.5rem;
     border-radius: 4px;
+    border: 1px solid #555;
+    background-color: #222;
+    color: #fff;
   }
-  button {
-    padding: 0.75rem 1.5rem;
+  .user-form button {
+    padding: 0.75rem;
     background-color: var(--accent-color);
     color: #fff;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    font-weight: bold;
     align-self: flex-start;
   }
-  .error-message, .success-message {
-    padding: 1rem;
-    margin-top: 1rem;
-    border-radius: 4px;
-    text-align: center;
-  }
-  .error-message { background-color: rgba(231, 76, 60, 0.2); color: #e74c3c; }
-  .success-message { background-color: rgba(46, 204, 113, 0.2); color: #2ecc71; }
-  .admin-list {
+  .user-list {
     list-style: none;
     padding: 0;
   }
-  .admin-list li {
+  .user-list li {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
-    border-bottom: 1px solid #444;
+    padding: 1rem;
+    border-bottom: 1px solid #333;
   }
-  .admin-list li:last-child {
+  .user-list li:last-child {
     border-bottom: none;
   }
-  .remove-btn {
-    background-color: #c0392b;
-    font-size: 0.9rem;
+  .delete-btn {
     padding: 0.5rem 1rem;
+    background-color: #c0392b;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .success-message,
+  .error-message {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    text-align: center;
+  }
+  .success-message {
+    background-color: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+  }
+  .error-message {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
   }
 </style>
-
-<script>
-  // Script del lado del cliente para gestionar la lógica
-  document.addEventListener('DOMContentLoaded', () => {
-    const adminList = document.getElementById('admin-list');
-    const addForm = document.getElementById('add-admin-form');
-    const addError = document.getElementById('add-error');
-    const addSuccess = document.getElementById('add-success');
-
-    if (!adminList || !addForm || !addError || !addSuccess) return;
-
-    interface Admin {
-      user_id: string;
-      email?: string;
-    }
-
-    // Función para cargar la lista de administradores
-    async function loadAdmins() {
-      if (!adminList) return;
-      try {
-        const response = await fetch('/api/admin/users/list');
-        if (!response.ok) throw new Error('No se pudo cargar la lista.');
-        
-        const admins: Admin[] = await response.json();
-        adminList.innerHTML = ''; // Limpiar lista
-
-        if (admins.length === 0) {
-          adminList.innerHTML = '<li>No hay administradores secundarios.</li>';
-          return;
-        }
-
-        admins.forEach((admin: Admin) => {
-          const li = document.createElement('li');
-          li.innerHTML = `
-            <span>${admin.email || admin.user_id} <small>(${admin.user_id})</small></span>
-            <button class="remove-btn" data-uid="${admin.user_id}">Quitar</button>
-          `;
-          adminList.appendChild(li);
-        });
-      } catch (error) {
-        if (adminList) {
-          if (error instanceof Error) {
-            adminList.innerHTML = `<li>Error cargando administradores: ${error.message}</li>`;
-          } else {
-            adminList.innerHTML = `<li>Error cargando administradores</li>`;
-          }
-        }
-      }
-    }
-
-    // Cargar la lista al iniciar
-    loadAdmins();
-
-    // Manejar el formulario para añadir admin
-    addForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      addError.style.display = 'none';
-      addSuccess.style.display = 'none';
-
-      const formData = new FormData(addForm as HTMLFormElement);
-      const identifier = formData.get('identifier');
-
-      try {
-        const response = await fetch('/api/admin/users/add', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier }),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || 'Error desconocido.');
-        }
-
-        addSuccess.textContent = `Usuario ${result.email || result.uid} añadido como administrador.`;
-        addSuccess.style.display = 'block';
-        (addForm as HTMLFormElement).reset();
-        loadAdmins(); // Recargar la lista
-      } catch (error) {
-        if (error instanceof Error) {
-          addError.textContent = error.message;
-        } else {
-          addError.textContent = 'An unknown error occurred.';
-        }
-        addError.style.display = 'block';
-      }
-    });
-
-    // Manejar clics para eliminar admin (delegación de eventos)
-    adminList.addEventListener('click', async (e) => {
-      const target = e.target as HTMLElement;
-      if (target.classList.contains('remove-btn')) {
-        const button = target;
-        const uid = button.dataset.uid;
-        
-        if (!confirm(`¿Estás seguro de que quieres quitar los privilegios de administrador a ${uid}?`)) {
-          return;
-        }
-
-        try {
-          const response = await fetch('/api/admin/users/remove', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uid }),
-          });
-
-          const result = await response.json();
-
-          if (!response.ok) {
-            throw new Error(result.error || 'Error desconocido.');
-          }
-          
-          alert('Administrador eliminado con éxito.');
-          loadAdmins(); // Recargar la lista
-        } catch (error) {
-          if (error instanceof Error) {
-            alert(`Error: ${error.message}`);
-          } else {
-            alert('An unknown error occurred.');
-          }
-        }
-      }
-    });
-  });
-</script>

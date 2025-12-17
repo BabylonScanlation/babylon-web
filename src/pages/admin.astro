@@ -2,6 +2,9 @@
 // src/pages/admin.astro
 import Layout from '../layouts/Layout.astro';
 
+const { user, runtime } = Astro.locals;
+const isSuperAdmin = user?.uid === runtime.env.SUPER_ADMIN_UID;
+
 const success = Astro.url.searchParams.get('success');
 const error = Astro.url.searchParams.get('error');
 ---
@@ -36,6 +39,13 @@ const error = Astro.url.searchParams.get('error');
         <h2>Subir Capítulos</h2>
         <p>Sube nuevos capítulos para las series existentes vía Telegram.</p>
       </a>
+
+      {isSuperAdmin && (
+        <a href="/admin/users" class="dashboard-card">
+          <h2>Gestionar Administradores</h2>
+          <p>Añade o elimina los privilegios de administrador de otros usuarios.</p>
+        </a>
+      )}
     </div>
 
     <!-- El botón de logout ahora está en el Header -->
