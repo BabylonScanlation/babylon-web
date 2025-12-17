@@ -66,11 +66,6 @@ const { slides = [], title } = Astro.props;
     height: 500px;
     position: relative;
     margin-top: 0;
-    overflow: hidden;
-  }
-  .swiper-slide {
-    position: relative;
-    overflow: hidden;
   }
   .slide-background-blur {
     position: absolute;
@@ -199,41 +194,35 @@ const { slides = [], title } = Astro.props;
 </style>
 
 <script>
-  const swiperEl = document.querySelector('.swiper');
-  if (swiperEl instanceof HTMLElement) {
-    // Cargar Swiper dinámicamente aquí
-    const { default: Swiper } = await import('swiper');
-    const { Pagination, Autoplay } = await import('swiper/modules');
+  document.addEventListener('DOMContentLoaded', async () => {
+    const swiperEl = document.querySelector('.swiper');
+    if (swiperEl instanceof HTMLElement) {
+      const { default: Swiper } = await import('swiper');
+      const { Pagination, Autoplay } = await import('swiper/modules');
+      await import('swiper/css');
+      await import('swiper/css/pagination');
 
-    // Importar CSS de Swiper (esto también debe hacerse en el cliente)
-    // Aunque Astro maneja los imports de CSS, para asegurar que no haya problemas
-    // en el servidor, podemos cargarlos de forma condicional o asegurarnos
-    // de que no se procesen en el servidor. Por ahora, los dejaremos como están
-    // ya que el error es de JS, no de CSS.
+      const slidesCount = parseInt(swiperEl.dataset.slidesCount || '0', 10);
 
-    const slidesCount = parseInt(swiperEl.dataset.slidesCount || '0', 10);
-
-    new Swiper(swiperEl, {
-      modules: [Pagination, Autoplay],
-      slidesPerView: 1,
-
-      loop: slidesCount >= 3,
-      rewind: slidesCount === 2,
-
-      autoplay:
-        slidesCount > 1
-          ? {
-              delay: 5000,
-              disableOnInteraction: false,
-            }
-          : false,
-
-      pagination: {
-        el: '.swiper-pagination',
-        clickable: true,
-      },
-      observer: true,
-      observeParents: true,
-    });
-  }
+      new Swiper(swiperEl, {
+        modules: [Pagination, Autoplay],
+        slidesPerView: 1,
+        loop: slidesCount >= 3,
+        rewind: slidesCount === 2,
+        autoplay:
+          slidesCount > 1
+            ? {
+                delay: 5000,
+                disableOnInteraction: false,
+              }
+            : false,
+        pagination: {
+          el: '.swiper-pagination',
+          clickable: true,
+        },
+        observer: true,
+        observeParents: true,
+      });
+    }
+  });
 </script>

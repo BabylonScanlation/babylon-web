@@ -11,9 +11,17 @@ const { series } = Astro.props;
 
 function timeAgo(dateString: string) {
   if (!dateString) return '';
-  const date = new Date(dateString);
+
+  // Ensure the date string is parsed as UTC
+  const compatibleDateString = dateString.replace(' ', 'T') + 'Z';
+  const date = new Date(compatibleDateString);
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  // Handle cases where the date is slightly in the future (e.g., due to clock skew)
+  if (seconds < 0) {
+    return 'justo ahora';
+  }
 
   let interval = seconds / 31536000;
   if (interval > 1) return `hace ${Math.floor(interval)} años`;

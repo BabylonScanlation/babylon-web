@@ -73,7 +73,11 @@ export async function verifyFirebaseToken(token: string, env: Env) {
       ...payload,
       sub: payload.sub || payload.user_id,
     };
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === 'ERR_JWT_EXPIRED') {
+      console.log('Firebase token has expired.');
+      return null;
+    }
     console.error('Error verifying Firebase token:', error);
     throw new Error('Token inválido o expirado');
   }

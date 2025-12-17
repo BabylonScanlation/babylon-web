@@ -70,7 +70,7 @@ hasContent =
   {
     hasContent ? (
       <div class="main-content-wrapper">
-        {recentSeries.length > 0 && <HeroCarousel slides={recentSeries} />}
+        {recentSeries.length > 0 && <HeroCarousel slides={recentSeries} client:idle />}
         <div class="main-sections-container">
           {featuredGridData.length > 0 && (
             <FeaturedGrid mangas={featuredGridData} />
