@@ -15,7 +15,6 @@ const error = Astro.url.searchParams.get('error');
 
 interface AdminUser {
   uid: string;
-  email: string;
 }
 
 let admins: AdminUser[] = [];
@@ -52,7 +51,7 @@ try {
       <ul class="user-list">
         {admins.map(admin => (
           <li>
-            <span>{admin.email} ({admin.uid})</span>
+            <span>{admin.uid}</span>
             <form action="/api/admin/users" method="post">
               <input type="hidden" name="_method" value="DELETE" />
               <input type="hidden" name="uid" value={admin.uid} />

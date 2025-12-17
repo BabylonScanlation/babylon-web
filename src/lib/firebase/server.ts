@@ -1,20 +1,3 @@
-import admin from 'firebase-admin';
-import { getApps } from 'firebase-admin/app';
-
-const serviceAccount = {
-  projectId: import.meta.env.FIREBASE_PROJECT_ID,
-  clientEmail: import.meta.env.FIREBASE_CLIENT_EMAIL,
-  privateKey: import.meta.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-};
-
-if (!getApps().length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
-
-export const app = admin.app();
-
 // src/lib/firebase/server.ts
 import { jwtVerify, importJWK } from 'jose';
 

@@ -1,8 +1,6 @@
 // src/pages/api/admin/users.ts
 import type { APIRoute } from 'astro';
 import { getDB } from '../../../lib/db';
-import { getAuth } from 'firebase-admin/auth';
-import { app } from '../../../lib/firebase/server'; // Assuming you have a firebase server app initialized
 
 export const GET: APIRoute = async ({ locals }) => {
   const { user, runtime } = locals;
@@ -14,26 +12,11 @@ export const GET: APIRoute = async ({ locals }) => {
 
   try {
     const db = getDB(runtime.env);
+    // Fetch only the UIDs
     const { results } = await db.prepare("SELECT user_id FROM UserRoles WHERE role = 'admin'").all<{ user_id: string }>();
     
-    const auth = getAuth(app);
-    const adminUsers = await Promise.all(
-      results.map(async (role) => {
-        try {
-          const userRecord = await auth.getUser(role.user_id);
-          return {
-            uid: userRecord.uid,
-            email: userRecord.email || 'N/A',
-          };
-        } catch (error) {
-          console.error(`Error fetching user ${role.user_id}:`, error);
-          return {
-            uid: role.user_id,
-            email: 'Usuario no encontrado en Firebase',
-          };
-        }
-      })
-    );
+    // Return UIDs directly, without email
+    const adminUsers = results.map(role => ({ uid: role.user_id }));
 
     return new Response(JSON.stringify(adminUsers), { status: 200 });
   } catch (e) {
@@ -53,20 +36,19 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
 
   const db = getDB(runtime.env);
   const formData = await request.formData();
-  const uidToAdd = formData.get('uid')?.toString();
+  const uid = formData.get('uid')?.toString();
   const method = formData.get('_method')?.toString()?.toUpperCase();
 
   if (method === 'DELETE') {
     // Handle DELETE
-    const uidToDelete = formData.get('uid')?.toString();
-    if (!uidToDelete) {
+    if (!uid) {
       return redirect(`${referer}?error=UID no proporcionado`);
     }
-    if (uidToDelete === superAdminUid) {
+    if (uid === superAdminUid) {
       return redirect(`${referer}?error=No se puede eliminar al Super Administrador`);
     }
     try {
-      await db.prepare("DELETE FROM UserRoles WHERE user_id = ? AND role = 'admin'").bind(uidToDelete).run();
+      await db.prepare("DELETE FROM UserRoles WHERE user_id = ? AND role = 'admin'").bind(uid).run();
       return redirect(`${referer}?success=Administrador eliminado con éxito`);
     } catch (e) {
       console.error('Error deleting admin:', e);
@@ -74,20 +56,15 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     }
   } else {
     // Handle ADD
-    if (!uidToAdd) {
+    if (!uid) {
       return redirect(`${referer}?error=UID no proporcionado`);
     }
     try {
-      const auth = getAuth(app);
-      await auth.getUser(uidToAdd); // Verify user exists in Firebase
-
-      await db.prepare("INSERT OR IGNORE INTO UserRoles (user_id, role) VALUES (?, 'admin')").bind(uidToAdd).run();
+      // The check to verify the user in Firebase is removed to avoid Node.js dependencies.
+      await db.prepare("INSERT OR IGNORE INTO UserRoles (user_id, role) VALUES (?, 'admin')").bind(uid).run();
       return redirect(`${referer}?success=Administrador añadido con éxito`);
     } catch (e: any) {
       console.error('Error adding admin:', e);
-      if (e.code === 'auth/user-not-found') {
-        return redirect(`${referer}?error=El UID proporcionado no existe en Firebase`);
-      }
       return redirect(`${referer}?error=Error al añadir administrador`);
     }
   }
