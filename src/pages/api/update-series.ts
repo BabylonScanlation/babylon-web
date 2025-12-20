@@ -35,6 +35,7 @@ export const POST: APIRoute = async (context) => {
     const publishedBy = formData.get('published_by')?.toString() || 'N/A';
     const alternativeNames = formData.get('alternative_names')?.toString() || 'N/A';
     const serializedBy = formData.get('serialized_by')?.toString() || 'N/A';
+    const demographic = formData.get('demographic')?.toString() || 'N/A';
     const isHidden = formData.get('is_hidden') === 'on';
 
     if (!seriesId || !title || !description) {
@@ -73,6 +74,7 @@ export const POST: APIRoute = async (context) => {
       publishedBy,
       alternativeNames,
       serializedBy,
+      demographic,
       isHidden,
     };
 

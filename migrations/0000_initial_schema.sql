@@ -88,6 +88,7 @@ CREATE TABLE `Series` (
 	`author` text DEFAULT 'N/A',
 	`artist` text DEFAULT 'N/A',
 	`published_by` text DEFAULT 'N/A',
+	`demographic` text DEFAULT 'N/A',
 	`alternative_names` text DEFAULT 'N/A',
 	`serialized_by` text DEFAULT 'N/A',
 	`is_hidden` integer DEFAULT true

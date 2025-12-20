@@ -42,8 +42,9 @@ interface SeriesDetails {
   created_at: string; 
   status: string | null; 
   type: string | null; 
+  demographic: string | null; // New field
   genres: string | null; 
-  author: string | null; 
+  author: string | null;  
   artist: string | null; 
   published_by: string | null; 
   alternative_names: string | null; 
@@ -208,6 +209,12 @@ const reactions = [
                       <> 
                         <span class="meta-label">Tipo: </span> 
                         <span class="meta-value">{series.type || 'N/A'}</span> 
+                      </>
+                    </div> 
+                    <div class="meta-item"> 
+                      <> 
+                        <span class="meta-label">Demografía: </span> 
+                        <span class="meta-value">{series.demographic || 'N/A'}</span> 
                       </>
                     </div> 
                     <div class="meta-item"> 

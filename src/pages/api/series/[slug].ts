@@ -36,6 +36,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       author: series.author,
       artist: series.artist,
       publishedBy: series.publishedBy,
+      demographic: series.demographic,
       alternativeNames: series.alternativeNames,
       serializedBy: series.serializedBy,
       isHidden: series.isHidden,

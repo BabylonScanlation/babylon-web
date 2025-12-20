@@ -16,6 +16,7 @@ export interface Series {
   title: string;
   cover_image_url: string;
   description?: string; // La descripción es opcional
+  demographic?: string; // New field for demographic (shojo, seinen, etc.)
   views?: number; // Conteo de vistas
   lastChapter?: string;
   lastChapterCreatedAt?: string;
