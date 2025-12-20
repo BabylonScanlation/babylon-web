@@ -54,7 +54,17 @@
         method: 'POST',
         body: formData,
       });
-      const result = await response.json();
+
+      // Intentamos leer como texto primero para poder depurar si no es JSON válido
+      const responseText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Error parsing delete response:', responseText);
+        throw new Error(`Error del servidor (no JSON): ${responseText.substring(0, 100)}...`);
+      }
+
       if (!response.ok) throw new Error(result.error || 'Error al eliminar.');
 
       // Dispatch a GLOBAL event so the parent Astro component can listen

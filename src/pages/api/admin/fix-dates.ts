@@ -1,6 +1,6 @@
 import { createApiRoute } from '../../../lib/api';
 import { chapters, series } from '../../../db/schema';
-import { isNull, sql } from 'drizzle-orm';
+import { isNull } from 'drizzle-orm';
 
 export const GET = createApiRoute(
   { auth: 'admin' },

@@ -1,3 +1,4 @@
+import { createApiRoute } from '../../lib/api';
 import { chapters, pages, comments, chapterViews } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import type { APIContext } from 'astro';

@@ -391,79 +391,75 @@ if (
       headers: { 'Content-Type': 'application/json' },
       keepalive: true,
     }).catch(err => logError(err, 'Error al registrar vista de capítulo', { chapterId }));
-  function initializeReader() {
-    if (isProcessing) {
-      const sseUrl = `/api/series/${slug}/${chapter}`;
-      const eventSource = new EventSource(sseUrl);
-
-      eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log('SSE Message:', event.type, data);
-
-        if (event.type === 'completed') {
-          // Update reactive variables in Astro component to re-render images
-          // This requires a way to update Astro component props from client-side JS
-          // For now, we'll assign directly to window scope variables or trigger a custom event
-          window.pageImageUrls = data.imageUrls;
-          window.isProcessing = false;
-          // Trigger a re-render by updating a reactive variable, or if Astro handles it automatically after data change
-          // Alternatively, manually update the DOM if reactive updates are not direct.
-          // For now, let's assume direct assignment works for simplicity in this script block.
-          if (document.getElementById('cascade-view')) {
-            document.getElementById('cascade-view').innerHTML = data.imageUrls.map(url => `
-              <div class="image-container">
-                <img src="${url}" alt="Página del manga" loading="lazy" onload="this.parentElement.style.aspectRatio = this.naturalWidth + '/' + this.naturalHeight;">
-              </div>
-            `).join('');
-            document.getElementById('cascade-view').style.display = 'block';
-            if (document.querySelector('.loading-overlay')) {
-              document.querySelector('.loading-overlay').style.display = 'none';
+      function initializeReader() {
+      if (isProcessing) {
+        const sseUrl = `/api/series/${slug}/${chapter}`;
+        const eventSource = new EventSource(sseUrl);
+  
+        // Helper function to handle completion
+        const handleCompletion = (data) => {
+            console.log('SSE Completed:', data);
+            window.pageImageUrls = data.imageUrls;
+            window.isProcessing = false;
+            
+            const cascadeView = document.getElementById('cascade-view');
+            if (cascadeView) {
+              cascadeView.innerHTML = data.imageUrls.map(url => `
+                <div class="image-container">
+                  <img src="${url}" alt="Página del manga" loading="lazy" onload="this.parentElement.style.aspectRatio = this.naturalWidth + '/' + this.naturalHeight;">
+                </div>
+              `).join('');
+              cascadeView.style.display = 'block';
+              
+              const loadingOverlay = document.querySelector('.loading-overlay');
+              if (loadingOverlay) loadingOverlay.style.display = 'none';
             }
+            eventSource.close();
+        };
+  
+        eventSource.addEventListener('completed', (event) => {
+          const data = JSON.parse(event.data);
+          handleCompletion(data);
+        });
+  
+        eventSource.addEventListener('processing', (event) => {
+          const data = JSON.parse(event.data);
+          const loadingText = document.querySelector('.loading-text');
+          if (loadingText) {
+            loadingText.textContent = `Procesando capítulo... ${data.message || ''} (Intento ${data.attempt || 1})`;
+          }
+        });
+  
+        eventSource.addEventListener('error', (event) => {
+          // SSE error events usually don't have data property in the same way for generic errors, 
+          // but our custom 'error' event does.
+          try {
+              const data = JSON.parse(event.data);
+              logError(data.error, 'Error SSE reportado por servidor');
+              const loadingText = document.querySelector('.loading-text');
+              if (loadingText) loadingText.textContent = data.error || 'Error desconocido';
+          } catch (e) {
+              console.error('SSE Error parsing:', e);
           }
           eventSource.close();
-        } else if (event.type === 'error') {
-          logError(data.error, 'Error durante el procesamiento del capítulo via SSE');
-          if (document.querySelector('.loading-text')) {
-            document.querySelector('.loading-text').textContent = data.error || 'Error desconocido';
+        });
+  
+        eventSource.onerror = (errorEvent) => {
+          console.error('SSE Connection Error:', errorEvent);
+          // Don't close immediately on minor connection errors, browser retries. 
+          // But if readyState is CLOSED (2), then stop.
+          if (eventSource.readyState === 2) {
+               const loadingText = document.querySelector('.loading-text');
+               if (loadingText) loadingText.textContent = 'Conexión perdida. Por favor recarga la página.';
           }
-          if (document.querySelector('.progress-bar-container')) {
-            document.querySelector('.progress-bar-container').style.display = 'none';
-          }
-          if (document.querySelector('.loading-subtext')) {
-            document.querySelector('.loading-subtext').style.display = 'none';
-          }
-          eventSource.close();
-        } else if (event.type === 'processing') {
-          if (document.querySelector('.loading-text')) {
-            document.querySelector('.loading-text').textContent = `Procesando capítulo... Intento ${data.attempt || ''}`;
-          }
-        }
-      };
-
-      eventSource.onerror = (errorEvent) => {
-        logError(errorEvent, 'Error en la conexión SSE para el lector de capítulos');
-        if (document.querySelector('.loading-text')) {
-          document.querySelector('.loading-text').textContent = 'Error en la conexión o procesamiento del capítulo.';
-        }
-        if (document.querySelector('.progress-bar-container')) {
-          document.querySelector('.progress-bar-container').style.display = 'none';
-        }
-        if (document.querySelector('.loading-subtext')) {
-          document.querySelector('.loading-subtext').style.display = 'none';
-        }
-        eventSource.close();
-      };
-
-      eventSource.onopen = () => {
-        console.log('Conexión SSE abierta para el procesamiento del capítulo.');
-        if (document.querySelector('.loading-text')) {
-          document.querySelector('.loading-text').textContent = 'Iniciando procesamiento del capítulo...';
-        }
-      };
-    }
-
-    const mainHeader = document.querySelector('header');
-    const topNavWrapper = document.getElementById('reader-top-nav-wrapper');
+        };
+  
+        eventSource.onopen = () => {
+          console.log('Conexión SSE establecida.');
+        };
+      }
+  
+      const mainHeader = document.querySelector('header');    const topNavWrapper = document.getElementById('reader-top-nav-wrapper');
     const configBtn = document.getElementById('config-btn');
     const modal = document.getElementById('config-modal');
     const closeModalBtn = document.getElementById('close-modal-btn');
