@@ -154,7 +154,6 @@ const reactions = [
         <section class="series-hero"> 
           <div class="series-header-grid"> 
             <div class="cover-and-rating-wrapper"> 
-              <h1 class="series-title-header">{series.title}</h1> 
               <div class="series-cover"> 
                 <img 
                   src={series.cover_image_url} 
@@ -162,9 +161,6 @@ const reactions = [
                   class="cover-image" 
                 /> 
               </div> 
-            </div> 
-
-            <div class="series-info-panel"> 
               <div class="rating-section"> 
                 <div class="stars-container"> 
                   {stars.map((star) => 
@@ -194,6 +190,10 @@ const reactions = [
                   <span>({series.stats.totalVotes} Votos)</span> 
                 </div> 
               </div> 
+            </div> 
+
+            <div class="series-info-panel"> 
+              <h1 class="series-title-header">{series.title}</h1> 
 
               <div class="info-tabs"> 
                 <button class="tab active" data-tab="details"> 
@@ -577,7 +577,8 @@ const reactions = [
 
   .series-title-header { 
     font-size: 2rem; 
-    text-align: center; 
+    text-align: left; /* Alineado a la izquierda en desktop */
+    margin-bottom: 1rem;
   }
   .series-cover { 
     position: relative; 
@@ -870,6 +871,9 @@ const reactions = [
   }
 
   @media (max-width: 900px) { 
+    .series-title-header {
+      text-align: center;
+    }
     .series-header-grid { 
       grid-template-columns: 1fr; 
       text-align: center; 
