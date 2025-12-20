@@ -2,6 +2,7 @@
   "name": "babylon-scanlation",
   "type": "module",
   "version": "0.0.1",
+  "description": "Official website for Babylon Scanlation group, built with Astro and Cloudflare.",
   "overrides": {
     "esbuild": "0.25.12"
   },
