@@ -72,7 +72,34 @@ export const GET: APIRoute = async ({ params, locals }) => {
       );
     }
 
-    // --- SSE Implementation when manifest is not found ---
+    // --- Intelligent Response: Stream vs JSON ---
+    const acceptHeader = request.headers.get('Accept');
+    const wantsStream = acceptHeader && acceptHeader.includes('text/event-stream');
+
+    if (!wantsStream) {
+      // Si no pide stream (ej: Astro SSR), disparamos proceso en segundo plano y respondemos 202
+      ctx.waitUntil(
+        processAndCacheChapter(
+          env,
+          chapterData.telegramFileId,
+          slug,
+          chapterNumber
+        ).catch(err => logError(err, 'Background processing fail (No-SSE)', { slug, chapterNumber }))
+      );
+
+      return new Response(JSON.stringify({
+        status: 'processing',
+        message: 'El capítulo se está procesando...',
+        seriesId: chapterData.seriesId,
+        chapterId: chapterData.chapterId,
+        chapterCoverUrl: chapterData.chapterCoverUrl,
+      }), { 
+        status: 202,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // --- SSE Implementation when manifest is not found and client wants stream ---
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
     const encoder = new TextEncoder();

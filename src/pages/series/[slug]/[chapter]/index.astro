@@ -56,21 +56,11 @@ try {
   const chapterResponse = await fetch(
     new URL(`/api/series/${slug}/${chapter}`, Astro.url)
   );
-  const data = (await chapterResponse.json()) as ChapterAPIResponse;
+  const data = (await chapterResponse.json()) as (ChapterAPIResponse & { status?: string });
 
   seriesId = data.seriesId;
   chapterId = data.chapterId;
-  chapterCoverUrl = data.chapterCoverUrl || null; // Assign chapterCoverUrl from API response
-
-  console.log(
-    '>>> [DEBUG chapter-view] chapterCoverUrl from API:',
-    chapterCoverUrl
-  );
-  console.log('>>> [DEBUG chapter-view] isProcessing:', isProcessing);
-  console.log(
-    '>>> [DEBUG chapter-view] pageImageUrls.length:',
-    pageImageUrls.length
-  );
+  chapterCoverUrl = data.chapterCoverUrl || null;
 
   if (chapterResponse.status === 200 && data.imageUrls) {
     isProcessing = false;
@@ -83,7 +73,7 @@ try {
         comments = await commentsResponse.json();
       }
     }
-  } else if (chapterResponse.status === 202) {
+  } else if (chapterResponse.status === 202 || data.status === 'processing') {
     isProcessing = true;
     loadingMessage =
       data.message || 'El capítulo se está preparando. ¡Un momento, por favor!';

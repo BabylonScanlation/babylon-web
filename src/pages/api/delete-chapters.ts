@@ -11,12 +11,18 @@ export const POST = createApiRoute(
     const chapterId = formData.get('chapterId')?.toString();
 
     if (!chapterId) {
-      return new Response(JSON.stringify({ error: 'ID de capítulo no proporcionado' }), { status: 400 });
+      return new Response(JSON.stringify({ error: 'ID de capítulo no proporcionado' }), { 
+        status: 400, 
+        headers: { 'Content-Type': 'application/json' } 
+      });
     }
 
     const id = parseInt(chapterId);
     if (isNaN(id)) {
-      return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+      return new Response(JSON.stringify({ error: 'ID inválido' }), { 
+        status: 400, 
+        headers: { 'Content-Type': 'application/json' } 
+      });
     }
 
     try {
@@ -45,10 +51,16 @@ export const POST = createApiRoute(
       // 3. Delete the chapter
       await locals.db!.delete(chapters).where(eq(chapters.id, id)).run();
 
-      return new Response(JSON.stringify({ success: true, message: 'Capítulo eliminado con éxito' }), { status: 200 });
+      return new Response(JSON.stringify({ success: true, message: 'Capítulo eliminado con éxito' }), { 
+        status: 200, 
+        headers: { 'Content-Type': 'application/json' } 
+      });
     } catch (e: any) {
       console.error('Error deleting chapter:', e);
-      return new Response(JSON.stringify({ error: 'Error interno al eliminar: ' + e.message }), { status: 500 });
+      return new Response(JSON.stringify({ error: 'Error interno al eliminar: ' + e.message }), { 
+        status: 500, 
+        headers: { 'Content-Type': 'application/json' } 
+      });
     }
   }
 );
