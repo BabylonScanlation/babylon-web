@@ -1,0 +1,138 @@
+
+================================================================================
+[FUTURO] AUTOMATIZACIÓN TOTAL: CREACIÓN DE SERIES Y TOPICS DE TELEGRAM DESDE WEB
+================================================================================
+
+OBJETIVO:
+Eliminar la necesidad de entrar manualmente a Telegram para crear un "Tema" (Topic) cada vez que se inicia una nueva serie. Centralizar todo el proceso de creación en el panel de administración web (`/admin`).
+
+SITUACIÓN ACTUAL (MANUAL):
+1. El admin entra a Telegram -> Grupo.
+2. Crea un Tema manualmente.
+3. Sube un .zip al tema.
+4. El backend detecta el archivo, extrae el ID del tema y crea la serie en la BD (a veces con nombre temporal).
+
+SITUACIÓN FUTURA (AUTOMÁTICA - WEB):
+1. El admin entra a `Gestionar Series` en la web.
+2. Hace clic en "Crear Nueva Serie".
+3. Ingresa el Título y sube la Portada.
+4. Al guardar:
+   a) El backend llama a la API de Telegram: `createForumTopic(chat_id, name=TituloSerie)`.
+   b) Telegram devuelve el `message_thread_id` (ID único del tema) y el `name`.
+   c) El backend crea la entrada en la base de datos D1 inmediatamente con:
+      - `title`: El ingresado en la web.
+      - `telegram_topic_id`: El ID devuelto por Telegram.
+      - `slug`: Generado automáticamente (ej: `mi-nueva-serie`).
+      - `cover_image_url`: La portada subida a R2.
+
+RESULTADO:
+- La serie queda creada y vinculada perfectamente desde el segundo 0.
+- El Tema en Telegram aparece automáticamente con el nombre correcto.
+- Subir capítulos futuros (ZIPs) es trivial: el bot ya sabe que ese `topic_id` corresponde a esa serie en la BD.
+
+REQUISITOS TÉCNICOS (API TELEGRAM):
+- Método: `createForumTopic`
+- Documentación: https://core.telegram.org/bots/api#createforumtopic
+- Parámetros clave:
+  - `chat_id`: ID del Supergrupo.
+  - `name`: Título de la serie (1-128 caracteres).
+  - `icon_color` (Opcional): Color del icono del tema (RGB integer).
+  - `icon_custom_emoji_id` (Opcional): Emoji personalizado como icono.
+- Permisos del Bot: Debe ser ADMINISTRADOR del grupo y tener el permiso `can_manage_topics`.
+- Tipo de Grupo: Debe ser un Supergrupo con la funcionalidad de "Temas" habilitada.
+
+IMPLEMENTACIÓN SUGERIDA:
+1. Crear un endpoint API en Astro: `/api/admin/series/create`.
+2. Este endpoint recibe los datos del formulario web.
+3. Llama a `https://api.telegram.org/bot<TOKEN>/createForumTopic`.
+4. Recibe el JSON de respuesta con el objeto `ForumTopic`.
+5. Inserta en D1 (`INSERT INTO Series ...`).
+6. Devuelve éxito al frontend.
+
+VENTAJAS A LARGO PLAZO:
+- Cero fricción: No sales de la web para gestionar contenido.
+- Datos limpios: La serie nace con su nombre real, slug correcto y portada, sin nombres temporales tipo "serie-400".
+- Escalabilidad: Permite que moderadores sin acceso total al Telegram puedan crear series si se les da permiso en la web.
+
+### 🚀 Sistema Híbrido de Conteo de Vistas (Cascada de Identidad)
+**Objetivo:** Contabilizar vistas únicas y mantener el historial de lectura de usuarios anónimos ("Guest") incluso si cambian de IP o borran cookies.
+
+**Estrategia:** Modelo de prioridad en 3 niveles (Cookie > Fingerprint > IP).
+
+#### 1. Base de Datos (Schema)
+- **Nueva Tabla `AnonymousUsers`:**
+  - `guest_id` (PK, UUID): Identificador principal del usuario anónimo.
+  - `fingerprint_hash` (Index): Hash único del dispositivo (Hardware/Browser).
+  - `last_ip`: Para validación de seguridad (opcional).
+  - `created_at` / `updated_at`.
+- **Modificación `ChapterViews`:**
+  - Cambiar unique constraint de `(chapter_id, ip_address)` a `(chapter_id, guest_id)`.
+
+#### 2. Lógica del Frontend (Cliente)
+- Usar librería ligera (ej: FingerprintJS Free) para generar un hash del navegador.
+- Enviar este hash (`fingerprint`) junto con el `chapterId` al endpoint `/api/chapters/view`.
+
+#### 3. Lógica del Backend (Flujo de "Auto-recuperación")
+Al recibir una petición de vista:
+1. **Nivel 1 (Cookie Check):**
+   - ¿Existe cookie `guest_id`? -> **SÍ**: Usar ese ID. Fin.
+   - **NO**: Pasar al Nivel 2.
+2. **Nivel 2 (Fingerprint Recovery):**
+   - Buscar en tabla `AnonymousUsers` por `fingerprint_hash`.
+   - ¿Existe coincidencia? -> **SÍ**: El usuario borró cookies. Recuperar su `guest_id` antiguo y **restaurar la cookie** (Set-Cookie).
+   - **NO**: Es un dispositivo nuevo. Generar nuevo `guest_id` y guardar en BD junto con el hash.
+3. **Registro de Vista:**
+   - Insertar en `ChapterViews` usando el `guest_id`.
+   - Si la inserción es exitosa (no existía), incrementar contador `views` en `Chapters`.
+
+**Beneficio:** Evita conteo duplicado por IPs dinámicas y recupera al usuario si limpia el navegador.
+
+### 💡 Nuevas Funcionalidades Propuestas (Roadmap)
+
+#### 1. Módulo "Continuar Leyendo" (Estilo Netflix)
+**Objetivo:** Mostrar en la Home la última serie que el usuario estaba leyendo y el botón directo al siguiente capítulo.
+**Requisito:** Requiere haber implementado el sistema de `AnonymousUsers` (Guest ID).
+
+* **Lógica Backend:**
+    * Endpoint: `/api/user/progress`.
+    * Query: Buscar en `ChapterViews` filtrando por el `guest_id` actual. Ordenar por `viewed_at` DESC.
+    * Cruzar con tabla `Chapters` para ver si existe un capítulo con `chapterNumber > ultimo_visto`.
+* **Frontend (Componente Astro):**
+    * Si hay progreso: Mostrar tarjeta ancha ("Hero") con la portada de la serie, título: *"Continuar viendo Temporada 1..."* y botón *"Leer Cap. X"*.
+    * Si no hay progreso: Mostrar recomendación aleatoria o popular.
+
+#### 2. Notificaciones Web Push (Sin App Móvil)
+**Objetivo:** Avisar al usuario cuando sale un capítulo nuevo de sus series favoritas.
+
+* **Tecnología:** Service Workers + API Push (Nativa del navegador) + Cloudflare Workers.
+* **Base de Datos:**
+    * Nueva tabla `PushSubscriptions`: `endpoint`, `p256dh`, `auth`, `guest_id` (para asociar a usuario).
+    * Nueva tabla `SeriesFollows`: `series_id`, `guest_id`.
+* **Flujo:**
+    1.  Botón "🔔 Seguir" en la portada del manga.
+    2.  Al hacer clic, pedir permiso al navegador y guardar la suscripción en BD.
+    3.  En el webhook de Telegram (`telegram-webhook.ts`): Cuando se procesa un capítulo exitosamente, buscar suscriptores de esa serie y enviar la notificación usando librería `web-push`.
+
+#### 3. Selector de Modo de Lectura (Webtoon vs. Clásico)
+**Objetivo:** Atraer a lectores puristas del manga que odian el scroll infinito vertical.
+
+* **Frontend (Componente Lector):**
+    * Estado local (Store/Signal): `readingMode = 'vertical' | 'paginated'`.
+    * **Modo Vertical (Default):** `<img />` uno debajo de otro (lo actual).
+    * **Modo Paginado:**
+        * Contenedor que muestra 1 imagen a la vez (o 2 en landscape).
+        * Zonas de clic invisibles: Izquierda (Siguiente), Derecha (Anterior) - (configurable para sentido de lectura japonés LTR/RTL).
+        * Precarga de imagen siguiente para evitar esperas.
+    * Guardar preferencia en `localStorage`.
+
+#### 4. Dashboard de Analíticas Avanzadas (Admin)
+**Objetivo:** Ver el rendimiento real del sitio más allá de una simple tabla de números.
+
+* **Librería Gráfica:** `Chart.js` o `Recharts` (Ligeras).
+* **Backend (Nuevos Endpoints Admin):**
+    * `/api/admin/stats/daily-views`: Group by `viewed_at` (día).
+    * `/api/admin/stats/top-series`: Top 10 series con más vistas esta semana.
+    * `/api/admin/stats/geo`: Usar `request.cf.country` (Cloudflare) para contar visitas por país y guardar en una tabla agregada `DailyGeoStats`.
+* **UI Admin:**
+    * Panel con tarjetas: "Vistas Hoy", "Usuarios Activos", "Serie del Mes".
+    * Gráfico de líneas para tendencia de tráfico mensual.

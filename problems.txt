@@ -1,0 +1,467 @@
+{
+  "wallTime": 1,
+  "cpuTime": 1,
+  "truncated": false,
+  "executionModel": "stateless",
+  "outcome": "ok",
+  "scriptVersion": {
+    "id": "1ae3f899-38c1-44ef-8c9c-75c6ffd5d999"
+  },
+  "scriptName": "pages-worker--6960205-production",
+  "diagnosticsChannelEvents": [],
+  "exceptions": [],
+  "logs": [
+    {
+      "message": [
+        "18:36:30 [ERROR] ReferenceError: uniqueIndex is not defined\n    at SQLiteTable.<anonymous> (chunks/schema_BDGDtYrM.mjs:1568:37)\n    at extractTablesRelationalConfig (chunks/db_BusFovmB.mjs:201:67)\n    at drizzle (chunks/db_BusFovmB.mjs:3351:26)\n    at getDB (chunks/db_BusFovmB.mjs:3372:10)\n    at _astro-internal_middleware.mjs:12:33\n    at applyHandle (chunks/index_jNo1cH4T.mjs:3575:22)\n    at chunks/index_jNo1cH4T.mjs:3618:18\n    at onRequest$1 (_astro-internal_middleware.mjs:59:10)\n    at applyHandle (chunks/index_jNo1cH4T.mjs:3575:22)\n    at chunks/index_jNo1cH4T.mjs:3572:12"
+      ],
+      "level": "error",
+      "timestamp": 1766255790597
+    }
+  ],
+  "eventTimestamp": 1766255790597,
+  "event": {
+    "request": {
+      "url": "https://babylon-scanlation.pages.dev/admin/series",
+      "method": "GET",
+      "headers": {
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "accept-encoding": "gzip, br",
+        "accept-language": "es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3",
+        "cf-connecting-ip": "2803:9800:9085:900c:40e0:ec82:baf2:b118",
+        "cf-ipcountry": "AR",
+        "cf-ray": "9b113ee33c3d9d5e",
+        "cf-visitor": "{\"scheme\":\"https\"}",
+        "connection": "Keep-Alive",
+        "cookie": "REDACTED",
+        "host": "babylon-scanlation.pages.dev",
+        "priority": "u=0, i",
+        "referer": "https://babylon-scanlation.pages.dev/admin",
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "same-origin",
+        "sec-fetch-user": "?1",
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0",
+        "x-forwarded-proto": "https",
+        "x-real-ip": "2803:9800:9085:900c:40e0:ec82:baf2:b118"
+      },
+      "cf": {
+        "httpProtocol": "HTTP/3",
+        "clientAcceptEncoding": "gzip, deflate, br",
+        "requestPriority": "",
+        "edgeRequestKeepAliveStatus": 1,
+        "requestHeaderNames": {},
+        "clientTcpRtt": 0,
+        "colo": "EZE",
+        "asn": 11664,
+        "asOrganization": "AMX Argentina S.A.",
+        "country": "AR",
+        "isEUCountry": false,
+        "city": "Santiago del Estero",
+        "continent": "SA",
+        "region": "Santiago del Estero",
+        "regionCode": "G",
+        "timezone": "America/Argentina/Cordoba",
+        "longitude": "-64.26285",
+        "latitude": "-27.80047",
+        "postalCode": "4200",
+        "tlsVersion": "TLSv1.3",
+        "tlsCipher": "AEAD-AES128-GCM-SHA256",
+        "tlsClientRandom": "mgk50Iio0XwGLlUjUxOs6s4ld8RfJcUBcTjx3Hlewi4=",
+        "tlsClientCiphersSha1": "majgAKUWrKK75XCpDQDr/Sf7Eyw=",
+        "tlsClientExtensionsSha1": "BR6nwDu3Df6Q+OlTWW4oIx/oRvk=",
+        "tlsClientExtensionsSha1Le": "4u++ir+x4GUH6D8LFl5RHPcHOZM=",
+        "tlsExportedAuthenticator": {
+          "clientHandshake": "2c84dbe5b0e76b8f4f71eedba2f0796c0c2424c0b7abece0b3dec860d95358d6",
+          "serverHandshake": "21e7492d50c1430b559fdf06aac85ee4ffb1eaa57b464cb300665700a558a2bb",
+          "clientFinished": "d218f1c8b213a89d7ea2e2fc7c83ba9253f6713ba502998f11d627916c4005d1",
+          "serverFinished": "d71f5bb42d70c8cd2bc61c7a4d6ff65b26ea0376550018fbbebd6f5d76e0982b"
+        },
+        "tlsClientHelloLength": "1895",
+        "tlsClientAuth": {
+          "certPresented": "0",
+          "certVerified": "NONE",
+          "certRevoked": "0",
+          "certIssuerDN": "",
+          "certSubjectDN": "",
+          "certIssuerDNRFC2253": "",
+          "certSubjectDNRFC2253": "",
+          "certIssuerDNLegacy": "",
+          "certSubjectDNLegacy": "",
+          "certSerial": "",
+          "certIssuerSerial": "",
+          "certSKI": "",
+          "certIssuerSKI": "",
+          "certFingerprintSHA1": "",
+          "certFingerprintSHA256": "",
+          "certNotBefore": "",
+          "certNotAfter": ""
+        },
+        "verifiedBotCategory": "",
+        "pagesHostName": "babylon-scanlation.pages.dev",
+        "botManagement": {
+          "corporateProxy": false,
+          "verifiedBot": false,
+          "jsDetection": {
+            "passed": false
+          },
+          "staticResource": false,
+          "detectionIds": {},
+          "score": 99
+        }
+      }
+    },
+    "response": {
+      "status": 500
+    }
+  },
+  "id": 2
+}{
+  "wallTime": 13,
+  "cpuTime": 7,
+  "truncated": false,
+  "executionModel": "stateless",
+  "outcome": "ok",
+  "scriptVersion": {
+    "id": "1ae3f899-38c1-44ef-8c9c-75c6ffd5d999"
+  },
+  "scriptName": "pages-worker--6960205-production",
+  "diagnosticsChannelEvents": [],
+  "exceptions": [],
+  "logs": [
+    {
+      "message": [
+        "18:36:51 [ERROR] ReferenceError: uniqueIndex is not defined\n    at SQLiteTable.<anonymous> (chunks/schema_BDGDtYrM.mjs:1568:37)\n    at extractTablesRelationalConfig (chunks/db_BusFovmB.mjs:201:67)\n    at drizzle (chunks/db_BusFovmB.mjs:3351:26)\n    at getDB (chunks/db_BusFovmB.mjs:3372:10)\n    at _astro-internal_middleware.mjs:12:33\n    at applyHandle (chunks/index_jNo1cH4T.mjs:3575:22)\n    at chunks/index_jNo1cH4T.mjs:3618:18\n    at onRequest$1 (_astro-internal_middleware.mjs:59:10)\n    at applyHandle (chunks/index_jNo1cH4T.mjs:3575:22)\n    at chunks/index_jNo1cH4T.mjs:3572:12"
+      ],
+      "level": "error",
+      "timestamp": 1766255811077
+    }
+  ],
+  "eventTimestamp": 1766255810981,
+  "event": {
+    "request": {
+      "url": "https://babylon-scanlation.pages.dev/api/telegram-webhook",
+      "method": "POST",
+      "headers": {
+        "accept-encoding": "gzip, br",
+        "cf-connecting-ip": "91.108.5.8",
+        "cf-ipcountry": "NL",
+        "cf-ray": "9b113f629b130423",
+        "cf-visitor": "{\"scheme\":\"https\"}",
+        "connection": "Keep-Alive",
+        "content-length": "940",
+        "content-type": "application/json",
+        "host": "babylon-scanlation.pages.dev",
+        "x-forwarded-proto": "https",
+        "x-real-ip": "91.108.5.8",
+        "x-telegram-bot-api-secret-token": "REDACTED"
+      },
+      "cf": {
+        "httpProtocol": "HTTP/1.1",
+        "clientAcceptEncoding": "gzip, deflate",
+        "requestPriority": "",
+        "edgeRequestKeepAliveStatus": 1,
+        "requestHeaderNames": {},
+        "clientTcpRtt": 28,
+        "colo": "MAD",
+        "asn": 62041,
+        "asOrganization": "Telegram Messenger Network",
+        "country": "NL",
+        "isEUCountry": "1",
+        "city": "Amsterdam",
+        "continent": "EU",
+        "region": "North Holland",
+        "regionCode": "NH",
+        "timezone": "Europe/Amsterdam",
+        "longitude": "4.88969",
+        "latitude": "52.37403",
+        "postalCode": "1012",
+        "tlsVersion": "TLSv1.3",
+        "tlsCipher": "AEAD-AES256-GCM-SHA384",
+        "tlsClientRandom": "fjbNxKbRMD6hGMLFXWWvfNkRoJFKB/S0o/0cdy3oEWk=",
+        "tlsClientCiphersSha1": "hCCNuWP9ky6AR69i97wdKYbhFQo=",
+        "tlsClientExtensionsSha1": "M5Sm/2qrabCxy8tG1NIWsjf99Ug=",
+        "tlsClientExtensionsSha1Le": "C6UcGP66kPwR41Cyi/I/iPOzh/Q=",
+        "tlsExportedAuthenticator": {
+          "clientHandshake": "c6274ede5e6d9c70b5c642e358d9b45adcc4bc56e8a450386a54d22cff111a3997bf83b613f565ab138fb93e01d3a7ca",
+          "serverHandshake": "49b0422eedf2d054725f4693b7032febc227588247163ce5d59b43bf643e578ec572a85ebe67f4159defbfeb4124c4c6",
+          "clientFinished": "d0779be89cc79f614c00caa0bde036b23d22760e13ddbf471bc9c91f3c65b9171edcb7f29571d50bfc2de27b33893881",
+          "serverFinished": "076e0efdd6266dcab7c542d2e6c4310416f4bed5bb8db59dbee7bd640a0260a1240f1c56610e130afc46d7a615567432"
+        },
+        "tlsClientHelloLength": "330",
+        "tlsClientAuth": {
+          "certPresented": "0",
+          "certVerified": "NONE",
+          "certRevoked": "0",
+          "certIssuerDN": "",
+          "certSubjectDN": "",
+          "certIssuerDNRFC2253": "",
+          "certSubjectDNRFC2253": "",
+          "certIssuerDNLegacy": "",
+          "certSubjectDNLegacy": "",
+          "certSerial": "",
+          "certIssuerSerial": "",
+          "certSKI": "",
+          "certIssuerSKI": "",
+          "certFingerprintSHA1": "",
+          "certFingerprintSHA256": "",
+          "certNotBefore": "",
+          "certNotAfter": ""
+        },
+        "verifiedBotCategory": "",
+        "pagesHostName": "babylon-scanlation.pages.dev",
+        "botManagement": {
+          "corporateProxy": false,
+          "verifiedBot": false,
+          "jsDetection": {
+            "passed": false
+          },
+          "staticResource": false,
+          "detectionIds": {},
+          "score": 99
+        }
+      }
+    },
+    "response": {
+      "status": 500
+    }
+  },
+  "id": 3
+}{
+  "wallTime": 306,
+  "cpuTime": 2,
+  "truncated": false,
+  "executionModel": "stateless",
+  "outcome": "ok",
+  "scriptVersion": {
+    "id": "1ae3f899-38c1-44ef-8c9c-75c6ffd5d999"
+  },
+  "scriptName": "pages-worker--6960205-production",
+  "diagnosticsChannelEvents": [],
+  "exceptions": [],
+  "logs": [
+    {
+      "message": [
+        "18:36:28 [ERROR] ReferenceError: uniqueIndex is not defined\n    at SQLiteTable.<anonymous> (chunks/schema_BDGDtYrM.mjs:1568:37)\n    at extractTablesRelationalConfig (chunks/db_BusFovmB.mjs:201:67)\n    at drizzle (chunks/db_BusFovmB.mjs:3351:26)\n    at getDB (chunks/db_BusFovmB.mjs:3372:10)\n    at _astro-internal_middleware.mjs:12:33\n    at applyHandle (chunks/index_jNo1cH4T.mjs:3575:22)\n    at chunks/index_jNo1cH4T.mjs:3618:18\n    at onRequest$1 (_astro-internal_middleware.mjs:59:10)\n    at applyHandle (chunks/index_jNo1cH4T.mjs:3575:22)\n    at chunks/index_jNo1cH4T.mjs:3572:12"
+      ],
+      "level": "error",
+      "timestamp": 1766255788904
+    }
+  ],
+  "eventTimestamp": 1766255788602,
+  "event": {
+    "request": {
+      "url": "https://babylon-scanlation.pages.dev/favicon.ico",
+      "method": "GET",
+      "headers": {
+        "accept": "image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5",
+        "accept-encoding": "gzip, br",
+        "accept-language": "es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3",
+        "cf-connecting-ip": "2803:9800:9085:900c:40e0:ec82:baf2:b118",
+        "cf-ipcountry": "AR",
+        "cf-ray": "9b113ed6b9a89d5e",
+        "cf-visitor": "{\"scheme\":\"https\"}",
+        "connection": "Keep-Alive",
+        "cookie": "REDACTED",
+        "host": "babylon-scanlation.pages.dev",
+        "priority": "u=6",
+        "referer": "https://babylon-scanlation.pages.dev/admin/series",
+        "sec-fetch-dest": "image",
+        "sec-fetch-mode": "no-cors",
+        "sec-fetch-site": "same-origin",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0",
+        "x-forwarded-proto": "https",
+        "x-real-ip": "2803:9800:9085:900c:40e0:ec82:baf2:b118"
+      },
+      "cf": {
+        "httpProtocol": "HTTP/3",
+        "clientAcceptEncoding": "gzip, deflate, br",
+        "requestPriority": "",
+        "edgeRequestKeepAliveStatus": 1,
+        "requestHeaderNames": {},
+        "clientTcpRtt": 0,
+        "colo": "EZE",
+        "asn": 11664,
+        "asOrganization": "AMX Argentina S.A.",
+        "country": "AR",
+        "isEUCountry": false,
+        "city": "Santiago del Estero",
+        "continent": "SA",
+        "region": "Santiago del Estero",
+        "regionCode": "G",
+        "timezone": "America/Argentina/Cordoba",
+        "longitude": "-64.26285",
+        "latitude": "-27.80047",
+        "postalCode": "4200",
+        "tlsVersion": "TLSv1.3",
+        "tlsCipher": "AEAD-AES128-GCM-SHA256",
+        "tlsClientRandom": "mgk50Iio0XwGLlUjUxOs6s4ld8RfJcUBcTjx3Hlewi4=",
+        "tlsClientCiphersSha1": "majgAKUWrKK75XCpDQDr/Sf7Eyw=",
+        "tlsClientExtensionsSha1": "BR6nwDu3Df6Q+OlTWW4oIx/oRvk=",
+        "tlsClientExtensionsSha1Le": "4u++ir+x4GUH6D8LFl5RHPcHOZM=",
+        "tlsExportedAuthenticator": {
+          "clientHandshake": "2c84dbe5b0e76b8f4f71eedba2f0796c0c2424c0b7abece0b3dec860d95358d6",
+          "serverHandshake": "21e7492d50c1430b559fdf06aac85ee4ffb1eaa57b464cb300665700a558a2bb",
+          "clientFinished": "d218f1c8b213a89d7ea2e2fc7c83ba9253f6713ba502998f11d627916c4005d1",
+          "serverFinished": "d71f5bb42d70c8cd2bc61c7a4d6ff65b26ea0376550018fbbebd6f5d76e0982b"
+        },
+        "tlsClientHelloLength": "1895",
+        "tlsClientAuth": {
+          "certPresented": "0",
+          "certVerified": "NONE",
+          "certRevoked": "0",
+          "certIssuerDN": "",
+          "certSubjectDN": "",
+          "certIssuerDNRFC2253": "",
+          "certSubjectDNRFC2253": "",
+          "certIssuerDNLegacy": "",
+          "certSubjectDNLegacy": "",
+          "certSerial": "",
+          "certIssuerSerial": "",
+          "certSKI": "",
+          "certIssuerSKI": "",
+          "certFingerprintSHA1": "",
+          "certFingerprintSHA256": "",
+          "certNotBefore": "",
+          "certNotAfter": ""
+        },
+        "verifiedBotCategory": "",
+        "pagesHostName": "babylon-scanlation.pages.dev",
+        "botManagement": {
+          "corporateProxy": false,
+          "verifiedBot": false,
+          "jsDetection": {
+            "passed": false
+          },
+          "staticResource": false,
+          "detectionIds": {},
+          "score": 99
+        }
+      }
+    },
+    "response": {
+      "status": 500
+    }
+  },
+  "id": 1
+}{
+  "wallTime": 27,
+  "cpuTime": 12,
+  "truncated": false,
+  "executionModel": "stateless",
+  "outcome": "ok",
+  "scriptVersion": {
+    "id": "1ae3f899-38c1-44ef-8c9c-75c6ffd5d999"
+  },
+  "scriptName": "pages-worker--6960205-production",
+  "diagnosticsChannelEvents": [],
+  "exceptions": [],
+  "logs": [
+    {
+      "message": [
+        "18:36:22 [ERROR] ReferenceError: uniqueIndex is not defined\n    at SQLiteTable.<anonymous> (chunks/schema_BDGDtYrM.mjs:1568:37)\n    at extractTablesRelationalConfig (chunks/db_BusFovmB.mjs:201:67)\n    at drizzle (chunks/db_BusFovmB.mjs:3351:26)\n    at getDB (chunks/db_BusFovmB.mjs:3372:10)\n    at _astro-internal_middleware.mjs:12:33\n    at applyHandle (chunks/index_jNo1cH4T.mjs:3575:22)\n    at chunks/index_jNo1cH4T.mjs:3618:18\n    at onRequest$1 (_astro-internal_middleware.mjs:59:10)\n    at applyHandle (chunks/index_jNo1cH4T.mjs:3575:22)\n    at chunks/index_jNo1cH4T.mjs:3572:12"
+      ],
+      "level": "error",
+      "timestamp": 1766255782216
+    }
+  ],
+  "eventTimestamp": 1766255782105,
+  "event": {
+    "request": {
+      "url": "https://babylon-scanlation.pages.dev/admin/series?success=Serie%20eliminada%20con%20%C3%A9xito",
+      "method": "GET",
+      "headers": {
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "accept-encoding": "gzip, br",
+        "accept-language": "es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3",
+        "cf-connecting-ip": "2803:9800:9085:900c:40e0:ec82:baf2:b118",
+        "cf-ipcountry": "AR",
+        "cf-ray": "9b113eae1cdf9d5e",
+        "cf-visitor": "{\"scheme\":\"https\"}",
+        "connection": "Keep-Alive",
+        "cookie": "REDACTED",
+        "host": "babylon-scanlation.pages.dev",
+        "priority": "u=0, i",
+        "referer": "https://babylon-scanlation.pages.dev/admin/series",
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "same-origin",
+        "sec-fetch-user": "?1",
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0",
+        "x-forwarded-proto": "https",
+        "x-real-ip": "2803:9800:9085:900c:40e0:ec82:baf2:b118"
+      },
+      "cf": {
+        "httpProtocol": "HTTP/3",
+        "clientAcceptEncoding": "gzip, deflate, br",
+        "requestPriority": "",
+        "edgeRequestKeepAliveStatus": 1,
+        "requestHeaderNames": {},
+        "clientTcpRtt": 0,
+        "colo": "EZE",
+        "asn": 11664,
+        "asOrganization": "AMX Argentina S.A.",
+        "country": "AR",
+        "isEUCountry": false,
+        "city": "Santiago del Estero",
+        "continent": "SA",
+        "region": "Santiago del Estero",
+        "regionCode": "G",
+        "timezone": "America/Argentina/Cordoba",
+        "longitude": "-64.26285",
+        "latitude": "-27.80047",
+        "postalCode": "4200",
+        "tlsVersion": "TLSv1.3",
+        "tlsCipher": "AEAD-AES128-GCM-SHA256",
+        "tlsClientRandom": "mgk50Iio0XwGLlUjUxOs6s4ld8RfJcUBcTjx3Hlewi4=",
+        "tlsClientCiphersSha1": "majgAKUWrKK75XCpDQDr/Sf7Eyw=",
+        "tlsClientExtensionsSha1": "BR6nwDu3Df6Q+OlTWW4oIx/oRvk=",
+        "tlsClientExtensionsSha1Le": "4u++ir+x4GUH6D8LFl5RHPcHOZM=",
+        "tlsExportedAuthenticator": {
+          "clientHandshake": "2c84dbe5b0e76b8f4f71eedba2f0796c0c2424c0b7abece0b3dec860d95358d6",
+          "serverHandshake": "21e7492d50c1430b559fdf06aac85ee4ffb1eaa57b464cb300665700a558a2bb",
+          "clientFinished": "d218f1c8b213a89d7ea2e2fc7c83ba9253f6713ba502998f11d627916c4005d1",
+          "serverFinished": "d71f5bb42d70c8cd2bc61c7a4d6ff65b26ea0376550018fbbebd6f5d76e0982b"
+        },
+        "tlsClientHelloLength": "1895",
+        "tlsClientAuth": {
+          "certPresented": "0",
+          "certVerified": "NONE",
+          "certRevoked": "0",
+          "certIssuerDN": "",
+          "certSubjectDN": "",
+          "certIssuerDNRFC2253": "",
+          "certSubjectDNRFC2253": "",
+          "certIssuerDNLegacy": "",
+          "certSubjectDNLegacy": "",
+          "certSerial": "",
+          "certIssuerSerial": "",
+          "certSKI": "",
+          "certIssuerSKI": "",
+          "certFingerprintSHA1": "",
+          "certFingerprintSHA256": "",
+          "certNotBefore": "",
+          "certNotAfter": ""
+        },
+        "verifiedBotCategory": "",
+        "pagesHostName": "babylon-scanlation.pages.dev",
+        "botManagement": {
+          "corporateProxy": false,
+          "verifiedBot": false,
+          "jsDetection": {
+            "passed": false
+          },
+          "staticResource": false,
+          "detectionIds": {},
+          "score": 99
+        }
+      }
+    },
+    "response": {
+      "status": 500
+    }
+  },
+  "id": 0
+}

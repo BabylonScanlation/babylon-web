@@ -6,6 +6,7 @@ import {
   text,
   primaryKey,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
 export const series = sqliteTable('Series', {

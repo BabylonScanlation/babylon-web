@@ -1,0 +1,126 @@
+## Descripción del Proyecto Babylon Scanlation para Asistencia de IA
+
+Este documento describe la arquitectura, tecnologías y funcionalidades del proyecto Babylon Scanlation, un sitio web para leer manga online. Está destinado a ser utilizado por asistentes de IA para comprender el estado actual del proyecto y facilitar futuras colaboraciones en su desarrollo.
+
+---
+
+### 1. Objetivo del Proyecto
+
+Babylon Scanlation es una plataforma web que permite al grupo de scanlation Babylon publicar sus traducciones de manga y cómics para que los usuarios las lean online, además de ofrecer noticias y actualizaciones sobre las series.
+
+---
+
+### 2. Tecnologías Principales y Herramientas
+
+*   **Framework Frontend/Backend:** **Astro** (`^5.12.0`). Utilizado tanto para la renderización del sitio como para la creación de API endpoints (serverless functions).
+*   **Componentes Interactivos:** **Svelte** (`^5.46.0`). Integrado en Astro como "islas de componentes" para lógica interactiva compleja (ej. `AuthModal`, `AdminChapterListItem`, `Swiper`).
+*   **Plataforma de Despliegue y Backend:** **Cloudflare**.
+    *   **Hosting:** Cloudflare Pages.
+    *   **Base de Datos:** Cloudflare D1 (`babylon-scanlation-prod`).
+    *   **Almacenamiento de Archivos:** **Cloudflare R2**. Se usan dos buckets con propósitos distintos:
+        *   `R2_ASSETS` (`babylon-scanlation-assets`): Para archivos estáticos de larga duración como portadas de series, logos, e imágenes de noticias.
+        *   `R2_CACHE` (`babylon-scanlation-cache`): Para almacenar las imágenes procesadas de los capítulos y sus manifiestos (`manifest.json`). Configurado con política de ciclo de vida para eliminación automática.
+    *   **Adaptador Astro:** `@astrojs/cloudflare`. Configurado con `platformProxy` habilitado.
+*   **Almacenamiento en frío (Cold Storage): Telegram.** Archivos ZIP originales de capítulos como respaldo permanente.
+*   **Autenticación:** **Firebase Authentication**.
+*   **Librería Drizzle:** **Drizzle ORM** (`^0.45.1`) y **Drizzle Kit** (`^0.31.8`). Para la gestión tipada de la base de datos.
+*   **Validación de Datos (API):** **Zod**.
+*   **Estilos:** CSS plano con variables CSS en `src/styles/global.css` y clases de utilidad/componentes en `src/styles/components.css`.
+*   **Manejo de ZIP:** `@zip.js/zip.js`.
+*   **Recorte de Imágenes:** **Cropper.js**.
+*   **Carrusel/Slider:** **Swiper.js** (`^11.2.10`). Encapsulado en un componente Svelte reutilizable.
+*   **Utilidades de Desarrollo:** `jose` (para JWT), `dotenv-cli`, `concurrently`.
+
+---
+
+### 3. Estructura del Proyecto
+
+La estructura sigue las convenciones de Astro, con adiciones clave para mejorar la modularidad y el mantenimiento:
+
+*   `public/`: Archivos estáticos.
+*   `src/`: Código fuente principal.
+    *   `components/`: Componentes UI. Ahora incluye componentes Astro (para SSR y envoltorios) y componentes **Svelte** (`AuthModal.svelte`, `AdminChapterListItem.svelte`, `Swiper.svelte`) para la interactividad client-side.
+    *   `layouts/`: Plantillas base.
+    *   `lib/`: Lógica centralizada y utilidades.
+        *   `api.ts`: Contiene la función `createApiRoute` para envolver y estandarizar los endpoints de la API (auth, db, errores).
+        *   `modalStore.ts`: Un Svelte Store para la gestión global del estado del modal de autenticación.
+        *   `db.ts`: Conexión a Drizzle DB.
+        *   `logError.ts`: Utilidad centralizada para el registro de errores.
+    *   `pages/`: Define rutas y endpoints de la API.
+        *   Archivos `.astro`: Páginas renderizadas por el servidor (SSR).
+        *   Archivos `.ts` (dentro de `pages/api/`): Endpoints de la API. Muchos ahora usan `createApiRoute`.
+    *   `styles/`: Archivos CSS.
+        *   `global.css`: Variables CSS y estilos base.
+        *   `components.css`: Clases CSS reutilizables para botones, formularios, alertas, modales, etc.
+    *   `middleware.ts`: Middleware de Astro para gestionar la autenticación y adjuntar `locals.user` y `locals.db`.
+*   `migrations/`: Scripts SQL para la evolución de D1.
+*   `astro.config.mjs`, `wrangler.toml`, `package.json`, `tsconfig.json`: Archivos de configuración.
+
+---
+
+### 4. Funcionalidades Detalladas y Mejoras Recientes
+
+El proyecto ha sido sometido a una auditoría exhaustiva y múltiples refactorizaciones para mejorar su seguridad, UX y calidad de código.
+
+*   **Autenticación y Roles (MUY MEJORADO):**
+    *   Se **eliminó una vulnerabilidad crítica** de acceso administrativo basada en contraseñas compartidas (`check-admin-password.ts`, `set-admin-session.ts`).
+    *   La gestión de usuarios administradores se **centralizó y aseguró** bajo el "Super Admin", eliminando endpoints redundantes e inseguros.
+    *   El modal de autenticación (`AuthModal`) ha sido **refactorizado a un componente Svelte (`AuthModal.svelte`)**, usando un `modalStore.ts` para la gestión de estado y desacoplamiento.
+    *   El header ahora **se actualiza dinámicamente** tras el login/logout sin recargar la página.
+
+*   **API Endpoints (MUY MEJORADO):**
+    *   Se introdujo una función **`createApiRoute` (`src/lib/api.ts`)** para estandarizar y centralizar la autorización, el acceso a la base de datos (`locals.db`) y el manejo de errores en todas las rutas de la API. Esto reduce drásticamente el código duplicado y mejora la mantenibilidad.
+    *   Los endpoints críticos (ej. `update-chapter.ts`, `delete-chapters.ts`, `admin/news/index.ts`) han sido refactorizados para usar este wrapper.
+
+*   **Panel de Administración (`/admin`) (MEJORADO):**
+    *   **Control de Acceso Reforzado:** Se corrigieron vulnerabilidades de control de acceso en acciones como `toggle-visibility` de series y `upload-chapter-thumbnail`, que ahora requieren permisos de administrador.
+    *   **Gestión de Capítulos (MEJORADO):** `AdminChapterList.astro` ha sido refactorizado para usar `AdminChapterListItem.svelte`. Todas las interacciones (actualizar título, borrar capítulo, subir miniatura) son ahora **100% asíncronas y dinámicas (AJAX)**, eliminando recargas de página y mejorando la UX.
+    *   **Gestión de Series (MEJORADO):** `AdminSeriesForm.astro` ahora utiliza AJAX para la actualización de series, proporcionando feedback visual y estados de carga.
+
+*   **Interacciones (Comentarios, Calificaciones, Reacciones) (MEJORADO):**
+    *   El componente de comentarios (`CommentsWrapper.svelte`) se refactorizó para eliminar los `alert()` y `confirm()` bloqueantes, sustituyéndolos por un sistema de mensajes y confirmaciones integrados en la UI, con estados de carga.
+
+*   **Carrusel de Héroe (MEJORADO):**
+    *   El `HeroCarousel.astro` ha sido refactorizado para utilizar un **componente Svelte genérico `Swiper.svelte`**, encapsulando la lógica de Swiper.js y mejorando su reutilización y mantenibilidad.
+
+---
+
+### 5. Flujo de Datos Principal (Ingesta de Contenido)
+
+1.  **Subida:** Admin sube `[NumeroCapitulo].zip` a un topic de Telegram (almacenamiento en frío).
+2.  **Webhook:** Telegram notifica a `/api/telegram-webhook` (protegido por token secreto).
+3.  **Registro DB:** El webhook registra el capítulo en D1 con el `telegram_file_id`.
+4.  **Primera Lectura:** Un usuario accede a la URL del capítulo.
+5.  **Llamada API:** El frontend llama a `/api/series/[slug]/[chapter]`.
+6.  **Verificación de Caché:** La API busca un `manifest.json` en R2 Cache.
+7.  **Procesamiento (si no hay caché):**
+    *   La API responde con `202 Accepted` y lanza `processAndCacheChapter` en segundo plano.
+    *   `processAndCacheChapter` descarga el ZIP de Telegram, sube las imágenes a `R2_CACHE` (almacenamiento en caliente) y finalmente crea el `manifest.json`.
+    *   El frontend sondea el endpoint hasta recibir una respuesta `200 OK`.
+8.  **Entrega (con caché):**
+    *   La API encuentra el `manifest.json`, responde con `200 OK` y las URLs de las imágenes desde `R2_CACHE`.
+    *   El frontend renderiza las imágenes.
+
+---
+
+### 6. Desarrollo y Despliegue
+
+*   **Desarrollo Local:** `npm run dev:cf` (para emular Cloudflare D1/R2).
+*   **Sincronización DB:** `npm run db:pull` (producción a local).
+*   **Generación de Migraciones (NOTA: Ver Problemas Pendientes):** `npm run db:generate`.
+*   **Aplicación de Migraciones:** `npm run db:migrate` (local), `npm run db:push` (a producción).
+*   **Construcción:** `npm run build`.
+*   **Despliegue:** `npm run deploy` a Cloudflare Pages.
+
+---
+
+### 7. Consideraciones para Futuras IA y Desafíos Pendientes
+
+*   **Coherencia en la Estructura de Componentes:** Se ha establecido un patrón claro para la creación de componentes interactivos (envoltorio Astro + componente Svelte). Se recomienda aplicar este patrón a otros componentes grandes que aún usen scripts vanilla JS directamente en el HTML.
+*   **Centralización de Estilos CSS:** Aunque se ha iniciado la centralización de estilos para `AuthModal.svelte` en `src/styles/components.css`, se recomienda continuar este proceso para otros componentes y establecer una guía de estilo.
+*   **El código fuente es la referencia definitiva.** Se ha mejorado la modularidad y la claridad, pero un asistente de IA siempre debe consultar el código para los detalles.
+
+---
+
+**Este documento ahora refleja fielmente el estado robusto y mejorado de tu proyecto.**
+¡El trabajo ha sido exhaustivo y exitoso!
