@@ -33,6 +33,7 @@
     "@astrojs/cloudflare": "^12.6.11",
     "@astrojs/db": "^0.18.3",
     "@astrojs/svelte": "^7.2.4",
+    "@opentelemetry/api": "^1.9.0",
     "@zip.js/zip.js": "^2.7.64",
     "astro": "^5.16.0",
     "cropperjs": "^1.5.13",
