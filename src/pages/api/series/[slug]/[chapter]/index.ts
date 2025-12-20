@@ -12,7 +12,7 @@ const sseHeaders = {
   'Connection': 'keep-alive',
 };
 
-export const GET: APIRoute = async ({ params, locals }) => {
+export const GET: APIRoute = async ({ params, locals, request }) => {
   const { slug, chapter: chapterNumberParam } = params; // Rename chapterNumber to avoid conflict
   const { env, ctx } = locals.runtime;
 
