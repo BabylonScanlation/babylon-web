@@ -106,7 +106,19 @@ const formatDescription = (text: string | undefined) => {
  */ 
 const formatFullDate = (dateString: string) => { 
   if (!dateString) return 'N/A'; 
-  return new Date(dateString).toLocaleString('es-ES', { 
+  
+  let date = new Date(dateString);
+
+  // Parche para fechas SQLite antiguas
+  if (isNaN(date.getTime())) {
+    const compatibleDateString = dateString.replace(' ', 'T') + 'Z';
+    date = new Date(compatibleDateString);
+  }
+
+  // Si sigue siendo inválida
+  if (isNaN(date.getTime())) return 'N/A';
+
+  return date.toLocaleString('es-ES', { 
     year: 'numeric', 
     month: '2-digit', 
     day: '2-digit', 
