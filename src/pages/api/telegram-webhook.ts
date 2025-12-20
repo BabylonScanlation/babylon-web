@@ -54,7 +54,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .get();
 
       if (!seriesResult) {
-        console.log(`[Webhook] Serie no encontrada para topic ${topicId}. Creando placeholder...`);
+        console.log(`[Webhook] Serie no encontrada para topic ${topicId}. Intentando crear...`);
         const newSeriesTitle = `Serie ${topicId}`;
         const newSeriesSlug = `serie-${topicId}`;
         const placeholderUrl = `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-cover.jpg`;
@@ -67,10 +67,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
             coverImageUrl: placeholderUrl,
             telegramTopicId: topicId,
             isHidden: true,
+            createdAt: new Date().toISOString(), // Fijar fecha explícita
           }).returning({ id: series.id }).get();
-        } catch (e) {
-          console.error('[Webhook] Error al crear serie automática:', e);
-          throw e;
+        } catch (e: any) {
+          // Si falla por restricción única (otro proceso la creó milisegundos antes), la buscamos de nuevo
+          if (e.message?.includes('UNIQUE constraint failed')) {
+            console.log(`[Webhook] La serie ya fue creada por otro proceso. Buscando ID...`);
+             seriesResult = await drizzleDb.select({ id: series.id })
+              .from(series)
+              .where(eq(series.telegramTopicId, topicId))
+              .get();
+          } else {
+             console.error('[Webhook] Error crítico al crear serie automática:', e);
+             throw e;
+          }
         }
       }
 
