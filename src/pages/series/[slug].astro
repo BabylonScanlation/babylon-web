@@ -871,22 +871,62 @@ const reactions = [
   }
 
   @media (max-width: 900px) { 
-    .series-title-header {
-      text-align: center;
-    }
     .series-header-grid { 
-      grid-template-columns: 1fr; 
+      /* Cambiamos a flex column para manejar el orden fácilmente */
+      display: flex;
+      flex-direction: column;
       text-align: center; 
-      gap: 1.5rem; 
+      gap: 1rem; /* Reducimos gap para móvil */
       padding: 0 1rem; 
     }
+
+    /* "Deshacemos" los contenedores para que sus hijos sean directos del grid/flex padre */
+    .cover-and-rating-wrapper, 
+    .series-info-panel { 
+      display: contents; 
+    }
+
+    /* REORDENAMIENTO PARA MÓVIL (ANDROID) */
+    
+    /* 1. Título */
+    .series-title-header {
+      order: 1;
+      text-align: center;
+      margin-bottom: 0.5rem;
+      width: 100%;
+    }
+
+    /* 2. Portada */
+    .series-cover { 
+      order: 2;
+      max-width: 200px; 
+      margin: 0 auto; 
+      width: 100%;
+    }
+
+    /* 3. Rating */
+    .rating-section {
+      order: 3;
+      width: 100%;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+
+    /* 4. Tabs e Info */
+    .info-tabs {
+      order: 4;
+      justify-content: center;
+      width: 100%;
+    }
+    .content-wrapper {
+      order: 5;
+      width: 100%;
+    }
+
+    /* Ajustes visuales extra para móvil */
     .cover-and-rating-wrapper, 
     .series-info-panel { 
       width: 100%; 
-    }
-    .series-cover { 
-      max-width: 200px; 
-      margin: 0 auto; 
     }
     .series-meta { 
       display: flex; 
@@ -914,9 +954,6 @@ const reactions = [
     .series-meta-grid { 
       text-align: left; 
       grid-template-columns: 1fr; 
-    }
-    .info-tabs { 
-      justify-content: center; 
     }
     .chapters-list li a { 
       flex-wrap: wrap; 
