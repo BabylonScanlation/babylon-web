@@ -17,6 +17,7 @@ const isAdmin = user?.isAdmin ?? false;
 </div>
 
 <script>
+  import { logError } from '@lib/logError';
   // --- HELPERS ---
   function formatDate(timestamp: number | string | Date) {
     return new Date(timestamp).toLocaleDateString('es-ES', {
@@ -196,7 +197,8 @@ const isAdmin = user?.isAdmin ?? false;
         });
       }
     } catch (error) {
-      console.error("Failed to fetch news:", error);
+      const seriesIdForLog = seriesId; // Capture for log context
+      logError(error, "Fallo al obtener noticias", { seriesId: seriesIdForLog });
       newsContainer.innerHTML = '<p class="error-message">No se pudieron cargar las noticias.</p>';
     }
   }

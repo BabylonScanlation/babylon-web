@@ -1,6 +1,9 @@
 // src/pages/api/comments/add.ts
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
+import { logError } from '../../../lib/logError';
+import { getDB } from '../../../lib/db';
+import { comments } from '../../../db/schema';
 
 const CommentSchema = z.object({
   chapterId: z.number().int().positive(),
@@ -23,6 +26,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
   }
 
+  let chapterId: number | undefined;
+  let commentText: string | undefined;
+
   try {
     const body = await request.json();
     const validation = CommentSchema.safeParse(body);
@@ -35,29 +41,34 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    const { chapterId, commentText } = validation.data;
-    const db = locals.runtime.env.DB;
+    ({ chapterId, commentText } = validation.data);
+    const drizzleDb = getDB(locals.runtime.env);
 
     // ✅ CORRECCIÓN: Se proporciona un email alternativo si no está disponible.
     const userEmail = user.email || `user-${user.uid.substring(0, 8)}`;
 
-    const result = await db
-      .prepare(
-        'INSERT INTO Comments (chapter_id, user_id, user_email, comment_text) VALUES (?, ?, ?, ?)'
-      )
-      .bind(chapterId, user.uid, userEmail, commentText)
-      .run();
+    const result = await drizzleDb
+      .insert(comments)
+      .values({
+        chapterId,
+        userId: user.uid,
+        userEmail,
+        commentText,
+      })
+      .returning({ id: comments.id, createdAt: comments.createdAt })
+      .get();
 
     const newComment = {
-      id: result.meta.last_row_id,
+      id: result.id,
       user_email: userEmail,
       comment_text: commentText,
-      created_at: new Date().toISOString(),
+      created_at: result.createdAt,
     };
 
     return new Response(JSON.stringify(newComment), { status: 201 });
   } catch (e: unknown) {
-    console.error('Error al añadir comentario:', e);
+    const userIdForLog = user?.uid; // user is in scope from the outer function
+    logError(e, 'Error al añadir comentario de capítulo', { chapterId: chapterId, userId: userIdForLog });
     return new Response(
       JSON.stringify({
         error: 'Error interno del servidor al procesar el comentario.',

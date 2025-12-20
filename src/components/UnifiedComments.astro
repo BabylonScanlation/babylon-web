@@ -1,0 +1,35 @@
+---
+// src/components/UnifiedComments.astro
+import CommentsWrapper from './comments/CommentsWrapper.svelte';
+
+interface Comment {
+  id: number;
+  user_email: string;
+  comment_text: string;
+  created_at: string;
+}
+
+interface User {
+  uid: string;
+  email?: string | null;
+  emailVerified?: boolean;
+  isAdmin?: boolean;
+}
+
+interface Props {
+  targetType: 'series' | 'chapter';
+  targetId: number;
+  comments: Comment[];
+  user?: User | null;
+}
+
+const { targetType, targetId, comments: initialComments = [], user = null } = Astro.props;
+---
+
+<CommentsWrapper
+  client:load
+  targetType={targetType}
+  targetId={targetId}
+  initialComments={initialComments}
+  user={user}
+/>

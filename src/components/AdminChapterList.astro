@@ -1,0 +1,100 @@
+---
+// src/components/AdminChapterList.astro
+import AdminChapterListItem from './AdminChapterListItem.svelte';
+
+interface Chapter {
+  id: number;
+  chapter_number: number;
+  title: string | null;
+  telegram_file_id: string;
+  url_portada: string | null;
+}
+
+interface Series {
+  id: number;
+  title: string;
+  slug: string;
+  chapters: Chapter[];
+}
+
+interface Props {
+  series: Series;
+  r2PublicUrlAssets: string;
+}
+
+const { series, r2PublicUrlAssets } = Astro.props;
+---
+
+<div class="chapters-list" id="chapters-list-container">
+  <h3>Capítulos (<span id="chapter-count">{series.chapters.length}</span>)</h3>
+  {series.chapters.length > 0 ? (
+    <ul id="chapter-ul-list">
+      {series.chapters.map((chapter) => (
+        <AdminChapterListItem
+          client:load
+          chapter={chapter}
+          seriesSlug={series.slug}
+          r2PublicUrlAssets={r2PublicUrlAssets}
+        />
+      ))}
+    </ul>
+  ) : (
+    <p>No hay capítulos para esta serie.</p>
+  )}
+</div>
+
+<style>
+  .chapters-list {
+    overflow-y: auto;
+    padding-right: 10px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 1rem;
+    background-color: #2a2a2a;
+  }
+  .chapters-list h3 {
+    margin-bottom: 1rem;
+    margin-top: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #555;
+  }
+  .chapters-list ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0;
+    margin: 0;
+  }
+</style>
+
+<script>
+  // Listen for chapterDeleted events to remove the item from the DOM
+  document.addEventListener('chapterDeleted', (event) => {
+    const { id } = (event as CustomEvent).detail;
+    // The Svelte component is the `li` itself, so we find it by its `data-chapter-id`
+    // which we should add to the li in the svelte component for this to work.
+    // Let's assume the svelte component has a root `li` with this attribute.
+    const listItem = document.querySelector(`li[data-chapter-id='${id}']`);
+    
+    if (listItem) {
+      (listItem as HTMLElement).style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      (listItem as HTMLElement).style.opacity = '0';
+      (listItem as HTMLElement).style.transform = 'scale(0.95)';
+      
+      setTimeout(() => {
+        listItem.remove();
+        const countSpan = document.getElementById('chapter-count');
+        const list = document.getElementById('chapter-ul-list');
+        if (countSpan) {
+          const newCount = (list?.children.length ?? 0);
+          countSpan.textContent = newCount.toString();
+        }
+      }, 300); // Wait for fade out animation
+    }
+  });
+
+  // The 'openCropperModal' event is dispatched globally from the Svelte component,
+  // so the existing listener (presumably in AdminSeriesManager or Layout) will still catch it.
+</script>
+

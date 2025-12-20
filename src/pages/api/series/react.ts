@@ -1,5 +1,9 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
+import { logError } from '../../../lib/logError';
+import { getDB } from '../../../lib/db';
+import { seriesReactions } from '../../../db/schema';
+import { eq, and } from 'drizzle-orm';
 
 const ReactionSchema = z.object({
   seriesId: z.number().int().positive(),
@@ -14,6 +18,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   }
 
+  let seriesId: number | undefined;
+  let emoji: string | null | undefined;
+
   try {
     const body = await request.json();
     const validation = ReactionSchema.safeParse(body);
@@ -24,30 +31,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    const { seriesId, emoji } = validation.data;
-    const db = locals.runtime.env.DB;
+    ({ seriesId, emoji } = validation.data);
+    const drizzleDb = getDB(locals.runtime.env);
 
     if (emoji) {
-      // Si hay un emoji, lo inserta o reemplaza el existente para ese usuario y serie.
-      await db
-        .prepare(
-          'INSERT OR REPLACE INTO SeriesReactions (series_id, user_id, reaction_emoji) VALUES (?, ?, ?)'
-        )
-        .bind(seriesId, user.uid, emoji)
+      // Si hay un emoji, lo inserta o reemplaza el existente para ese usuario y serie usando Drizzle.
+      await drizzleDb.insert(seriesReactions)
+        .values({ seriesId, userId: user.uid, reactionEmoji: emoji })
+        .onConflictDoUpdate({
+          target: [seriesReactions.seriesId, seriesReactions.userId],
+          set: { reactionEmoji: emoji },
+        })
         .run();
     } else {
-      // Si el emoji es null, significa que el usuario quitó su reacción.
-      await db
-        .prepare(
-          'DELETE FROM SeriesReactions WHERE series_id = ? AND user_id = ?'
-        )
-        .bind(seriesId, user.uid)
+      // Si el emoji es null, significa que el usuario quitó su reacción usando Drizzle.
+      await drizzleDb.delete(seriesReactions)
+        .where(and(eq(seriesReactions.seriesId, seriesId), eq(seriesReactions.userId, user.uid)))
         .run();
     }
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (e: unknown) {
-    console.error('Error al registrar la reacción:', e);
+    const userIdForLog = user?.uid; // user is in scope from the outer function
+    logError(e, 'Error al registrar la reacción de la serie', { seriesId: seriesId, userId: userIdForLog, emoji: emoji });
     return new Response(
       JSON.stringify({ error: 'Error interno del servidor' }),
       { status: 500 }

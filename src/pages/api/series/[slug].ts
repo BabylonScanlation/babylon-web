@@ -1,38 +1,14 @@
-// src/pages/api/series/[slug].ts
 import type { APIRoute } from 'astro';
+import { logError } from '@lib/logError';
+import { getDB } from '@lib/db';
+import { series, chapters, seriesRatings, seriesReactions } from '@/db/schema';
+import { eq, and, desc, sql } from 'drizzle-orm';
 
-interface SeriesDetails {
-  id: number;
-  title: string;
-  description: string;
-  cover_image_url: string;
-  slug: string;
-  status: string | null;
-  type: string | null;
-  genres: string;
-  author: string | null;
-  artist: string | null;
-  published_by: string | null;
-  alternative_names: string | null;
-  serialized_by: string | null;
-  is_hidden: boolean;
-}
-
-interface ChapterDetails {
+interface ChapterOutput {
   chapter_number: number;
-  title: string;
-  created_at: string;
+  title: string | null;
+  created_at: string | null;
   views: number;
-}
-
-interface RatingRow {
-  rating: number;
-  count: number;
-}
-
-interface ReactionRow {
-  reaction_emoji: string;
-  count: number;
 }
 
 export const GET: APIRoute = async ({ params, locals }) => {
@@ -42,17 +18,33 @@ export const GET: APIRoute = async ({ params, locals }) => {
   }
 
   try {
-    const db = locals.runtime.env.DB;
+    const drizzleDb = getDB(locals.runtime.env);
     const user = locals.user;
 
-    const series = await db
-      .prepare(
-        'SELECT *, genres as genres FROM Series WHERE slug = ? AND is_hidden = FALSE'
-      )
-      .bind(slug)
-      .first<SeriesDetails>();
+    const seriesData = await drizzleDb.select({
+      id: series.id,
+      title: series.title,
+      slug: series.slug,
+      description: series.description,
+      coverImageUrl: series.coverImageUrl,
+      telegramTopicId: series.telegramTopicId,
+      createdAt: series.createdAt,
+      views: series.views, // Explicitly included views
+      status: series.status,
+      type: series.type,
+      genres: series.genres,
+      author: series.author,
+      artist: series.artist,
+      publishedBy: series.publishedBy,
+      alternativeNames: series.alternativeNames,
+      serializedBy: series.serializedBy,
+      isHidden: series.isHidden,
+    })
+      .from(series)
+      .where(and(eq(series.slug, slug), eq(series.isHidden, false)))
+      .get(); // Removed explicit cast as typeof series.$inferSelect
 
-    if (!series) {
+    if (!seriesData) {
       return new Response('Serie no encontrada', { status: 404 });
     }
 
@@ -63,80 +55,96 @@ export const GET: APIRoute = async ({ params, locals }) => {
       userRatingResult,
       userReactionResult,
     ] = await Promise.all([
-      db
-        .prepare(
-          "SELECT chapter_number, title, created_at, views FROM Chapters WHERE series_id = ? AND status = 'live' ORDER BY chapter_number DESC"
-        )
-        .bind(series.id)
-        .all<ChapterDetails[]>(),
-      db
-        .prepare(
-          'SELECT rating, COUNT(rating) as count FROM SeriesRatings WHERE series_id = ? GROUP BY rating'
-        )
-        .bind(series.id)
-        .all<RatingRow[]>(),
-      db
-        .prepare(
-          'SELECT reaction_emoji, COUNT(reaction_emoji) as count FROM SeriesReactions WHERE series_id = ? GROUP BY reaction_emoji'
-        )
-        .bind(series.id)
-        .all<ReactionRow[]>(),
+      drizzleDb.select({
+        chapterNumber: chapters.chapterNumber,
+        title: chapters.title,
+        createdAt: chapters.createdAt,
+        views: sql<number>`CAST(IFNULL((SELECT COUNT(*) FROM ChapterViews WHERE chapter_id = ${chapters.id}), 0) AS INTEGER)`.as('views'), // Using SQL to count views
+      })
+      .from(chapters)
+      .where(and(eq(chapters.seriesId, seriesData.id), eq(chapters.status, 'live')))
+      .orderBy(desc(chapters.chapterNumber))
+      .all(),
+
+      drizzleDb.select({
+        rating: seriesRatings.rating,
+        count: sql<number>`COUNT(${seriesRatings.rating})`.as('count'),
+      })
+      .from(seriesRatings)
+      .where(eq(seriesRatings.seriesId, seriesData.id))
+      .groupBy(seriesRatings.rating)
+      .all(),
+
+      drizzleDb.select({
+        reactionEmoji: seriesReactions.reactionEmoji,
+        count: sql<number>`COUNT(${seriesReactions.reactionEmoji})`.as('count'),
+      })
+      .from(seriesReactions)
+      .where(eq(seriesReactions.seriesId, seriesData.id))
+      .groupBy(seriesReactions.reactionEmoji)
+      .all(),
+      
       user
-        ? db
-            .prepare(
-              'SELECT rating FROM SeriesRatings WHERE series_id = ? AND user_id = ?'
-            )
-            .bind(series.id, user.uid)
-            .first<{ rating: number }>()
+        ? drizzleDb.select({ rating: seriesRatings.rating })
+            .from(seriesRatings)
+            .where(and(eq(seriesRatings.seriesId, seriesData.id), eq(seriesRatings.userId, user.uid)))
+            .get()
         : Promise.resolve(null),
       user
-        ? db
-            .prepare(
-              'SELECT reaction_emoji FROM SeriesReactions WHERE series_id = ? AND user_id = ?'
-            )
-            .bind(series.id, user.uid)
-            .first<{ reaction_emoji: string }>()
+        ? drizzleDb.select({ reactionEmoji: seriesReactions.reactionEmoji })
+            .from(seriesReactions)
+            .where(and(eq(seriesReactions.seriesId, seriesData.id), eq(seriesReactions.userId, user.uid)))
+            .get()
         : Promise.resolve(null),
     ]);
 
     let totalVotes = 0;
     let totalRating = 0;
-    ratingsResult.results.forEach((row: RatingRow) => {
+    ratingsResult.forEach((row: { rating: number; count: number }) => { // Added type
       totalVotes += row.count;
       totalRating += row.rating * row.count;
     });
     const averageRating = totalVotes > 0 ? totalRating / totalVotes : 0;
 
-    const reactionCounts = reactionsResult.results.reduce(
-      (acc: Record<string, number>, row: ReactionRow) => {
-        acc[row.reaction_emoji] = row.count;
+    const reactionCounts = reactionsResult.reduce(
+      (acc: Record<string, number>, row: { reactionEmoji: string; count: number }) => { // Added type
+        acc[row.reactionEmoji] = row.count;
         return acc;
       },
       {}
     );
 
     const responseData = {
-      ...series,
-      chapters: chaptersResult.results,
+      ...seriesData,
+      cover_image_url: seriesData.coverImageUrl,
+      published_by: seriesData.publishedBy,
+      alternative_names: seriesData.alternativeNames,
+      serialized_by: seriesData.serializedBy,
+      is_hidden: seriesData.isHidden,
+      chapters: chaptersResult.map((c): ChapterOutput => ({
+        chapter_number: c.chapterNumber,
+        title: c.title,
+        created_at: c.createdAt,
+        views: c.views,
+      })),
       stats: {
         averageRating: parseFloat(averageRating.toFixed(2)),
         totalVotes,
         reactionCounts,
         userVote: userRatingResult?.rating || null,
-        userReaction: userReactionResult?.reaction_emoji || null,
+        userReaction: userReactionResult?.reactionEmoji || null,
       },
     };
 
     return new Response(JSON.stringify(responseData), {
       headers: {
         'content-type': 'application/json',
-        // ✅ CORRECCIÓN CLAVE: Esta cabecera evita que el navegador guarde en caché
-        // los datos de la serie, asegurando que el contador de vistas siempre esté actualizado.
         'Cache-Control': 'no-store, max-age=0, must-revalidate',
       },
     });
   } catch (error) {
-    console.error(error);
+    const slugForLog = slug;
+    logError(error, 'Error al obtener los detalles de la serie', { slug: slugForLog });
     return new Response('Error al obtener los detalles de la serie', {
       status: 500,
     });

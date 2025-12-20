@@ -1,0 +1,404 @@
+--- 
+// src/components/AdminSeriesForm.astro
+import AdminDescriptionTextarea from './AdminDescriptionTextarea.astro';
+
+interface Series {
+  id: number;
+  title: string;
+  description: string;
+  cover_image_url: string;
+  slug: string;
+  status: string | null;
+  type: string | null;
+  genres: string | null;
+  author: string | null;
+  artist: string | null;
+  published_by: string | null;
+  alternative_names: string | null;
+  serialized_by: string | null;
+  is_hidden: boolean;
+}
+
+interface Props {
+  series: Series;
+}
+
+const { series } = Astro.props;
+---
+
+<div class="series-info-and-forms">
+  <div class="current-cover">
+    <p>Portada Actual</p>
+    <img
+      src={series.cover_image_url}
+      alt={`Portada de ${series.title}`}
+      class="cover-preview-img"
+    />
+  </div>
+  <div class="forms-container">
+    <form
+      action="/api/update-series"
+      method="post"
+      enctype="multipart/form-data"
+      class="admin-form"
+      id={`update-series-form-${series.id}`}
+      data-series-id={series.id}
+    >
+      <div id={`form-message-${series.id}`} class="form-message"></div>
+      <input type="hidden" name="seriesId" value={series.id} />
+      <div class="form-group">
+        <label for={`title-${series.id}`}>Título</label>
+        <input
+          type="text"
+          id={`title-${series.id}`}
+          name="title"
+          value={series.title}
+          required
+        />
+      </div>
+      <div class="form-group">
+        <label for={`desc-${series.id}`}>Descripción</label>
+        <AdminDescriptionTextarea
+          id={`desc-${series.id}`}
+          name="description"
+          rows={4}
+          required={true}
+          value={series.description}
+        />
+      </div>
+      <div class="form-group">
+        <label for={`coverImage-${series.id}`}>
+          Nueva Portada (Opcional)
+        </label>
+        <input
+          type="file"
+          id={`coverImage-${series.id}`}
+          name="coverImage"
+          accept="image/jpeg,image/png,image/webp"
+        />
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for={`status-${series.id}`}>Estado</label>
+          <input
+            type="text"
+            id={`status-${series.id}`}
+            name="status"
+            value={series.status || ''}
+            placeholder="Ej: En emisión"
+          />
+        </div>
+        <div class="form-group">
+          <label for={`type-${series.id}`}>Tipo</label>
+          <input
+            type="text"
+            id={`type-${series.id}`}
+            name="type"
+            value={series.type || ''}
+            placeholder="Ej: Manga"
+          />
+        </div>
+        <div class="form-group">
+          <label for={`author-${series.id}`}>Autor</label>
+          <input
+            type="text"
+            id={`author-${series.id}`}
+            name="author"
+            value={series.author || ''}
+            placeholder="Autor de la obra"
+          />
+        </div>
+        <div class="form-group">
+          <label for={`artist-${series.id}`}>Artista</label>
+          <input
+            type="text"
+            id={`artist-${series.id}`}
+            name="artist"
+            value={series.artist || ''}
+            placeholder="Artista de la obra"
+          />
+        </div>
+        <div class="form-group">
+          <label for={`published_by-${series.id}`}>
+            Publicado por
+          </label>
+          <input
+            type="text"
+            id={`published_by-${series.id}`}
+            name="published_by"
+            value={series.published_by || ''}
+            placeholder="Ej: Shueisha"
+          />
+        </div>
+        <div class="form-group">
+          <label for={`serialized_by-${series.id}`}>
+            Serializado por
+          </label>
+          <input
+            type="text"
+            id={`serialized_by-${series.id}`}
+            name="serialized_by"
+            value={series.serialized_by || ''}
+            placeholder="Ej: Weekly Shōnen Jump"
+          />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for={`alternative_names-${series.id}`}>
+          Nombres Alternativos (separados por coma)
+        </label>
+        <input
+          type="text"
+          id={`alternative_names-${series.id}`}
+          name="alternative_names"
+          value={series.alternative_names || ''}
+          placeholder="Ej: Alias 1, Alias 2"
+        />
+      </div>
+      <div class="form-group">
+        <label for={`genres-${series.id}`}>
+          Géneros (separados por coma)
+        </label>
+        <input
+          type="text"
+          id={`genres-${series.id}`}
+          name="genres"
+          value={series.genres || ''}
+          placeholder="Ej: Acción, Aventura"
+        />
+      </div>
+      <div class="action-buttons-row">
+        <div class="update-button-wrapper">
+          <button
+            type="submit"
+            form={`update-series-form-${series.id}`}
+            class="btn btn-primary"
+            id={`update-series-button-${series.id}`}
+          >
+            Actualizar Serie
+          </button>
+        </div>
+        <div class="form-group toggle-visibility-group">
+          <input
+            type="hidden"
+            id={`is_hidden_input-${series.id}`}
+            name="is_hidden"
+            value={series.is_hidden ? 'on' : 'off'}
+          />
+          <button
+            type="button"
+            class:list={[
+              'btn',
+              { 'btn-success': series.is_hidden },
+              { 'btn-danger': !series.is_hidden },
+            ]}
+            data-series-id={series.id}
+            data-is-hidden={series.is_hidden.toString()}
+            id={`toggle-visibility-button-${series.id}`}
+          >
+            {series.is_hidden ? 'Mostrar Serie' : 'Ocultar Serie'}
+          </button>
+        </div>
+      </div>
+    </form>
+    <form
+      action="/api/delete-series"
+      method="post"
+      onsubmit="return confirm('¿Estás seguro de que quieres eliminar TODA la serie?\nEsta acción no se puede deshacer.');"
+    >
+      <input type="hidden" name="seriesId" value={series.id} />
+      <button type="submit" class="btn btn-danger">
+        Eliminar Serie Completa
+      </button>
+    </form>
+  </div>
+</div>
+
+<style>
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .series-info-and-forms {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .current-cover {
+    text-align: center;
+  }
+  .current-cover p {
+    font-weight: bold;
+    margin-bottom: 0.75rem;
+  }
+  .cover-preview-img {
+    max-width: 180px;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    border: 2px solid #444;
+  }
+  .forms-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .action-buttons-row {
+    display: flex;
+    gap: 1rem;
+  }
+  .action-buttons-row > .update-button-wrapper,
+  .action-buttons-row > .form-group {
+    flex: 1;
+    margin-top: 0;
+  }
+  .action-buttons-row > .update-button-wrapper > .update-series-button {
+    width: 100%;
+    font-weight: bold;
+  }
+  .action-buttons-row > .form-group > button {
+    width: 100%;
+  }
+  .admin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .admin-form input[type="text"],
+  .admin-form textarea,
+  .admin-form input[type="file"] {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #333;
+    border: 1px solid #555;
+    color: var(--font-color);
+    border-radius: 4px;
+  }
+  .admin-form input[type='file'] {
+    padding: 0.5rem;
+    line-height: 1.5;
+  }
+  .admin-form button {
+    font-weight: bold;
+  }
+          .form-message {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-align: center;
+            display: none; /* Initially hidden */
+          }
+          .form-message.success {
+            background-color: #28a745;
+            color: white;
+          }
+          .form-message.error {
+            background-color: #dc3545;
+            color: white;
+          }
+        </style>
+<script>
+  async function handleUpdateSeries(event: Event) {
+    event.preventDefault();
+    const form = event.target as HTMLFormElement;
+    const seriesId = form.dataset.seriesId;
+    const messageDiv = document.getElementById(`form-message-${seriesId}`);
+    const button = document.getElementById(`update-series-button-${seriesId}`) as HTMLButtonElement;
+
+    if (button) button.disabled = true;
+
+    function displayFormMessage(type: string, text: string) {
+      if (messageDiv) {
+        messageDiv.textContent = text;
+        messageDiv.className = `form-message ${type}`;
+        messageDiv.style.display = 'block';
+        setTimeout(() => {
+          messageDiv.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch('/api/update-series', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error desconocido al actualizar.');
+      }
+
+      displayFormMessage('success', 'Serie actualizada con éxito.');
+    } catch (error: any) {
+      console.error('Error al actualizar la serie:', error);
+      displayFormMessage('error', `Error: ${error.message || 'Error desconocido'}`);
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function handleToggleVisibilityClick(event: Event) {
+    const button = event.currentTarget as HTMLButtonElement;
+    const seriesId = button.dataset.seriesId;
+    const isHiddenInput = document.getElementById(`is_hidden_input-${seriesId}`) as HTMLInputElement;
+    const messageDiv = document.getElementById(`form-message-${seriesId}`);
+
+    if (!seriesId || !isHiddenInput) return;
+
+    const currentlyHidden = isHiddenInput.value === 'on';
+    const newHiddenState = !currentlyHidden;
+
+    function displayFormMessage(type: string, text: string) {
+      if (messageDiv) {
+        messageDiv.textContent = text;
+        messageDiv.className = `form-message ${type}`;
+        messageDiv.style.display = 'block';
+        setTimeout(() => {
+          messageDiv.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    // Optimistic update
+    isHiddenInput.value = newHiddenState ? 'on' : 'off';
+    button.textContent = newHiddenState ? 'Mostrar Serie' : 'Ocultar Serie';
+    button.classList.toggle('btn-success', newHiddenState);
+    button.classList.toggle('btn-danger', !newHiddenState);
+
+    try {
+      const response = await fetch('/api/series/toggle-visibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seriesId: parseInt(seriesId), isHidden: newHiddenState }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      displayFormMessage('success', 'Visibilidad actualizada.');
+    } catch (e) {
+      // Revert UI on error
+      isHiddenInput.value = currentlyHidden ? 'on' : 'off';
+      button.textContent = currentlyHidden ? 'Ocultar Serie' : 'Mostrar Serie';
+      button.classList.toggle('btn-success', !currentlyHidden);
+      button.classList.toggle('btn-danger', currentlyHidden);
+      displayFormMessage('error', 'Error al actualizar visibilidad.');
+    }
+  }
+
+  // Setup listeners using event delegation or individual attachment
+  document.querySelectorAll('.admin-form').forEach(form => {
+    form.addEventListener('submit', handleUpdateSeries);
+  });
+
+  document.querySelectorAll('[id^="toggle-visibility-button-"]').forEach(button => {
+    button.addEventListener('click', handleToggleVisibilityClick);
+  });
+</script>

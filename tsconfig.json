@@ -26,7 +26,9 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/**/*.astro" // <--- ESTO ES CRUCIAL
+    "src/**/*.astro",
+    "src/**/*.svelte",
+    "drizzle.config.ts"
   ],
   "exclude": ["node_modules", "dist"]
 }

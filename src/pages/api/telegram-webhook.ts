@@ -1,5 +1,9 @@
 // src/pages/api/telegram-webhook.ts
 import type { APIRoute } from 'astro';
+import { logError } from '../../lib/logError';
+import { getDB } from '../../lib/db';
+import { series, chapters } from '../../db/schema';
+import { eq } from 'drizzle-orm';
 
 interface TelegramUpdate {
   message?: {
@@ -36,53 +40,49 @@ export const POST: APIRoute = async ({ request, locals }) => {
         );
       const chapterNumber = parseFloat(chapterNumberMatch[0]);
 
-      const db = env.DB;
-      let seriesResult = await db
-        .prepare('SELECT id FROM Series WHERE telegram_topic_id = ?')
-        .bind(topicId)
-        .first<{ id: number }>();
+      const drizzleDb = getDB(env);
+      let seriesResult = await drizzleDb.select({ id: series.id })
+        .from(series)
+        .where(eq(series.telegramTopicId, topicId))
+        .get();
 
       if (!seriesResult) {
         const newSeriesTitle = `Serie ${topicId}`;
         const newSeriesSlug = `serie-${topicId}`;
         const placeholderUrl = `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-cover.jpg`;
-        await db
-          .prepare(
-            'INSERT INTO Series (title, slug, description, cover_image_url, telegram_topic_id, is_hidden) VALUES (?, ?, ?, ?, ?, TRUE)'
-          )
-          .bind(
-            newSeriesTitle,
-            newSeriesSlug,
-            'Descripción próximamente...'.trim(), // Aplicar .trim() explícitamente
-            placeholderUrl,
-            topicId
-          )
-          .run();
-        seriesResult = await db
-          .prepare('SELECT id FROM Series WHERE telegram_topic_id = ?')
-          .bind(topicId)
-          .first<{ id: number }>();
-        if (!seriesResult)
+        const insertedSeries = await drizzleDb.insert(series).values({
+          title: newSeriesTitle,
+          slug: newSeriesSlug,
+          description: 'Descripción próximamente...',
+          coverImageUrl: placeholderUrl,
+          telegramTopicId: topicId,
+          isHidden: true,
+        }).returning({ id: series.id }).get();
+        
+        if (!insertedSeries)
           throw new Error('Falló la creación automática de la nueva serie.');
+        seriesResult = insertedSeries;
       }
 
       const seriesId = seriesResult.id;
 
-      const chapterIdResult = await db
-        .prepare(
-          "INSERT OR IGNORE INTO Chapters (series_id, chapter_number, telegram_file_id, status, url_portada) VALUES (?, ?, ?, 'live', NULL) RETURNING id"
-        )
-        .bind(seriesId, chapterNumber, fileId)
-        .first<{ id: number }>();
+      const chapterIdResult = await drizzleDb.insert(chapters).values({
+        seriesId: seriesId,
+        chapterNumber: chapterNumber,
+        telegramFileId: fileId,
+        status: 'live',
+        urlPortada: null,
+      }).onConflictDoNothing({ target: [chapters.seriesId, chapters.chapterNumber] })
+        .returning({ id: chapters.id })
+        .get();
 
       if (chapterIdResult?.id) {
         const newChapterId = chapterIdResult.id;
-        const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`; // New placeholder for chapters
+        const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`;
 
-        // Update the chapter with the placeholder URL immediately after insertion
-        await db
-          .prepare('UPDATE Chapters SET url_portada = ? WHERE id = ?')
-          .bind(chapterPlaceholderUrl, newChapterId)
+        await drizzleDb.update(chapters)
+          .set({ urlPortada: chapterPlaceholderUrl })
+          .where(eq(chapters.id, newChapterId))
           .run();
 
         console.log(
@@ -98,7 +98,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // If the outer if condition is not met, we still need to return a Response
     return new Response('OK - No zip document or topic ID', { status: 200 });
   } catch (error) {
-    console.error('Error en el webhook:', error);
+    logError(error, 'Error en el webhook de Telegram');
     return new Response('Internal Server Error', { status: 500 });
   }
 };

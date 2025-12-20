@@ -1,7 +1,10 @@
 // src/pages/api/upload-chapter-thumbnail.ts
 import type { APIRoute } from 'astro';
 import { getDB } from '../../lib/db';
+import { chapters } from '../../db/schema'; // Corrected Chapters to chapters
+import { eq } from 'drizzle-orm'; // Import eq for comparisons
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types'; // Assuming R2Bucket type is available
+import { logError } from '../../lib/logError';
 
 interface Env {
   DB: D1Database;
@@ -10,12 +13,17 @@ interface Env {
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
+  if (!locals.user?.isAdmin) {
+    return new Response('Unauthorized', { status: 401 });
+  }
   const env = locals.runtime.env as Env;
-  const db = getDB(env);
+  const drizzleDb = getDB(env);
+
+  let chapterId: string | undefined; // Declare chapterId here
 
   try {
     const formData = await request.formData();
-    const chapterId = formData.get('chapterId');
+    chapterId = formData.get('chapterId')?.toString(); // Assign value here
     const thumbnailImage = formData.get('thumbnailImage');
 
     if (!chapterId || typeof chapterId !== 'string') {
@@ -61,10 +69,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const thumbnailUrl = `${env.R2_PUBLIC_URL_ASSETS}/${thumbnailKey}`;
 
     // Actualizar D1 con la URL de la miniatura
-    await db
-      .prepare('UPDATE Chapters SET url_portada = ? WHERE id = ?')
-      .bind(thumbnailUrl, parseInt(chapterId))
-      .run();
+    await drizzleDb.update(chapters) // Corrected Chapters to chapters
+      .set({ urlPortada: thumbnailUrl })
+      .where(eq(chapters.id, parseInt(chapterId))); // Corrected Chapters to chapters
 
     console.log(
       `[Manual Thumbnail Upload] Thumbnail URL updated for Chapter ID: ${chapterId}`
@@ -75,7 +82,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('[Manual Thumbnail Upload] Error:', error);
+    logError(error, 'Error en subida manual de miniatura', { chapterId });
     return new Response(
       JSON.stringify({
         error: 'Internal Server Error',

@@ -22,34 +22,26 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
         <button type="submit">BUSCAR</button>
       </form>
 
-      <div class="user-actions">
-        {
-          user ? (
-            <>
-              {user.isAdmin && (
-                <a href="/admin" class="admin-panel-link">
-                  PANEL ADMIN
-                </a>
-              )}
-              <form method="POST" action="/api/auth/logout">
-                <button type="submit" class="logout-btn">
-                  CERRAR SESIÓN
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <button data-open-modal="login" class="login-btn">
-                INICIAR SESIÓN
-              </button>
-              <button data-open-modal="register" class="register-btn">
-                REGISTRARSE
-              </button>
-            </>
-          )
-        }
-      </div>
-    </div>
+                    <div class="user-actions">
+                      <div id="desktop-logged-in-section" style={`display: ${!!user ? 'flex' : 'none'};`}>
+                        <a href="/admin" id="desktop-admin-link" class="admin-panel-link" style={`display: ${user?.isAdmin ? 'flex' : 'none'};`}>
+                          PANEL ADMIN
+                        </a>
+                        <form method="POST" action="/api/auth/logout">
+                          <button type="submit" class="logout-btn">
+                            CERRAR SESIÓN
+                          </button>
+                        </form>
+                      </div>
+                      <div id="desktop-logged-out-section" style={`display: ${!user ? 'flex' : 'none'};`}>
+                        <button data-open-modal="login" class="login-btn">
+                          INICIAR SESIÓN
+                        </button>
+                        <button data-open-modal="register" class="register-btn">
+                          REGISTRARSE
+                        </button>
+                      </div>
+                    </div>    </div>
 
     <button class="hamburger" id="hamburger-button" aria-label="Abrir menú">
       <span class="hamburger-box">
@@ -63,38 +55,31 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
       <input type="search" name="q" placeholder="Buscar manga..." required />
       <button type="submit">BUSCAR</button>
     </form>
-    <div class="user-actions-mobile">
-      {
-        user ? (
-          <>
-            {user.isAdmin && (
-              <a href="/admin" class="admin-panel-link">
-                PANEL ADMIN
-              </a>
-            )}
-            <form method="POST" action="/api/auth/logout">
-              <button type="submit" class="logout-btn">
-                CERRAR SESIÓN
-              </button>
-            </form>
-          </>
-        ) : (
-          <>
-            <button data-open-modal="login" class="login-btn">
-              INICIAR SESIÓN
-            </button>
-            <button data-open-modal="register" class="register-btn">
-              REGISTRARSE
-            </button>
-          </>
-        )
-      }
-    </div>
-  </div>
+                <div class="user-actions-mobile">
+                  <div id="mobile-logged-in-section" style={`display: ${!!user ? 'flex' : 'none'};`}>
+                    <a href="/admin" id="mobile-admin-link" class="admin-panel-link" style={`display: ${user?.isAdmin ? 'flex' : 'none'};`}>
+                      PANEL ADMIN
+                    </a>
+                    <form method="POST" action="/api/auth/logout">
+                      <button type="submit" class="logout-btn">
+                        CERRAR SESIÓN
+                      </button>
+                    </form>
+                  </div>
+                  <div id="mobile-logged-out-section" style={`display: ${!user ? 'flex' : 'none'};`}>
+                    <button data-open-modal="login" class="login-btn">
+                      INICIAR SESIÓN
+                    </button>
+                    <button data-open-modal="register" class="register-btn">
+                      REGISTRARSE
+                    </button>
+                  </div>
+                </div>  </div>
 </header>
 
-<script is:inline>
-  // Script para el menú hamburguesa y para EMITIR la señal del modal
+<script>
+  import { authModal } from '../lib/modalStore.ts';
+
   document.addEventListener('DOMContentLoaded', () => {
     // Lógica del menú hamburguesa
     const hamburgerButton = document.getElementById('hamburger-button');
@@ -107,7 +92,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
       body.classList.toggle('mobile-nav-open', isActive);
     });
 
-    // Event Delegation + Custom Events
+    // Event Delegation para abrir el modal
     const header = document.querySelector('.site-header');
     header?.addEventListener('click', (e) => {
       if (!(e.target instanceof Element)) return;
@@ -116,15 +101,81 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
       if (trigger) {
         e.preventDefault();
         const view = trigger.getAttribute('data-open-modal');
+        
+        // Usamos el store para abrir el modal
+        authModal.open(view === 'register' ? 'register' : 'login');
+      }
+    });
 
-        document.dispatchEvent(
-          new CustomEvent('open-auth-modal', {
-            detail: { view: view === 'register' ? 'register' : 'login' },
-          })
-        );
+    // Listen for auth-success event to update header dynamically
+    document.addEventListener('auth-success', updateHeaderVisibility);
+
+    // Intercept logout form submissions to handle them client-side
+    document.addEventListener('submit', async (e) => {
+      const form = e.target;
+      if (form && form instanceof HTMLFormElement && form.matches('form[action="/api/auth/logout"]')) {
+        e.preventDefault(); // Prevent default form submission (page reload)
+
+        const logoutButton = form.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+        if (logoutButton) logoutButton.disabled = true;
+
+        try {
+          const response = await fetch(form.action, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            document.dispatchEvent(new CustomEvent('auth-success')); // Trigger header update
+          } else {
+            console.error('Error durante el cierre de sesión:', await response.text());
+          }
+        } catch (error) {
+          console.error('Error de red al cierre de sesión:', error);
+        } finally {
+          if (logoutButton) logoutButton.disabled = false;
+        }
       }
     });
   });
+
+  async function updateHeaderVisibility() {
+    try {
+      // Use a timestamp to prevent browser caching of the status endpoint
+      const response = await fetch(`/api/auth/status?t=${Date.now()}`);
+      if (!response.ok) throw new Error('Status API error');
+      
+      const text = await response.text();
+      const user = text ? JSON.parse(text) : null;
+
+      const desktopLoggedIn = document.getElementById('desktop-logged-in-section');
+      const desktopLoggedOut = document.getElementById('desktop-logged-out-section');
+      const mobileLoggedIn = document.getElementById('mobile-logged-in-section');
+      const mobileLoggedOut = document.getElementById('mobile-logged-out-section');
+
+      const desktopAdminLink = document.getElementById('desktop-admin-link');
+      const mobileAdminLink = document.getElementById('mobile-admin-link');
+
+      // Check if user exists and has a uid (to avoid empty objects)
+      const isLoggedIn = !!(user && user.uid);
+      const isAdmin = !!(user && user.isAdmin);
+
+      // Update desktop sections
+      if (desktopLoggedIn) desktopLoggedIn.style.display = isLoggedIn ? 'flex' : 'none';
+      if (desktopLoggedOut) desktopLoggedOut.style.display = isLoggedIn ? 'none' : 'flex';
+      // Update mobile sections
+      if (mobileLoggedIn) mobileLoggedIn.style.display = isLoggedIn ? 'flex' : 'none';
+      if (mobileLoggedOut) mobileLoggedOut.style.display = isLoggedIn ? 'none' : 'flex';
+
+      // Update Admin links
+      if (desktopAdminLink) desktopAdminLink.style.display = isAdmin ? 'flex' : 'none';
+      if (mobileAdminLink) mobileAdminLink.style.display = isAdmin ? 'flex' : 'none';
+    } catch (error) {
+      console.error('Error updating header visibility:', error);
+    }
+  }
 </script>
 
 <style>
@@ -198,6 +249,17 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     display: flex;
     align-items: center;
     gap: 1rem;
+  }
+  #desktop-logged-in-section {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+  #mobile-logged-in-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
   }
   .login-btn,
   .register-btn,

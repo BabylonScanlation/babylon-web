@@ -3,6 +3,7 @@
 import Layout from '../layouts/Layout.astro';
 import MangaList from '../components/MangaList.astro';
 import type { Series } from '../types';
+import { logError } from '../lib/logError';
 
 const query = Astro.url.searchParams.get('q')?.trim() || '';
 let searchResults: Series[] = [];
@@ -19,7 +20,7 @@ if (query) {
       error = 'Hubo un error al contactar el servidor de búsqueda.';
     }
   } catch (e) {
-    console.error(e);
+    logError(e, 'Error al realizar la búsqueda', { query });
     error = 'No se pudo realizar la búsqueda en este momento.';
   }
 }

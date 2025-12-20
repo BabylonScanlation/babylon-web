@@ -1,1 +1,0 @@
-ALTER TABLE ChapterViews ADD COLUMN guest_id TEXT;

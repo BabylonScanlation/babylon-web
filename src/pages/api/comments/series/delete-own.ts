@@ -1,6 +1,10 @@
 // src/pages/api/comments/series/delete-own.ts
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
+import { logError } from '../../../../lib/logError';
+import { getDB } from '../../../../lib/db';
+import { seriesComments } from '../../../../db/schema';
+import { eq, and } from 'drizzle-orm';
 
 const DeleteSchema = z.object({
   commentId: z.number().int().positive(),
@@ -14,6 +18,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   }
 
+  let commentId: number | undefined;
+
   try {
     const body = await request.json();
     const validation = DeleteSchema.safeParse(body);
@@ -24,17 +30,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    const { commentId } = validation.data;
-    const db = locals.runtime.env.DB;
+    ({ commentId } = validation.data);
+    const drizzleDb = getDB(locals.runtime.env);
 
     // Verificamos que el comentario exista y pertenezca al usuario
-    const comment = await db
-      .prepare('SELECT user_id FROM SeriesComments WHERE id = ?')
-      .bind(commentId)
-      .first<{ user_id: string }>();
+    const comment = await drizzleDb
+      .select({ userId: seriesComments.userId })
+      .from(seriesComments)
+      .where(eq(seriesComments.id, commentId))
+      .get();
 
     console.log('Server user.uid:', user.uid);
-    console.log('Comment user_id:', comment?.user_id);
+    console.log('Comment user_id:', comment?.userId);
 
     if (!comment) {
       return new Response(
@@ -43,7 +50,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    if (comment.user_id !== user.uid) {
+    if (comment.userId !== user.uid) {
       return new Response(
         JSON.stringify({
           error: 'No tienes permiso para eliminar este comentario',
@@ -53,14 +60,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Si todo es correcto, eliminamos el comentario
-    await db
-      .prepare('DELETE FROM SeriesComments WHERE id = ?')
-      .bind(commentId)
+    await drizzleDb
+      .delete(seriesComments)
+      .where(and(eq(seriesComments.id, commentId), eq(seriesComments.userId, user.uid)))
       .run();
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (e: unknown) {
-    console.error('Error al eliminar el comentario:', e);
+    const userIdForLog = user?.uid; // user is in scope from the outer function
+    logError(e, 'Error al eliminar el comentario de serie propio', { commentId: commentId, userId: userIdForLog });
     return new Response(
       JSON.stringify({ error: 'Error interno del servidor' }),
       { status: 500 }

@@ -1,5 +1,6 @@
 // src/pages/api/r2-cache/[...key].ts
 import type { APIRoute } from 'astro';
+import { logError } from '../../../lib/logError';
 
 export const GET: APIRoute = async ({ params, locals }) => {
   const { key } = params;
@@ -42,7 +43,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     });
 
   } catch (error) {
-    console.error(`Error fetching R2 object for key ${key}:`, error);
+    logError(error, 'Error al obtener objeto de R2 Cache', { key });
     return new Response('Internal Server Error', { status: 500 });
   }
 };

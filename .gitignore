@@ -7,11 +7,6 @@ dist/
 
 # Cloudflare local development state
 .wrangler/
-.dev.vars
-.env
-
-# Database
-db_snapshots/
 
 # Log files
 npm-debug.log*
@@ -22,15 +17,9 @@ yarn-error.log*
 .DS_Store
 .vscode/
 Thumbs.db
+db_snapshots/
 
-# Ignorar scripts de utilidad específicos
-delclodep.py
-cleanup-deployments.js
-create-migrations.
-problems.txt
-prompt.txt
-ideas.txt
-readAI.txt
-
-# Gemini related files
-GEMINI.md
+# Environment variables
+.env
+.env.local
+.dev.vars

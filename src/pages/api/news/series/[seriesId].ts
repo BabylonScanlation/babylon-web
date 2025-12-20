@@ -1,7 +1,7 @@
 // src/pages/api/news/series/[seriesId].ts
 import type { APIRoute } from 'astro';
-import { getDB } from '../../../../lib/db';
-import { getAllNews, getNewsImages } from '../../../../lib/db';
+import { getDB, getAllNews, getNewsImages, type NewsItem, type NewsImageItem } from '../../../../lib/db';
+import { logError } from '../../../../lib/logError';
 
 export const GET: APIRoute = async ({ params, locals }) => {
   const { seriesId } = params;
@@ -9,7 +9,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     return new Response('Series ID is required', { status: 400 });
   }
 
-  const db = getDB(locals.runtime.env);
+  const drizzleDb = getDB(locals.runtime.env);
 
   try {
     const numericSeriesId = parseInt(seriesId, 10);
@@ -17,7 +17,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
         return new Response('Invalid Series ID', { status: 400 });
     }
 
-    const newsForSeries = await getAllNews(db, 'published', numericSeriesId);
+    const newsForSeries = await getAllNews(drizzleDb, 'published', numericSeriesId);
 
     if (newsForSeries.length === 0) {
       return new Response(JSON.stringify([]), {
@@ -26,9 +26,9 @@ export const GET: APIRoute = async ({ params, locals }) => {
     }
 
     const newsWithImages = await Promise.all(
-      newsForSeries.map(async (newsItem) => {
-        const images = await getNewsImages(db, newsItem.id);
-        const imageUrls = images.map(img => `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`);
+      newsForSeries.map(async (newsItem: NewsItem) => {
+        const images = await getNewsImages(drizzleDb, newsItem.id);
+        const imageUrls = images.map((img: NewsImageItem) => `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`);
         
         return { 
           ...newsItem, 
@@ -42,7 +42,8 @@ export const GET: APIRoute = async ({ params, locals }) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error(`Error fetching news for series ${seriesId}:`, error);
+    const seriesIdForLog = seriesId; // Capture seriesId for log context
+    logError(error, 'Error al obtener noticias para la serie', { seriesId: seriesIdForLog });
     return new Response('Internal Server Error', { status: 500 });
   }
 };

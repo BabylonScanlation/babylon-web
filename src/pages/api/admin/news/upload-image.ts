@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
-import { getDB, addNewsImage } from 'src/lib/db';
+import { getDB, addNewsImage } from '../../../../lib/db';
+import { logError } from '../../../../lib/logError';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!locals.user?.isAdmin) {
@@ -10,12 +11,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!r2Assets) {
     return new Response('R2 storage not configured', { status: 500 });
   }
-  const db = getDB(locals.runtime.env);
+  const drizzleDb = getDB(locals.runtime.env);
+  let newsId: string | undefined;
 
   try {
     const formData = await request.formData();
     const file = formData.get('image') as File;
-    const newsId = formData.get('newsId') as string;
+    newsId = formData.get('newsId') as string;
 
     if (!file || !newsId) {
       return new Response('Image file and newsId are required', { status: 400 });
@@ -32,7 +34,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
     
     // Associate image with the news item in the database
-    await addNewsImage(db, {
+    await addNewsImage(drizzleDb, {
         newsId,
         r2Key,
         altText: 'Image for news ' + newsId, // Basic alt text
@@ -43,8 +45,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-  } catch (error) {
-    console.error('Error uploading image to R2:', error);
+  } catch (error: unknown) {
+    const userIdForLog = locals.user?.uid;
+    logError(error, 'Error al subir imagen de noticia a R2', { newsId: newsId, userId: userIdForLog });
     return new Response('Internal Server Error', { status: 500 });
   }
 };

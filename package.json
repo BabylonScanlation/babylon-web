@@ -2,6 +2,9 @@
   "name": "babylon-scanlation",
   "type": "module",
   "version": "0.0.1",
+  "overrides": {
+    "esbuild": "0.25.12"
+  },
   "scripts": {
     "dev": "astro dev",
     "lint": "eslint .",
@@ -19,18 +22,25 @@
     "db:local": "wrangler d1 execute babylon-scanlation-prod --local --file=./db_snapshots/dump.sql",
     "db:migrate": "wrangler d1 migrations apply babylon-scanlation-prod --local",
     "db:offline": "npm run db:reset:local && npm run db:migrate && npm run dev:cf",
-    "db:online": "npm run db:pull && npm run db:reset:local && npm run db:local && npm run db:migrate && npm run dev:cf"
+    "db:online": "npm run db:pull && npm run db:reset:local && npm run db:local && npm run db:migrate && npm run dev:cf",
+    "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
+    "db:migrate:local": "drizzle-kit migrate:sqlite",
+    "db:push": "drizzle-kit push:sqlite"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",
     "@astrojs/cloudflare": "^12.6.11",
+    "@astrojs/db": "^0.18.3",
+    "@astrojs/svelte": "^7.2.4",
     "@zip.js/zip.js": "^2.7.64",
     "astro": "^5.16.0",
     "cropperjs": "^1.5.13",
     "dotenv": "^17.2.1",
+    "drizzle-orm": "^0.45.1",
     "firebase": "^12.0.0",
     "firebase-admin": "^13.4.0",
     "jose": "^6.0.12",
+    "svelte": "^5.46.0",
     "swiper": "^11.2.10",
     "typescript": "^5.9.3"
   },
@@ -42,7 +52,9 @@
     "@typescript-eslint/parser": "^8.48.0",
     "astro-eslint-parser": "^1.2.2",
     "concurrently": "^9.2.0",
-    "esbuild": "^0.25.11",
+    "dotenv-cli": "^11.0.0",
+    "drizzle-kit": "^0.31.8",
+    "esbuild": "0.25.12",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-astro": "^1.5.0",

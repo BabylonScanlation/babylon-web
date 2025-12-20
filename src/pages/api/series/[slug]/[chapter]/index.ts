@@ -1,35 +1,42 @@
 // src/pages/api/series/[slug]/[chapter]/index.ts
 import type { APIRoute } from 'astro';
 import { processAndCacheChapter } from '../../../../../lib/chapterProcessing';
+import { logError } from '../../../../../lib/logError';
+import { getDB } from '../../../../../lib/db'; // Import getDB
+import { series, chapters } from '../../../../../db/schema'; // Import schemas
+import { eq, and } from 'drizzle-orm'; // Import eq for Drizzle queries
+
+const sseHeaders = {
+  'Content-Type': 'text/event-stream',
+  'Cache-Control': 'no-cache, no-transform',
+  'Connection': 'keep-alive',
+};
 
 export const GET: APIRoute = async ({ params, locals }) => {
-  const { slug, chapter: chapterNumber } = params;
-  const { db, runtime } = locals;
-  const { env, ctx } = runtime;
+  const { slug, chapter: chapterNumberParam } = params; // Rename chapterNumber to avoid conflict
+  const { env, ctx } = locals.runtime;
 
-  if (!slug || !chapterNumber) {
+  if (!slug || !chapterNumberParam) {
     return new Response(JSON.stringify({ error: 'Faltan parámetros' }), {
       status: 400,
     });
   }
 
-  try {
-    if (!db) {
-      return new Response(JSON.stringify({ error: 'Database not available' }), {
-        status: 500,
-      });
-    }
+  const chapterNumber = parseFloat(chapterNumberParam);
 
-    const chapterQuery = `
-        SELECT c.id as chapterId, s.id as seriesId, c.telegram_file_id as telegramFileId, c.url_portada as chapterCoverUrl
-        FROM Chapters c
-        JOIN Series s ON c.series_id = s.id
-        WHERE s.slug = ?1 AND c.chapter_number = ?2 AND c.status = 'live'
-    `;
-    const chapterData = await db
-      .prepare(chapterQuery)
-      .bind(slug, chapterNumber)
-      .first<{ chapterId: number; seriesId: number; telegramFileId: string; chapterCoverUrl: string | null }>();
+  try {
+    const drizzleDb = getDB(env);
+
+    const chapterData = await drizzleDb.select({
+      chapterId: chapters.id,
+      seriesId: series.id,
+      telegramFileId: chapters.telegramFileId,
+      chapterCoverUrl: chapters.urlPortada,
+    })
+      .from(chapters)
+      .innerJoin(series, eq(chapters.seriesId, series.id))
+      .where(and(eq(series.slug, slug), eq(chapters.chapterNumber, chapterNumber), eq(chapters.status, 'live')))
+      .get();
 
     if (!chapterData) {
       return new Response(
@@ -48,7 +55,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
           ...manifestContent,
           seriesId: chapterData.seriesId,
           chapterId: chapterData.chapterId,
-          chapterCoverUrl: chapterData.chapterCoverUrl, // Include chapter cover URL
+          chapterCoverUrl: chapterData.chapterCoverUrl,
         }),
         { status: 200 }
       );
@@ -59,44 +66,97 @@ export const GET: APIRoute = async ({ params, locals }) => {
         JSON.stringify({
           error:
             'El capítulo existe pero no tiene un archivo de Telegram asociado.',
-          chapterCoverUrl: chapterData.chapterCoverUrl, // Include chapter cover URL even on error
+          chapterCoverUrl: chapterData.chapterCoverUrl,
         }),
         { status: 500 }
       );
     }
 
-    // --- INICIO DE LA CORRECCIÓN ---
-    // Le decimos a Cloudflare: "Ejecuta esto, y si falla, solo regístralo en la consola".
+    // --- SSE Implementation when manifest is not found ---
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const encoder = new TextEncoder();
+
+    const sendEvent = async (data: object, eventType = 'message', id?: string) => {
+      let message = '';
+      if (id) message += `id: ${id}\n`;
+      message += `event: ${eventType}\n`;
+      message += `data: ${JSON.stringify(data)}\n\n`;
+      await writer.write(encoder.encode(message));
+    };
+
+    // Start background processing
     ctx.waitUntil(
       processAndCacheChapter(
         env,
         chapterData.telegramFileId,
         slug,
-        parseFloat(chapterNumber)
-      ).catch((err) =>
-        console.error(
-          `Fallo en el procesamiento en segundo plano para ${slug}/${chapterNumber}:`,
-          err
-        )
-      )
+        chapterNumber
+      ).catch((err) => {
+        const slugForLog = slug;
+        const chapterNumberForLog = chapterNumber;
+        logError(err, 'Fallo en el procesamiento en segundo plano para el capítulo', { slug: slugForLog, chapterNumber: chapterNumberForLog });
+        // Attempt to send an error event if processing fails
+        sendEvent({ error: 'Fallo al procesar el capítulo' }, 'error').catch(err => {
+          const slugForLogError = slug; // Define again for inner catch
+          const chapterNumberForLogError = chapterNumber; // Define again for inner catch
+          logError(err, 'Fallo al enviar evento de error SSE', { slug: slugForLogError, chapterNumber: chapterNumberForLogError });
+        });
+        writer.close();
+      })
     );
-    // --- FIN DE LA CORRECCIÓN ---
 
-    return new Response(
-      JSON.stringify({
-        message:
-          'Aguarde, el capítulo se está cargando desde nuestros servidores. Esto puede tardar unos segundos.',
-        seriesId: chapterData.seriesId,
-        chapterId: chapterData.chapterId,
-        chapterCoverUrl: chapterData.chapterCoverUrl, // Include chapter cover URL
-      }),
-      { status: 202 }
-    );
+    // Stream updates
+    let attempts = 0;
+    const maxAttempts = 60; // Max 5 minutes (5 seconds * 60 attempts)
+    const intervalMs = 5000; // Check every 5 seconds
+
+    const checkProcessingStatus = async () => {
+      while (attempts < maxAttempts) {
+        attempts++;
+        try {
+          const updatedManifestObject = await env.R2_CACHE.get(manifestKey);
+          if (updatedManifestObject) {
+            const manifestContent = await updatedManifestObject.json();
+            await sendEvent(
+              {
+                ...manifestContent,
+                seriesId: chapterData.seriesId,
+                chapterId: chapterData.chapterId,
+                chapterCoverUrl: chapterData.chapterCoverUrl,
+              },
+              'completed'
+            );
+            writer.close();
+            return;
+          } else {
+            await sendEvent({ message: 'Procesando capítulo...', attempt: attempts }, 'processing');
+          }
+        } catch (e) {
+          const slugForLogError = slug; // Define again for inner catch
+          const chapterNumberForLogError = chapterNumber; // Define again for inner catch
+          logError(e, 'Error al verificar el manifiesto en R2 durante SSE', { slug: slugForLogError, chapterNumber: chapterNumberForLogError, attempt: attempts });
+          await sendEvent({ error: 'Error al verificar el progreso' }, 'error');
+          writer.close();
+          return;
+        }
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+
+      // If max attempts reached without completion
+      await sendEvent({ error: 'Tiempo de procesamiento agotado' }, 'error');
+      writer.close();
+    };
+
+    // Start checking status in a non-blocking way
+    ctx.waitUntil(checkProcessingStatus());
+
+    // Return the readable stream immediately
+    return new Response(readable, { headers: sseHeaders });
   } catch (error: unknown) {
-    console.error(
-      `Error al obtener el capítulo ${slug}/${chapterNumber}:`,
-      error
-    );
+    const slugForLog = slug;
+    const chapterNumberForLog = chapterNumber;
+    logError(error, 'Error al obtener el capítulo desde el API', { slug: slugForLog, chapterNumber: chapterNumberForLog });
     return new Response(
       JSON.stringify({
         error:

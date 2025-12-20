@@ -10,9 +10,10 @@
 // IMPORTACIONES DE COMPONENTES 
 // ----------------------------------------------------------------------------- 
 import Layout from '../../layouts/Layout.astro'; 
-import SeriesComments from '../../components/SeriesComments.astro'; 
+import UnifiedComments from '../../components/UnifiedComments.astro'; 
 import NewsFeed from '../../components/NewsFeed.astro'; 
-import AdminSeriesNewsForm from '../../components/AdminSeriesNewsForm.astro'; 
+import AdminSeriesNewsForm from '../../components/AdminSeriesNewsForm.astro';
+import { logError } from '../../lib/logError'; 
 // ----------------------------------------------------------------------------- 
 // DEFINICIÓN DE TIPOS (INTERFACES) 
 // ----------------------------------------------------------------------------- 
@@ -53,8 +54,8 @@ interface SeriesDetails {
     reactionCounts: Record<string, number>; 
     userVote: number | null; 
     userReaction: string | null; 
-  }; 
-} 
+  };
+}
 
 // ----------------------------------------------------------------------------- 
 // OBTENCIÓN DE DATOS DEL LADO DEL SERVIDOR (SSR) 
@@ -77,15 +78,16 @@ try {
       ); 
       if (commentsResponse.ok) { 
         comments = await commentsResponse.json(); 
-      } 
-    } 
+      }
+    }
   } else { 
     error = `No se pudo encontrar la serie.\n(Error: ${response.status})`; 
-  } 
+  }
 } catch (e) { 
-  console.error(e); 
+  const slugForLog = slug;
+  logError(e, 'Error al cargar los datos de la serie', { slug: slugForLog }); 
   error = 'Ocurrió un error al cargar los datos de la serie.'; 
-} 
+}
 
 // ----------------------------------------------------------------------------- 
 // FUNCIONES AUXILIARES (HELPERS) 
@@ -97,7 +99,7 @@ const formatDescription = (text: string | undefined) => {
   if (!text) return ''; 
   const escapedText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;'); 
   return escapedText.replace(/\*(.*?)\*/g, '<i>$1</i>'); 
-}; 
+};
 
 /** Formatea una cadena de fecha a un formato localizado completo. 
  */ 
@@ -111,7 +113,7 @@ const formatFullDate = (dateString: string) => {
     minute: '2-digit', 
     second: '2-digit', 
   }); 
-}; 
+};
 
 // ----------------------------------------------------------------------------- 
 // ESTADO INICIAL Y CONSTANTES PARA EL CLIENTE 
@@ -120,7 +122,7 @@ const initialState = {
   userVote: series?.stats.userVote ?? null, 
   userReaction: series?.stats.userReaction ?? null, 
   isLoggedIn: !!user, 
-}; 
+};
 
 const stars = [1, 2, 3, 4, 5]; 
 const reactions = [ 
@@ -130,7 +132,7 @@ const reactions = [
   { emoji: '😟', title: 'No me convence', id: 'dislike' }, 
   { emoji: '😠', title: 'Lo odio', id: 'hate' }, 
 ]; 
---- 
+---
 
 <Layout title={series?.title ?? 'Serie no encontrada'}> 
   { 
@@ -170,7 +172,7 @@ const reactions = [
                         ☆ 
                       </button> 
                     ) 
-                  )} 
+                  )}
                 </div> 
                 <div class="vote-count"> 
                   <span class="avg-rating"> 
@@ -206,19 +208,19 @@ const reactions = [
                       <> 
                         <span class="meta-label">Tipo: </span> 
                         <span class="meta-value">{series.type || 'N/A'}</span> 
-                      </> 
+                      </>
                     </div> 
                     <div class="meta-item"> 
                       <> 
                         <span class="meta-label">Autor: </span> 
                         <span class="meta-value">{series.author || 'N/A'}</span> 
-                      </> 
+                      </>
                     </div> 
                     <div class="meta-item"> 
                       <> 
                         <span class="meta-label">Artista: </span> 
                         <span class="meta-value">{series.artist || 'N/A'}</span> 
-                      </> 
+                      </>
                     </div> 
                     <div class="meta-item"> 
                       <> 
@@ -226,7 +228,7 @@ const reactions = [
                         <span class="meta-value"> 
                           {series.serialized_by || 'N/A'} 
                         </span> 
-                      </> 
+                      </>
                     </div> 
                     <div class="meta-item meta-item-full"> 
                       <span class="meta-label">Género(s):</span> 
@@ -239,7 +241,7 @@ const reactions = [
                               .map((genre) => ( 
                                 <span class="genre-tag">{genre.trim()}</span> 
                               )) 
-                          : 'N/A'} 
+                          : 'N/A'}
                       </div> 
                     </div> 
                   </div> 
@@ -248,31 +250,31 @@ const reactions = [
                       <> 
                         <span>🗓️ Publicado:</span> 
                         <span>{formatFullDate(series.created_at)}</span> 
-                      </> 
+                      </>
                     </div> 
                     <div class="meta-grid-item"> 
                       <> 
                         <span>📶 Estado:</span> 
                         <span class="status-na">{series.status || 'N/A'}</span> 
-                      </> 
+                      </>
                     </div> 
                     <div class="meta-grid-item"> 
                       <> 
                         <span>✍️ Publicado por:</span> 
                         <span>{series.published_by || 'N/A'}</span> 
-                      </> 
+                      </>
                     </div> 
                     <div class="meta-grid-item"> 
                       <> 
                         <span>👁️ Vistas:</span> 
                         <span>{series.views?.toLocaleString() || 0}</span> 
-                      </> 
+                      </>
                     </div> 
                     <div class="meta-grid-item full-width-grid"> 
                       <> 
                         <span>📚 Nombres alternativos:</span> 
                         <span>{series.alternative_names || 'N/A'}</span> 
-                      </> 
+                      </>
                     </div> 
                     <div class="reactions-container"> 
                       {reactions.map((reaction) => ( 
@@ -300,12 +302,12 @@ const reactions = [
                             > 
                               {reaction.emoji} 
                             </button> 
-                          )} 
+                          )}
                           <span class="reaction-count"> 
                             {series.stats.reactionCounts[reaction.emoji] || 0} 
                           </span> 
                         </div> 
-                      ))} 
+                      ))}
                     </div> 
                   </div> 
                 </div> 
@@ -315,7 +317,7 @@ const reactions = [
                 <div id="chapters-content" class="tab-content"> 
                   <ul class="chapters-list"> 
                     {series.chapters.length > 0 ? ( 
-                      series.chapters.map((chapter) => ( 
+                      series.chapters.map((chapter: Chapter) => ( 
                         <li> 
                           <a 
                             href={`/series/${slug}/${chapter.chapter_number}`} 
@@ -345,18 +347,19 @@ const reactions = [
                       <li> 
                         <p>Aún no hay capítulos disponibles.</p> 
                       </li> 
-                    )} 
+                    )}
                   </ul> 
                 </div> 
                 <div id="comments-content" class="tab-content"> 
                   <div class="comments-container-wrapper"> 
-                    <SeriesComments 
+                    <UnifiedComments 
+                      targetType="series"
+                      targetId={series.id} 
                       comments={comments} 
-                      seriesId={series.id} 
-                      user={user} 
+                      user={user ?? null} 
                     /> 
                   </div> 
-                </div> 
+                </div>
 
                 <div id="news-content" class="tab-content"> 
                     <div class="news-container-wrapper"> 
@@ -372,10 +375,10 @@ const reactions = [
         </section> 
       </div> 
     ) 
-  } 
+  }
 
-  {error && <p class="error-message">{error}</p>} 
-</Layout> 
+  {error && <p class="error-message">{error}</p>}
+</Layout>
 
 <script is:inline define:vars={{ initialState, slug }}> 
   // ... (Tu script del cliente se mantiene exactamente igual) 
@@ -412,9 +415,9 @@ const reactions = [
           if (s instanceof HTMLElement) { 
             const starValue = parseInt(s.dataset.value || '0', 10); 
             s.classList.toggle('selected', starValue <= (vote || 0)); 
-          } 
+          }
         }); 
-      }; 
+      };
       updateUserVoteUI(state.userVote); 
       starsContainer?.addEventListener('click', async (e) => { 
         if (e.target instanceof HTMLElement) { 
@@ -424,15 +427,14 @@ const reactions = [
           const newRating = rating === state.userVote ? null : rating; 
           state.userVote = newRating; 
 
-          updateUserVoteUI(newRating); 
           fetch('/api/series/rate', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ seriesId, rating: newRating }), 
           }); 
-        } 
+        }
       }); 
-    } 
+    }
     const reactionsContainer = document.querySelector('.reactions-container'); 
     if (reactionsContainer instanceof HTMLElement && state.isLoggedIn) { 
       const updateReactionsUI = (userReaction) => { 
@@ -444,9 +446,9 @@ const reactions = [
               'selected', 
               btn.dataset.emoji === userReaction 
             ); 
-          } 
+          }
         }); 
-      }; 
+      };
       updateReactionsUI(state.userReaction); 
       reactionsContainer.addEventListener('click', async (e) => { 
         if (!(e.target instanceof HTMLElement)) return; 
@@ -476,16 +478,19 @@ const reactions = [
                 const countElement = btn.nextElementSibling; 
                 if (countElement) { 
                   countElement.textContent = reactionCounts[emoji] || '0'; 
-                } 
-              } 
+                }
+              }
             }); 
-          } 
+          }
         } catch (error) { 
-          console.error('Error al actualizar la reacción:', error); 
-        } 
+          const seriesIdForLog = seriesId;
+          const slugForLog = slug;
+          const newReactionForLog = newReaction;
+          logError(error, 'Error al actualizar la reacción', { seriesId: seriesIdForLog, slug: slugForLog, newReaction: newReactionForLog }); 
+        }
       }); 
-    } 
-  } 
+    }
+  }
   initializePage(); 
   document.addEventListener('astro:page-load', initializePage); 
 </script> 
@@ -499,20 +504,20 @@ const reactions = [
       tal como lo tenías originalmente. 
 */ 
     padding-top: 1rem; 
-  } 
+  }
 
   .series-header-grid { 
     display: grid; 
     grid-template-columns: 250px 1fr; 
     gap: 2rem; 
-    align-items: start; 
+    align-items: start;
 
     /* Esto centra el grid dentro del .series-hero de ancho completo */ 
     max-width: 1200px; 
     width: 100%; 
     margin: 0 auto; 
     padding: 0 1rem; /* Espaciado para los bordes en pantallas pequeñas */ 
-  } 
+  }
 
   /* El resto de la página ahora vive dentro del grid centrado, 
      así que ya no necesitamos este contenedor con max-width aquí. 
@@ -526,14 +531,14 @@ const reactions = [
     display: flex; 
     flex-direction: column; 
     justify-content: center; 
-  } 
+  }
 
   .series-detail-page { 
     display: flex; 
     flex-direction: column; 
     align-items: center; 
     width: 100%; 
-  } 
+  }
   /* === FIN DE ESTILOS MODIFICADOS PARA LA SOLUCIÓN === */ 
 
   /* El resto de los estilos se mantienen como los tenías */ 
@@ -542,31 +547,31 @@ const reactions = [
     flex-direction: column; 
     align-items: center; 
     gap: 0.75rem; 
-  } 
+  }
 
   .series-info-panel { 
     min-width: 0; 
     color: #fff; 
     display: flex; 
     flex-direction: column; 
-  } 
+  }
 
   .series-title-header { 
     font-size: 2rem; 
     text-align: center; 
-  } 
+  }
   .series-cover { 
     position: relative; 
     border-radius: 8px; 
     overflow: hidden; 
     aspect-ratio: 2 / 3; 
     width: 100%; 
-  } 
+  }
   .cover-image { 
     width: 100%; 
     height: 100%; 
     object-fit: cover; 
-  } 
+  }
   .rating-section { 
     display: flex; 
     flex-direction: row; 
@@ -576,11 +581,11 @@ const reactions = [
     margin-top: 0.5rem; 
     margin-bottom: 0.5rem; 
     width: 100%; 
-  } 
+  }
   .stars-container { 
     display: flex; 
     align-items: center; 
-  } 
+  }
   .star, 
   .star-icon { 
     font-size: 1.75rem; 
@@ -590,49 +595,49 @@ const reactions = [
     padding: 0; 
     line-height: 1; 
     display: inline-block; 
-  } 
+  }
   .star-link { 
     text-decoration: none; 
     cursor: pointer; 
-  } 
+  }
   .vote-count { 
     font-size: 0.9rem; 
     color: #aaa; 
     display: flex; 
     align-items: baseline; 
     gap: 0.5rem; 
-  } 
+  }
   .avg-rating { 
     font-size: 1.1rem; 
     font-weight: bold; 
     color: #ffc107; 
-  } 
+  }
   .rating-section .star { 
     cursor: pointer; 
     transition: 
       transform 0.2s ease, 
       color 0.1s; 
-  } 
+  }
   .rating-section .star:hover { 
     transform: scale(1.2); 
     color: #ffc107; 
-  } 
+  }
   .star.selected, 
   .stars-container:hover .star:hover, 
   .stars-container:hover .star:hover ~ .star { 
     color: #777; 
-  } 
+  }
   .stars-container:hover .star:hover, 
   .star.selected, 
   .stars-container:hover .star.selected ~ .star { 
     color: #ffc107; 
-  } 
+  }
   .info-tabs { 
     display: flex; 
     gap: 0.5rem; 
     border-bottom: 1px solid #333; 
     flex-wrap: wrap; 
-  } 
+  }
   .info-tabs .tab { 
     background: none; 
     border: none; 
@@ -644,52 +649,52 @@ const reactions = [
     transition: 
       color 0.2s, 
       border-color 0.2s; 
-  } 
+  }
   .info-tabs .tab.active { 
     color: #fff; 
     border-bottom-color: var(--accent-color); 
-  } 
+  }
   .content-wrapper { 
     position: relative; 
     padding-top: 1rem; 
     flex-grow: 1; 
-  } 
+  }
   .tab-content { 
     display: none; 
-  } 
+  }
   .tab-content.active { 
     display: flex; 
     flex-direction: column; 
-  } 
+  }
   .synopsis-panel { 
     line-height: 1.6; 
-  } 
+  }
   .series-meta { 
     margin-bottom: 1.5rem; 
     line-height: 1.8; 
-  } 
+  }
   .meta-item { 
     display: inline-flex; 
     align-items: baseline; 
     margin-right: 1.5rem; 
     margin-bottom: 0.5rem; 
     font-size: 0.9rem; 
-  } 
+  }
   .meta-label { 
     font-weight: bold; 
     color: #ccc; 
     margin-right: 0.5rem; 
     white-space: nowrap; 
-  } 
+  }
   .meta-value { 
     color: #e0e0e0; 
-  } 
+  }
   .genre-tags { 
     display: inline-grid; 
     grid-template-columns: repeat(3, auto); 
     gap: 0.25rem 0.75rem; 
     vertical-align: baseline; 
-  } 
+  }
   .genre-tag { 
     background-color: #333; 
     color: #eee; 
@@ -699,7 +704,7 @@ const reactions = [
     border: 1px solid #555; 
     white-space: nowrap; 
     text-align: center; 
-  } 
+  }
   .series-meta-grid { 
     display: grid; 
     grid-template-columns: 1fr 1fr; 
@@ -707,24 +712,24 @@ const reactions = [
     background-color: #2a2a2a; 
     padding: 1rem; 
     border-radius: 8px; 
-  } 
+  }
   .meta-grid-item { 
     display: flex; 
     flex-direction: row; 
     align-items: center; 
     gap: 0.5rem; 
     font-size: 0.9rem; 
-  } 
+  }
   .meta-grid-item.full-width-grid { 
     grid-column: 1 / -1; 
-  } 
+  }
   .meta-grid-item span:first-child { 
     color: #aaa; 
     font-weight: bold; 
     display: inline-flex; 
     align-items: center; 
     gap: 0.4rem; 
-  } 
+  }
   .reactions-container { 
     grid-column: 1 / -1; 
     display: flex; 
@@ -734,13 +739,13 @@ const reactions = [
     padding-top: 0.75rem; 
     margin-top: 0.75rem; 
     border-top: 1px solid #444; 
-  } 
+  }
   .reaction-item { 
     display: flex; 
     flex-direction: column; 
     align-items: center; 
     gap: 0.25rem; 
-  } 
+  }
   .reaction-emoji, 
   .reaction-emoji-icon { 
     font-size: 2rem; 
@@ -753,29 +758,29 @@ const reactions = [
     transition: 
       transform 0.2s ease, 
       filter 0.2s; 
-  } 
+  }
   .reaction-link { 
     text-decoration: none; 
     cursor: pointer; 
-  } 
+  }
   .reaction-count { 
     font-size: 0.8rem; 
     color: #ccc; 
-  } 
+  }
   .reactions-container .reaction-emoji { 
     cursor: pointer; 
-  } 
+  }
   .reactions-container .reaction-emoji:hover { 
     transform: scale(1.2); 
-  } 
+  }
   .reactions-container .reaction-emoji.selected { 
     transform: scale(1.1); 
     filter: drop-shadow(0 0 5px var(--accent-color)); 
-  } 
+  }
   .reaction-link:hover .reaction-emoji-icon { 
     transform: scale(1.1); 
     opacity: 0.8; 
-  } 
+  }
   .chapters-list { 
     list-style: none; 
     padding: 0; 
@@ -784,13 +789,13 @@ const reactions = [
     border: 1px solid #333; 
     border-radius: 8px; 
     width: 100%; 
-  } 
+  }
   .chapters-list li { 
     border-bottom: 1px solid #333; 
-  } 
+  }
   .chapters-list li:last-child { 
     border-bottom: none; 
-  } 
+  }
   .chapters-list li a { 
     display: flex; 
     justify-content: space-between; 
@@ -800,50 +805,50 @@ const reactions = [
     background-color: var(--card-background); 
     transition: background-color 0.2s; 
     white-space: nowrap; 
-  } 
+  }
   .chapters-list li a:hover { 
     background-color: #333; 
-  } 
+  }
   .chapter-number { 
     color: #e0e0e0; 
     font-weight: bold; 
     flex-shrink: 0; 
-  } 
+  }
   .chapter-name { 
     color: #e0e0e0; 
     flex-grow: 1; 
     overflow: hidden; 
     text-overflow: ellipsis; 
     text-align: left; 
-  } 
+  }
   .chapter-views { 
     color: #aaa; 
     font-size: 0.9em; 
     flex-shrink: 0; 
-  } 
+  }
   .chapter-date { 
     color: #aaa; 
     font-size: 0.9em; 
     flex-shrink: 0; 
-  } 
+  }
   .chapter-separator { 
     color: #555; 
-  } 
+  }
   .chapters-list li p { 
     padding: 1rem; 
     text-align: center; 
     color: #888; 
-  } 
+  }
   #comments-content > :global(.comments-section) { 
     width: 100%; 
     max-width: none; 
     margin: 0; 
     padding: 0; 
     border-top: none; 
-  } 
+  }
   .comments-container-wrapper { 
     width: 100%; 
-  } 
+  }
 
   @media (max-width: 900px) { 
     .series-header-grid { 
@@ -851,15 +856,15 @@ const reactions = [
       text-align: center; 
       gap: 1.5rem; 
       padding: 0 1rem; 
-    } 
+    }
     .cover-and-rating-wrapper, 
     .series-info-panel { 
       width: 100%; 
-    } 
+    }
     .series-cover { 
       max-width: 200px; 
       margin: 0 auto; 
-    } 
+    }
     .series-meta { 
       display: flex; 
       flex-wrap: wrap; 
@@ -868,46 +873,46 @@ const reactions = [
       line-height: 1.6; 
       border-bottom: 1px solid #333; 
       padding-bottom: 1rem; 
-    } 
+    }
     .meta-item { 
       margin: 0; 
       padding: 0; 
       border: none; 
-    } 
+    }
     .meta-item.meta-item-full { 
       flex-basis: 100%; 
-    } 
+    }
     .genre-tags { 
       display: flex; 
       flex-wrap: wrap; 
       gap: 0.5rem; 
       margin-top: 0.25rem; 
-    } 
+    }
     .series-meta-grid { 
       text-align: left; 
       grid-template-columns: 1fr; 
-    } 
+    }
     .info-tabs { 
       justify-content: center; 
-    } 
+    }
     .chapters-list li a { 
       flex-wrap: wrap; 
       justify-content: space-between; 
       row-gap: 0.25rem; 
       flex-direction: column; /* Cambiar a columna para que los elementos se apilen */ 
       align-items: flex-start; /* Alinear a la izquierda */ 
-    } 
+    }
     .chapter-number { 
       order: 1; 
       width: 100%; /* Ocupar todo el ancho */ 
-    } 
+    }
     .chapter-name { 
       width: 100%; 
       order: 2; /* Cambiado de 3 a 2 */ 
       text-align: left; 
       margin-top: 0.25rem; 
       color: #ccc; 
-    } 
+    }
     .chapter-views { 
       order: 3; /* Cambiado de 2 a 3 */ 
       display: inline; 
@@ -915,7 +920,7 @@ const reactions = [
       text-align: left; 
       font-size: 0.8em; /* Reducir tamaño de fuente */ 
       color: #888; 
-    } 
+    }
     .chapter-date { 
       order: 4; /* Añadido */ 
       display: block; /* Mostrar la fecha */ 
@@ -923,24 +928,24 @@ const reactions = [
       text-align: left; 
       font-size: 0.8em; /* Reducir tamaño de fuente */ 
       color: #888; 
-    } 
+    }
     .chapter-separator { 
       display: none; /* Mantener oculto el separador */ 
-    } 
-  } 
+    }
+  }
 
   @media (max-width: 480px) { 
     .series-title-header { 
       font-size: 1.5rem; 
       padding-top: 1rem; 
-    } 
+    }
     .info-tabs .tab { 
       padding: 0.5rem 0.75rem; 
       font-size: 0.9rem; 
-    } 
+    }
     .reaction-emoji, 
     .reaction-emoji-icon { 
       font-size: 1.5rem; 
-    } 
-  } 
+    }
+  }
 </style>

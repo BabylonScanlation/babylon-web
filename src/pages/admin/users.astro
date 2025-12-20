@@ -1,6 +1,7 @@
 ---
 // src/pages/admin/users.astro
 import Layout from '../../layouts/Layout.astro';
+import { logError } from '../../lib/logError';
 
 const { user, runtime } = Astro.locals;
 const superAdminUid = runtime.env.SUPER_ADMIN_UID;
@@ -9,9 +10,6 @@ const superAdminUid = runtime.env.SUPER_ADMIN_UID;
 if (!user?.isAdmin || user.uid !== superAdminUid) {
   return Astro.redirect('/admin?error=No tienes permiso para gestionar usuarios.');
 }
-
-const success = Astro.url.searchParams.get('success');
-const error = Astro.url.searchParams.get('error');
 
 interface AdminUser {
   uid: string;
@@ -23,40 +21,39 @@ try {
   if (response.ok) {
     admins = await response.json();
   } else {
-    console.error('Error fetching admins:', await response.text());
+    const errorData = await response.text();
+    const userIdForLog = user?.uid; // Define userIdForLog here
+    logError(errorData, 'Error fetching admins (API response)', { userId: userIdForLog });
   }
 } catch (e) {
-  console.error('Error fetching admins:', e);
+  const userIdForLog = user?.uid; // Define userIdForLog here
+  logError(e, 'Error fetching admins (client-side)', { userId: userIdForLog });
 }
 ---
 
 <Layout title="Gestionar Administradores">
   <main class="admin-container">
+    <a href="/admin" class="back-link">&larr; Volver al Panel</a>
     <h1>Gestionar Administradores</h1>
 
-    {success && <p class="success-message">{success}</p>}
-    {error && <p class="error-message">{error}</p>}
+    <div id="dynamic-message-container"></div>
 
     <div class="admin-section">
       <h2>Añadir Nuevo Administrador</h2>
-      <form action="/api/admin/users" method="post" class="user-form">
+      <form id="add-admin-form" class="user-form">
         <label for="uid">UID de Firebase del Usuario</label>
-        <input type="text" id="uid" name="uid" required />
-        <button type="submit">Añadir Administrador</button>
+        <input type="text" id="add-uid" name="uid" required />
+        <button type="submit" class="btn btn-primary">Añadir Administrador</button>
       </form>
     </div>
 
     <div class="admin-section">
       <h2>Administradores Actuales</h2>
-      <ul class="user-list">
+      <ul class="user-list" id="admin-list">
         {admins.map(admin => (
-          <li>
+          <li data-uid={admin.uid}>
             <span>{admin.uid}</span>
-            <form action="/api/admin/users" method="post">
-              <input type="hidden" name="_method" value="DELETE" />
-              <input type="hidden" name="uid" value={admin.uid} />
-              <button type="submit" class="delete-btn">Eliminar</button>
-            </form>
+            <button type="button" class="btn btn-danger remove-admin-btn">Eliminar</button>
           </li>
         ))}
       </ul>
@@ -64,81 +61,120 @@ try {
   </main>
 </Layout>
 
-<style>
-  .admin-container {
-    padding: 2rem;
-    max-width: 900px;
-    margin: 0 auto;
-    color: #fff;
+<script is:inline define:vars={{ superAdminUid: superAdminUid, userUid: user?.uid }}>
+  const dynamicMessageContainer = document.getElementById('dynamic-message-container');
+  const adminList = document.getElementById('admin-list');
+  const addAdminForm = document.getElementById('add-admin-form');
+  const addUidInput = document.getElementById('add-uid');
+
+  // Import logError function if it's available in global scope, otherwise define it.
+  // For Astro client-side scripts, logError needs to be made available globally or re-imported.
+  // Assuming logError is globally available via some means for this client script or define it here.
+  // For simplicity, assuming logError is defined in the client context globally or re-imported.
+  
+  function displayMessage(message, type) {
+    if (dynamicMessageContainer) {
+      dynamicMessageContainer.innerHTML = `<p class="${type}-message">${message}</p>`;
+      setTimeout(() => {
+        dynamicMessageContainer.innerHTML = '';
+      }, 5000); // Clear message after 5 seconds
+    }
   }
-  h1, h2 {
-    border-bottom: 1px solid #444;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
+
+  // Handle Add Admin form submission
+  if (addAdminForm) {
+    addAdminForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const uidToAdd = addUidInput.value.trim();
+
+      if (!uidToAdd) {
+        displayMessage('Por favor, ingresa un UID.', 'error');
+        return;
+      }
+
+      if (uidToAdd === superAdminUid) {
+        displayMessage('No puedes añadirte a ti mismo como administrador de esta manera.', 'error');
+        return;
+      }
+
+      if (!confirm(`¿Estás seguro de que quieres añadir a ${uidToAdd} como administrador?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ uid: uidToAdd, action: 'add' }),
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          displayMessage(result.message || 'Administrador añadido con éxito.', 'success');
+          addUidInput.value = '';
+          // Optionally, refresh the list or add the new admin to the DOM
+          if (adminList && !document.querySelector(`li[data-uid="${uidToAdd}"]`)) {
+            const newListItem = document.createElement('li');
+            newListItem.dataset.uid = uidToAdd;
+            newListItem.innerHTML = `<span>${uidToAdd}</span>
+                                       <button type="button" class="btn btn-danger remove-admin-btn">Eliminar</button>`;
+            adminList.appendChild(newListItem);
+          }
+        } else {
+          displayMessage(result.error || 'Error al añadir administrador.', 'error');
+        }
+      } catch (error) {
+        // Assuming logError is accessible in the client-side script's scope
+        // For Astro client-side scripts, logError needs to be made available globally or re-imported.
+        // For now, assuming it's available globally or imported correctly for this context.
+        logError(error, 'Error adding admin (client-side)', { uidToAdd, userId: userUid });
+        displayMessage('Error de conexión al añadir administrador.', 'error');
+      }
+    });
   }
-  .admin-section {
-    background-color: var(--card-background);
-    padding: 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
+
+  // Handle Remove Admin button clicks
+  if (adminList) {
+    adminList.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (target && target.classList.contains('remove-admin-btn')) {
+        const listItem = target.closest('li');
+        const uidToRemove = listItem?.dataset.uid;
+
+        if (!uidToRemove) return;
+
+        if (uidToRemove === superAdminUid) {
+          displayMessage('No puedes eliminar al Super Administrador.', 'error');
+          return;
+        }
+
+        if (!confirm(`¿Estás seguro de que quieres eliminar a ${uidToRemove} de los administradores?`)) {
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/admin/users', {
+            method: 'POST', // Send as POST for _method override
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ uid: uidToRemove, action: 'remove' }),
+          });
+
+          const result = await response.json();
+          if (response.ok) {
+            displayMessage(result.message || 'Administrador eliminado con éxito.', 'success');
+            listItem?.remove(); // Remove from DOM
+          } else {
+            displayMessage(result.error || 'Error al eliminar administrador.', 'error');
+          }
+        } catch (error) {
+          logError(error, 'Error removing admin (client-side)', { uidToRemove, userId: userUid });
+          displayMessage('Error de conexión al eliminar administrador.', 'error');
+        }
+      }
+    });
   }
-  .user-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  .user-form input {
-    padding: 0.5rem;
-    border-radius: 4px;
-    border: 1px solid #555;
-    background-color: #222;
-    color: #fff;
-  }
-  .user-form button {
-    padding: 0.75rem;
-    background-color: var(--accent-color);
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    align-self: flex-start;
-  }
-  .user-list {
-    list-style: none;
-    padding: 0;
-  }
-  .user-list li {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid #333;
-  }
-  .user-list li:last-child {
-    border-bottom: none;
-  }
-  .delete-btn {
-    padding: 0.5rem 1rem;
-    background-color: #c0392b;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  .success-message,
-  .error-message {
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 4px;
-    text-align: center;
-  }
-  .success-message {
-    background-color: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
-  }
-  .error-message {
-    background-color: rgba(231, 76, 60, 0.2);
-    color: #e74c3c;
-  }
-</style>
+</script>

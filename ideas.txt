@@ -1,0 +1,55 @@
+
+================================================================================
+[FUTURO] AUTOMATIZACIÓN TOTAL: CREACIÓN DE SERIES Y TOPICS DE TELEGRAM DESDE WEB
+================================================================================
+
+OBJETIVO:
+Eliminar la necesidad de entrar manualmente a Telegram para crear un "Tema" (Topic) cada vez que se inicia una nueva serie. Centralizar todo el proceso de creación en el panel de administración web (`/admin`).
+
+SITUACIÓN ACTUAL (MANUAL):
+1. El admin entra a Telegram -> Grupo.
+2. Crea un Tema manualmente.
+3. Sube un .zip al tema.
+4. El backend detecta el archivo, extrae el ID del tema y crea la serie en la BD (a veces con nombre temporal).
+
+SITUACIÓN FUTURA (AUTOMÁTICA - WEB):
+1. El admin entra a `Gestionar Series` en la web.
+2. Hace clic en "Crear Nueva Serie".
+3. Ingresa el Título y sube la Portada.
+4. Al guardar:
+   a) El backend llama a la API de Telegram: `createForumTopic(chat_id, name=TituloSerie)`.
+   b) Telegram devuelve el `message_thread_id` (ID único del tema) y el `name`.
+   c) El backend crea la entrada en la base de datos D1 inmediatamente con:
+      - `title`: El ingresado en la web.
+      - `telegram_topic_id`: El ID devuelto por Telegram.
+      - `slug`: Generado automáticamente (ej: `mi-nueva-serie`).
+      - `cover_image_url`: La portada subida a R2.
+
+RESULTADO:
+- La serie queda creada y vinculada perfectamente desde el segundo 0.
+- El Tema en Telegram aparece automáticamente con el nombre correcto.
+- Subir capítulos futuros (ZIPs) es trivial: el bot ya sabe que ese `topic_id` corresponde a esa serie en la BD.
+
+REQUISITOS TÉCNICOS (API TELEGRAM):
+- Método: `createForumTopic`
+- Documentación: https://core.telegram.org/bots/api#createforumtopic
+- Parámetros clave:
+  - `chat_id`: ID del Supergrupo.
+  - `name`: Título de la serie (1-128 caracteres).
+  - `icon_color` (Opcional): Color del icono del tema (RGB integer).
+  - `icon_custom_emoji_id` (Opcional): Emoji personalizado como icono.
+- Permisos del Bot: Debe ser ADMINISTRADOR del grupo y tener el permiso `can_manage_topics`.
+- Tipo de Grupo: Debe ser un Supergrupo con la funcionalidad de "Temas" habilitada.
+
+IMPLEMENTACIÓN SUGERIDA:
+1. Crear un endpoint API en Astro: `/api/admin/series/create`.
+2. Este endpoint recibe los datos del formulario web.
+3. Llama a `https://api.telegram.org/bot<TOKEN>/createForumTopic`.
+4. Recibe el JSON de respuesta con el objeto `ForumTopic`.
+5. Inserta en D1 (`INSERT INTO Series ...`).
+6. Devuelve éxito al frontend.
+
+VENTAJAS A LARGO PLAZO:
+- Cero fricción: No sales de la web para gestionar contenido.
+- Datos limpios: La serie nace con su nombre real, slug correcto y portada, sin nombres temporales tipo "serie-400".
+- Escalabilidad: Permite que moderadores sin acceso total al Telegram puedan crear series si se les da permiso en la web.

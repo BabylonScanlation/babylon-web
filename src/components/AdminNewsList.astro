@@ -3,18 +3,18 @@ import { getDB, getAllNews, deleteNews } from '../lib/db';
 // Removed: import { getSession } from 'auth-astro/server';
 
 // Removed: const session = await getSession(Astro.request);
-const db = getDB(Astro.locals.runtime.env);
+const drizzleDb = getDB(Astro.locals.runtime.env);
 
-let newsItems = await getAllNews(db);
+let newsItems = await getAllNews(drizzleDb);
 if (Astro.request.method === 'POST') {
   const formData = await Astro.request.formData();
   const action = formData.get('action');
   const newsId = formData.get('newsId');
 
   if (action === 'delete' && newsId) {
-    await deleteNews(db, newsId.toString());
+    await deleteNews(drizzleDb, newsId.toString());
     // Re-fetch news after deletion
-    newsItems = await getAllNews(db);
+    newsItems = await getAllNews(drizzleDb);
   }
 }
 ---

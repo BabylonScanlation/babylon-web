@@ -1,23 +1,36 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { SITE_TITLE } from '../../consts';
-import AdminNewsList from '../../components/AdminNewsList.astro';
-import AdminNewsForm from '../../components/AdminNewsForm.astro';
+import AdminNewsManager from '../../components/AdminNewsManager.svelte';
+import { getDB } from '../../lib/db';
+import { series, news } from '../../db/schema';
+import { desc } from 'drizzle-orm';
+
+// Obtener datos del servidor
+const db = getDB(Astro.locals.runtime.env);
+
+// 1. Obtener todas las series (ID, Título, Portada)
+const allSeries = await db.select({
+  id: series.id,
+  title: series.title,
+  coverImageUrl: series.coverImageUrl
+}).from(series).all();
+
+// 2. Obtener todas las noticias (para pasarlas al cliente y filtrar allí)
+const allNews = await db.select().from(news).orderBy(desc(news.createdAt)).all();
 ---
 
-<Layout title={`Admin News - ${SITE_TITLE}`}>
-  <main class="container mx-auto p-4">
-    <h1 class="text-3xl font-bold mb-6">Gestión de Noticias</h1>
+<Layout title={`Gestión de Noticias - ${SITE_TITLE}`}>
+  <main class="admin-container">
+    <a href="/admin" class="back-link">&larr; Volver al Panel</a>
+    
+    
+    <h1 class="text-3xl font-bold mb-6">Gestión de Noticias por Serie</h1>
+    <p class="description">
+      Publica actualizaciones y anuncios específicos para cada serie. Selecciona una serie abajo para ver su historial o crear una nueva noticia.
+    </p>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-      <div>
-        <h2 class="text-2xl font-semibold mb-4">Crear/Editar Noticia</h2>
-        <AdminNewsForm />
-      </div>
-      <div>
-        <h2 class="text-2xl font-semibold mb-4">Noticias Existentes</h2>
-        <AdminNewsList />
-      </div>
-    </div>
+    <!-- Componente Svelte Unificado -->
+    <AdminNewsManager client:load allSeries={allSeries} initialNews={allNews} />
   </main>
 </Layout>

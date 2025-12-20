@@ -1,119 +1,19 @@
-{
-  "wallTime": 6,
-  "cpuTime": 5,
-  "truncated": false,
-  "executionModel": "stateless",
-  "outcome": "ok",
-  "scriptVersion": {
-    "id": "0f69d26a-3a64-4695-bb1c-2546e2a47ce1"
-  },
-  "scriptName": "pages-worker--6960205-production",
-  "diagnosticsChannelEvents": [],
-  "exceptions": [],
-  "logs": [
-    {
-      "message": [
-        "03:27:00 [ERROR] Error: No such module \"node:fs\".\n  imported from \"chunks/server_C6Fm1HUx.mjs\""
-      ],
-      "level": "error",
-      "timestamp": 1765942020036
-    }
-  ],
-  "eventTimestamp": 1765942019791,
-  "event": {
-    "request": {
-      "url": "https://babylon-scanlation.pages.dev/",
-      "method": "GET",
-      "headers": {
-        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "accept-encoding": "gzip, br",
-        "accept-language": "es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3",
-        "cf-connecting-ip": "181.116.252.180",
-        "cf-ipcountry": "AR",
-        "cf-ray": "9af35277ac70dd2e",
-        "cf-visitor": "{\"scheme\":\"https\"}",
-        "connection": "Keep-Alive",
-        "cookie": "REDACTED",
-        "host": "babylon-scanlation.pages.dev",
-        "priority": "u=0, i",
-        "sec-fetch-dest": "document",
-        "sec-fetch-mode": "navigate",
-        "sec-fetch-site": "none",
-        "sec-fetch-user": "?1",
-        "upgrade-insecure-requests": "1",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:146.0) Gecko/20100101 Firefox/146.0",
-        "x-forwarded-proto": "https",
-        "x-real-ip": "181.116.252.180"
-      },
-      "cf": {
-        "httpProtocol": "HTTP/2",
-        "clientAcceptEncoding": "gzip, deflate, br",
-        "requestPriority": "weight=42;exclusive=0;group=0;group-weight=0",
-        "edgeRequestKeepAliveStatus": 1,
-        "requestHeaderNames": {},
-        "clientTcpRtt": 49,
-        "colo": "EZE",
-        "asn": 11664,
-        "asOrganization": "AMX Argentina S.A.",
-        "country": "AR",
-        "isEUCountry": false,
-        "city": "La Banda",
-        "continent": "SA",
-        "region": "Santiago del Estero",
-        "regionCode": "G",
-        "timezone": "America/Argentina/Cordoba",
-        "longitude": "-64.4012",
-        "latitude": "-27.7869",
-        "postalCode": "4201",
-        "tlsVersion": "TLSv1.3",
-        "tlsCipher": "AEAD-AES128-GCM-SHA256",
-        "tlsClientRandom": "8m94KKww2b/65RKQd/UaDpfsCkPCyCzK0EC/naZq9j4=",
-        "tlsClientCiphersSha1": "LnbVHP1R8ay/dUsahfiR53h8aw4=",
-        "tlsClientExtensionsSha1": "pTxjMOG/BesnQVuYOOkDxW7gMfY=",
-        "tlsClientExtensionsSha1Le": "5pvhzxIW2PipCxDAhUMBldFOklg=",
-        "tlsExportedAuthenticator": {
-          "clientHandshake": "466cab8f14aa2d3d3aa3e1bfe850eaad19969c5ddcc0665199bc47b12b7aa006",
-          "serverHandshake": "b284d321ef6f70e57f90f71f33fcf0ad0c932d4435686a886d9df4d0747135a4",
-          "clientFinished": "e2db95fb2940c56941395458f65d36336e6b853f5596418aab292e0bfc8b0ae6",
-          "serverFinished": "1ed35a81a946f6fc8bd902c669ff926b32904305e6318a76e1bf4521f54aef47"
-        },
-        "tlsClientHelloLength": "1603",
-        "tlsClientAuth": {
-          "certPresented": "0",
-          "certVerified": "NONE",
-          "certRevoked": "0",
-          "certIssuerDN": "",
-          "certSubjectDN": "",
-          "certIssuerDNRFC2253": "",
-          "certSubjectDNRFC2253": "",
-          "certIssuerDNLegacy": "",
-          "certSubjectDNLegacy": "",
-          "certSerial": "",
-          "certIssuerSerial": "",
-          "certSKI": "",
-          "certIssuerSKI": "",
-          "certFingerprintSHA1": "",
-          "certFingerprintSHA256": "",
-          "certNotBefore": "",
-          "certNotAfter": ""
-        },
-        "verifiedBotCategory": "",
-        "pagesHostName": "babylon-scanlation.pages.dev",
-        "botManagement": {
-          "corporateProxy": false,
-          "verifiedBot": false,
-          "jsDetection": {
-            "passed": false
-          },
-          "staticResource": false,
-          "detectionIds": {},
-          "score": 99
-        }
-      }
-    },
-    "response": {
-      "status": 500
-    }
-  },
-  "id": 0
-}
+[1] [Auth Session] Opciones de la cookie: {
+[1]   path: '/',
+[1]   httpOnly: false,
+[1]   secure: false,
+[1]   maxAge: 604800,
+[1]   sameSite: 'lax'
+[1] }
+[1] [Auth Session] Cookie de sesión establecida correctamente.
+[1] 19:30:23 [200] POST /api/auth/session 354ms
+[1] [Middleware] Path: /api/auth/status
+[1] [Middleware] Cookie 'user_session' present: false
+[1] [Middleware] DB binding available: true
+[1] [Middleware] No session cookie found.
+[1] 19:30:23 [200] /api/auth/status 1ms
+[1] [Middleware] Path: /api/auth/status
+[1] [Middleware] Cookie 'user_session' present: false
+[1] [Middleware] DB binding available: true
+[1] [Middleware] No session cookie found.
+[1] 19:30:35 [200] /api/auth/status 1ms

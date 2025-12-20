@@ -10,6 +10,7 @@ binding = "DB" # Nombre usado en el código (Astro.locals.runtime.env.DB)
 database_name = "babylon-scanlation-prod"
 database_id = "5c1ecb07-f1ea-4961-9014-0b8612fc0caf"
 preview_database_id = "5c1ecb07-f1ea-4961-9014-0b8612fc0caf" 
+migrations_dir = "./migrations"
 
 # --- R2 (PRODUCCIÓN y LOCAL - Mismo Binding Name) ---
 [[r2_buckets]]

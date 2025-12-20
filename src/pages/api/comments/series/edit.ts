@@ -1,5 +1,9 @@
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
+import { logError } from '../../../../lib/logError';
+import { getDB } from '../../../../lib/db';
+import { seriesComments } from '../../../../db/schema';
+import { eq, and } from 'drizzle-orm';
 
 const EditSchema = z.object({
   commentId: z.number().int().positive(),
@@ -17,6 +21,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   }
 
+  let commentId: number | undefined;
+  let commentText: string | undefined;
+
   try {
     const body = await request.json();
     const validation = EditSchema.safeParse(body);
@@ -29,14 +36,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    const { commentId, commentText } = validation.data;
-    const db = locals.runtime.env.DB;
+    ({ commentId, commentText } = validation.data);
+    const drizzleDb = getDB(locals.runtime.env);
 
     // Primero, verificamos que el comentario pertenezca al usuario
-    const comment = await db
-      .prepare('SELECT user_id FROM SeriesComments WHERE id = ?')
-      .bind(commentId)
-      .first<{ user_id: string }>();
+    const comment = await drizzleDb
+      .select({ userId: seriesComments.userId })
+      .from(seriesComments)
+      .where(eq(seriesComments.id, commentId))
+      .get();
 
     if (!comment) {
       return new Response(
@@ -45,7 +53,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    if (comment.user_id !== user.uid) {
+    if (comment.userId !== user.uid) {
       return new Response(
         JSON.stringify({
           error: 'No tienes permiso para editar este comentario',
@@ -55,19 +63,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Si todo es correcto, actualizamos el comentario
-    await db
-      .prepare('UPDATE SeriesComments SET comment_text = ? WHERE id = ?')
-      .bind(commentText, commentId)
+    await drizzleDb
+      .update(seriesComments)
+      .set({ commentText })
+      .where(and(eq(seriesComments.id, commentId), eq(seriesComments.userId, user.uid)))
       .run();
 
     const updatedComment = {
       id: commentId,
-      comment_text: commentText,
+      comment_text: commentText, // Keep original naming for frontend compatibility if needed
     };
 
     return new Response(JSON.stringify(updatedComment), { status: 200 });
   } catch (e: unknown) {
-    console.error('Error al editar el comentario:', e);
+    const userIdForLog = user?.uid; // user is in scope from the outer function
+    logError(e, 'Error al editar el comentario de serie', { commentId: commentId, userId: userIdForLog });
     return new Response(
       JSON.stringify({ error: 'Error interno del servidor' }),
       { status: 500 }

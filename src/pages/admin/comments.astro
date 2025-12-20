@@ -1,6 +1,7 @@
 ---
 // src/pages/admin/comments.astro
 import Layout from '../../layouts/Layout.astro';
+import { logError } from '../../lib/logError';
 
 interface Comment {
   id: number;
@@ -35,7 +36,7 @@ try {
     allSeries = await response.json();
   }
 } catch (e) {
-  console.error(e);
+  logError(e, 'Error al cargar series y comentarios para el panel de administración', { userId: Astro.locals.user?.uid });
 }
 ---
 
@@ -50,146 +51,138 @@ try {
 
     <div class="series-grid">
       {
-        allSeries.map((series) => {
-          const seriesCommentsCount = series.seriesComments.length;
-          const chaptersCommentsCount = series.chapters.flatMap(
-            (c) => c.comments
-          ).length;
-          const totalComments = seriesCommentsCount + chaptersCommentsCount;
-          return (
-            <details class="series-details-main">
-              <summary class="series-summary">
-                <span class="summary-title">{series.title}</span>
+        allSeries.length > 0 ? (
+          allSeries.map((series) => {
+            const seriesCommentsCount = series.seriesComments.length;
+            const chaptersCommentsCount = series.chapters.flatMap(
+              (c) => c.comments
+            ).length;
+            const totalComments = seriesCommentsCount + chaptersCommentsCount;
+            return (
+              <details class="series-details-main">
+                <summary class="series-summary">
+                  <span class="summary-title">{series.title}</span>
 
-                {/* ✅ TÍTULO MODIFICADO CON EL TOTAL */}
-                <div class="summary-meta">
-                  <span class="summary-separator">|</span>
-                  <span class="total-count">En Total: {totalComments}</span>
-                  <span class="summary-separator">|</span>
-                  <span>De la Serie: {seriesCommentsCount}</span>
+                  {/* ✅ TÍTULO MODIFICADO CON EL TOTAL */}
+                  <div class="summary-meta">
+                    <span class="summary-separator">|</span>
+                    <span class="total-count">En Total: {totalComments}</span>
+                    <span class="summary-separator">|</span>
+                    <span>De la Serie: {seriesCommentsCount}</span>
 
-                  <span class="summary-separator">|</span>
-                  <span>En Capítulos: {chaptersCommentsCount}</span>
-                </div>
-              </summary>
-              <div class="series-content-panel">
-                <div class="comment-group">
-                  {series.seriesComments.length > 0 ? (
-                    series.seriesComments.map((comment) => (
-                      <div class="comment-item">
-                        <div class="comment-info">
-                          <span class="comment-author">
-                            {comment.user_email.split('@')[0]}:
-                          </span>
+                    <span class="summary-separator">|</span>
+                    <span>En Capítulos: {chaptersCommentsCount}</span>
+                  </div>
+                </summary>
+                <div class="series-content-panel">
+                  <div class="comment-group">
+                    {series.seriesComments.length > 0 ? (
+                      series.seriesComments.map((comment) => (
+                        <div class="comment-item">
+                          <div class="comment-info">
+                            <span class="comment-author">
+                              {comment.user_email.split('@')[0]}:
+                            </span>
 
-                          <p class="comment-text">{comment.comment_text}</p>
-                        </div>
-                        <form
-                          action="/api/comments/series/delete"
-                          method="post"
-                          onsubmit="return confirm('¿Eliminar este comentario de la serie?');"
-                        >
-                          <input
-                            type="hidden"
-                            name="commentId"
-                            value={comment.id}
-                          />
-
-                          <button
-                            type="submit"
-                            class="delete-comment-btn"
-                            title="Eliminar Comentario"
-                          >
-                            X
-                          </button>
-                        </form>
-                      </div>
-                    ))
-                  ) : (
-                    <p class="no-comments">
-                      No hay comentarios para esta serie.
-                    </p>
-                  )}
-                </div>
-
-                {series.chapters.map((chapter) => (
-                  <details class="chapter-details">
-                    <summary class="chapter-summary">
-                      <span class="summary-title">
-                        Capítulo {chapter.chapter_number}
-                      </span>
-                      <div class="summary-meta">
-                        <span class="summary-separator">|</span>
-                        <span>{chapter.comments.length} Comentarios</span>
-                      </div>
-                    </summary>
-                    <div class="chapter-content-panel">
-                      {chapter.comments.length > 0 ? (
-                        chapter.comments.map((comment) => (
-                          <div class="comment-item">
-                            <div class="comment-info">
-                              <span class="comment-author">
-                                {comment.user_email.split('@')[0]}:
-                              </span>
-
-                              <p class="comment-text">{comment.comment_text}</p>
-                            </div>
-                            <form
-                              action="/api/comments/delete"
-                              method="post"
-                              onsubmit="return confirm('¿Eliminar este comentario de capítulo?');"
-                            >
-                              <input
-                                type="hidden"
-                                name="commentId"
-                                value={comment.id}
-                              />
-                              <button
-                                type="submit"
-                                class="delete-comment-btn"
-                                title="Eliminar Comentario"
-                              >
-                                X
-                              </button>
-                            </form>
+                            <p class="comment-text">{comment.comment_text}</p>
                           </div>
-                        ))
-                      ) : (
-                        <p class="no-comments">
-                          No hay comentarios en este capítulo.
-                        </p>
-                      )}
-                    </div>
-                  </details>
-                ))}
-              </div>
-            </details>
-          );
-        })
+                          <form
+                            action="/api/comments/series/delete"
+                            method="post"
+                            onsubmit="return confirm('¿Eliminar este comentario de la serie?');"
+                          >
+                            <input
+                              type="hidden"
+                              name="commentId"
+                              value={comment.id}
+                            />
+
+                            <button
+                              type="submit"
+                              class="delete-comment-btn"
+                              title="Eliminar Comentario"
+                            >
+                              X
+                            </button>
+                          </form>
+                        </div>
+                      ))
+                    ) : (
+                      <p class="no-comments">
+                        No hay comentarios para esta serie.
+                      </p>
+                    )}
+                  </div>
+
+                  {series.chapters.map((chapter) => (
+                    <details class="chapter-details">
+                      <summary class="chapter-summary">
+                        <span class="summary-title">
+                          Capítulo {chapter.chapter_number}
+                        </span>
+                        <div class="summary-meta">
+                          <span class="summary-separator">|</span>
+                          <span>{chapter.comments.length} Comentarios</span>
+                        </div>
+                      </summary>
+                      <div class="chapter-content-panel">
+                        {chapter.comments.length > 0 ? (
+                          chapter.comments.map((comment) => (
+                            <div class="comment-item">
+                              <div class="comment-info">
+                                <span class="comment-author">
+                                  {comment.user_email.split('@')[0]}:
+                                </span>
+
+                                <p class="comment-text">{comment.comment_text}</p>
+                              </div>
+                              <form
+                                action="/api/comments/delete"
+                                method="post"
+                                onsubmit="return confirm('¿Eliminar este comentario de capítulo?');"
+                              >
+                                <input
+                                  type="hidden"
+                                  name="commentId"
+                                  value={comment.id}
+                                />
+                                <button
+                                  type="submit"
+                                  class="delete-comment-btn"
+                                  title="Eliminar Comentario"
+                                >
+                                  X
+                                </button>
+                              </form>
+                            </div>
+                          ))
+                        ) : (
+                          <p class="no-comments">
+                            No hay comentarios en este capítulo.
+                          </p>
+                        )}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              </details>
+            );
+          })
+        ) : (
+          <div class="empty-state">
+            <h3>Sin Comentarios</h3>
+            <p>No se encontraron series con comentarios.</p>
+          </div>
+        )
       }
     </div>
   </main>
 </Layout>
 
 <style>
-  .admin-container {
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
   h1 {
     margin-bottom: 0.5rem;
   }
-  .description {
-    margin-bottom: 1.5rem;
-    color: #aaa;
-  }
-  .back-link {
-    display: inline-block;
-    margin-bottom: 1.5rem;
-    color: var(--accent-color);
-  }
-
   .series-grid {
     display: grid;
     grid-template-columns: 1fr;

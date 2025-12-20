@@ -1,8 +1,11 @@
 // src/lib/db.ts
 import type { D1Database } from '@cloudflare/workers-types';
+import { drizzle } from 'drizzle-orm/d1';
+import { eq, and, isNull, desc } from 'drizzle-orm'; // Import and, isNull, desc for conditions and ordering
+import * as schema from '../db/schema'; // Import all schema definitions
 
-export function getDB(env: { DB: D1Database }): D1Database {
-  return env.DB;
+export function getDB(env: { DB: D1Database }) {
+  return drizzle(env.DB, { schema }); // Initialize Drizzle with the schema
 }
 
 // --- News and NewsImage Types ---
@@ -11,12 +14,12 @@ export interface NewsItem {
   id: string;
   title: string;
   content: string;
-  createdAt: number;
-  updatedAt: number;
+  createdAt: Date;
+  updatedAt: Date;
   publishedBy: string;
   status: 'draft' | 'published';
   seriesId: number | null;
-  authorName: string;
+  authorName: string | null;
 }
 
 export interface NewsImageItem {
@@ -30,185 +33,105 @@ export interface NewsImageItem {
 // --- News Database Functions ---
 
 export async function createNews(
-  db: D1Database,
-  news: Omit<NewsItem, 'id' | 'createdAt' | 'updatedAt'>
+  drizzleDb: ReturnType<typeof getDB>, // Accept Drizzle DB instance
+  newsData: Omit<NewsItem, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<NewsItem> {
   const id = crypto.randomUUID();
-  const now = Date.now();
-  const newsItem: NewsItem = { ...news, id, createdAt: now, updatedAt: now };
-  await db
-    .prepare(
-      'INSERT INTO News (id, title, content, createdAt, updatedAt, publishedBy, status, seriesId, authorName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    )
-    .bind(
-      newsItem.id,
-      newsItem.title,
-      newsItem.content,
-      newsItem.createdAt,
-      newsItem.updatedAt,
-      newsItem.publishedBy,
-      newsItem.status,
-      newsItem.seriesId, // seriesId is already number | null
-      newsItem.authorName
-    )
-    .run();
+  const now = new Date();
+  const newsItem: NewsItem = { ...newsData, id, createdAt: now, updatedAt: now };
+
+  await drizzleDb.insert(schema.news).values(newsItem);
   return newsItem;
 }
 
 export async function getNewsById(
-  db: D1Database,
+  drizzleDb: ReturnType<typeof getDB>,
   id: string
 ): Promise<NewsItem | null> {
-  const { results } = await db
-    .prepare('SELECT * FROM News WHERE id = ?')
-    .bind(id)
-    .all<NewsItem>();
-  return results?.[0] || null;
+  const result = await drizzleDb.select()
+    .from(schema.news)
+    .where(eq(schema.news.id, id))
+    .get(); // .get() for a single result
+
+  return result || null;
 }
 
 export async function getAllNews(
-  db: D1Database,
+  drizzleDb: ReturnType<typeof getDB>,
   status?: 'draft' | 'published',
-  seriesId?: number | null // Updated to number | null
+  seriesId?: number | null
 ): Promise<NewsItem[]> {
-  let query = 'SELECT * FROM News';
-  const params: (string | number | null)[] = [];
-  const conditions: string[] = [];
+  const conditions = [];
 
   if (status) {
-    conditions.push('status = ?');
-    params.push(status);
+    conditions.push(eq(schema.news.status, status));
   }
   if (seriesId !== undefined) {
-    conditions.push('seriesId = ?');
-    params.push(seriesId); // Pass directly as number | null
+    conditions.push(seriesId === null ? isNull(schema.news.seriesId) : eq(schema.news.seriesId, seriesId));
   }
 
-  if (conditions.length > 0) {
-    query += ' WHERE ' + conditions.join(' AND ');
-  }
+  const results = await drizzleDb.select()
+    .from(schema.news)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(schema.news.createdAt))
+    .all();
 
-  query += ' ORDER BY createdAt DESC';
-  const { results } = await db
-    .prepare(query)
-    .bind(...params)
-    .all<NewsItem>();
   return results || [];
 }
 
 export async function updateNews(
-  db: D1Database,
+  drizzleDb: ReturnType<typeof getDB>,
   id: string,
-  updates: Partial<Omit<NewsItem, 'id' | 'createdAt'>>
+  updates: any
 ): Promise<NewsItem | null> {
-  const now = Date.now();
-  const fields = Object.keys(updates)
-    .map((key) => {
-      // Handle seriesId specifically if it's being updated
-      if (key === 'seriesId') {
-        // Ensure that seriesId is treated as number | null for binding
-        const value = updates[key as keyof typeof updates];
-        if (value === '') return `seriesId = NULL`; // Treat empty string as NULL for integer column
-        if (typeof value === 'string') return `seriesId = ${parseInt(value, 10)}`; // Parse string to int
-      }
-      return `${key} = ?`;
-    })
-    .join(', ');
-  
-  // Filter out seriesId from values if handled separately, or adjust if parsing string to int
-  const values = Object.entries(updates)
-    .filter(([key]) => key !== 'seriesId')
-    .map(([, value]) => value);
+  const now = new Date();
+  const updateData: {[key: string]: any} = { ...updates, updatedAt: now };
 
-  // If seriesId is updated, it's handled in the fields string.
-  // Otherwise, if it's in values, it should already be number | null.
-  
-  // This part needs careful handling to avoid duplicating seriesId or missing it if it's null.
-  // A more robust way would be to construct values dynamically from fields.
-  
-  // Let's refine the updateNews construction:
-  const updateFields: string[] = [];
-  const updateValues: (string | number | boolean | null)[] = [];
-
-  for (const [key, value] of Object.entries(updates)) {
-      if (key === 'seriesId') {
-          if (value === '' || value === null) {
-              updateFields.push('seriesId = NULL');
-          } else if (typeof value === 'string') {
-              updateFields.push('seriesId = ?');
-              updateValues.push(parseInt(value, 10)); // Ensure it's parsed to number
-          } else { // Already a number
-              updateFields.push('seriesId = ?');
-              updateValues.push(value);
-          }
-      } else {
-          updateFields.push(`${key} = ?`);
-          updateValues.push(value);
-      }
+  // Handle seriesId parsing if it comes as a string from a form, Drizzle expects number | null
+  if (typeof updateData.seriesId === 'string') {
+    updateData.seriesId = updateData.seriesId === '' ? null : parseInt(updateData.seriesId, 10);
   }
 
-  if (updateFields.length === 0) {
-    return getNewsById(db, id); // No updates to apply
-  }
+  await drizzleDb.update(schema.news)
+    .set(updateData)
+    .where(eq(schema.news.id, id));
 
-  await db
-    .prepare(`UPDATE News SET ${updateFields.join(', ')}, updatedAt = ? WHERE id = ?`)
-    .bind(...updateValues, now, id)
-    .run();
-  return getNewsById(db, id);
+  return getNewsById(drizzleDb, id);
 }
 
-export async function deleteNews(db: D1Database, id: string): Promise<boolean> {
-  const { success } = await db
-    .prepare('DELETE FROM News WHERE id = ?')
-    .bind(id)
-    .run();
-  return success;
+export async function deleteNews(drizzleDb: ReturnType<typeof getDB>, id: string): Promise<boolean> {
+  const result = await drizzleDb.delete(schema.news).where(eq(schema.news.id, id)).run();
+  return result.changes > 0; // D1 returns { changes: number } for delete
 }
 
 // --- NewsImage Database Functions ---
 
 export async function addNewsImage(
-  db: D1Database,
+  drizzleDb: ReturnType<typeof getDB>,
   image: Omit<NewsImageItem, 'id'>
 ): Promise<NewsImageItem> {
   const id = crypto.randomUUID();
   const newsImageItem: NewsImageItem = { ...image, id };
-  await db
-    .prepare(
-      'INSERT INTO NewsImage (id, newsId, r2Key, altText, displayOrder) VALUES (?, ?, ?, ?, ?)'
-    )
-    .bind(
-      newsImageItem.id,
-      newsImageItem.newsId,
-      newsImageItem.r2Key,
-      newsImageItem.altText,
-      newsImageItem.displayOrder
-    )
-    .run();
+  await drizzleDb.insert(schema.newsImage).values(newsImageItem);
   return newsImageItem;
 }
 
 export async function getNewsImages(
-  db: D1Database,
+  drizzleDb: ReturnType<typeof getDB>,
   newsId: string
 ): Promise<NewsImageItem[]> {
-  const { results } = await db
-    .prepare(
-      'SELECT * FROM NewsImage WHERE newsId = ? ORDER BY displayOrder ASC'
-    )
-    .bind(newsId)
-    .all<NewsImageItem>();
+  const results = await drizzleDb.select()
+    .from(schema.newsImage)
+    .where(eq(schema.newsImage.newsId, newsId))
+    .orderBy(schema.newsImage.displayOrder)
+    .all();
   return results || [];
 }
 
 export async function deleteNewsImage(
-  db: D1Database,
+  drizzleDb: ReturnType<typeof getDB>,
   id: string
 ): Promise<boolean> {
-  const { success } = await db
-    .prepare('DELETE FROM NewsImage WHERE id = ?')
-    .bind(id)
-    .run();
-  return success;
+  const result = await drizzleDb.delete(schema.newsImage).where(eq(schema.newsImage.id, id)).run();
+  return result.changes > 0;
 }

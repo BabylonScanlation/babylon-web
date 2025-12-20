@@ -1,6 +1,10 @@
 ---
 // src/components/HeroCarousel.astro
 import type { Series } from '../types';
+import Swiper from './Swiper.svelte';
+import { Pagination, Autoplay } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
 
 interface Props {
   slides: Series[];
@@ -8,44 +12,61 @@ interface Props {
 }
 
 const { slides = [], title } = Astro.props;
+
+// Define Swiper options in the Astro frontmatter
+const swiperOptions = {
+  modules: [Pagination, Autoplay],
+  slidesPerView: 1,
+  loop: slides.length >= 3,
+  rewind: slides.length < 3 && slides.length > 1, // Use rewind for 2 slides
+  autoplay:
+    slides.length > 1
+      ? {
+          delay: 5000,
+          disableOnInteraction: false,
+        }
+      : false,
+  pagination: {
+    el: '.swiper-pagination',
+    clickable: true,
+  },
+  observer: true,
+  observeParents: true,
+};
 ---
 
 <section class="hero-carousel-section">
   {title && <h2 class="carousel-title">{title}</h2>}
-  <div class="swiper" data-slides-count={slides.length}>
-    <div class="swiper-wrapper">
-      {
-        slides.map((slide) => (
-          <div class="swiper-slide">
-            <div
-              class="slide-background-blur"
-              style={`background-image: url(${slide.cover_image_url})`}
-            />
-            <div class="gradient-overlay" />
-
-            <div class="slide-content-wrapper">
-              <img
-                src={slide.cover_image_url}
-                alt={`Portada de ${slide.title}`}
-                class="slide-cover-art"
-              />
-
-              <div class="text-container">
-                <h3>{slide.title}</h3>
-                <p>{slide.description}</p>
-                <div class="tag-buttons">
-                  <a href={`/series/${slide.slug}`} class="main-action">
-                    LEER AHORA
-                  </a>
-                </div>
-              </div>
+  
+  <!-- Use the new reusable Svelte component -->
+  <Swiper client:visible options={swiperOptions}>
+    {slides.map((slide) => (
+      <div class="swiper-slide">
+        <div
+          class="slide-background-blur"
+          style={`background-image: url(${slide.cover_image_url})`}
+        />
+        <div class="gradient-overlay" />
+        <div class="slide-content-wrapper">
+          <img
+            src={slide.cover_image_url}
+            alt={`Portada de ${slide.title}`}
+            class="slide-cover-art"
+            loading="lazy"
+          />
+          <div class="text-container">
+            <h3>{slide.title}</h3>
+            <p>{slide.description}</p>
+            <div class="tag-buttons">
+              <a href={`/series/${slide.slug}`} class="main-action">
+                LEER AHORA
+              </a>
             </div>
           </div>
-        ))
-      }
-    </div>
-    <div class="swiper-pagination"></div>
-  </div>
+        </div>
+      </div>
+    ))}
+  </Swiper>
 </section>
 
 <style>
@@ -147,11 +168,11 @@ const { slides = [], title } = Astro.props;
     border-radius: 4px;
     font-weight: 700;
   }
-  .swiper-pagination-bullet {
+  :global(.swiper-pagination-bullet) {
     background-color: #fff;
     opacity: 0.7;
   }
-  .swiper-pagination-bullet-active {
+  :global(.swiper-pagination-bullet-active) {
     background-color: var(--accent-color);
     opacity: 1;
     width: 12px;
@@ -192,37 +213,3 @@ const { slides = [], title } = Astro.props;
     }
   }
 </style>
-
-<script>
-  document.addEventListener('DOMContentLoaded', async () => {
-    const swiperEl = document.querySelector('.swiper');
-    if (swiperEl instanceof HTMLElement) {
-      const { default: Swiper } = await import('swiper');
-      const { Pagination, Autoplay } = await import('swiper/modules');
-      await import('swiper/css');
-      await import('swiper/css/pagination');
-
-      const slidesCount = parseInt(swiperEl.dataset.slidesCount || '0', 10);
-
-      new Swiper(swiperEl, {
-        modules: [Pagination, Autoplay],
-        slidesPerView: 1,
-        loop: slidesCount >= 3,
-        rewind: slidesCount === 2,
-        autoplay:
-          slidesCount > 1
-            ? {
-                delay: 5000,
-                disableOnInteraction: false,
-              }
-            : false,
-        pagination: {
-          el: '.swiper-pagination',
-          clickable: true,
-        },
-        observer: true,
-        observeParents: true,
-      });
-    }
-  });
-</script>

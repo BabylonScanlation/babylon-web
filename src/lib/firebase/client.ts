@@ -5,6 +5,7 @@ import {
   setPersistence,
   browserLocalPersistence,
 } from 'firebase/auth';
+import { logError } from '../logError';
 
 const firebaseConfig = {
   apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
@@ -21,11 +22,13 @@ export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 // Obtener instancia de autenticación
 export const auth = getAuth(app);
 
-// Configurar persistencia de sesión
-setPersistence(auth, browserLocalPersistence)
-  .then(() => {
-    console.log('Persistencia de Firebase configurada');
-  })
-  .catch((error) => {
-    console.error('Error configurando persistencia:', error);
-  });
+// Configurar persistencia de sesión solo en el cliente
+if (typeof window !== 'undefined') {
+  setPersistence(auth, browserLocalPersistence)
+    .then(() => {
+      console.log('Persistencia de Firebase configurada');
+    })
+    .catch((error) => {
+      logError(error, 'Error configurando persistencia de Firebase');
+    });
+}

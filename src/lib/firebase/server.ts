@@ -1,5 +1,6 @@
 // src/lib/firebase/server.ts
 import { jwtVerify, importJWK } from 'jose';
+import { logError } from '../logError';
 
 // Esta es la URL CORRECTA para obtener las claves de Firebase.
 const JWKS_URL =
@@ -30,12 +31,7 @@ export async function verifyFirebaseToken(token: string, env: Env) {
   const res = await fetch(JWKS_URL);
   if (!res.ok) {
     const errorBody = await res.text();
-    console.error(
-      'Error fetching JWKS:',
-      res.status,
-      res.statusText,
-      errorBody
-    );
+    logError(new Error(errorBody), 'Error fetching JWKS', { status: res.status, statusText: res.statusText });
     throw new Error('Error al obtener las claves de verificación de Firebase.');
   }
   const jwks: { keys: JWK[] } = await res.json();
@@ -71,14 +67,14 @@ export async function verifyFirebaseToken(token: string, env: Env) {
 
     return {
       ...payload,
-      sub: payload.sub || payload.user_id,
+      sub: (payload.sub as string | undefined) || (payload.user_id as string | undefined),
     };
   } catch (error: any) {
     if (error.code === 'ERR_JWT_EXPIRED') {
       console.log('Firebase token has expired.');
       return null;
     }
-    console.error('Error verifying Firebase token:', error);
+    logError(error, 'Error verifying Firebase token');
     throw new Error('Token inválido o expirado');
   }
 }

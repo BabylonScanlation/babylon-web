@@ -1,89 +1,13 @@
----
-import { getDB, createNews, updateNews, addNewsImage } from '../lib/db';
-
-const db = getDB(Astro.locals.runtime.env);
-
+--- 
 let editingNewsId: string | null = null;
 let initialNewsData = {
   title: '',
   content: '',
   status: 'draft',
 };
-
-if (Astro.request.method === 'POST') {
-  const formData = await Astro.request.formData();
-  const newsId = formData.get('newsId') as string | null;
-  const title = formData.get('title') as string;
-  const content = formData.get('content') as string;
-  const status = formData.get('status') as 'draft' | 'published';
-  const seriesId = formData.get('seriesId') as string | null; // Added seriesId
-  const imageFile = formData.get('image') as File | null;
-
-  if (newsId) {
-    // Update existing news
-    await updateNews(db, newsId, {
-      title,
-      content,
-      status,
-      seriesId: seriesId || null,
-    }); // Pass seriesId
-    // Handle image upload if provided
-    if (imageFile && imageFile.size > 0) {
-      const uploadResponse = await fetch('/api/admin/news/upload-image', {
-        method: 'POST',
-        body: formData, // Pass the whole formData for image upload
-      });
-      if (uploadResponse.ok) {
-        const { r2Key } = await uploadResponse.json();
-        await addNewsImage(db, {
-          newsId,
-          r2Key,
-          altText: title, // Use title as alt text for now
-          displayOrder: 0, // Assuming single image for now
-        });
-      } else {
-        console.error('Error uploading image:', await uploadResponse.text());
-      }
-    }
-  } else {
-    // Create new news
-    const newNews = await createNews(db, {
-      title,
-      content,
-      publishedBy: Astro.locals.user?.uid || 'admin',
-      status,
-      seriesId: seriesId || null, // Pass seriesId
-      authorName: Astro.locals.user?.email || 'Admin',
-    });
-    // Handle image upload if provided
-    if (imageFile && imageFile.size > 0) {
-      const uploadFormData = new FormData();
-      uploadFormData.append('image', imageFile);
-      const uploadResponse = await fetch('/api/admin/news/upload-image', {
-        method: 'POST',
-        body: uploadFormData,
-      });
-      if (uploadResponse.ok) {
-        const { r2Key } = await uploadResponse.json();
-        await addNewsImage(db, {
-          newsId: newNews.id,
-          r2Key,
-          altText: title,
-          displayOrder: 0,
-        });
-      } else {
-        console.error('Error uploading image:', await uploadResponse.text());
-      }
-    }
-  }
-  // Redirect to refresh the page and list
-  return Astro.redirect(Astro.url.pathname);
-}
 ---
 
 <form
-  method="POST"
-  enctype="multipart/form-data"
   class="bg-white shadow-md rounded-lg p-4 space-y-4"
 >
   <input type="hidden" name="newsId" value={editingNewsId} />
@@ -172,8 +96,11 @@ if (Astro.request.method === 'POST') {
 
 <script>
   // Client-side script to handle editing news items
-  document.addEventListener('edit-news', async (event: Event) => {
-    const newsId = (event as CustomEvent<string>).detail;
+  import { logError } from '@lib/logError';
+
+  const handleEditNews = async (event: Event) => {
+    const customEvent = event as CustomEvent;
+    const newsId = customEvent.detail;
     const form = document.querySelector('form');
     if (!form) return;
 
@@ -199,8 +126,121 @@ if (Astro.request.method === 'POST') {
       // Scroll to form
       form.scrollIntoView({ behavior: 'smooth' });
     } catch (error) {
-      console.error('Error loading news for editing:', error);
+      const newsIdForLog = newsId; // Capture for log context
+      logError(error, 'Error al cargar noticia para editar', { newsId: newsIdForLog });
       alert('Error al cargar la noticia para editar.');
+    }
+  };
+
+  document.addEventListener('edit-news', handleEditNews);
+
+  const form = document.querySelector('form');
+  const statusEl = document.getElementById('form-status');
+  const newsIdInput = document.querySelector('input[name="newsId"]') as HTMLInputElement;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!(form instanceof HTMLFormElement)) return;
+
+    const formData = new FormData(form);
+    const newsId = newsIdInput?.value || null;
+    const title = formData.get('title')?.toString().trim();
+    const content = formData.get('content')?.toString().trim();
+    const status = formData.get('status')?.toString() as 'draft' | 'published';
+    const seriesId = formData.get('seriesId')?.toString() || null;
+    const imageFile = formData.get('image') as File | null;
+
+    if (!title || !content || !status) {
+      if (statusEl) {
+        statusEl.textContent = 'Título, contenido y estado no pueden estar vacíos.';
+        statusEl.className = 'error';
+      }
+      return;
+    }
+
+    if (statusEl) {
+      statusEl.textContent = newsId ? 'Actualizando noticia...' : 'Creando noticia...';
+      statusEl.className = 'loading';
+    }
+
+    try {
+      let newsResponse;
+      let newNewsId = newsId;
+
+      if (newsId) {
+        // Update existing news
+        newsResponse = await fetch(`/api/admin/news/${newsId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, content, status, seriesId }),
+        });
+      } else {
+        // Create new news
+        newsResponse = await fetch('/api/admin/news', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, content, status, seriesId }),
+        });
+        const newNews = await newsResponse.json();
+        newNewsId = newNews.id;
+      }
+
+      if (!newsResponse.ok) {
+        const errorData = await newsResponse.text();
+        throw new Error(
+          `Error al ${newsId ? 'actualizar' : 'crear'} la noticia: ${newsResponse.status} ${errorData}`
+        );
+      }
+
+      // Step 2: If there's an image, upload it.
+      if (imageFile instanceof File && imageFile.size > 0 && newNewsId) {
+        if (statusEl) statusEl.textContent = 'Subiendo imagen...';
+        const imageFormData = new FormData();
+        imageFormData.append('image', imageFile);
+        imageFormData.append('newsId', newNewsId);
+
+        const uploadResponse = await fetch('/api/admin/news/upload-image', {
+          method: 'POST',
+          body: imageFormData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(
+            'La noticia se guardó, pero falló la subida de la imagen.'
+          );
+        }
+      }
+
+      if (statusEl) {
+        statusEl.textContent = newsId ? 'Noticia actualizada con éxito.' : 'Noticia creada con éxito.';
+        statusEl.className = 'success';
+      }
+      form.reset();
+      if (newsIdInput) newsIdInput.value = ''; // Clear hidden newsId after submission
+      
+      // Dispatch custom event to tell the feed to refresh
+      document.dispatchEvent(new CustomEvent('refresh-news-feed'));
+    } catch (error) {
+      const newsIdForLog = newsId;
+      const titleForLog = title;
+      const statusForLog = status;
+      const seriesIdForLog = seriesId;
+      logError(error, `Fallo al ${newsId ? 'actualizar' : 'crear'} noticia`, { newsId: newsIdForLog, title: titleForLog, status: statusForLog, seriesId: seriesIdForLog });
+      if (statusEl) {
+        if (error instanceof Error) {
+          statusEl.textContent = error.message || `Fallo al ${newsId ? 'actualizar' : 'crear'} la noticia.`;
+        } else {
+          statusEl.textContent = `Fallo al ${newsId ? 'actualizar' : 'crear'} la noticia.`;
+        }
+        statusEl.className = 'error';
+      }
+    } finally {
+      setTimeout(() => {
+        if (statusEl) {
+          statusEl.textContent = '';
+          statusEl.className = '';
+        }
+      }, 7000);
     }
   });
 </script>

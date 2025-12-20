@@ -1,36 +1,41 @@
 // src/pages/api/update-series.ts
 import type { APIRoute } from 'astro';
+import { logError } from '../../lib/logError';
+import { getDB } from '../../lib/db';
+import { series } from '../../db/schema';
+import { eq } from 'drizzle-orm';
 
 export const POST: APIRoute = async (context) => {
   const { request, redirect, locals } = context;
   const referer = request.headers.get('Referer') || '/admin/series';
+
+  let seriesId: string | undefined; // Declare here
+  let title: string | undefined;   // Declare here
 
   try {
     if (!locals.user?.isAdmin) {
       return redirect('/admin/series?error=No autorizado');
     }
 
-    const db = locals.runtime.env.DB;
+    const drizzleDb = getDB(locals.runtime.env);
     const r2Assets = locals.runtime.env.R2_ASSETS;
     const r2PublicUrlAssets = locals.runtime.env.R2_PUBLIC_URL_ASSETS;
 
     const formData = await request.formData();
-    const seriesId = formData.get('seriesId')?.toString();
-    const title = formData.get('title')?.toString();
+    seriesId = formData.get('seriesId')?.toString(); // Assign here
+    title = formData.get('title')?.toString();     // Assign here
     const description = formData.get('description')?.toString();
     const coverImage = formData.get('coverImage');
 
-    // ✅ OBTENER TODOS LOS CAMPOS DEL ESQUEMA UNIFICADO
     const status = formData.get('status')?.toString() || 'N/A';
     const type = formData.get('type')?.toString() || 'N/A';
     const genres = formData.get('genres')?.toString() || 'N/A';
     const author = formData.get('author')?.toString() || 'N/A';
     const artist = formData.get('artist')?.toString() || 'N/A';
-    const published_by = formData.get('published_by')?.toString() || 'N/A';
-    const alternative_names =
-      formData.get('alternative_names')?.toString() || 'N/A';
-    const serialized_by = formData.get('serialized_by')?.toString() || 'N/A';
-    const is_hidden = formData.get('is_hidden') === 'on'; // Checkbox value is 'on' if checked
+    const publishedBy = formData.get('published_by')?.toString() || 'N/A';
+    const alternativeNames = formData.get('alternative_names')?.toString() || 'N/A';
+    const serializedBy = formData.get('serialized_by')?.toString() || 'N/A';
+    const isHidden = formData.get('is_hidden') === 'on';
 
     if (!seriesId || !title || !description) {
       const errorUrl = new URL(referer);
@@ -41,13 +46,13 @@ export const POST: APIRoute = async (context) => {
     let coverImageUrlToUpdate: string | null = null;
 
     if (coverImage instanceof File && coverImage.size > 0) {
-      const series = await db
-        .prepare('SELECT slug FROM Series WHERE id = ?')
-        .bind(seriesId)
-        .first<{ slug: string }>();
-      if (series) {
+      const seriesData = await drizzleDb.select({ slug: series.slug })
+        .from(series)
+        .where(eq(series.id, parseInt(seriesId)))
+        .get();
+      if (seriesData) {
         const imageExtension = coverImage.name.split('.').pop() || 'jpg';
-        const imageKey = `covers/${series.slug}.${Date.now()}.${imageExtension}`;
+        const imageKey = `covers/${seriesData.slug}.${Date.now()}.${imageExtension}`;
 
         await r2Assets.put(imageKey, await coverImage.arrayBuffer(), {
           httpMetadata: { contentType: coverImage.type },
@@ -57,10 +62,7 @@ export const POST: APIRoute = async (context) => {
       }
     }
 
-    // ✅ CONSTRUIR LA CONSULTA DINÁMICAMENTE CON TODOS LOS CAMPOS
-    let setClauses =
-      'title = ?, description = ?, status = ?, type = ?, genres = ?, author = ?, artist = ?, published_by = ?, alternative_names = ?, serialized_by = ?, is_hidden = ?';
-    let bindParams: (string | number | boolean | null)[] = [
+    const updates: Record<string, any> = {
       title,
       description,
       status,
@@ -68,31 +70,26 @@ export const POST: APIRoute = async (context) => {
       genres,
       author,
       artist,
-      published_by,
-      alternative_names,
-      serialized_by,
-      is_hidden,
-    ];
+      publishedBy,
+      alternativeNames,
+      serializedBy,
+      isHidden,
+    };
 
     if (coverImageUrlToUpdate) {
-      setClauses += ', cover_image_url = ?';
-      bindParams = bindParams.concat([coverImageUrlToUpdate]);
+      updates.coverImageUrl = coverImageUrlToUpdate;
     }
 
-    bindParams.push(parseInt(seriesId));
-
-    const updateQuery = `UPDATE Series SET ${setClauses} WHERE id = ?`;
-
-    await db
-      .prepare(updateQuery)
-      .bind(...bindParams)
+    await drizzleDb.update(series)
+      .set(updates)
+      .where(eq(series.id, parseInt(seriesId)))
       .run();
 
     const successUrl = new URL(referer);
     successUrl.searchParams.set('success', 'Serie actualizada con éxito');
     return redirect(successUrl.toString());
   } catch (e: unknown) {
-    console.error('Error al actualizar la serie:', e);
+    logError(e, 'Error al actualizar la serie', { seriesId, title }); // Use seriesId and title directly
     const errorUrl = new URL(referer);
     errorUrl.searchParams.set(
       'error',

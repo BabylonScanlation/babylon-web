@@ -1,34 +1,33 @@
-import type { APIRoute } from 'astro';
-import { getDB, getAllNews, createNews } from 'src/lib/db';
+import { createApiRoute } from '../../../../lib/api';
+import { getAllNews, createNews } from '../../../../lib/db';
 
-export const GET: APIRoute = async ({ locals }) => {
-  if (!locals.user?.isAdmin) {
-    return new Response('Unauthorized', { status: 401 });
+export const GET = createApiRoute(
+  { auth: 'admin' },
+  async (context) => {
+    const { locals } = context;
+    const news = await getAllNews(locals.db);
+    return new Response(JSON.stringify(news), {
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
+);
 
-  const db = getDB(locals.runtime.env);
-  const news = await getAllNews(db);
-  return new Response(JSON.stringify(news), {
-    headers: { 'Content-Type': 'application/json' },
-  });
-};
+export const POST = createApiRoute(
+  { auth: 'admin' },
+  async (context) => {
+    const { locals, request } = context;
+    // Because of `{ auth: 'admin' }`, `locals.user` is guaranteed to be defined and an admin.
+    const requestBody = await request.json();
+    const { title, content, status, seriesId, authorName } = requestBody;
 
-export const POST: APIRoute = async ({ request, locals }) => {
-  if (!locals.user?.isAdmin) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-
-  const db = getDB(locals.runtime.env);
-  try {
-    const { title, content, status, seriesId, authorName } = await request.json();
     if (!title || !content || !status || !authorName) {
-      return new Response('Missing required fields', { status: 400 });
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 });
     }
 
-    const newNews = await createNews(db, {
+    const newNews = await createNews(locals.db, {
       title,
       content,
-      publishedBy: locals.user.uid,
+      publishedBy: locals.user!.uid, // Using non-null assertion as auth check guarantees user exists
       status,
       seriesId: seriesId || null,
       authorName,
@@ -38,8 +37,5 @@ export const POST: APIRoute = async ({ request, locals }) => {
       status: 201,
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (error) {
-    console.error('Error creating news:', error);
-    return new Response('Internal Server Error', { status: 500 });
   }
-};
+);

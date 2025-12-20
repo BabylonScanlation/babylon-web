@@ -1,44 +1,47 @@
 // src/pages/api/view.ts
 import type { APIRoute } from 'astro';
+import { logError } from '../../lib/logError';
+import { getDB } from '../../lib/db';
+import { series, seriesViews } from '../../db/schema'; // Importar el esquema
+import { sql, eq } from 'drizzle-orm';
 
 interface ViewRequestBody {
   seriesId: number;
 }
 
 export const POST: APIRoute = async ({ request, locals, clientAddress }) => {
+  let seriesId: number | undefined; // Declare seriesId here
   try {
-    const { seriesId } = (await request.json()) as ViewRequestBody;
+    const requestBody = (await request.json()) as ViewRequestBody;
+    seriesId = requestBody.seriesId; // Assign seriesId here
+
     if (!seriesId) {
       return new Response('Se requiere seriesId', { status: 400 });
     }
 
-    const db = locals.runtime.env.DB;
-    // Usamos clientAddress que Astro nos proporciona para obtener la IP del visitante.
+    const drizzleDb = getDB(locals.runtime.env);
     const ipAddress = clientAddress;
 
-    // 1. Intentamos insertar la vista en la nueva tabla.
-    // "INSERT OR IGNORE" es clave: si el par (seriesId, ipAddress) ya existe,
-    // la consulta simplemente no hará nada y no dará error.
-    const insertResult = await db
-      .prepare(
-        'INSERT OR IGNORE INTO SeriesViews (series_id, ip_address) VALUES (?, ?)'
-      )
-      .bind(seriesId, ipAddress)
+    // 1. Intentamos insertar la vista en la nueva tabla usando Drizzle.
+    const insertResult = await drizzleDb.insert(seriesViews)
+      .values({ seriesId, ipAddress, viewedAt: sql`CURRENT_TIMESTAMP` })
+      .onConflictDoNothing({ target: [seriesViews.seriesId, seriesViews.ipAddress] })
       .run();
 
     // 2. Solo si la inserción fue exitosa (es decir, se añadió una nueva fila),
     // incrementamos el contador de vistas en la tabla Series.
-    // El valor `insertResult.meta.changes` será 1 si la fila era nueva, y 0 si ya existía.
+    // Drizzle devuelve `changes` en `meta` para D1.
     if (insertResult.meta.changes > 0) {
-      await db
-        .prepare('UPDATE Series SET views = views + 1 WHERE id = ?')
-        .bind(seriesId)
+      await drizzleDb.update(series)
+        .set({ views: sql`${series.views} + 1` }) // Increment views
+        .where(eq(series.id, seriesId))
         .run();
     }
 
     return new Response('OK');
-  } catch (e) {
-    console.error(e);
+  } catch (e: unknown) {
+    const ipAddressForLog = clientAddress; // ipAddress is always available
+    logError(e, 'Error al registrar la vista de la serie', { seriesId, ipAddress: ipAddressForLog });
     return new Response('Error al registrar la vista', { status: 500 });
   }
 };

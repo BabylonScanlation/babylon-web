@@ -1,6 +1,7 @@
 // src/lib/chapterProcessing.ts
 import { ZipReader, BlobReader, BlobWriter, type Entry } from '@zip.js/zip.js';
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
+import { logError } from './logError';
 
 // Define a type that represents a file entry with the getData method
 type FileEntryWithGetData = Entry & {
@@ -44,6 +45,7 @@ export async function processAndCacheChapter(
   seriesSlug: string,
   chapterNumber: number
 ) {
+  const successfullyUploadedKeys: string[] = [];
   try {
     console.log(
       `[PROCESO-ON-DEMAND] Iniciando para ${seriesSlug}/${chapterNumber}`
@@ -53,19 +55,13 @@ export async function processAndCacheChapter(
     const fileInfoResponse = await fetch(fileInfoUrl);
     const fileInfo = (await fileInfoResponse.json()) as TelegramGetFileResponse;
     if (!fileInfo.ok || !fileInfo.result || !fileInfo.result.file_path) {
-      console.error(
-        `[PROCESO-ON-DEMAND] Error en API de Telegram: ${fileInfo.description || 'No file path'}`
-      );
-      return;
+          logError(new Error(fileInfo.description || 'No file path'), '[PROCESO-ON-DEMAND] Error en API de Telegram al obtener información del archivo', { fileId });      return;
     }
 
     const fileUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${fileInfo.result.file_path}`;
     const zipResponse = await fetch(fileUrl);
     if (!zipResponse.ok) {
-      console.error(
-        `[PROCESO-ON-DEMAND] Error descargando ZIP de Telegram (status: ${zipResponse.status})`
-      );
-      return;
+          logError(new Error(`Error descargando ZIP de Telegram (status: ${zipResponse.status})`), '[PROCESO-ON-DEMAND] Error descargando ZIP de Telegram', { fileId });      return;
     }
     const zipBlob = await zipResponse.blob();
 
@@ -76,10 +72,7 @@ export async function processAndCacheChapter(
     );
 
     if (imageEntries.length === 0) {
-      console.error(
-        '[PROCESO-ON-DEMAND] No se encontraron imágenes en el ZIP.'
-      );
-      return;
+          logError('No se encontraron imágenes en el ZIP.', '[PROCESO-ON-DEMAND] Procesamiento de capítulo sin imágenes', { seriesSlug, chapterNumber, fileId });      return;
     }
 
     const pageUploadPromises = imageEntries.map(async (entry) => {
@@ -104,6 +97,7 @@ export async function processAndCacheChapter(
           cacheControl: 'public, max-age=86400',
         },
       });
+      successfullyUploadedKeys.push(r2Key); // Track successful uploads
       return { pageNumber, r2Key };
     });
 
@@ -112,8 +106,6 @@ export async function processAndCacheChapter(
     );
 
     if (uploadedPagesData.length > 0) {
-      // === ¡AQUÍ ESTÁ LA CORRECCIÓN! ===
-      // Cambiamos 'slug' por 'seriesSlug'
       const manifestKey = `${seriesSlug}/${chapterNumber}/manifest.json`;
       const imageUrls = uploadedPagesData
         .sort((a, b) => a.pageNumber - b.pageNumber)
@@ -127,14 +119,16 @@ export async function processAndCacheChapter(
           cacheControl: 'public, max-age=86400',
         },
       });
+      successfullyUploadedKeys.push(manifestKey); // Also track manifest file
       console.log(
         `[PROCESO-ON-DEMAND] ¡ÉXITO! Manifest creado en CACHÉ para ${manifestKey}`
       );
     }
   } catch (error) {
-    console.error(
-      `[PROCESO-ON-DEMAND] Error crítico procesando el ZIP para ${seriesSlug}/${chapterNumber}:`,
-      error
-    );
+    logError(error, '[PROCESO-ON-DEMAND] Error crítico procesando el ZIP del capítulo. Iniciando limpieza de R2.', { seriesSlug, chapterNumber, fileId, orphanedKeys: successfullyUploadedKeys });
+    if (successfullyUploadedKeys.length > 0) {
+      await env.R2_CACHE.delete(successfullyUploadedKeys);
+      console.log(`[PROCESO-ON-DEMAND] Limpieza completada. Se eliminaron ${successfullyUploadedKeys.length} archivos huérfanos de R2.`);
+    }
   }
 }

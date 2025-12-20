@@ -50,6 +50,7 @@ const { seriesId, seriesTitle } = Astro.props;
 </div>
 
 <script>
+  import { logError } from '@lib/logError';
   const form = document.getElementById('series-news-form');
   const statusEl = document.getElementById('form-status');
   const authorNameInput = document.getElementById('authorName');
@@ -119,7 +120,7 @@ const { seriesId, seriesTitle } = Astro.props;
       const newsId = newNewsItem.id;
 
       // Step 2: If there's an image, upload it.
-      if (imageFile instanceof File && imageFile.size > 0) {
+      if (imageFile instanceof File && imageFile.size > 0 && newsId) {
         if (statusEl) statusEl.textContent = 'Subiendo imagen...';
         const imageFormData = new FormData();
         imageFormData.append('image', imageFile);
@@ -150,12 +151,15 @@ const { seriesId, seriesTitle } = Astro.props;
       // Dispatch custom event to tell the feed to refresh
       document.dispatchEvent(new CustomEvent('refresh-news-feed'));
     } catch (error) {
-      console.error('Failed to post news:', error);
+      const seriesIdForLog = seriesId;
+      const seriesTitleForLog = seriesTitle;
+      logError(error, 'Fallo al publicar noticia de serie', { seriesId: seriesIdForLog, seriesTitle: seriesTitleForLog });
       if (statusEl) {
               if (error instanceof Error) {
                 statusEl.textContent =
                   error.message || 'Fallo al publicar la noticia.';
-              } else {
+              }
+              else {
                 statusEl.textContent = 'Fallo al publicar la noticia.';
               }
               statusEl.className = 'error';

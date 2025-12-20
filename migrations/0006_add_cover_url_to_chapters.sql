@@ -1,1 +1,0 @@
-ALTER TABLE Chapters ADD COLUMN url_portada TEXT DEFAULT NULL;

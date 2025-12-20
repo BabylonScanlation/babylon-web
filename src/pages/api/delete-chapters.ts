@@ -1,55 +1,44 @@
-import type { APIRoute } from 'astro';
+// src/pages/api/delete-chapters.ts
+import { createApiRoute } from '../../lib/api';
+import { chapters, pages } from '../../db/schema';
+import { eq } from 'drizzle-orm';
+import type { APIContext } from 'astro'; // Import APIContext
 
-export const POST: APIRoute = async ({
-  request,
-  redirect,
-  locals,
-}) => {
-  const referer = request.headers.get('Referer') || '/admin/series';
-
-  if (!locals.user?.isAdmin) {
-    return redirect('/admin?error=No autorizado');
-  }
-
-  try {
-    const db = locals.runtime.env.DB;
+export const POST = createApiRoute(
+  { auth: 'admin' },
+  async (context: APIContext) => { // Use context directly
+    const { locals, request } = context; // Destructure locals and request from context
     const r2Cache = locals.runtime.env.R2_CACHE;
     const formData = await request.formData();
     const chapterId = formData.get('chapterId')?.toString();
 
     if (!chapterId) {
-      const errorUrl = new URL(referer);
-      errorUrl.searchParams.set('error', 'ID de capítulo no proporcionado');
-      return redirect(errorUrl.toString());
+      return new Response(JSON.stringify({ error: 'ID de capítulo no proporcionado' }), { status: 400 });
     }
 
-    const pages = await db
-      .prepare('SELECT image_url FROM Pages WHERE chapter_id = ?')
-      .bind(chapterId)
-      .all<{ image_url: string }>();
+    // Get page image URLs to delete from R2
+    const pagesToDelete = await locals.db!
+      .select({ imageUrl: pages.imageUrl })
+      .from(pages)
+      .where(eq(pages.chapterId, parseInt(chapterId)))
+      .all();
 
-    if (pages.results.length > 0) {
-      const pageKeys = pages.results.map(
-        (p: { image_url: string }) => p.image_url
-      );
-      await r2Cache.delete(pageKeys);
+    if (pagesToDelete.length > 0) {
+      const pageKeys = pagesToDelete.map(
+        (p: { imageUrl: string }) => p.imageUrl.split('/').pop() || p.imageUrl
+      ).filter((key: string) => key); // Ensure no empty keys
+      
+      if (pageKeys.length > 0 && r2Cache) {
+         await r2Cache.delete(pageKeys);
+      }
     }
 
-    await db.batch([
-      db.prepare('DELETE FROM Pages WHERE chapter_id = ?').bind(chapterId),
-      db.prepare('DELETE FROM Chapters WHERE id = ?').bind(chapterId),
-    ]);
+    // Delete from database
+    // The foreign key with ON DELETE CASCADE should handle deleting `pages` automatically,
+    // but explicit deletion is safer if the constraint is not guaranteed.
+    await locals.db!.delete(pages).where(eq(pages.chapterId, parseInt(chapterId))).run();
+    await locals.db!.delete(chapters).where(eq(chapters.id, parseInt(chapterId))).run();
 
-    const successUrl = new URL(referer);
-    successUrl.searchParams.set('success', 'Capítulo eliminado con éxito');
-    return redirect(successUrl.toString());
-  } catch (e: unknown) {
-    console.error('Error al eliminar el capítulo:', e);
-    const errorUrl = new URL(referer);
-    errorUrl.searchParams.set(
-      'error',
-      `Error al eliminar el capítulo: ${e instanceof Error ? e.message : String(e)}`
-    );
-    return redirect(errorUrl.toString());
+    return new Response(JSON.stringify({ success: true, message: 'Capítulo eliminado con éxito' }), { status: 200 });
   }
-};
+);

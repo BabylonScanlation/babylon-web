@@ -5,6 +5,7 @@ import FeaturedGrid from '../components/FeaturedGrid.astro';
 import RecentUpdatesGrid from '../components/RecentUpdatesGrid.astro';
 import MangaList from '../components/MangaList.astro';
 import type { Series } from '../types';
+import { logError } from '../lib/logError';
 
 const { runtime } = Astro.locals;
 const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
@@ -50,7 +51,7 @@ try {
     allSeriesAlphabetical = filterValidSeries(await allSeriesResponse.json());
   }
 } catch (error) {
-  console.error('Error al obtener las listas de series:', error);
+  logError(error, 'Error al obtener las listas de series');
 }
 
 const combinedSeries = [...popularSeries, ...recentSeries];

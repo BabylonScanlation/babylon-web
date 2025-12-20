@@ -4,6 +4,8 @@
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 import type { Runtime } from '@astrojs/cloudflare/runtime';
 import type { User } from './types';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import * as schema from './db/schema'; // Import all schema definitions
 
 declare global {
   namespace App {
@@ -22,12 +24,12 @@ declare global {
         FIREBASE_PRIVATE_KEY?: string;
         SUPER_ADMIN_UID?: string;
       }>;
-      db: D1Database | undefined;
+      db: DrizzleD1Database<typeof schema> | undefined; // Corrected type
       user: User | undefined;
     }
   }
 }
 
 declare module 'astro' {
-  type Locals = App.Locals;
+  interface Locals extends App.Locals {} // Ensure App.Locals is extended
 }

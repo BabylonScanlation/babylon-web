@@ -1,5 +1,9 @@
 // src/pages/api/comments/delete.ts
 import type { APIRoute } from 'astro';
+import { logError } from '@lib/logError';
+import { getDB } from '@lib/db';
+import { comments } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 export const POST: APIRoute = async ({
   request,
@@ -12,10 +16,12 @@ export const POST: APIRoute = async ({
     return redirect('/admin?error=No autorizado');
   }
 
+  let commentId: string | undefined; // Declare commentId here
+
   try {
-    const db = locals.runtime.env.DB;
+    const drizzleDb = getDB(locals.runtime.env);
     const formData = await request.formData();
-    const commentId = formData.get('commentId')?.toString();
+    commentId = formData.get('commentId')?.toString(); // Assign value here
 
     if (!commentId) {
       const errorUrl = new URL(referer);
@@ -23,13 +29,13 @@ export const POST: APIRoute = async ({
       return redirect(errorUrl.toString());
     }
 
-    await db.prepare('DELETE FROM Comments WHERE id = ?').bind(commentId).run();
+    await drizzleDb.delete(comments).where(eq(comments.id, parseInt(commentId))).run();
 
     const successUrl = new URL(referer);
     successUrl.searchParams.set('success', 'Comentario de capítulo eliminado');
     return redirect(successUrl.toString());
   } catch (e: unknown) {
-    console.error('Error al eliminar el comentario de capítulo:', e);
+    logError(e, 'Error al eliminar el comentario de capítulo', { commentId });
     const errorUrl = new URL(referer);
     errorUrl.searchParams.set('error', 'Error al eliminar el comentario');
     return redirect(errorUrl.toString());

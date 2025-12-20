@@ -1,7 +1,8 @@
 ---
 // src/pages/series/[slug]/[chapter]/index.astro
 import Layout from '../../../../layouts/Layout.astro';
-import Comments from '../../../../components/Comments.astro';
+import UnifiedComments from '../../../../components/UnifiedComments.astro';
+import { logError } from '../../../../lib/logError';
 
 // --- Interfaces para la forma de los datos ---
 interface Chapter {
@@ -92,7 +93,7 @@ try {
       `No se pudo cargar el capítulo. (Error: ${chapterResponse.status})`;
   }
 } catch (e) {
-  console.error(e);
+  logError(e, 'Error crítico al contactar con el servidor para obtener el capítulo', { slug, chapter });
   error = 'Ocurrió un error crítico al contactar con el servidor.';
 }
 
@@ -374,7 +375,7 @@ if (
   {
     pageImageUrls.length > 0 && chapterId && (
       <div class="comments-wrapper" id="comments-wrapper">
-        <Comments comments={comments} chapterId={chapterId} user={user} />
+        <UnifiedComments targetType="chapter" targetId={chapterId} comments={comments} user={user ?? null} />
       </div>
     )
   }
@@ -393,45 +394,82 @@ if (
     pageImageUrls,
   }}
 >
-  if (seriesId)
-    fetch('/api/view', {
-      method: 'POST',
-      body: JSON.stringify({ seriesId }),
-      headers: { 'Content-Type': 'application/json' },
-      keepalive: true,
-    }).catch(console.error);
   if (chapterId)
     fetch('/api/chapters/view', {
       method: 'POST',
       body: JSON.stringify({ chapterId }),
       headers: { 'Content-Type': 'application/json' },
       keepalive: true,
-    }).catch(console.error);
+    }).catch(err => logError(err, 'Error al registrar vista de capítulo', { chapterId }));
   function initializeReader() {
     if (isProcessing) {
-      const pollUrl = `/api/series/${slug}/${chapter}`;
-      const intervalId = setInterval(async () => {
-        try {
-          const response = await fetch(pollUrl, { cache: 'no-cache' });
-          if (response.status === 200) {
-            const data = await response.json();
-            if (
-              data &&
-              Array.isArray(data.imageUrls) &&
-              data.imageUrls.length > 0
-            ) {
-              clearInterval(intervalId);
-              window.location.reload();
+      const sseUrl = `/api/series/${slug}/${chapter}`;
+      const eventSource = new EventSource(sseUrl);
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('SSE Message:', event.type, data);
+
+        if (event.type === 'completed') {
+          // Update reactive variables in Astro component to re-render images
+          // This requires a way to update Astro component props from client-side JS
+          // For now, we'll assign directly to window scope variables or trigger a custom event
+          window.pageImageUrls = data.imageUrls;
+          window.isProcessing = false;
+          // Trigger a re-render by updating a reactive variable, or if Astro handles it automatically after data change
+          // Alternatively, manually update the DOM if reactive updates are not direct.
+          // For now, let's assume direct assignment works for simplicity in this script block.
+          if (document.getElementById('cascade-view')) {
+            document.getElementById('cascade-view').innerHTML = data.imageUrls.map(url => `
+              <div class="image-container">
+                <img src="${url}" alt="Página del manga" loading="lazy" onload="this.parentElement.style.aspectRatio = this.naturalWidth + '/' + this.naturalHeight;">
+              </div>
+            `).join('');
+            document.getElementById('cascade-view').style.display = 'block';
+            if (document.querySelector('.loading-overlay')) {
+              document.querySelector('.loading-overlay').style.display = 'none';
             }
-          } else if (response.status !== 202) {
-            console.error('Error durante el sondeo, estado:', response.status);
-            clearInterval(intervalId);
           }
-        } catch (error) {
-          console.error('Error crítico durante el sondeo del capítulo:', error);
-          clearInterval(intervalId);
+          eventSource.close();
+        } else if (event.type === 'error') {
+          logError(data.error, 'Error durante el procesamiento del capítulo via SSE');
+          if (document.querySelector('.loading-text')) {
+            document.querySelector('.loading-text').textContent = data.error || 'Error desconocido';
+          }
+          if (document.querySelector('.progress-bar-container')) {
+            document.querySelector('.progress-bar-container').style.display = 'none';
+          }
+          if (document.querySelector('.loading-subtext')) {
+            document.querySelector('.loading-subtext').style.display = 'none';
+          }
+          eventSource.close();
+        } else if (event.type === 'processing') {
+          if (document.querySelector('.loading-text')) {
+            document.querySelector('.loading-text').textContent = `Procesando capítulo... Intento ${data.attempt || ''}`;
+          }
         }
-      }, 5000);
+      };
+
+      eventSource.onerror = (errorEvent) => {
+        logError(errorEvent, 'Error en la conexión SSE para el lector de capítulos');
+        if (document.querySelector('.loading-text')) {
+          document.querySelector('.loading-text').textContent = 'Error en la conexión o procesamiento del capítulo.';
+        }
+        if (document.querySelector('.progress-bar-container')) {
+          document.querySelector('.progress-bar-container').style.display = 'none';
+        }
+        if (document.querySelector('.loading-subtext')) {
+          document.querySelector('.loading-subtext').style.display = 'none';
+        }
+        eventSource.close();
+      };
+
+      eventSource.onopen = () => {
+        console.log('Conexión SSE abierta para el procesamiento del capítulo.');
+        if (document.querySelector('.loading-text')) {
+          document.querySelector('.loading-text').textContent = 'Iniciando procesamiento del capítulo...';
+        }
+      };
     }
 
     const mainHeader = document.querySelector('header');

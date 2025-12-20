@@ -1,34 +1,29 @@
-// src/pages/api/series/recent-chapters.ts
 import type { APIRoute } from 'astro';
+import { logError } from '../../../lib/logError';
+import { getDB } from '../../../lib/db';
+import { series, chapters } from '../../../db/schema';
+import { eq, desc, and, sql } from 'drizzle-orm'; // Added sql
 
-interface RecentChapter {
-  slug: string;
-  title: string;
-  cover_image_url: string;
-  chapter_number: number;
-  created_at: string;
-}
-
-export const GET: APIRoute = async ({ locals }) => {
+export const GET: APIRoute = async (context) => {
+  let twoDaysAgo: string | undefined;
   try {
-    const db = locals.runtime.env.DB;
-    const twoDaysAgo = new Date(
+    const drizzleDb = getDB(context.locals.runtime.env);
+    twoDaysAgo = new Date(
       Date.now() - 2 * 24 * 60 * 60 * 1000
     ).toISOString();
-    const { results: recentChapters } = await db
-      .prepare(
-        `
-        SELECT
-          s.slug, s.title, s.cover_image_url,
-          c.chapter_number, c.created_at
-        FROM Chapters c
-        JOIN Series s ON c.series_id = s.id
-        WHERE c.status = 'live' AND c.created_at >= ? AND s.is_hidden = FALSE
-        ORDER BY s.slug, c.created_at DESC
-      `
-      )
-      .bind(twoDaysAgo)
-      .all<RecentChapter>();
+
+    const recentChapters = await drizzleDb.select({
+        slug: series.slug,
+        title: series.title,
+        coverImageUrl: series.coverImageUrl,
+        chapterNumber: chapters.chapterNumber,
+        createdAt: chapters.createdAt,
+      })
+      .from(chapters)
+      .innerJoin(series, eq(chapters.seriesId, series.id))
+      .where(and(eq(chapters.status, 'live'), sql`${chapters.createdAt} >= ${twoDaysAgo}`, eq(series.isHidden, false)))
+      .orderBy(series.slug, desc(chapters.createdAt))
+      .all();
 
     const seriesMap = new Map();
     for (const chapter of recentChapters) {
@@ -36,22 +31,22 @@ export const GET: APIRoute = async ({ locals }) => {
         seriesMap.set(chapter.slug, {
           slug: chapter.slug,
           title: chapter.title,
-          cover_image_url: chapter.cover_image_url,
+          cover_image_url: chapter.coverImageUrl, // Usar coverImageUrl de Drizzle
           chapters: [],
         });
       }
-      const series = seriesMap.get(chapter.slug);
-      if (series.chapters.length < 2) {
-        series.chapters.push({
-          number: chapter.chapter_number,
-          createdAt: chapter.created_at,
+      const seriesEntry = seriesMap.get(chapter.slug);
+      if (seriesEntry.chapters.length < 2) {
+        seriesEntry.chapters.push({
+          number: chapter.chapterNumber, // Usar chapterNumber de Drizzle
+          createdAt: chapter.createdAt,
         });
       }
     }
     const seriesWithRecentChapters = Array.from(seriesMap.values()).sort(
       (a, b) => {
         const dateA = new Date(a.chapters[0].createdAt).getTime();
-        const dateB = new Date(b.chapters[0].createdAt).getTime();
+        const dateB = a.chapters.length > 0 ? new Date(b.chapters[0].createdAt).getTime() : 0;
         return dateB - dateA;
       }
     );
@@ -64,7 +59,7 @@ export const GET: APIRoute = async ({ locals }) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    logError(error, 'Error al obtener las series con capítulos recientes', { twoDaysAgo: twoDaysAgo });
     return new Response('Error al obtener las series con capítulos recientes', {
       status: 500,
     });

@@ -2,14 +2,18 @@
 import { defineConfig } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
 
+import svelte from '@astrojs/svelte';
+
 export default defineConfig({
   output: 'server',
+
   adapter: cloudflare({
     platformProxy: {
       enabled: true,
     },
     imageService: 'cloudflare',
   }),
+
   vite: {
     // Ya no se necesitan los complejos polyfills ni alias
     ssr: {
@@ -21,4 +25,6 @@ export default defineConfig({
       exclude: ['swiper', 'swiper/modules'],
     },
   },
+
+  integrations: [svelte()],
 });

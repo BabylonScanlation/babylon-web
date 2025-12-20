@@ -1,0 +1,74 @@
+---
+// src/components/AdminSeriesManager.astro
+
+import AdminSeriesForm from './AdminSeriesForm.astro';
+import AdminChapterList from './AdminChapterList.astro';
+
+interface Chapter {
+  id: number;
+  chapter_number: number;
+  title: string | null;
+  telegram_file_id: string;
+  url_portada: string | null;
+}
+interface Series {
+  id: number;
+  title: string;
+  description: string;
+  cover_image_url: string;
+  slug: string;
+  chapters: Chapter[];
+  status: string | null;
+  type: string | null;
+  genres: string | null;
+  author: string | null;
+  artist: string | null;
+  published_by: string | null;
+  alternative_names: string | null;
+  serialized_by: string | null;
+  is_hidden: boolean;
+}
+
+interface Props {
+  series: Series;
+  r2PublicUrlAssets: string;
+}
+
+const { series, r2PublicUrlAssets } = Astro.props;
+---
+
+<details class="series-details">
+  <summary>{series.title}</summary>
+  <div class="series-content">
+    <AdminSeriesForm series={series} />
+    <AdminChapterList series={series} r2PublicUrlAssets={r2PublicUrlAssets} />
+  </div>
+</details>
+
+<style>
+  .series-details {
+    background-color: var(--card-background);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border: 1px solid #333;
+  }
+  .series-details summary {
+    padding: 1rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .series-content {
+    padding: 1.5rem;
+    border-top: 1px solid #444;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+  }
+
+  @media (max-width: 900px) {
+    .series-content {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
