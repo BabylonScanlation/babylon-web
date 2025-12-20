@@ -143,6 +143,30 @@ const { series } = Astro.props;
             placeholder="Ej: Weekly Shōnen Jump"
           />
         </div>
+        <div class="form-group">
+          <label for={`genres-${series.id}`}>
+            Géneros (separados por coma)
+          </label>
+          <input
+            type="text"
+            id={`genres-${series.id}`}
+            name="genres"
+            value={series.genres || ''}
+            placeholder="Ej: Acción, Aventura"
+          />
+        </div>
+        <div class="form-group">
+          <label for={`demographic-${series.id}`}>
+            Demografía
+          </label>
+          <input
+            type="text"
+            id={`demographic-${series.id}`}
+            name="demographic"
+            value={series.demographic || ''}
+            placeholder="Ej: Seinen, Shonen"
+          />
+        </div>
       </div>
       <div class="form-group">
         <label for={`alternative_names-${series.id}`}>
@@ -154,30 +178,6 @@ const { series } = Astro.props;
           name="alternative_names"
           value={series.alternative_names || ''}
           placeholder="Ej: Alias 1, Alias 2"
-        />
-      </div>
-      <div class="form-group">
-        <label for={`genres-${series.id}`}>
-          Géneros (separados por coma)
-        </label>
-        <input
-          type="text"
-          id={`genres-${series.id}`}
-          name="genres"
-          value={series.genres || ''}
-          placeholder="Ej: Acción, Aventura"
-        />
-      </div>
-      <div class="form-group">
-        <label for={`demographic-${series.id}`}>
-          Demografía
-        </label>
-        <input
-          type="text"
-          id={`demographic-${series.id}`}
-          name="demographic"
-          value={series.demographic || ''}
-          placeholder="Ej: Seinen, Shonen"
         />
       </div>
       <div class="action-buttons-row">
@@ -232,6 +232,11 @@ const { series } = Astro.props;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
+  }
+  @media (max-width: 600px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
   }
   .series-info-and-forms {
     display: flex;
