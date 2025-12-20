@@ -154,13 +154,6 @@ const reactions = [
         <section class="series-hero"> 
           <div class="series-header-grid"> 
             <div class="cover-and-rating-wrapper"> 
-              <div class="series-cover"> 
-                <img 
-                  src={series.cover_image_url} 
-                  alt={`Portada de ${series.title}`} 
-                  class="cover-image" 
-                /> 
-              </div> 
               <div class="rating-section"> 
                 <div class="stars-container"> 
                   {stars.map((star) => 
@@ -189,6 +182,13 @@ const reactions = [
                   </span> 
                   <span>({series.stats.totalVotes} Votos)</span> 
                 </div> 
+              </div> 
+              <div class="series-cover"> 
+                <img 
+                  src={series.cover_image_url} 
+                  alt={`Portada de ${series.title}`} 
+                  class="cover-image" 
+                /> 
               </div> 
             </div> 
 
