@@ -426,7 +426,7 @@ if (
           const data = JSON.parse(event.data);
           const loadingText = document.querySelector('.loading-text');
           if (loadingText) {
-            loadingText.textContent = `Procesando capítulo... ${data.message || ''} (Intento ${data.attempt || 1})`;
+            loadingText.textContent = `${data.message || 'Procesando...'} (Intento ${data.attempt || 1})`;
           }
         });
   
@@ -679,7 +679,7 @@ if (
     height: 1px;
     width: 100%;
   }
-  .pages img {
+  :global(.pages img) {
     max-width: 100%;
     height: auto;
     display: block;
@@ -1096,5 +1096,19 @@ if (
     .chapter-number {
       font-size: 0.9rem;
     }
+  }
+
+  :global(.image-container) {
+    display: block;
+    background-color: #000; /* Fondo negro para evitar destellos */
+    overflow: hidden;
+  }
+
+  :global(.image-container img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    transition: height 0.2s ease-out; /* Transición suave para altura */
+    margin: 0 auto;
   }
 </style>

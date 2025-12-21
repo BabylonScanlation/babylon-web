@@ -8,6 +8,9 @@ import { eq, and } from 'drizzle-orm';
 interface TelegramUpdate {
   message?: {
     message_thread_id?: number;
+    chat?: {
+      id: number;
+    };
     document?: {
       mime_type: string;
       file_name: string;
@@ -30,13 +33,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     console.log('[Webhook] Update recibido:', JSON.stringify(update));
     
     const topicId = update.message?.message_thread_id;
+    const chatId = update.message?.chat?.id;
     const doc = update.message?.document;
 
     if (doc?.mime_type === 'application/zip' && topicId) {
       const fileName = doc.file_name;
       const fileId = doc.file_id;
 
-      console.log(`[Webhook] Procesando archivo: ${fileName}, ID: ${fileId}, Topic: ${topicId}`);
+      console.log(`[Webhook] Procesando archivo: ${fileName}, ID: ${fileId}, Topic: ${topicId}, Chat: ${chatId}`);
 
       const chapterNumberMatch = fileName.match(/(\d+(\.\d+)?)/);
       if (!chapterNumberMatch) {
@@ -48,7 +52,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const drizzleDb = getDB(env);
       
       // 1. Buscar la serie
-      let seriesResult = await drizzleDb.select({ id: series.id })
+      let seriesResult = await drizzleDb.select({ id: series.id, title: series.title })
         .from(series)
         .where(eq(series.telegramTopicId, topicId))
         .get();
@@ -67,13 +71,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
             coverImageUrl: placeholderUrl,
             telegramTopicId: topicId,
             isHidden: true,
-            createdAt: new Date().toISOString(), // Fijar fecha explícita
-          }).returning({ id: series.id }).get();
+            createdAt: new Date().toISOString(),
+          }).returning({ id: series.id, title: series.title }).get();
+          console.log(`[Webhook] Serie creada con éxito: ID ${seriesResult?.id}, Título: ${newSeriesTitle}`);
         } catch (e: any) {
-          // Si falla por restricción única (otro proceso la creó milisegundos antes), la buscamos de nuevo
           if (e.message?.includes('UNIQUE constraint failed')) {
-            console.log(`[Webhook] La serie ya fue creada por otro proceso. Buscando ID...`);
-             seriesResult = await drizzleDb.select({ id: series.id })
+            console.log(`[Webhook] Conflicto de unicidad al crear serie (Topic: ${topicId}). Buscando existente...`);
+             seriesResult = await drizzleDb.select({ id: series.id, title: series.title })
               .from(series)
               .where(eq(series.telegramTopicId, topicId))
               .get();
@@ -84,8 +88,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
         }
       }
 
-      if (!seriesResult) throw new Error('No se pudo obtener o crear la serie.');
+      if (!seriesResult) {
+        console.error(`[Webhook] Error fatal: No se pudo obtener ni crear la serie para el topic ${topicId}`);
+        throw new Error('No se pudo obtener o crear la serie.');
+      }
+      
       const seriesId = seriesResult.id;
+      console.log(`[Webhook] Usando serie: ${seriesResult.title} (ID: ${seriesId}) para el capítulo ${chapterNumber}`);
 
       // 2. Verificar duplicados (Capítulo o TelegramFileId)
       const existingChapter = await drizzleDb

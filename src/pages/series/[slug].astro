@@ -424,6 +424,14 @@ const reactions = [
     const seriesIdStr = mainElement.dataset.seriesId; 
     if (!seriesIdStr) return; 
     const seriesId = parseInt(seriesIdStr, 10); 
+
+    // Registrar vista de la serie
+    fetch('/api/view', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seriesId }),
+    }).catch(err => console.error('Error recording view:', err));
+
     const ratingSection = document.querySelector('.rating-section'); 
     if (ratingSection instanceof HTMLElement && state.isLoggedIn) { 
       const starsContainer = ratingSection.querySelector('.stars-container'); 

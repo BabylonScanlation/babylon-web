@@ -2,8 +2,8 @@ import type { APIRoute } from 'astro';
 import { logError } from '@lib/logError';
 import { getDB } from '@lib/db';
 import { series, chapters, comments, seriesComments } from '@/db/schema';
-
-import { asc, desc } from 'drizzle-orm';
+// Añadimos 'inArray' a las importaciones
+import { asc, desc, inArray } from 'drizzle-orm';
 
 export const GET: APIRoute = async ({ locals }) => {
   if (!locals.user?.isAdmin) {
@@ -15,35 +15,46 @@ export const GET: APIRoute = async ({ locals }) => {
   try {
     const drizzleDb = getDB(locals.runtime.env);
 
+    // 1. Primero obtenemos SOLO las series
+    const seriesResults = await drizzleDb.select({
+      id: series.id,
+      title: series.title,
+      description: series.description,
+      coverImageUrl: series.coverImageUrl,
+      slug: series.slug,
+      status: series.status,
+      type: series.type,
+      genres: series.genres,
+      author: series.author,
+      artist: series.artist,
+      publishedBy: series.publishedBy,
+      alternativeNames: series.alternativeNames,
+      serializedBy: series.serializedBy,
+      isHidden: series.isHidden,
+      telegramTopicId: series.telegramTopicId,
+      createdAt: series.createdAt,
+      views: series.views,
+    })
+    .from(series)
+    .orderBy(asc(series.createdAt))
+    .all();
+
+    // Si no hay series, respondemos rápido para ahorrar CPU
+    if (!seriesResults.length) {
+      return new Response(JSON.stringify([]), {
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
+    // Obtenemos los IDs de las series que existen
+    const seriesIds = seriesResults.map(s => s.id);
+
+    // 2. Ahora buscamos capítulos y comentarios PERO SOLO de esas series
     const [
-      seriesResults,
       chaptersResults,
       chapterCommentsResults,
       seriesCommentsResults,
     ] = await Promise.all([
-      drizzleDb.select({
-        id: series.id,
-        title: series.title,
-        description: series.description,
-        coverImageUrl: series.coverImageUrl,
-        slug: series.slug,
-        status: series.status,
-        type: series.type,
-        genres: series.genres,
-        author: series.author,
-        artist: series.artist,
-        publishedBy: series.publishedBy,
-        alternativeNames: series.alternativeNames,
-        serializedBy: series.serializedBy,
-        isHidden: series.isHidden,
-        telegramTopicId: series.telegramTopicId,
-        createdAt: series.createdAt,
-        views: series.views,
-      })
-      .from(series)
-      .orderBy(asc(series.title))
-      .all(),
-
       drizzleDb.select({
         id: chapters.id,
         seriesId: chapters.seriesId,
@@ -56,16 +67,18 @@ export const GET: APIRoute = async ({ locals }) => {
         status: chapters.status,
       })
       .from(chapters)
+      .where(inArray(chapters.seriesId, seriesIds)) // <--- ESTO ES LA CLAVE: Filtramos por series existentes
       .orderBy(desc(chapters.chapterNumber))
       .all(),
       
+      // Nota: Si tienes miles de comentarios, idealmente también deberías filtrarlos o paginarlos
       drizzleDb.select({
         id: comments.id,
         chapterId: comments.chapterId,
         userEmail: comments.userEmail,
         commentText: comments.commentText,
-        createdAt: comments.createdAt, // Added
-        userId: comments.userId,       // Added
+        createdAt: comments.createdAt,
+        userId: comments.userId,
       })
       .from(comments)
       .orderBy(desc(comments.createdAt))
@@ -77,15 +90,17 @@ export const GET: APIRoute = async ({ locals }) => {
         seriesId: seriesComments.seriesId,
         userEmail: seriesComments.userEmail,
         commentText: seriesComments.commentText,
-        createdAt: seriesComments.createdAt, // Added
-        userId: seriesComments.userId,       // Added
+        createdAt: seriesComments.createdAt,
+        userId: seriesComments.userId,
       })
       .from(seriesComments)
+      .where(inArray(seriesComments.seriesId, seriesIds)) // <--- Filtramos también aquí
       .orderBy(desc(seriesComments.createdAt))
       .all()
       .catch(() => []),
     ]);
 
+    // 3. Procesamiento de datos (se mantiene igual, pero ahora procesará menos basura)
     const commentsByChapterId = new Map<number, (typeof comments.$inferSelect)[]>();
     for (const comment of chapterCommentsResults) {
       if (!commentsByChapterId.has(comment.chapterId)) {

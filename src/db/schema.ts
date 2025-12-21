@@ -26,7 +26,7 @@ export const series = sqliteTable('Series', {
   author: text('author').default('N/A'),
   artist: text('artist').default('N/A'),
   publishedBy: text('published_by').default('N/A'),
-  demographic: text('demographic').default('N/A'), // New column
+  demographic: text('demographic').default('N/A'),
   alternativeNames: text('alternative_names').default('N/A'),
   serializedBy: text('serialized_by').default('N/A'),
   isHidden: integer('is_hidden', { mode: 'boolean' }).default(true), // New column
