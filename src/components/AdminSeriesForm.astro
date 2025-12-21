@@ -18,6 +18,7 @@ interface Series {
   serialized_by: string | null;
   demographic: string | null;
   is_hidden: boolean;
+  is_app_series: boolean;
 }
 
 interface Props {
@@ -206,10 +207,32 @@ const { series } = Astro.props;
               { 'btn-danger': !series.is_hidden },
             ]}
             data-series-id={series.id}
-            data-is-hidden={series.is_hidden.toString()}
+            data-is-hidden={(!!series.is_hidden).toString()}
             id={`toggle-visibility-button-${series.id}`}
           >
             {series.is_hidden ? 'Mostrar Serie' : 'Ocultar Serie'}
+          </button>
+        </div>
+        <div class="form-group toggle-app-series-group">
+          <input
+            type="hidden"
+            id={`is_app_series_input-${series.id}`}
+            name="is_app_series"
+            value={series.is_app_series ? 'on' : 'off'}
+          />
+          <button
+            type="button"
+            class:list={[
+              'btn',
+              { 'btn-success': series.is_app_series },
+              { 'btn-secondary': !series.is_app_series },
+            ]}
+            style={!series.is_app_series ? "background-color: #6c757d; border-color: #6c757d;" : ""}
+            data-series-id={series.id}
+            data-is-app-series={(!!series.is_app_series).toString()}
+            id={`toggle-app-series-button-${series.id}`}
+          >
+            {series.is_app_series ? 'App: Activada' : 'App: Desactivada'}
           </button>
         </div>
       </div>
@@ -418,5 +441,69 @@ const { series } = Astro.props;
 
   document.querySelectorAll('[id^="toggle-visibility-button-"]').forEach(button => {
     button.addEventListener('click', handleToggleVisibilityClick);
+  });
+
+  async function handleToggleAppSeriesClick(event: Event) {
+    const button = event.currentTarget as HTMLButtonElement;
+    const seriesId = button.dataset.seriesId;
+    const isAppSeriesInput = document.getElementById(`is_app_series_input-${seriesId}`) as HTMLInputElement;
+    const messageDiv = document.getElementById(`form-message-${seriesId}`);
+
+    if (!seriesId || !isAppSeriesInput) return;
+
+    const currentlyAppSeries = isAppSeriesInput.value === 'on';
+    const newAppSeriesState = !currentlyAppSeries;
+
+    function displayFormMessage(type: string, text: string) {
+      if (messageDiv) {
+        messageDiv.textContent = text;
+        messageDiv.className = `form-message ${type}`;
+        messageDiv.style.display = 'block';
+        setTimeout(() => {
+          messageDiv.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    // Optimistic update
+    isAppSeriesInput.value = newAppSeriesState ? 'on' : 'off';
+    button.textContent = newAppSeriesState ? 'App: Activada' : 'App: Desactivada';
+    button.classList.toggle('btn-success', newAppSeriesState);
+    
+    // Update inline styles for the "off" state color explicitly
+    if (!newAppSeriesState) {
+       button.style.backgroundColor = '#6c757d';
+       button.style.borderColor = '#6c757d';
+    } else {
+       button.style.backgroundColor = '';
+       button.style.borderColor = '';
+    }
+
+    try {
+      const response = await fetch('/api/series/toggle-app-series', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seriesId: parseInt(seriesId), isAppSeries: newAppSeriesState }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      displayFormMessage('success', 'Estado de App actualizado.');
+    } catch (e) {
+      // Revert UI on error
+      isAppSeriesInput.value = currentlyAppSeries ? 'on' : 'off';
+      button.textContent = currentlyAppSeries ? 'App: Activada' : 'App: Desactivada';
+      button.classList.toggle('btn-success', currentlyAppSeries);
+       if (!currentlyAppSeries) {
+         button.style.backgroundColor = '#6c757d';
+         button.style.borderColor = '#6c757d';
+      } else {
+         button.style.backgroundColor = '';
+         button.style.borderColor = '';
+      }
+      displayFormMessage('error', 'Error al actualizar estado de App.');
+    }
+  }
+
+  document.querySelectorAll('[id^="toggle-app-series-button-"]').forEach(button => {
+    button.addEventListener('click', handleToggleAppSeriesClick);
   });
 </script>

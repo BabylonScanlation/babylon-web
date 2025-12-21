@@ -29,7 +29,8 @@ export const series = sqliteTable('Series', {
   demographic: text('demographic').default('N/A'),
   alternativeNames: text('alternative_names').default('N/A'),
   serializedBy: text('serialized_by').default('N/A'),
-  isHidden: integer('is_hidden', { mode: 'boolean' }).default(true), // New column
+  isHidden: integer('is_hidden', { mode: 'boolean' }).default(true),
+  isAppSeries: integer('is_app_series', { mode: 'boolean' }).default(false),
 });
 
 export const chapters = sqliteTable(

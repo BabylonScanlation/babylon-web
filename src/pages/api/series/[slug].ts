@@ -40,6 +40,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       alternativeNames: series.alternativeNames,
       serializedBy: series.serializedBy,
       isHidden: series.isHidden,
+      isAppSeries: series.isAppSeries,
     })
       .from(series)
       .where(and(eq(series.slug, slug), eq(series.isHidden, false)))
@@ -122,6 +123,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       alternative_names: seriesData.alternativeNames,
       serialized_by: seriesData.serializedBy,
       is_hidden: seriesData.isHidden,
+      is_app_series: seriesData.isAppSeries,
       chapters: chaptersResult.map((c): ChapterOutput => ({
         chapter_number: c.chapterNumber,
         title: c.title,

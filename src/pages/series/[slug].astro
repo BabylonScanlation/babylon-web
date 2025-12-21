@@ -51,6 +51,7 @@ interface SeriesDetails {
   published_by: string | null; 
   alternative_names: string | null; 
   serialized_by: string | null; 
+  is_app_series: boolean;
   stats: { 
     averageRating: number; 
     totalVotes: number; 
@@ -310,6 +311,19 @@ const reactions = [
                   <p set:html={formatDescription(series.description)} /> 
                 </div> 
                 <div id="chapters-content" class="tab-content"> 
+                  {series.is_app_series && (
+                    <div class="app-promo-banner">
+                      <div class="app-promo-content">
+                        <div class="app-promo-text">
+                          <h3>¡Más capítulos en la App!</h3>
+                          <p>Esta serie tiene contenido exclusivo y actualizaciones más rápidas en nuestra aplicación oficial.</p>
+                        </div>
+                        <a href="https://assets.babylonscan.com/babylonweb-app/DtupScan.apk" class="btn btn-app-download" download>
+                          <span class="icon">🤖</span> Descargar APK
+                        </a>
+                      </div>
+                    </div>
+                  )}
                   <ChapterList chapters={series.chapters} seriesSlug={slug!} />
                 </div> 
                 <div id="comments-content" class="tab-content"> 
@@ -957,6 +971,102 @@ const reactions = [
     .reaction-emoji, 
     .reaction-emoji-icon { 
       font-size: 1.5rem; 
+    }
+  }
+
+  /* APP PROMO BANNER STYLES */
+  .app-promo-banner {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    border: 2px solid var(--accent-color, #ffc107);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .app-promo-banner::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,193,7,0.05) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .app-promo-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .app-promo-text h3 {
+    color: var(--accent-color, #ffc107);
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    font-weight: bold;
+  }
+
+  .app-promo-text p {
+    color: #ccc;
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+
+  .btn-app-download {
+    background-color: var(--accent-color, #ffc107);
+    color: #000 !important;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-weight: bold;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+    flex-shrink: 0;
+    animation: pulse-button 2s infinite;
+  }
+
+  .btn-app-download:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+    background-color: #ffca2c;
+  }
+
+  .btn-app-download .icon {
+    font-size: 1.2rem;
+  }
+
+  @keyframes pulse-button {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .app-promo-content {
+      flex-direction: column;
+      text-align: center;
+      gap: 1rem;
+    }
+    
+    .btn-app-download {
+      width: 100%;
+      justify-content: center;
     }
   }
 </style>

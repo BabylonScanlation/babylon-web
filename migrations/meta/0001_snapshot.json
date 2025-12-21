@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "368094cb-a34f-475f-989f-929afa03e4e1",
-  "prevId": "dbda0d57-b677-474d-b91b-ee5fd6e74a34",
+  "id": "37485de5-42d5-416b-825e-5ecf9e0f5565",
+  "prevId": "368094cb-a34f-475f-989f-929afa03e4e1",
   "tables": {
     "AnonymousUsers": {
       "name": "AnonymousUsers",
@@ -197,6 +197,14 @@
             "series_id"
           ],
           "isUnique": false
+        },
+        "idx_chapters_series_number": {
+          "name": "idx_chapters_series_number",
+          "columns": [
+            "series_id",
+            "chapter_number"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {
@@ -642,6 +650,14 @@
           "notNull": false,
           "autoincrement": false,
           "default": true
+        },
+        "is_app_series": {
+          "name": "is_app_series",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
         }
       },
       "indexes": {
