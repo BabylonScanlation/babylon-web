@@ -1,10 +1,9 @@
 ---
 // src/components/HeroCarousel.astro
 import type { Series } from '../types';
-import Swiper from './Swiper.svelte';
-import { Pagination, Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
+import 'swiper/css/effect-fade';
 
 interface Props {
   slides: Series[];
@@ -13,64 +12,90 @@ interface Props {
 
 const { slides = [], title } = Astro.props;
 
-// Define Swiper options in the Astro frontmatter
-const swiperOptions = {
-  modules: [Pagination, Autoplay],
-  slidesPerView: 1,
-  loop: slides.length >= 3,
-  rewind: slides.length < 3 && slides.length > 1, // Use rewind for 2 slides
-  autoplay:
-    slides.length > 1
-      ? {
-          delay: 5000,
-          disableOnInteraction: false,
-        }
-      : false,
-  pagination: {
-    el: '.swiper-pagination',
-    clickable: true,
-  },
-  observer: true,
-  observeParents: true,
-};
+// Duplicar slides si son pocos para garantizar un loop visualmente agradable y funcional
+let renderSlides = [...slides];
+if (renderSlides.length > 0 && renderSlides.length < 3) {
+  while (renderSlides.length < 4) {
+    renderSlides = [...renderSlides, ...slides];
+  }
+}
 ---
 
 <section class="hero-carousel-section">
   {title && <h2 class="carousel-title">{title}</h2>}
   
-  <!-- Use the new reusable Svelte component -->
-  <Swiper client:visible options={swiperOptions}>
-    {slides.map((slide) => (
-      <div class="swiper-slide">
-        <div
-          class="slide-background-blur"
-          style={`background-image: url(${slide.cover_image_url})`}
-        />
-        <div class="gradient-overlay" />
-        <div class="slide-content-wrapper">
-          <img
-            src={slide.cover_image_url}
-            alt={`Portada de ${slide.title}`}
-            class="slide-cover-art"
-            loading="lazy"
+  <div class="swiper hero-swiper">
+    <div class="swiper-wrapper">
+      {renderSlides.map((slide) => (
+        <div class="swiper-slide">
+          <div
+            class="slide-background-blur"
+            style={`background-image: url(${slide.cover_image_url})`}
           />
-          <div class="text-container">
-            <h3>{slide.title}</h3>
-            <p>{slide.description}</p>
-            <div class="tag-buttons">
-              <a href={`/series/${slide.slug}`} class="main-action">
-                LEER AHORA
-              </a>
+          <div class="gradient-overlay" />
+          <div class="slide-content-wrapper">
+            <img
+              src={slide.cover_image_url}
+              alt={`Portada de ${slide.title}`}
+              class="slide-cover-art"
+              loading="lazy"
+            />
+            <div class="text-container">
+              <h3>{slide.title}</h3>
+              <p>{slide.description}</p>
+              <div class="tag-buttons">
+                <a href={`/series/${slide.slug}`} class="main-action">
+                  LEER AHORA
+                </a>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    ))}
-  </Swiper>
+      ))}
+    </div>
+    <div class="swiper-pagination"></div>
+  </div>
 </section>
 
+<script>
+  import Swiper from 'swiper';
+  import { Pagination, Autoplay, EffectFade } from 'swiper/modules';
+
+  // Función de inicialización
+  const initSwiper = () => {
+    const swiperEl = document.querySelector('.hero-swiper') as HTMLElement;
+    if (!swiperEl) return;
+
+    // Evitar reinicialización si ya existe
+    if ((swiperEl as any).swiper) return;
+
+    new Swiper(swiperEl, {
+      modules: [Pagination, Autoplay, EffectFade],
+      slidesPerView: 1,
+      loop: true,
+      effect: 'fade',
+      fadeEffect: {
+        crossFade: true
+      },
+      allowTouchMove: false,
+      autoplay: {
+        delay: 5000,
+        disableOnInteraction: false,
+      },
+      pagination: {
+        el: '.swiper-pagination',
+        clickable: true,
+      },
+    });
+  };
+
+  // Inicialización compatible con Astro View Transitions
+  document.addEventListener('astro:page-load', initSwiper);
+  // Fallback estándar
+  document.addEventListener('DOMContentLoaded', initSwiper);
+</script>
+
 <style>
-  /* ... (tus estilos existentes permanecen sin cambios) ... */
   .hero-carousel-section {
     width: 100%;
   }
@@ -82,12 +107,14 @@ const swiperOptions = {
     margin-top: 0;
     padding-top: 0;
   }
-  .swiper {
+  
+  .hero-swiper {
     width: 100%;
     height: 500px;
     position: relative;
     margin-top: 0;
   }
+  
   .slide-background-blur {
     position: absolute;
     top: 0;
@@ -179,7 +206,7 @@ const swiperOptions = {
     height: 12px;
   }
   @media (max-width: 768px) {
-    .swiper {
+    .hero-swiper {
       height: auto;
       min-height: 420px;
     }

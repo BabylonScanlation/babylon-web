@@ -1,7 +1,15 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import Swiper from 'swiper';
+  import { Navigation, Pagination, Autoplay, FreeMode, Mousewheel, Scrollbar } from 'swiper/modules';
   import type { SwiperOptions } from 'swiper/types';
+  
+  // Import Swiper styles
+  import 'swiper/css';
+  import 'swiper/css/navigation';
+  import 'swiper/css/pagination';
+  import 'swiper/css/free-mode';
+  import 'swiper/css/scrollbar';
 
   // This component is a generic wrapper for Swiper.js
   
@@ -14,9 +22,15 @@
     if (swiperContainer) {
       // Initialize Swiper
       swiperInstance = new Swiper(swiperContainer, {
-        // Default options can go here, they will be overridden by the props
+        // Explicitly pass modules here to ensure they are attached to this instance
+        modules: [Navigation, Pagination, Autoplay, FreeMode, Mousewheel, Scrollbar],
         ...options,
       });
+
+      // Force autoplay start if enabled in options
+      if (options.autoplay && swiperInstance.autoplay) {
+        swiperInstance.autoplay.start();
+      }
     }
   });
 
@@ -27,6 +41,14 @@
     }
   });
 </script>
+
+<style>
+  /* Ensure Swiper wrapper is always flex to allow horizontal movement */
+  :global(.swiper-wrapper) {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+</style>
 
 <!-- The HTML structure that Swiper expects -->
 <div class="swiper" bind:this={swiperContainer}>

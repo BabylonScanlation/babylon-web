@@ -1,6 +1,9 @@
 ---
 import UpdateCard from './UpdateCard.astro';
 import type { Series } from '../types';
+import 'swiper/css';
+import 'swiper/css/free-mode';
+import 'swiper/css/scrollbar';
 
 interface Props {
   mangas: Series[];
@@ -15,10 +18,15 @@ const { mangas = [], title = 'Últimos Capítulos Publicados' } = Astro.props;
 
   {
     mangas && mangas.length > 0 ? (
-      <div class="grid-container">
-        {mangas.map((manga) => (
-          <UpdateCard series={manga} />
-        ))}
+      <div class="swiper recent-updates-swiper">
+        <div class="swiper-wrapper">
+          {mangas.map((manga) => (
+            <div class="swiper-slide custom-slide">
+              <UpdateCard series={manga} />
+            </div>
+          ))}
+        </div>
+        <div class="swiper-scrollbar"></div>
       </div>
     ) : (
       <p>No hay capítulos recientes para mostrar.</p>
@@ -26,21 +34,81 @@ const { mangas = [], title = 'Últimos Capítulos Publicados' } = Astro.props;
   }
 </section>
 
+<script>
+  import Swiper from 'swiper';
+  import { FreeMode, Mousewheel, Scrollbar } from 'swiper/modules';
+
+  const initRecentUpdatesSwiper = () => {
+    const swiperEl = document.querySelector('.recent-updates-swiper') as HTMLElement;
+    if (!swiperEl) return;
+    if ((swiperEl as any).swiper) return;
+
+    new Swiper(swiperEl, {
+      modules: [FreeMode, Mousewheel, Scrollbar],
+      slidesPerView: 'auto',
+      spaceBetween: 16,
+      freeMode: true,
+      mousewheel: true,
+      grabCursor: true,
+      scrollbar: {
+        el: '.swiper-scrollbar',
+        draggable: true,
+        hide: false,
+      },
+    });
+  };
+
+  document.addEventListener('astro:page-load', initRecentUpdatesSwiper);
+  document.addEventListener('DOMContentLoaded', initRecentUpdatesSwiper);
+</script>
+
 <style>
   .recent-updates-section {
-    max-width: 1200px;
-    /* ✅ AJUSTE: Reducido el margen */
+    max-width: 1400px;
     margin: 2rem auto;
     padding: 0 1rem;
+    overflow: hidden;
+    padding-bottom: 20px;
   }
   h2 {
     font-size: 1.5rem;
     margin-bottom: 1.5rem;
+    padding-left: 0.5rem;
   }
-  .grid-container {
-    display: grid;
-    /* ✅ AJUSTE: Cambiado minmax para adaptarse al nuevo diseño */
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 1.5rem;
+  
+  /* Swiper Container Styles */
+  .recent-updates-swiper {
+    width: 100%;
+    height: auto;
+    overflow: visible; /* Importante para que la sombra o bordes no se corten */
+    padding-bottom: 1.5rem; /* Espacio para scrollbar */
+  }
+
+  /* Swiper Slide Styles */
+  .custom-slide {
+    width: 200px; /* Tamaño compacto fijo */
+    height: auto;
+    flex-shrink: 0;
+  }
+
+  /* Ajuste para móviles */
+  @media (max-width: 768px) {
+    .custom-slide {
+      width: 160px;
+    }
+  }
+  
+  /* Estilo para la scrollbar */
+  :global(.recent-updates-swiper .swiper-scrollbar) {
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+  :global(.recent-updates-swiper .swiper-scrollbar-drag) {
+    background: var(--accent-color);
+    border-radius: 4px;
   }
 </style>

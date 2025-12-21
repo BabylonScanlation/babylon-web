@@ -68,6 +68,14 @@ try {
     {success && <p class="success-message">{success}</p>}
     {error && <p class="error-message">{error}</p>}
 
+    <input 
+      type="text" 
+      id="series-search" 
+      placeholder="Buscar serie por título..." 
+      class="search-input"
+    />
+
+    <div id="series-list">
     {
       allSeries.length > 0 ? (
         allSeries.map((series) => (
@@ -80,7 +88,58 @@ try {
         </div>
       )
     }
+    </div>
   </main>
 
   <AdminThumbnailCropperModalSvelte client:load />
+
+  <script>
+    const searchInput = document.getElementById('series-search') as HTMLInputElement;
+    const seriesList = document.getElementById('series-list');
+
+    if (searchInput && seriesList) {
+      searchInput.addEventListener('input', (e) => {
+        const searchTerm = (e.target as HTMLInputElement).value.toLowerCase();
+        const seriesItems = seriesList.querySelectorAll('.series-details');
+
+        seriesItems.forEach((item) => {
+          const summary = item.querySelector('summary');
+          if (summary) {
+            const title = summary.textContent?.toLowerCase() || '';
+            if (title.includes(searchTerm)) {
+              (item as HTMLElement).style.display = '';
+            } else {
+              (item as HTMLElement).style.display = 'none';
+            }
+          }
+        });
+      });
+    }
+  </script>
+
+  <style>
+    /* ... existing styles ... */
+    .search-input {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: 2px solid #444; /* Borde más grueso y visible */
+      background-color: #0a0a0a; /* Fondo más oscuro para contraste */
+      color: var(--font-color);
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 2rem; /* Margen aplicado directamente al input */
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(var(--accent-color-rgb), 0.15);
+      background-color: #000;
+    }
+
+    .search-input::placeholder {
+      color: #666;
+    }
+  </style>
 </Layout>

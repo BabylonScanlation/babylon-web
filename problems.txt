@@ -1,2 +1,20 @@
-Al subir varias series y editarlas rapidamente seguidamente.
-Ocurre que la ultima serie añadida desde Telegram se empieza a "quedar atras" subiendose encima de las ya editadas, en lugar de mantenerse debajo de todas como deberia ser su comportamiento normal, u em algunos casos al subir muchos capitulos de golpe en grupo al tema de Telegram se copia los datos de la serie previamente subida y editada, de subirse solo uno no ocurre lo ultimo mencionado.
+[BUG/Critico] Arreglar carrusel de inicio (Swiper):
+  - Error: "Uncaught TypeError: c is not a function" en consola.
+  - Causa probable: Conflicto en la inicialización de módulos (Autoplay/Pagination) dentro de la hidratación del componente Svelte en Astro.
+  - Solución: Revisar la importación de módulos en `src/components/HeroCarousel.astro` o mover la lógica de módulos directamente dentro del `onMount` de `Swiper.svelte`.
+
+[Admin/UI] Añadir buscador de Series:
+  - Ubicación: Panel de Administración > Gestión de Series (`src/pages/admin/series.astro`).
+  - Tarea: Crear un input de texto que filtre la lista de series en tiempo real (ocultando los <details> que no coincidan con el título) para no tener que hacer scroll infinito buscando una serie.
+
+[UI/Home] Cambiar diseño de "Últimos Capítulos Publicados" (RecentUpdatesGrid):
+  - Estado actual: Grid vertical de múltiples filas (se amontona hacia abajo).
+  - Cambio deseado: Una sola fila con scroll horizontal infinito.
+  - Requisito: Debe tener funcionalidad de "agarrar y arrastrar" (drag-to-scroll) con el mouse, similar a un carrusel.
+  - Nota técnica: Reemplazar el CSS Grid actual por un contenedor Flex con overflow o implementar instancia de Swiper configurada como "Free Mode".
+
+[UI/Card] Mejorar disposición de capítulos en "UpdateCard":
+  - Ubicación: `src/components/UpdateCard.astro`.
+  - Estado actual: Los capítulos se listan en columna (uno encima de otro), ocupando mucho espacio vertical.
+  - Cambio deseado: Disposición en 1 fila y 2 columnas (side-by-side).
+  - CSS: Cambiar `.chapters-info` de `flex-direction: column` a `row/grid` y ajustar el ancho de `.chapter-entry`.

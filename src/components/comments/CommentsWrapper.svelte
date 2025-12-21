@@ -265,8 +265,8 @@
 <style>
   /* Styles are the same as before */
   .link-button { background: none; border: none; padding: 0; color: var(--accent-color); text-decoration: underline; cursor: pointer; font-size: inherit; font-family: inherit; }
-  .comments-section { width: 100%; margin: 3rem 0 0 0; padding-top: 2rem; border-top: 1px solid #444; }
-  .comments-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+  .comments-section { width: 100%; margin: 0; padding-top: 0.5rem; }
+  .comments-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
   .comments-header h3 { margin: 0; font-size: 1.5rem; }
   .comment-form textarea { width: 100%; background: #2a2a2a; border: 1px solid #444; color: var(--font-color); padding: 0.75rem; border-radius: 6px; min-height: 100px; resize: vertical; margin-bottom: 0.5rem; font-family: inherit; font-size: 1rem; }
   .comment-form-actions { display: flex; justify-content: space-between; align-items: center; }

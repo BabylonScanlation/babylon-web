@@ -48,23 +48,49 @@ const { series, r2PublicUrlAssets } = Astro.props;
 
 <style>
   .series-details {
-    background-color: var(--card-background);
+    background-color: #1a1a1a; /* Un poco más claro que el fondo base */
     border-radius: 8px;
-    margin-bottom: 1rem;
-    border: 1px solid #333;
+    margin-bottom: 1.5rem;
+    border: 1px solid #444; /* Borde más visible */
+    overflow: hidden;
+    transition: border-color 0.2s;
   }
+  
+  .series-details:hover {
+    border-color: var(--accent-color);
+  }
+
   .series-details summary {
-    padding: 1rem;
-    font-size: 1.2rem;
+    padding: 1.2rem;
+    font-size: 1.25rem;
     font-weight: bold;
     cursor: pointer;
+    background-color: #222; /* Fondo de encabezado */
+    list-style: none; /* Quitar flecha por defecto si se desea o dejarla */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #333;
   }
+
+  /* Añadir un indicador visual de expansión */
+  .series-details summary::after {
+    content: '▼';
+    font-size: 0.8rem;
+    color: #666;
+    transition: transform 0.2s;
+  }
+
+  .series-details[open] summary::after {
+    transform: rotate(180deg);
+  }
+
   .series-content {
     padding: 1.5rem;
-    border-top: 1px solid #444;
     display: grid;
     grid-template-columns: 1fr 2fr;
     gap: 2rem;
+    background-color: #161616;
   }
 
   @media (max-width: 900px) {

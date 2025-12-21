@@ -23,7 +23,7 @@
     "db:local": "wrangler d1 execute babylon-scanlation-prod --local --file=./db_snapshots/dump.sql",
     "db:migrate": "wrangler d1 migrations apply babylon-scanlation-prod --local",
     "db:offline": "npm run db:reset:local && npm run db:migrate && npm run dev:cf",
-    "db:online": "npm run db:pull && npm run db:reset:local && npm run db:local && npm run db:migrate && npm run dev:cf",
+    "db:online": "node scripts/db-sync.js",
     "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
     "db:migrate:local": "drizzle-kit migrate:sqlite",
     "db:push": "drizzle-kit push:sqlite"
