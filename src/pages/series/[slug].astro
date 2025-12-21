@@ -13,7 +13,9 @@ import Layout from '../../layouts/Layout.astro';
 import UnifiedComments from '../../components/UnifiedComments.astro'; 
 import NewsFeed from '../../components/NewsFeed.astro'; 
 import AdminSeriesNewsForm from '../../components/AdminSeriesNewsForm.astro';
+import ChapterList from '../../components/ChapterList.astro';
 import { logError } from '../../lib/logError'; 
+import { formatFullDate } from '../../lib/utils';
 // ----------------------------------------------------------------------------- 
 // DEFINICIÓN DE TIPOS (INTERFACES) 
 // ----------------------------------------------------------------------------- 
@@ -100,32 +102,6 @@ const formatDescription = (text: string | undefined) => {
   if (!text) return ''; 
   const escapedText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;'); 
   return escapedText.replace(/\*(.*?)\*/g, '<i>$1</i>'); 
-};
-
-/** Formatea una cadena de fecha a un formato localizado completo. 
- */ 
-const formatFullDate = (dateString: string) => { 
-  if (!dateString) return 'N/A'; 
-  
-  let date = new Date(dateString);
-
-  // Parche para fechas SQLite antiguas
-  if (isNaN(date.getTime())) {
-    const compatibleDateString = dateString.replace(' ', 'T') + 'Z';
-    date = new Date(compatibleDateString);
-  }
-
-  // Si sigue siendo inválida
-  if (isNaN(date.getTime())) return 'N/A';
-
-  return date.toLocaleString('es-ES', { 
-    year: 'numeric', 
-    month: '2-digit', 
-    day: '2-digit', 
-    hour: '2-digit', 
-    minute: '2-digit', 
-    second: '2-digit', 
-  }); 
 };
 
 // ----------------------------------------------------------------------------- 
@@ -334,40 +310,7 @@ const reactions = [
                   <p set:html={formatDescription(series.description)} /> 
                 </div> 
                 <div id="chapters-content" class="tab-content"> 
-                  <ul class="chapters-list"> 
-                    {series.chapters.length > 0 ? ( 
-                      series.chapters.map((chapter: Chapter) => ( 
-                        <li> 
-                          <a 
-                            href={`/series/${slug}/${chapter.chapter_number}`} 
-                            title="Ver ahora." 
-                          > 
-                            <span class="chapter-number"> 
-                              Capítulo {chapter.chapter_number} 
-                            </span> 
-
-                            <span class="chapter-separator">|</span> 
-                            <span class="chapter-name"> 
-                              {chapter.title || 'Sin título'} 
-                            </span> 
-                            <span class="chapter-separator">|</span> 
-
-                            <span class="chapter-views"> 
-                              {chapter.views.toLocaleString()} Vistas 
-                            </span> 
-                            <span class="chapter-separator">|</span> 
-                            <span class="chapter-date"> 
-                              {formatFullDate(chapter.created_at)} 
-                            </span> 
-                          </a> 
-                        </li> 
-                      )) 
-                    ) : ( 
-                      <li> 
-                        <p>Aún no hay capítulos disponibles.</p> 
-                      </li> 
-                    )}
-                  </ul> 
+                  <ChapterList chapters={series.chapters} seriesSlug={slug!} />
                 </div> 
                 <div id="comments-content" class="tab-content"> 
                   <div class="comments-container-wrapper"> 

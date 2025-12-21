@@ -128,7 +128,8 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
           });
 
           if (response.ok) {
-            document.dispatchEvent(new CustomEvent('auth-success')); // Trigger header update
+            // Recargar la página para asegurar que todo el estado (incluyendo middleware) se actualice
+            window.location.href = '/'; 
           } else {
             console.error('Error durante el cierre de sesión:', await response.text());
           }
@@ -315,16 +316,18 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
   }
   .mobile-nav {
     display: none;
-    position: fixed;
+    position: absolute; /* Cambiado a absolute para que empuje o flote */
     top: 70px;
     left: 0;
     width: 100%;
-    height: calc(100vh - 70px);
-    background-color: rgba(0, 0, 0, 0.98);
+    height: auto; /* Solo la altura necesaria */
+    background-color: rgba(0, 0, 0, 0.95);
     flex-direction: column;
     align-items: center;
-    padding-top: 2rem;
+    padding: 2rem 0; /* Padding vertical equilibrado */
     gap: 1.5rem;
+    border-bottom: 1px solid #333;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
   }
   .mobile-nav.is-active {
     display: flex;

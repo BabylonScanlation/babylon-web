@@ -1,22 +1,56 @@
 <script lang="ts">
-  // No longer need createEventDispatcher as we are using global window events
+  import { onMount } from 'svelte';
+
   export let chapter: any;
   export let seriesSlug: string;
   export let r2PublicUrlAssets: string;
 
   let title = chapter.title || '';
   let isLoading = false;
+  let isEditing = false;
+  let isSelected = false;
   let message = { type: '', text: '' };
+  
+  // Ref al input de archivo para simular clic
+  let fileInput: HTMLInputElement;
+
+  onMount(() => {
+    // Escuchar evento global para seleccionar todos
+    const handleGlobalToggle = (e: any) => {
+        // console.log('Evento recibido en hijo:', e.detail); // Descomentar para depurar
+        isSelected = e.detail.isChecked;
+        // Forzar actualización de UI si Svelte 5 runes lo requiere de forma específica,
+        // aunque isSelected es reactivo ($state o let normal en svelte 4/5 legacy mode).
+        dispatchSelection();
+    };
+    window.addEventListener('toggleAllChapters', handleGlobalToggle);
+    return () => window.removeEventListener('toggleAllChapters', handleGlobalToggle);
+  });
 
   function showMessage(type: string, text: string) {
     message = { type, text };
     setTimeout(() => {
       message = { type: '', text: '' };
-    }, 4000);
+    }, 3000);
   }
 
-  async function handleUpdateTitle(event: Event) {
-    event.preventDefault();
+  function dispatchSelection() {
+    const event = new CustomEvent('chapterSelectionChanged', {
+        detail: { id: chapter.id, isSelected }
+    });
+    window.dispatchEvent(event);
+  }
+
+  function toggleSelection() {
+    isSelected = !isSelected;
+    dispatchSelection();
+  }
+
+  async function saveTitle() {
+    if (title === chapter.title) {
+        isEditing = false;
+        return;
+    }
     isLoading = true;
     
     const formData = new FormData();
@@ -24,60 +58,38 @@
     formData.append('title', title);
 
     try {
-      const response = await fetch('/api/update-chapter', {
-        method: 'POST',
-        body: formData,
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Error al actualizar.');
+      const response = await fetch('/api/update-chapter', { method: 'POST', body: formData });
+      if (!response.ok) throw new Error('Error al actualizar.');
       
-      showMessage('success', 'Título actualizado.');
+      chapter.title = title; // Update local prop
+      isEditing = false;
+      showMessage('success', 'Guardado');
     } catch (err: any) {
-      showMessage('error', err.message);
+      showMessage('error', 'Error');
     } finally {
       isLoading = false;
     }
   }
 
-  async function handleDeleteChapter(event: Event) {
-    event.preventDefault();
-    if (!confirm('¿Seguro que quieres eliminar este capítulo? Esta acción no se puede deshacer.')) {
-      return;
-    }
+  async function handleDelete() {
+    if (!confirm('¿Eliminar capítulo?')) return;
     
     isLoading = true;
     const formData = new FormData();
     formData.append('chapterId', chapter.id);
 
     try {
-      const response = await fetch('/api/delete-chapters', {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await fetch('/api/delete-chapters', { method: 'POST', body: formData });
+      if (!response.ok) throw new Error('Error al eliminar.');
 
-      // Intentamos leer como texto primero para poder depurar si no es JSON válido
-      const responseText = await response.text();
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Error parsing delete response:', responseText);
-        throw new Error(`Error del servidor (no JSON): ${responseText.substring(0, 100)}...`);
-      }
-
-      if (!response.ok) throw new Error(result.error || 'Error al eliminar.');
-
-      // Dispatch a GLOBAL event so the parent Astro component can listen
       window.dispatchEvent(new CustomEvent('chapterDeleted', { detail: { id: chapter.id } }));
-      // We don't show a message here as the element will disappear
     } catch (err: any) {
-      showMessage('error', err.message);
-    } finally {
+      showMessage('error', 'Error');
       isLoading = false;
     }
   }
 
-  async function handleManualThumbnailUpload(event: Event) {
+  async function handleThumbnailUpload(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
@@ -88,156 +100,194 @@
     formData.append('thumbnailImage', file);
 
     try {
-        const response = await fetch('/api/upload-chapter-thumbnail', {
-            method: 'POST',
-            body: formData,
-        });
+        const response = await fetch('/api/upload-chapter-thumbnail', { method: 'POST', body: formData });
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Error al subir la miniatura.');
+        if (!response.ok) throw new Error('Falló subida.');
 
-        // Optimistically update the image source
         chapter.url_portada = `${result.thumbnailUrl}?t=${Date.now()}`;
-        showMessage('success', 'Miniatura actualizada.');
+        showMessage('success', 'Img OK');
     } catch (err: any) {
-        showMessage('error', err.message);
+        showMessage('error', 'Error Img');
     } finally {
         isLoading = false;
-        input.value = ''; // Reset file input
+        input.value = '';
     }
   }
 
-  function openCropperModal() {
-    // Dispatch a GLOBAL event that the listener in AdminChapterList.astro can catch
+  function openCropper() {
     window.dispatchEvent(new CustomEvent('openCropperModal', {
-      detail: {
-        chapterId: chapter.id,
-        seriesSlug: seriesSlug,
-        chapterNumber: chapter.chapter_number,
-      }
+      detail: { chapterId: chapter.id, seriesSlug: seriesSlug, chapterNumber: chapter.chapter_number }
     }));
   }
 </script>
 
-<li class="chapter-item" class:loading={isLoading} data-chapter-id={chapter.id}>
-  <img
-    src={chapter.url_portada || `${r2PublicUrlAssets}/covers/placeholder-chapter.jpg`}
-    alt={`Miniatura del Capítulo ${chapter.chapter_number}`}
-    class="chapter-thumbnail-img"
-    onerror={`this.onerror=null; this.src='${r2PublicUrlAssets}/covers/placeholder-chapter.jpg';`}
-  />
-  <div class="chapter-details-and-controls">
-    <form class="update-chapter-form" onsubmit={handleUpdateTitle}>
-      <span class="chapter-number-label">Cap. {chapter.chapter_number}</span>
-      <input
-        type="text"
-        name="title"
-        placeholder="Sin título"
-        class="chapter-title-input"
-        bind:value={title}
-        disabled={isLoading}
-      />
-      <button type="submit" class="btn btn-success" title="Guardar Título" disabled={isLoading}>✓</button>
-    </form>
+<div class="chapter-row" class:loading={isLoading} data-chapter-id={chapter.id}>
+  <!-- Col 1: Select -->
+  <div class="col-select">
+    <input type="checkbox" class="chapter-checkbox" bind:checked={isSelected} onchange={dispatchSelection} />
+  </div>
 
-    <div class="chapter-thumbnail-controls">
-      <button type="button" class="btn btn-warning" onclick={openCropperModal} disabled={isLoading}>
-        Recortar Portada
-      </button>
-      <input
-        type="file"
-        class="upload-thumbnail-input"
-        accept="image/jpeg,image/png,image/webp"
-        title="Subir Miniatura Manualmente"
-        onchange={handleManualThumbnailUpload}
-        disabled={isLoading}
-      />
+  <!-- Col 2: Image -->
+  <div class="col-img">
+    <div class="img-wrapper">
+        <img
+            src={chapter.url_portada || `${r2PublicUrlAssets}/covers/placeholder-chapter.jpg`}
+            alt="Miniatura"
+            class="thumbnail"
+            onerror={`this.onerror=null; this.src='${r2PublicUrlAssets}/covers/placeholder-chapter.jpg';`}
+        />
+        <div class="img-overlay">
+            <button class="icon-btn xs" onclick={() => fileInput.click()} title="Subir imagen">☁️</button>
+            <button class="icon-btn xs" onclick={openCropper} title="Recortar">✂️</button>
+        </div>
     </div>
+    <input 
+        type="file" 
+        hidden 
+        accept="image/*" 
+        bind:this={fileInput} 
+        onchange={handleThumbnailUpload} 
+    />
+  </div>
+
+  <!-- Col 3: Num -->
+  <div class="col-num">
+    <span class="num-badge">{chapter.chapter_number}</span>
+  </div>
+
+  <!-- Col 4: Title (Editable) -->
+  <div class="col-title">
+    {#if isEditing}
+        <div class="edit-group">
+            <input type="text" bind:value={title} class="inline-input" onkeydown={(e) => e.key === 'Enter' && saveTitle()} autoFocus />
+            <button class="icon-btn success" onclick={saveTitle}>✅</button>
+            <button class="icon-btn cancel" onclick={() => { isEditing = false; title = chapter.title || ''; }}>❌</button>
+        </div>
+    {:else}
+        <div class="text-display" onclick={() => isEditing = true} title="Click para editar">
+            {chapter.title || 'Sin título'}
+            <span class="edit-hint">✎</span>
+        </div>
+    {/if}
     {#if message.text}
-      <div class="action-message" class:success={message.type === 'success'} class:error={message.type === 'error'}>
-        {message.text}
-      </div>
+        <span class="status-msg" class:error={message.type === 'error'}>{message.text}</span>
     {/if}
   </div>
 
-  <form class="delete-chapter-form" onsubmit={handleDeleteChapter}>
-    <button type="submit" class="btn btn-danger" title="Eliminar Capítulo" disabled={isLoading}>✗</button>
-  </form>
-</li>
+  <!-- Col 5: Actions -->
+  <div class="col-actions">
+    <button class="icon-btn danger" onclick={handleDelete} title="Eliminar">🗑️</button>
+  </div>
+</div>
 
 <style>
-  .chapter-item {
-    display: flex;
+  .chapter-row {
+    display: grid;
+    /* Grid Columns Match Parent: Checkbox | Img | Num | Title (flexible) | Actions */
+    grid-template-columns: 40px 60px 60px 1fr 140px;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    border: 1px solid #444;
-    border-radius: 6px;
-    background-color: #333;
-    transition: opacity 0.3s ease;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #2a2a2a;
+    transition: background-color 0.2s;
   }
-  .chapter-item.loading {
-    opacity: 0.6;
+
+  .chapter-row:hover {
+    background-color: #252525;
+  }
+
+  .chapter-row.loading {
+    opacity: 0.5;
     pointer-events: none;
   }
-  .chapter-thumbnail-img {
-    width: 50px;
-    height: 75px;
-    object-fit: cover;
-    border-radius: 4px;
-    flex-shrink: 0;
-    border: 1px solid #555;
-  }
-  .chapter-details-and-controls {
+
+  /* Columns */
+  .col-select { display: flex; justify-content: center; }
+  .col-img { display: flex; justify-content: center; position: relative; }
+  .col-num { text-align: center; font-weight: bold; color: #888; }
+  .col-title { padding: 0 1rem; position: relative; }
+  .col-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+
+  /* Image & Hover Controls */
+  .img-wrapper {
+    position: relative;
+    width: 60px; /* Ancho fijo */
+    height: 40px; /* Altura menor para forzar horizontalidad */
     display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    gap: 0.5rem;
-  }
-  .update-chapter-form {
-    flex-grow: 1;
-    display: flex;
+    justify-content: center;
     align-items: center;
-    gap: 0.75rem;
+    background-color: #000;
+    border-radius: 4px;
+    overflow: hidden;
   }
-  .delete-chapter-form {
-    margin-left: auto;
-  }
-  .chapter-number-label {
-    white-space: nowrap;
-    font-weight: bold;
-    color: #ccc;
-  }
-  .chapter-title-input {
+  .thumbnail {
     width: 100%;
-    background-color: #444;
-    border: 1px solid #666;
-    color: var(--font-color);
-    border-radius: 4px;
-    padding: 0.5rem;
+    height: 100%;
+    object-fit: cover; /* Recortar para llenar el contenedor horizontal */
+    border: none;
   }
-  .chapter-thumbnail-controls {
+  .img-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
     display: flex;
-    gap: 0.5rem;
+    flex-direction: row; /* Cambio de column a row */
+    justify-content: center;
     align-items: center;
-    flex-wrap: wrap;
+    gap: 0.5rem; /* Espacio entre iconos */
+    opacity: 0;
+    transition: opacity 0.2s;
+    border-radius: 4px;
   }
-  .upload-thumbnail-input {
-    width: auto;
+  .img-wrapper:hover .img-overlay { opacity: 1; }
+
+  /* Editable Title */
+  .text-display {
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    color: #ddd;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .text-display:hover { background-color: #333; }
+  .edit-hint { opacity: 0; font-size: 0.8rem; color: #666; }
+  .text-display:hover .edit-hint { opacity: 1; }
+
+  .edit-group { display: flex; gap: 0.25rem; align-items: center; }
+  .inline-input {
     flex-grow: 1;
+    background: #111;
+    border: 1px solid #555;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
     font-size: 0.9rem;
   }
-  .action-message {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8rem;
+
+  /* Buttons */
+  .icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0.25rem;
     border-radius: 4px;
-    margin-top: 0.25rem;
+    transition: background-color 0.2s;
   }
-  .action-message.success {
-    background-color: #28a745;
-    color: white;
+  .icon-btn:hover { background-color: #444; }
+  .icon-btn.xs { font-size: 0.8rem; padding: 2px; }
+  .icon-btn.success:hover { background-color: rgba(40, 167, 69, 0.2); }
+  .icon-btn.cancel:hover { background-color: rgba(255, 193, 7, 0.2); }
+  .icon-btn.danger:hover { background-color: rgba(220, 53, 69, 0.2); }
+
+  .status-msg {
+    font-size: 0.75rem;
+    color: #4ade80;
+    margin-left: 0.5rem;
   }
-  .action-message.error {
-    background-color: #dc3545;
-    color: white;
-  }
+  .status-msg.error { color: #f87171; }
 </style>

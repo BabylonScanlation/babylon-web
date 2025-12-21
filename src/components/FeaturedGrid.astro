@@ -25,12 +25,12 @@ const smallCardManga2 = mangas[2];
             height={520}
           />
           <div class="card-overlay" />
+          <span class="views-tag">
+            {largeCardManga.views?.toLocaleString() || 0} VISTAS
+          </span>
           <div class="card-content">
             <div class="card-header">
               <h3>{largeCardManga.title}</h3>
-              <span class="views-tag">
-                {largeCardManga.views?.toLocaleString() || 0} VISTAS
-              </span>
             </div>
             <p>{largeCardManga.description}</p>
           </div>
@@ -55,12 +55,12 @@ const smallCardManga2 = mangas[2];
             height={250}
           />
           <div class="card-overlay" />
+          <span class="views-tag">
+            {smallCardManga1.views?.toLocaleString() || 0} VISTAS
+          </span>
           <div class="card-content">
             <div class="card-header">
               <h3>{smallCardManga1.title}</h3>
-              <span class="views-tag">
-                {smallCardManga1.views?.toLocaleString() || 0} VISTAS
-              </span>
             </div>
           </div>
         </a>
@@ -84,12 +84,12 @@ const smallCardManga2 = mangas[2];
             height={250}
           />
           <div class="card-overlay" />
+          <span class="views-tag">
+            {smallCardManga2.views?.toLocaleString() || 0} VISTAS
+          </span>
           <div class="card-content">
             <div class="card-header">
               <h3>{smallCardManga2.title}</h3>
-              <span class="views-tag">
-                {smallCardManga2.views?.toLocaleString() || 0} VISTAS
-              </span>
             </div>
           </div>
         </a>
@@ -174,20 +174,22 @@ const smallCardManga2 = mangas[2];
   }
 
   .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 1rem;
     margin-bottom: 0.5rem;
   }
 
   .views-tag {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 2;
     background-color: rgba(0, 0, 0, 0.7);
     padding: 0.25rem 0.75rem;
     font-size: 0.8rem;
     border-radius: 4px;
     white-space: nowrap;
-    flex-shrink: 0;
+    font-weight: bold;
+    color: #fff;
+    backdrop-filter: blur(4px);
   }
 
   .card-content h3 {
@@ -210,42 +212,50 @@ const smallCardManga2 = mangas[2];
 
   @media (max-width: 900px) {
     .grid-container {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto;
+      /* Diseño Collage: 2 columnas, la primera tarjeta ocupa las 2 de arriba */
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
       height: auto;
-      gap: 1rem;
+      gap: 0.75rem;
     }
 
     .large-card {
-      grid-row: span 1;
-      min-height: 350px;
+      grid-column: span 2; /* Ancho completo */
+      min-height: 280px; /* Altura reducida */
     }
 
     .small-card {
-      min-height: 200px;
+      min-height: 180px; /* Altura compacta */
     }
   }
 
   @media (max-width: 600px) {
     h2 {
-      font-size: 1.3rem;
+      font-size: 1.2rem; /* Reducido título de sección */
+      margin-bottom: 0.5rem;
     }
     .card-content {
-      padding: 1rem;
+      padding: 0.5rem 0.75rem; /* Padding compacto */
     }
     .card-content h3 {
-      font-size: 1.2rem;
+      font-size: 1rem; /* Mucho más pequeño */
+      line-height: 1.2;
     }
     .large-card .card-content p {
-      -webkit-line-clamp: 2;
+      display: -webkit-box; /* Restaurar display */
+      -webkit-line-clamp: 3; /* Limitar a 3 líneas */
+      -webkit-box-orient: vertical;
+      overflow: hidden;
       font-size: 0.8rem;
+      margin-top: 0.25rem;
+      color: #ccc;
     }
     .small-card .card-content h3 {
-      font-size: 1rem;
+      font-size: 0.85rem; /* Pequeño y nítido */
     }
     .views-tag {
-      font-size: 0.7rem;
-      padding: 0.2rem 0.5rem;
+      font-size: 0.6rem;
+      padding: 0.1rem 0.3rem;
     }
   }
 </style>

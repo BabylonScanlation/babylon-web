@@ -47,6 +47,7 @@ const { mangas = [], title = 'Últimos Capítulos Publicados' } = Astro.props;
       modules: [FreeMode, Mousewheel, Scrollbar],
       slidesPerView: 'auto',
       spaceBetween: 16,
+      slidesOffsetAfter: 16, // Añadir espacio extra al final para asegurar scroll completo
       freeMode: true,
       mousewheel: true,
       grabCursor: true,
@@ -65,7 +66,7 @@ const { mangas = [], title = 'Últimos Capítulos Publicados' } = Astro.props;
 <style>
   .recent-updates-section {
     max-width: 1400px;
-    margin: 2rem auto;
+    margin: 2rem auto 0.5rem; /* Reducido el margen inferior de 2rem a 0.5rem */
     padding: 0 1rem;
     overflow: hidden;
     padding-bottom: 20px;

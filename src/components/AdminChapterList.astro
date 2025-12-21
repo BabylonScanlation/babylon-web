@@ -25,76 +25,295 @@ interface Props {
 const { series, r2PublicUrlAssets } = Astro.props;
 ---
 
-<div class="chapters-list" id="chapters-list-container">
-  <h3>Capítulos (<span id="chapter-count">{series.chapters.length}</span>)</h3>
-  {series.chapters.length > 0 ? (
-    <ul id="chapter-ul-list">
-      {series.chapters.map((chapter) => (
-        <AdminChapterListItem
-          client:load
-          chapter={chapter}
-          seriesSlug={series.slug}
-          r2PublicUrlAssets={r2PublicUrlAssets}
-        />
-      ))}
-    </ul>
-  ) : (
-    <p>No hay capítulos para esta serie.</p>
-  )}
-</div>
+<chapter-manager class="chapters-manager">
+  <div class="manager-header">
+    <h3>Capítulos (<span class="chapter-count">{series.chapters.length}</span>)</h3>
+    <div class="bulk-actions" style="display: none;">
+      <span class="selected-count">0 seleccionados</span>
+      <button class="bulk-delete-btn">🗑️ Eliminar</button>
+    </div>
+  </div>
+
+  <div class="chapters-table">
+    <div class="table-header">
+      <div class="col-select">
+        <input type="checkbox" class="select-all-checkbox" />
+      </div>
+      <div class="col-img">Img</div>
+      <div class="col-num">#</div>
+      <div class="col-title">Título</div>
+      <div class="col-actions">Acciones</div>
+    </div>
+
+    <div class="table-body">
+      {series.chapters.length > 0 ? (
+        series.chapters.map((chapter) => (
+          <AdminChapterListItem
+            client:visible
+            chapter={chapter}
+            seriesSlug={series.slug}
+            r2PublicUrlAssets={r2PublicUrlAssets}
+          />
+        ))
+      ) : (
+        <div class="empty-state">No hay capítulos para esta serie.</div>
+      )}
+    </div>
+  </div>
+</chapter-manager>
 
 <style>
-  .chapters-list {
-    overflow-y: auto;
-    padding-right: 10px;
-    border: 1px solid #444;
+  chapter-manager {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
     border-radius: 8px;
-    padding: 1rem;
-    background-color: #2a2a2a;
-  }
-  .chapters-list h3 {
-    margin-bottom: 1rem;
-    margin-top: 0;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #555;
-  }
-  .chapters-list ul {
-    list-style: none;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    padding: 0;
-    margin: 0;
+    height: 600px;
+    margin-bottom: 1rem;
   }
+
+  .manager-header {
+    padding: 1rem;
+    border-bottom: 1px solid #333;
+    background-color: #252525;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .manager-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  .bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background-color: rgba(220, 53, 69, 0.1);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+  }
+
+  .selected-count {
+    font-size: 0.85rem;
+    color: #ff8fa3;
+    font-weight: bold;
+  }
+
+  .bulk-delete-btn {
+    background: none;
+    border: none;
+    color: #ff6b6b;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .bulk-delete-btn:hover {
+    background-color: rgba(220, 53, 69, 0.2);
+  }
+
+  /* Table Layout */
+  .chapters-table {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+  }
+
+  .table-header {
+    display: grid;
+    /* Grid Columns: Checkbox | Img | Num | Title (flexible) | Actions */
+    grid-template-columns: 40px 60px 60px 1fr 140px;
+    padding: 0.75rem 1rem;
+    background-color: #2a2a2a;
+    border-bottom: 1px solid #333;
+    font-weight: bold;
+    font-size: 0.85rem;
+    color: #888;
+    text-transform: uppercase;
+    align-items: center;
+  }
+
+  .table-body {
+    overflow-y: auto;
+    flex-grow: 1;
+    background-color: #1a1a1a;
+  }
+
+  .empty-state {
+    padding: 2rem;
+    text-align: center;
+    color: #666;
+  }
+
+  /* Column alignments */
+  .col-select { display: flex; justify-content: center; }
+  .col-img { text-align: center; }
+  .col-num { text-align: center; }
+  .col-actions { text-align: right; }
+
+  /* Custom Scrollbar */
+  .table-body::-webkit-scrollbar { width: 8px; }
+  .table-body::-webkit-scrollbar-track { background: #1a1a1a; }
+  .table-body::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+  .table-body::-webkit-scrollbar-thumb:hover { background: #444; }
 </style>
 
 <script>
-  // Listen for chapterDeleted events to remove the item from the DOM
-  document.addEventListener('chapterDeleted', (event) => {
-    const { id } = (event as CustomEvent).detail;
-    // The Svelte component is the `li` itself, so we find it by its `data-chapter-id`
-    // which we should add to the li in the svelte component for this to work.
-    // Let's assume the svelte component has a root `li` with this attribute.
-    const listItem = document.querySelector(`li[data-chapter-id='${id}']`);
-    
-    if (listItem) {
-      (listItem as HTMLElement).style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-      (listItem as HTMLElement).style.opacity = '0';
-      (listItem as HTMLElement).style.transform = 'scale(0.95)';
+  class ChapterManager extends HTMLElement {
+    selectedIds: Set<string>;
+    selectAllCb: HTMLInputElement | null;
+    bulkActions: HTMLElement | null;
+    selectedCountSpan: HTMLElement | null;
+    bulkDeleteBtn: HTMLElement | null;
+    countSpan: HTMLElement | null;
+    listBody: HTMLElement | null;
+
+    constructor() {
+      super();
+      this.selectedIds = new Set();
       
-      setTimeout(() => {
-        listItem.remove();
-        const countSpan = document.getElementById('chapter-count');
-        const list = document.getElementById('chapter-ul-list');
-        if (countSpan) {
-          const newCount = (list?.children.length ?? 0);
-          countSpan.textContent = newCount.toString();
-        }
-      }, 300); // Wait for fade out animation
+      // Cache DOM elements within THIS instance
+      this.selectAllCb = this.querySelector('.select-all-checkbox');
+      this.bulkActions = this.querySelector('.bulk-actions');
+      this.selectedCountSpan = this.querySelector('.selected-count');
+      this.bulkDeleteBtn = this.querySelector('.bulk-delete-btn');
+      this.countSpan = this.querySelector('.chapter-count');
+      this.listBody = this.querySelector('.table-body');
+
+      // Bind methods
+      this.handleChange = this.handleChange.bind(this);
+      this.handleGlobalDelete = this.handleGlobalDelete.bind(this);
+      this.handleBulkDelete = this.handleBulkDelete.bind(this);
     }
-  });
 
-  // The 'openCropperModal' event is dispatched globally from the Svelte component,
-  // so the existing listener (presumably in AdminSeriesManager or Layout) will still catch it.
+    connectedCallback() {
+      // Listen for changes ONLY within this component
+      this.addEventListener('change', this.handleChange);
+      this.bulkDeleteBtn?.addEventListener('click', this.handleBulkDelete);
+      
+      // Global delete event (from individual deletes)
+      window.addEventListener('chapterDeleted', this.handleGlobalDelete);
+    }
+
+    disconnectedCallback() {
+      this.removeEventListener('change', this.handleChange);
+      this.bulkDeleteBtn?.removeEventListener('click', this.handleBulkDelete);
+      window.removeEventListener('chapterDeleted', this.handleGlobalDelete);
+    }
+
+    handleChange(e: Event) {
+      const target = e.target as HTMLInputElement;
+
+      // 1. Select All Checkbox
+      if (target.matches('.select-all-checkbox')) {
+        const isChecked = target.checked;
+        const checkboxes = this.querySelectorAll('.chapter-checkbox');
+        
+        checkboxes.forEach((cb: any) => {
+          if (cb.checked !== isChecked) {
+            cb.checked = isChecked;
+            // Dispatch event specifically on the checkbox so Svelte wrapper detects it if needed
+            cb.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+        
+        // Update internal state immediately based on DOM to avoid sync issues
+        this.recalculateSelection();
+        return;
+      }
+
+      // 2. Individual Checkbox
+      if (target.matches('.chapter-checkbox')) {
+        this.recalculateSelection();
+      }
+    }
+
+    recalculateSelection() {
+        this.selectedIds.clear();
+        const checkedBoxes = this.querySelectorAll('.chapter-checkbox:checked');
+        
+        checkedBoxes.forEach((cb: any) => {
+            const row = cb.closest('.chapter-row');
+            const id = row?.dataset.chapterId;
+            if (id) this.selectedIds.add(id);
+        });
+
+        this.updateUI();
+    }
+
+    updateUI() {
+        if (!this.bulkActions || !this.selectedCountSpan) return;
+
+        if (this.selectedIds.size > 0) {
+            this.bulkActions.style.display = 'flex';
+            this.selectedCountSpan.textContent = `${this.selectedIds.size} seleccionados`;
+        } else {
+            this.bulkActions.style.display = 'none';
+            if (this.selectAllCb) this.selectAllCb.checked = false;
+        }
+    }
+
+    handleGlobalDelete(e: any) {
+        const { id } = e.detail;
+        if (this.selectedIds.has(id.toString())) {
+            this.selectedIds.delete(id.toString());
+            this.updateUI();
+            this.updateTotalCount();
+        }
+    }
+
+    async handleBulkDelete() {
+        if (this.selectedIds.size === 0) return;
+        if (!confirm(`¿Estás seguro de eliminar ${this.selectedIds.size} capítulos de esta serie?`)) return;
+
+        const idsToDelete = Array.from(this.selectedIds);
+        
+        try {
+            const response = await fetch('/api/delete-chapters', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chapterIds: idsToDelete }),
+            });
+
+            if (response.ok) {
+                // Remove from DOM
+                idsToDelete.forEach(id => {
+                    // Use this.querySelector to ensure we only delete from THIS list
+                    const row = this.querySelector(`div[data-chapter-id="${id}"]`);
+                    row?.remove();
+                });
+                
+                this.selectedIds.clear();
+                this.updateUI();
+                this.updateTotalCount();
+            } else {
+                alert('Error al eliminar capítulos.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Error de conexión.');
+        }
+    }
+
+    updateTotalCount() {
+        if (this.countSpan && this.listBody) {
+            // Count rows manually as a fallback
+            const count = this.listBody.querySelectorAll('.chapter-row').length;
+            this.countSpan.textContent = count.toString();
+        }
+    }
+  }
+
+  // Define the custom element if it hasn't been defined yet
+  if (!customElements.get('chapter-manager')) {
+    customElements.define('chapter-manager', ChapterManager);
+  }
 </script>
-

@@ -3,6 +3,7 @@
 import type { Series } from '../types';
 import 'swiper/css';
 import 'swiper/css/pagination';
+import 'swiper/css/navigation';
 import 'swiper/css/effect-fade';
 
 interface Props {
@@ -12,7 +13,7 @@ interface Props {
 
 const { slides = [], title } = Astro.props;
 
-// Duplicar slides si son pocos para garantizar un loop visualmente agradable y funcional
+// Duplicar slides si son pocos
 let renderSlides = [...slides];
 if (renderSlides.length > 0 && renderSlides.length < 3) {
   while (renderSlides.length < 4) {
@@ -24,79 +25,98 @@ if (renderSlides.length > 0 && renderSlides.length < 3) {
 <section class="hero-carousel-section">
   {title && <h2 class="carousel-title">{title}</h2>}
   
-  <div class="swiper hero-swiper">
-    <div class="swiper-wrapper">
-      {renderSlides.map((slide) => (
-        <div class="swiper-slide">
-          <div
-            class="slide-background-blur"
-            style={`background-image: url(${slide.cover_image_url})`}
-          />
-          <div class="gradient-overlay" />
-          <div class="slide-content-wrapper">
-            <img
-              src={slide.cover_image_url}
-              alt={`Portada de ${slide.title}`}
-              class="slide-cover-art"
-              loading="lazy"
-            />
-            <div class="text-container">
-              <h3>{slide.title}</h3>
-              <p>{slide.description}</p>
-              <div class="tag-buttons">
-                <a href={`/series/${slide.slug}`} class="main-action">
-                  LEER AHORA
-                </a>
+  <div class="carousel-wrapper-relative">
+    <div class="swiper hero-swiper">
+      <div class="swiper-wrapper">
+        {renderSlides.map((slide) => (
+          <div class="swiper-slide">
+            <a href={`/series/${slide.slug}`} class="slide-link-wrapper" draggable="false">
+              <div
+                class="slide-background-blur"
+                style={`background-image: url(${slide.cover_image_url})`}
+              />
+              <div class="gradient-overlay" />
+              
+              <div class="slide-content-wrapper">
+                <div class="image-box">
+                  <img
+                    src={slide.cover_image_url}
+                    alt={`Portada de ${slide.title}`}
+                    class="hero-cover-img"
+                    loading="lazy"
+                    draggable="false"
+                    onerror="this.onerror=null; this.src='/favicon.svg';"
+                  />
+                </div>
+                <div class="text-container">
+                  <h3>{slide.title}</h3>
+                  <p>{slide.description}</p>
+                </div>
               </div>
-            </div>
+            </a>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-    <div class="swiper-pagination"></div>
+    
+    <!-- Controles Externos -->
+    <div class="swiper-pagination custom-pagination"></div>
+    <div class="swiper-button-prev custom-nav-btn prev-btn"></div>
+    <div class="swiper-button-next custom-nav-btn next-btn"></div>
   </div>
 </section>
 
 <script>
   import Swiper from 'swiper';
-  import { Pagination, Autoplay, EffectFade } from 'swiper/modules';
+  import { Pagination, Navigation, Autoplay, EffectFade } from 'swiper/modules';
 
-  // Función de inicialización
   const initSwiper = () => {
     const swiperEl = document.querySelector('.hero-swiper') as HTMLElement;
-    if (!swiperEl) return;
-
-    // Evitar reinicialización si ya existe
+    const paginationEl = document.querySelector('.custom-pagination') as HTMLElement;
+    const prevEl = document.querySelector('.prev-btn') as HTMLElement;
+    const nextEl = document.querySelector('.next-btn') as HTMLElement;
+    
+    if (!swiperEl || !paginationEl) return;
     if ((swiperEl as any).swiper) return;
 
     new Swiper(swiperEl, {
-      modules: [Pagination, Autoplay, EffectFade],
+      modules: [Pagination, Navigation, Autoplay, EffectFade],
       slidesPerView: 1,
       loop: true,
       effect: 'fade',
-      fadeEffect: {
-        crossFade: true
-      },
-      allowTouchMove: false,
+      fadeEffect: { crossFade: true },
+      
+      // Habilitar arrastre
+      allowTouchMove: true,
+      
       autoplay: {
         delay: 5000,
-        disableOnInteraction: false,
+        disableOnInteraction: false, // Seguir moviéndose después de tocar
+        pauseOnMouseEnter: true, // Pausar si el mouse está encima (mejor UX en PC)
       },
+      
       pagination: {
-        el: '.swiper-pagination',
+        el: paginationEl,
         clickable: true,
+      },
+      
+      navigation: {
+        prevEl: prevEl,
+        nextEl: nextEl,
       },
     });
   };
 
-  // Inicialización compatible con Astro View Transitions
   document.addEventListener('astro:page-load', initSwiper);
-  // Fallback estándar
   document.addEventListener('DOMContentLoaded', initSwiper);
 </script>
 
 <style>
   .hero-carousel-section {
+    width: 100%;
+  }
+  .carousel-wrapper-relative {
+    position: relative;
     width: 100%;
   }
   .carousel-title {
@@ -112,7 +132,29 @@ if (renderSlides.length > 0 && renderSlides.length < 3) {
     width: 100%;
     height: 500px;
     position: relative;
-    margin-top: 0;
+    overflow: hidden;
+    background-color: #121212;
+    z-index: 1;
+    border-radius: 12px;
+  }
+
+  .swiper-slide {
+    width: 100%;
+    height: 100%;
+    background-color: #121212;
+  }
+
+  .slide-link-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    position: relative;
+    color: inherit;
+    /* Evitar que el enlace se arrastre como imagen */
+    -webkit-user-drag: none;
   }
   
   .slide-background-blur {
@@ -123,23 +165,21 @@ if (renderSlides.length > 0 && renderSlides.length < 3) {
     height: 100%;
     background-size: cover;
     background-position: center;
-    filter: blur(10px) brightness(0.5);
+    filter: blur(15px) brightness(0.3);
     transform: scale(1.1);
+    z-index: 0;
   }
+
   .gradient-overlay {
     position: absolute;
-    bottom: 0;
+    top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-      to top,
-      rgba(18, 18, 18, 1) 10%,
-      rgba(18, 18, 18, 0.5) 50%,
-      transparent 100%
-    );
+    background: linear-gradient(to top, #121212 15%, transparent 100%);
     z-index: 1;
   }
+
   .slide-content-wrapper {
     position: relative;
     z-index: 2;
@@ -150,93 +190,157 @@ if (renderSlides.length > 0 && renderSlides.length < 3) {
     width: 100%;
     height: 100%;
     padding: 2rem;
-    max-width: 1000px;
+    max-width: 1100px;
     margin: 0 auto;
   }
-  .slide-cover-art {
-    width: 220px;
+
+  .image-box {
+    flex-shrink: 0;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+  }
+
+  .slide-link-wrapper:hover .image-box {
+    transform: scale(1.02);
+  }
+
+  .hero-cover-img {
+    width: 240px;
     height: auto;
     aspect-ratio: 2 / 3;
-    border-radius: 8px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
     object-fit: cover;
-    flex-shrink: 0;
+    display: block;
+    -webkit-user-drag: none; /* Evitar ghosting al arrastrar */
   }
+
   .text-container {
     color: #fff;
     max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
-  .text-container h3,
-  .text-container p {
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  }
+
   .text-container h3 {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
+    font-size: 2.8rem;
+    margin-bottom: 0.75rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    line-height: 1.1;
+    font-weight: 800;
   }
+
   .text-container p {
-    font-size: 0.9rem;
-    margin-bottom: 1.5rem;
-    color: #ccc;
+    font-size: 1rem;
+    margin-bottom: 0;
+    color: #ddd;
+    line-height: 1.6;
     display: -webkit-box;
     -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .tag-buttons {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+
+  /* Paginación */
+  .custom-pagination {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+    text-align: center;
   }
-  .main-action {
-    background-color: var(--accent-color);
-    color: #fff;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    font-weight: 700;
-  }
-  :global(.swiper-pagination-bullet) {
+
+  :global(.custom-pagination .swiper-pagination-bullet) {
     background-color: #fff;
-    opacity: 0.7;
+    opacity: 0.3;
+    width: 30px;
+    height: 4px;
+    margin: 0 4px;
+    display: inline-block;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    pointer-events: auto;
   }
-  :global(.swiper-pagination-bullet-active) {
+  
+  :global(.custom-pagination .swiper-pagination-bullet-active) {
     background-color: var(--accent-color);
     opacity: 1;
-    width: 12px;
-    height: 12px;
+    width: 45px;
   }
+
+  /* Flechas de Navegación */
+  .custom-nav-btn {
+    color: rgba(255, 255, 255, 0.5);
+    transition: color 0.2s, transform 0.2s;
+    width: 50px;
+    height: 50px;
+    z-index: 20; /* Encima del swiper */
+  }
+  .custom-nav-btn:hover {
+    color: var(--accent-color);
+    transform: scale(1.1);
+  }
+  .custom-nav-btn::after {
+    font-size: 2rem;
+    font-weight: bold;
+  }
+  .prev-btn { left: 20px; }
+  .next-btn { right: 20px; }
+
+  /* --- MÓVIL --- */
   @media (max-width: 768px) {
     .hero-swiper {
-      height: auto;
-      min-height: 420px;
+      height: 550px;
     }
+
+    /* Ocultar flechas en móvil */
+    .custom-nav-btn {
+      display: none;
+    }
+
+    .slide-link-wrapper {
+      align-items: flex-start;
+    }
+
     .slide-content-wrapper {
       flex-direction: column;
-      text-align: center;
+      padding: 2rem 1.5rem 4rem;
       gap: 1.5rem;
-      padding: 3rem 1.5rem;
+      justify-content: flex-start;
     }
-    .slide-cover-art {
-      width: 150px;
+
+    .image-box {
+      width: 160px;
+      margin-top: 1rem;
     }
+
+    .hero-cover-img {
+      width: 100%;
+    }
+
     .text-container {
-      display: flex;
-      flex-direction: column;
+      text-align: center;
       align-items: center;
     }
+
     .text-container h3 {
       font-size: 1.8rem;
+      min-height: 2.4em;
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
     }
+
     .text-container p {
-      display: -webkit-box;
+      font-size: 0.9rem;
       -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      font-size: 0.85rem;
-      margin-bottom: 1.25rem;
     }
-    .tag-buttons {
-      justify-content: center;
+
+    .slide-background-blur {
+      filter: brightness(0.2);
     }
   }
 </style>

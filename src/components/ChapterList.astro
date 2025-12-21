@@ -1,0 +1,221 @@
+---
+// src/components/ChapterList.astro
+import { timeAgo } from '../lib/utils';
+
+interface Chapter {
+  chapter_number: number;
+  title: string | null;
+  created_at: string;
+  views: number;
+}
+
+interface Props {
+  chapters: Chapter[];
+  seriesSlug: string;
+}
+
+const { chapters, seriesSlug } = Astro.props;
+
+// Ordenar capítulos por número descendente (más recientes primero)
+const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter_number);
+---
+
+<div class="chapter-list-container">
+  <div class="chapter-list-header">
+    <span class="header-num">#</span>
+    <span class="header-title">Título del Capítulo</span>
+    <span class="header-date">Fecha</span>
+    <span class="header-actions">Acciones</span>
+  </div>
+  
+  <ul class="chapters-ul">
+    {sortedChapters.length > 0 ? (
+      sortedChapters.map((chapter, index) => (
+        <li class={`chapter-row ${index % 2 === 0 ? 'even' : 'odd'}`}>
+          <a href={`/series/${seriesSlug}/${chapter.chapter_number}`} class="row-link">
+            <div class="row-content">
+              <span class="col-num">Cap. {chapter.chapter_number}</span>
+              <span class="col-title" title={chapter.title || `Capítulo ${chapter.chapter_number}`}>
+                {chapter.title || 'Sin título'}
+              </span>
+              <span class="col-date">{timeAgo(chapter.created_at)}</span>
+              <div class="col-actions">
+                <span class="read-btn">Leer</span>
+                <span class="views-count">{chapter.views.toLocaleString()}👁️</span>
+              </div>
+            </div>
+          </a>
+        </li>
+      ))
+    ) : (
+      <li class="empty-state">
+        <p>Aún no hay capítulos disponibles.</p>
+      </li>
+    )}
+  </ul>
+</div>
+
+<style>
+  .chapter-list-container {
+    width: 100%;
+    background-color: var(--card-background);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #333;
+  }
+
+  .chapter-list-header {
+    display: grid;
+    grid-template-columns: 80px 1fr 120px 150px;
+    padding: 0.75rem 1rem;
+    background-color: #222;
+    border-bottom: 1px solid #333;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .chapters-ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 600px;
+    overflow-y: auto;
+  }
+
+  .chapter-row {
+    border-bottom: 1px solid #222;
+    transition: background-color 0.2s ease;
+  }
+
+  .chapter-row:last-child {
+    border-bottom: none;
+  }
+
+  .chapter-row.even {
+    background-color: transparent;
+  }
+
+  .chapter-row.odd {
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+
+  .chapter-row:hover {
+    background-color: rgba(var(--accent-color-rgb), 0.1);
+  }
+
+  .row-link {
+    text-decoration: none;
+    display: block;
+    width: 100%;
+    color: inherit;
+  }
+
+  .row-content {
+    display: grid;
+    grid-template-columns: 80px 1fr 120px 150px;
+    padding: 1rem;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .col-num {
+    font-weight: bold;
+    color: #fff;
+    font-size: 0.95rem;
+  }
+
+  .col-title {
+    color: #ccc;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .col-date {
+    font-size: 0.75rem;
+    color: #777;
+  }
+
+  .col-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .read-btn {
+    background-color: #333;
+    color: #eee;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    transition: background-color 0.2s;
+  }
+
+  .chapter-row:hover .read-btn {
+    background-color: var(--accent-color);
+    color: #fff;
+  }
+
+  .views-count {
+    font-size: 0.7rem;
+    color: #555;
+    white-space: nowrap;
+  }
+
+  .empty-state {
+    padding: 2rem;
+    text-align: center;
+    color: #666;
+  }
+
+  /* Custom Scrollbar */
+  .chapters-ul::-webkit-scrollbar {
+    width: 6px;
+  }
+  .chapters-ul::-webkit-scrollbar-track {
+    background: #1a1a1a;
+  }
+  .chapters-ul::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 10px;
+  }
+  .chapters-ul::-webkit-scrollbar-thumb:hover {
+    background: #444;
+  }
+
+  @media (max-width: 768px) {
+    .chapter-list-header {
+      display: none;
+    }
+    
+    .row-content {
+      grid-template-columns: 1fr auto;
+      grid-template-areas: 
+        "num actions"
+        "title actions"
+        "date actions";
+      gap: 0.25rem;
+      padding: 0.75rem 1rem;
+    }
+
+    .col-num { grid-area: num; }
+    .col-title { grid-area: title; }
+    .col-date { grid-area: date; }
+    .col-actions { 
+      grid-area: actions; 
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .views-count {
+      display: none;
+    }
+  }
+</style>

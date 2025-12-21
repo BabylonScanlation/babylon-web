@@ -35,11 +35,11 @@
   // --- Svelte 5 Side Effects ---
   // $effect is guaranteed to run ONLY in the browser
   $effect(() => {
-    document.addEventListener('openCropperModal' as any, handleOpenModal);
+    window.addEventListener('openCropperModal' as any, handleOpenModal);
     window.addEventListener('keydown', handleKeydown);
 
     return () => {
-      document.removeEventListener('openCropperModal' as any, handleOpenModal);
+      window.removeEventListener('openCropperModal' as any, handleOpenModal);
       window.removeEventListener('keydown', handleKeydown);
     };
   });
