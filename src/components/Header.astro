@@ -311,8 +311,12 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     display: none;
     cursor: pointer;
     padding: 10px;
-    background: transparent;
+    background: transparent !important;
     border: none;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    z-index: 1001;
   }
   .mobile-nav {
     display: none;
@@ -370,6 +374,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
     border-radius: 4px;
     position: absolute;
     transition: transform 0.2s ease-in-out;
+    box-shadow: 0 0 1px rgba(0,0,0,0.5); /* Sombra sutil para visibilidad */
   }
   .hamburger-inner {
     top: 50%;
