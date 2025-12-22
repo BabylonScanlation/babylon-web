@@ -198,36 +198,26 @@ const reactions = [
                 <div id="details-content" class="tab-content active"> 
                   <div class="series-meta"> 
                     <div class="meta-item"> 
-                      <>
-                        <span class="meta-label">Tipo: </span> 
-                        <span class="meta-value">{series.type || 'N/A'}</span> 
-                      </>
+                      <span class="meta-label">Tipo: </span> 
+                      <span class="meta-value">{series.type || 'N/A'}</span> 
                     </div> 
                     <div class="meta-item"> 
-                      <>
-                        <span class="meta-label">Demografía: </span> 
-                        <span class="meta-value">{series.demographic || 'N/A'}</span> 
-                      </>
+                      <span class="meta-label">Demografía: </span> 
+                      <span class="meta-value">{series.demographic || 'N/A'}</span> 
                     </div> 
                     <div class="meta-item"> 
-                      <>
-                        <span class="meta-label">Autor: </span> 
-                        <span class="meta-value">{series.author || 'N/A'}</span> 
-                      </>
+                      <span class="meta-label">Autor: </span> 
+                      <span class="meta-value">{series.author || 'N/A'}</span> 
                     </div> 
                     <div class="meta-item"> 
-                      <>
-                        <span class="meta-label">Artista: </span> 
-                        <span class="meta-value">{series.artist || 'N/A'}</span> 
-                      </>
+                      <span class="meta-label">Artista: </span> 
+                      <span class="meta-value">{series.artist || 'N/A'}</span> 
                     </div> 
                     <div class="meta-item"> 
-                      <>
-                        <span class="meta-label">Serializado por: </span> 
-                        <span class="meta-value"> 
-                          {series.serialized_by || 'N/A'} 
-                        </span> 
-                      </>
+                      <span class="meta-label">Serializado por: </span> 
+                      <span class="meta-value"> 
+                        {series.serialized_by || 'N/A'} 
+                      </span> 
                     </div> 
                     <div class="meta-item meta-item-full"> 
                       <span class="meta-label">Género(s):</span> 
@@ -246,34 +236,24 @@ const reactions = [
                   </div> 
                   <div class="series-meta-grid"> 
                     <div class="meta-grid-item"> 
-                      <>
-                        <span>🗓️ Publicado:</span> 
-                        <span>{formatFullDate(series.created_at)}</span> 
-                      </>
+                      <span>🗓️ Publicado:</span> 
+                      <span>{formatFullDate(series.created_at)}</span> 
                     </div> 
                     <div class="meta-grid-item"> 
-                      <>
-                        <span>📶 Estado:</span> 
-                        <span class="status-na">{series.status || 'N/A'}</span> 
-                      </>
+                      <span>📶 Estado:</span> 
+                      <span class="status-na">{series.status || 'N/A'}</span> 
                     </div> 
                     <div class="meta-grid-item"> 
-                      <>
-                        <span>✍️ Publicado por:</span> 
-                        <span>{series.published_by || 'N/A'}</span> 
-                      </>
+                      <span>✍️ Publicado por:</span> 
+                      <span>{series.published_by || 'N/A'}</span> 
                     </div> 
                     <div class="meta-grid-item"> 
-                      <>
-                        <span>👁️ Vistas:</span> 
-                        <span>{series.views?.toLocaleString() || 0}</span> 
-                      </>
+                      <span>👁️ Vistas:</span> 
+                      <span>{series.views?.toLocaleString() || 0}</span> 
                     </div> 
                     <div class="meta-grid-item full-width-grid"> 
-                      <>
-                        <span>📚 Nombres alternativos:</span> 
-                        <span>{series.alternative_names || 'N/A'}</span> 
-                      </>
+                      <span>📚 Nombres alternativos:</span> 
+                      <span>{series.alternative_names || 'N/A'}</span> 
                     </div> 
                     <div class="reactions-container"> 
                       {reactions.map((reaction) => (

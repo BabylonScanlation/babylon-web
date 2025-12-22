@@ -23,8 +23,9 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter
 <div class="chapter-list-container">
   <div class="chapter-list-header">
     <span class="header-num">Nº</span>
-    <span class="header-title">Título del Capítulo</span>
+    <span class="header-title">Título</span>
     <span class="header-date">Fecha</span>
+    <span class="header-views">Vistas</span>
     <span class="header-actions">Acciones</span>
   </div>
   
@@ -34,17 +35,12 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter
         <li class={`chapter-row ${index % 2 === 0 ? 'even' : 'odd'}`}>
           <a href={`/series/${seriesSlug}/${chapter.chapter_number}`} class="row-link">
             <div class="row-content">
-              <span class="col-num">
-                <span class="mobile-text">Capítulo </span>
-                {chapter.chapter_number}
-              </span>
-              <span class="col-title" title={chapter.title || `Capítulo ${chapter.chapter_number}`}>
-                {chapter.title || 'Sin título'}
-              </span>
+              <span class="col-num"><span class="mobile-text">Capítulo </span>{chapter.chapter_number}</span>
+              <span class="col-title" title={chapter.title || `Capítulo ${chapter.chapter_number}`}>{chapter.title ? chapter.title.trim() : 'Sin título'}</span>
               <span class="col-date">{timeAgo(chapter.created_at)}</span>
               <div class="col-actions">
                 <span class="read-btn">Leer</span>
-                <span class="views-count">{chapter.views.toLocaleString()}👁️</span>
+                <span class="col-views">{chapter.views.toLocaleString()} 👁️</span>
               </div>
             </div>
           </a>
@@ -69,8 +65,9 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter
 
   .chapter-list-header {
     display: grid;
-    grid-template-columns: 80px 1fr 120px 150px;
-    padding: 0.75rem 1rem;
+    grid-template-columns: 80px 1fr 120px 100px 120px;
+    padding: 1rem;
+    gap: 1rem;
     background-color: #222;
     border-bottom: 1px solid #333;
     font-size: 0.85rem;
@@ -80,6 +77,8 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter
     letter-spacing: 0.5px;
   }
 
+  .header-date,
+  .header-views,
   .header-actions {
     text-align: center;
   }
@@ -122,7 +121,7 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter
 
   .row-content {
     display: grid;
-    grid-template-columns: 80px 1fr 120px 150px;
+    grid-template-columns: 80px 1fr 120px 100px 120px;
     padding: 1rem;
     align-items: center;
     gap: 1rem;
@@ -132,6 +131,7 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter
     font-weight: bold;
     color: #fff;
     font-size: 0.95rem;
+    grid-column: 1;
   }
 
   .mobile-text {
@@ -144,18 +144,32 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: left;
+    grid-column: 2;
   }
 
   .col-date {
     font-size: 0.75rem;
     color: #777;
+    text-align: center;
+    grid-column: 3;
+  }
+
+  .col-views {
+    font-size: 0.85rem;
+    color: #888;
+    text-align: center;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    grid-column: 4;
+    grid-row: 1;
   }
 
   .col-actions {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
+    display: contents;
   }
 
   .read-btn {
@@ -166,17 +180,11 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter
     font-size: 0.75rem;
     font-weight: bold;
     transition: background-color 0.2s;
-  }
-
-  .chapter-row:hover .read-btn {
-    background-color: var(--accent-color);
-    color: #fff;
-  }
-
-  .views-count {
-    font-size: 0.7rem;
-    color: #555;
-    white-space: nowrap;
+    min-width: 60px;
+    text-align: center;
+    grid-column: 5;
+    grid-row: 1;
+    justify-self: center;
   }
 
   .empty-state {
@@ -210,28 +218,51 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter
       grid-template-areas: 
         "num actions"
         "title actions"
-        "date actions";
+        "date actions"
+        "views actions";
       gap: 0.25rem;
       padding: 0.75rem 1rem;
     }
 
     .col-num { 
       grid-area: num; 
+      text-align: center;
+      grid-column: auto;
     }
     .mobile-text {
       display: inline;
     }
-    .col-title { grid-area: title; }
-    .col-date { grid-area: date; }
+    .col-title { 
+      grid-area: title; 
+      text-align: center;
+      grid-column: auto;
+    }
+    .col-date { 
+      grid-area: date; 
+      text-align: center;
+      grid-column: auto;
+    }
+    .col-views { 
+      grid-area: auto;
+      justify-content: center;
+      font-size: 0.75rem;
+      color: #666;
+      text-align: center;
+      grid-column: auto;
+      grid-row: auto;
+    }
     .col-actions { 
       grid-area: actions; 
+      display: flex;
       flex-direction: column;
       justify-content: center;
+      align-items: center;
       gap: 0.5rem;
     }
-
-    .views-count {
-      display: none;
+    .read-btn {
+      grid-column: auto;
+      grid-row: auto;
+      justify-self: auto;
     }
   }
 </style>
