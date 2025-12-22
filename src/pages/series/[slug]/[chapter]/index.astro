@@ -272,14 +272,14 @@ if (
       </div>
       <div class="config-option-col">
         <label for="width-slider"
-          >Ancho del lector (<span id="width-value">80%</span>)</label
+          >Ancho del lector (<span id="width-value">40%</span>)</label
         >
         <input
           type="range"
           id="width-slider"
-          min="40"
+          min="0"
           max="100"
-          value="80"
+          value="40"
           step="5"
         />
       </div>
@@ -557,7 +557,9 @@ if (
         widthValue.textContent = `${value}%`;
       }
       if (contentSizer instanceof HTMLElement) {
-        contentSizer.style.maxWidth = `${value}%`;
+        contentSizer.style.width = `${value}%`;
+        contentSizer.style.maxWidth = '100%';
+        contentSizer.style.margin = '1rem auto 0';
       }
 
       requestAnimationFrame(() => {
@@ -603,7 +605,9 @@ if (
         if (e.key === 'ArrowRight') changePage(1);
       }
     });
-    const savedWidth = localStorage.getItem('readerWidth') || '80';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const defaultWidth = isMobile ? '100' : '40';
+    const savedWidth = localStorage.getItem('readerWidth') || defaultWidth;
     const savedMode = localStorage.getItem('viewMode') || 'cascade';
     if (widthSlider instanceof HTMLInputElement) {
       widthSlider.value = savedWidth;
@@ -625,10 +629,20 @@ if (
 
 <style>
   .content-sizer {
-    width: 100%;
+    width: 100%; /* Default width (mobile) */
+    max-width: 100%;
     margin: 1rem auto 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  @media (min-width: 769px) {
+    .content-sizer {
+      width: 40%; /* Desktop default */
+    }
   }
   .reader-container {
+    width: 100%;
     max-width: 100%;
   }
   .comments-wrapper {
@@ -640,15 +654,16 @@ if (
 
   .image-container {
     display: block;
-    background-color: #000; /* Fondo negro para evitar destellos */
+    background-color: #000;
     overflow: hidden;
+    width: 100%;
   }
 
   .image-container img {
     display: block;
     width: 100%;
     height: auto;
-    transition: height 0.2s ease-out; /* Transición suave para altura */
+    transition: height 0.2s ease-out;
   }
 
   :global(header),
@@ -665,6 +680,8 @@ if (
     position: sticky;
     top: 70px;
     z-index: 900;
+    width: 100%;
+    background-color: var(--card-background);
   }
   .reader-top-nav {
     display: flex;
@@ -673,6 +690,9 @@ if (
     background-color: var(--card-background);
     padding: 0.5rem 1rem;
     border-bottom: 1px solid #333;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
   }
   #nav-visibility-top-sentinel,
   #nav-visibility-bottom-sentinel {

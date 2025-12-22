@@ -13,28 +13,138 @@ if (!newsItem) {
 ---
 
 <Layout title={`${newsItem.title} - Noticias - ${SITE_TITLE}`}>
-  <main class="container mx-auto p-4">
-    <article class="bg-white shadow-md rounded-lg p-6">
-      <h1 class="text-4xl font-bold mb-4 text-gray-900">{newsItem.title}</h1>
-      <p class="text-sm text-gray-600 mb-6">
-        Publicado por {newsItem.publishedBy} el {new Date(newsItem.createdAt).toLocaleDateString()}
-      </p>
+  <main class="news-detail-container">
+    <article class="news-article">
+      <div class="news-header">
+        <h1 class="news-title">{newsItem.title}</h1>
+        <div class="news-meta">
+          <span class="news-author">Publicado por {newsItem.authorName || newsItem.publishedBy}</span>
+          <span class="news-date">{new Date(newsItem.createdAt).toLocaleDateString()}</span>
+        </div>
+      </div>
 
       {newsItem.imageUrls && newsItem.imageUrls.length > 0 && (
-        <div class="mb-6">
-          <img src={newsItem.imageUrls[0]} alt={newsItem.title} class="w-full h-96 object-cover rounded-lg" />
+        <div class="news-image-container">
+          <img src={newsItem.imageUrls[0]} alt={newsItem.title} class="news-featured-image" />
         </div>
       )}
 
-      <div class="prose prose-lg max-w-none text-gray-800">
-        <p>{newsItem.content}</p>
+      <div class="news-content">
+        {newsItem.content.split('\n').map((paragraph: string) => (
+          paragraph.trim() && <p>{paragraph}</p>
+        ))}
       </div>
 
-      <div class="mt-8">
-        <a href="/news" class="inline-flex items-center text-indigo-600 hover:text-indigo-800">
-          Volver a Noticias
+      <div class="news-navigation">
+        <a href="/news" class="nav-link">
+          &larr; Volver a Noticias
         </a>
+        {newsItem.seriesSlug && (
+          <a href={`/series/${newsItem.seriesSlug}`} class="nav-link series-link">
+            Ir a la Serie: {newsItem.seriesTitle} &rarr;
+          </a>
+        )}
       </div>
     </article>
   </main>
 </Layout>
+
+<style>
+  .news-detail-container {
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+
+  .news-article {
+    background-color: var(--card-background);
+    border-radius: 12px;
+    padding: 2.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    border: 1px solid #333;
+  }
+
+  .news-header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 1.5rem;
+  }
+
+  .news-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 0.75rem;
+    line-height: 1.2;
+  }
+
+  .news-meta {
+    display: flex;
+    gap: 1.5rem;
+    color: #aaa;
+    font-size: 0.95rem;
+  }
+
+  .news-image-container {
+    margin-bottom: 2.5rem;
+    border-radius: 8px;
+    overflow: hidden;
+    max-height: 500px;
+  }
+
+  .news-featured-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .news-content {
+    font-size: 1.15rem;
+    line-height: 1.8;
+    color: #e0e0e0;
+    margin-bottom: 3rem;
+  }
+
+  .news-content p {
+    margin-bottom: 1.5rem;
+  }
+
+  .news-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #333;
+    padding-top: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .nav-link {
+    color: var(--accent-color, #00bfff);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+  }
+
+  .nav-link:hover {
+    color: #fff;
+    text-decoration: underline;
+  }
+
+  .series-link {
+    background: rgba(0, 191, 255, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 191, 255, 0.3);
+  }
+
+  @media (max-width: 640px) {
+    .news-article {
+      padding: 1.5rem;
+    }
+    .news-title {
+      font-size: 1.8rem;
+    }
+  }
+</style>

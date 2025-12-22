@@ -47,13 +47,25 @@ export async function createNews(
 export async function getNewsById(
   drizzleDb: ReturnType<typeof getDB>,
   id: string
-): Promise<NewsItem | null> {
-  const result = await drizzleDb.select()
+): Promise<(NewsItem & { seriesSlug?: string; seriesTitle?: string }) | null> {
+  const result = await drizzleDb
+    .select({
+      news: schema.news,
+      seriesSlug: schema.series.slug,
+      seriesTitle: schema.series.title,
+    })
     .from(schema.news)
+    .leftJoin(schema.series, eq(schema.news.seriesId, schema.series.id))
     .where(eq(schema.news.id, id))
-    .get(); // .get() for a single result
+    .get();
 
-  return result || null;
+  if (!result) return null;
+
+  return {
+    ...result.news,
+    seriesSlug: result.seriesSlug || undefined,
+    seriesTitle: result.seriesTitle || undefined,
+  } as any;
 }
 
 export async function getAllNews(

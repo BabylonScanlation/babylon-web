@@ -5,6 +5,7 @@ import '../styles/components.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import AuthModal from '../components/AuthModal.svelte';
+import AppBanner from '../components/AppBanner.svelte';
 
 const { title } = Astro.props;
 ---
@@ -25,5 +26,6 @@ const { title } = Astro.props;
     </main>
     <Footer />
     <AuthModal client:idle />
+    <AppBanner client:idle />
   </body>
 </html>

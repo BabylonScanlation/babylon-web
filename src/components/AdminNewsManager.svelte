@@ -82,20 +82,16 @@
     if (!confirm('¿Estás seguro de eliminar esta noticia?')) return;
 
     try {
-      const formData = new FormData();
-      formData.append('action', 'delete');
-      formData.append('newsId', newsId);
-
-      // Usamos el endpoint de Astro existente o la API
-      const res = await fetch('/api/admin/news/delete', { // Asumimos que crearemos/usaremos una API o endpoint
-         method: 'POST',
-         body: JSON.stringify({ newsId }),
-         headers: { 'Content-Type': 'application/json' }
+      const res = await fetch(`/api/admin/news/${newsId}`, {
+         method: 'DELETE'
       });
 
       if (res.ok) {
         // Actualizar lista localmente
         initialNews = initialNews.filter(n => n.id !== newsId);
+        formMessage = 'Noticia eliminada correctamente';
+        formMessageType = 'success';
+        setTimeout(() => formMessage = '', 3000);
       } else {
         alert('Error al eliminar');
       }
@@ -120,7 +116,8 @@
         title: formTitle,
         content: formContent,
         status: formStatus,
-        seriesId: selectedSeriesId
+        seriesId: selectedSeriesId,
+        authorName: 'Admin' // Podríamos pasar esto por props si lo tuviéramos
       };
 
       let url = '/api/admin/news';
@@ -161,14 +158,16 @@
       if (isEditing) {
         initialNews = initialNews.map(n => n.id === savedNews.id ? { ...savedNews, seriesId: selectedSeriesId } : n);
       } else {
-        initialNews = [{ ...savedNews, seriesId: selectedSeriesId }, ...initialNews];
+        initialNews = [{ ...savedNews, seriesId: selectedSeriesId, createdAt: savedNews.createdAt || new Date().toISOString() }, ...initialNews];
       }
       
       // Limpiar form parcial (mantener en la misma serie)
       resetForm();
       
       // Borrar mensaje despues de unos segundos
-      setTimeout(() => formMessage = '', 3000);
+      setTimeout(() => {
+        if (formMessageType === 'success') formMessage = '';
+      }, 3000);
 
     } catch (error) {
       console.error(error);

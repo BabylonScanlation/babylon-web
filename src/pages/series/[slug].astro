@@ -169,6 +169,15 @@ const reactions = [
                   class="cover-image" 
                 /> 
               </div> 
+
+              {series.is_app_series && (
+                <div class="app-download-sidebar">
+                  <p>Más capítulos en nuestra APP:</p>
+                  <button id="download-app-btn" class="btn-download-app" title="Descargar App">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  </button>
+                </div>
+              )}
             </div> 
 
             <div class="series-info-panel"> 
@@ -298,14 +307,6 @@ const reactions = [
 
                 <!-- Capítulos -->
                 <div id="chapters-content" class="tab-content"> 
-                  {series.is_app_series && (
-                    <div class="app-promo-banner-mini">
-                      <span>¡Más capítulos en la App!</span>
-                      <a href={`${r2PublicUrlAssets}/babylonweb-app/DtupScan.apk`} class="btn-app-download-mini" download>
-                        Descargar App
-                      </a>
-                    </div>
-                  )}
                   <ChapterList chapters={series.chapters} seriesSlug={slug!} />
                 </div>
 
@@ -335,6 +336,18 @@ const reactions = [
             </div> 
           </div> 
         </section> 
+
+        <!-- Modal de Confirmación para PC/Mobile -->
+        <div id="download-modal" class="download-modal-overlay" style="display: none;">
+          <div class="download-modal-panel">
+            <h3>¿Descargar Babylon App?</h3>
+            <p>Estás a punto de descargar el instalador oficial (.APK) para dispositivos <strong>Android</strong>.</p>
+            <div class="download-modal-actions">
+              <button id="cancel-download-btn" class="btn-secondary">Cancelar</button>
+              <a href={`${r2PublicUrlAssets}/babylonweb-app/DtupScan.apk`} id="confirm-download-btn" class="btn-primary" download>Descargar ahora</a>
+            </div>
+          </div>
+        </div>
       </div> 
     )
   }
@@ -460,6 +473,30 @@ const reactions = [
         }
       }); 
     }
+
+    // Lógica del modal de descarga
+    const downloadBtn = document.getElementById('download-app-btn');
+    const downloadModal = document.getElementById('download-modal');
+    const cancelDownloadBtn = document.getElementById('cancel-download-btn');
+    const confirmDownloadBtn = document.getElementById('confirm-download-btn');
+
+    downloadBtn?.addEventListener('click', () => {
+      if (downloadModal) downloadModal.style.display = 'flex';
+    });
+
+    cancelDownloadBtn?.addEventListener('click', () => {
+      if (downloadModal) downloadModal.style.display = 'none';
+    });
+
+    confirmDownloadBtn?.addEventListener('click', () => {
+      if (downloadModal) downloadModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', (e) => {
+      if (e.target === downloadModal) {
+        if (downloadModal) downloadModal.style.display = 'none';
+      }
+    });
   }
   initializePage(); 
   document.addEventListener('astro:page-load', initializePage);
@@ -795,7 +832,7 @@ const reactions = [
     text-align: center;
     color: #888;
   }
-  #comments-content > :global(.comments-section) {
+  #comments-content :global(.comments-section) {
     width: 100%;
     max-width: none;
     margin: 0;
@@ -860,6 +897,127 @@ const reactions = [
     }
   }
 
+  /* APP DOWNLOAD SIDEBAR STYLES */
+  .app-download-sidebar {
+    width: 100%;
+    background: rgba(30, 30, 30, 0.4);
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .app-download-sidebar p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #eee;
+    font-weight: 500;
+    text-align: left;
+    line-height: 1.2;
+  }
+
+  .btn-download-app {
+    background-color: var(--accent-color, #00bfff);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, background-color 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .btn-download-app:hover {
+    filter: brightness(1.1);
+    transform: scale(1.05);
+  }
+
+  /* DOWNLOAD MODAL STYLES */
+  .download-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    z-index: 2000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+
+  .download-modal-panel {
+    background: var(--card-background);
+    width: 100%;
+    max-width: 400px;
+    border-radius: 20px;
+    padding: 2rem;
+    text-align: center;
+    border: 1px solid #444;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  }
+
+  .download-modal-panel h3 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    color: #fff;
+  }
+
+  .download-modal-panel p {
+    color: #aaa;
+    margin: 1rem 0 2rem;
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  .download-modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .download-modal-actions .btn-primary,
+  .download-modal-actions .btn-secondary {
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 1rem;
+    text-decoration: none;
+    display: block;
+    width: 100%;
+    text-align: center;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .download-modal-actions .btn-primary {
+    background-color: var(--accent-color);
+    color: #fff;
+  }
+
+  .download-modal-actions .btn-secondary {
+    background-color: transparent;
+    color: #888;
+  }
+
+  @media (max-width: 900px) {
+    .app-download-sidebar {
+      margin-top: 0;
+      order: 4;
+    }
+  }
+
   @media (max-width: 480px) {
     .series-title-header {
       font-size: 1.5rem;
@@ -872,52 +1030,6 @@ const reactions = [
     .reaction-emoji,
     .reaction-emoji-icon {
       font-size: 1.5rem;
-    }
-  }
-
-  /* APP PROMO BANNER MINI STYLES */
-  .app-promo-banner-mini {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1.5rem;
-    background-color: #222;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 0.6rem 1rem;
-    margin-bottom: 1.5rem;
-    color: #fff;
-    font-size: 0.95rem;
-    font-weight: 500;
-  }
-
-  .btn-app-download-mini {
-    background-color: var(--accent-color, #ffc107);
-    color: #000 !important;
-    padding: 0.4rem 1rem;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: bold;
-    text-decoration: none;
-    transition: transform 0.2s, opacity 0.2s;
-    white-space: nowrap;
-  }
-
-  .btn-app-download-mini:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-  }
-
-  @media (max-width: 600px) {
-    .app-promo-banner-mini {
-      flex-direction: column;
-      gap: 0.75rem;
-      text-align: center;
-      padding: 1rem;
-    }
-    .btn-app-download-mini {
-      width: 100%;
-      text-align: center;
     }
   }
 </style>

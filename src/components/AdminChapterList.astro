@@ -40,7 +40,7 @@ const { series, r2PublicUrlAssets } = Astro.props;
         <input type="checkbox" class="select-all-checkbox" />
       </div>
       <div class="col-img">Img</div>
-      <div class="col-num">#</div>
+      <div class="col-num">Nº</div>
       <div class="col-title">Título</div>
       <div class="col-actions">Acciones</div>
     </div>
@@ -63,15 +63,16 @@ const { series, r2PublicUrlAssets } = Astro.props;
 </chapter-manager>
 
 <style>
-  chapter-manager {
+  .chapters-manager {
     background-color: #1e1e1e;
     border: 1px solid #333;
     border-radius: 8px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    height: 600px;
+    max-height: 500px; /* Altura para aproximadamente 8 capítulos + cabecera */
     margin-bottom: 1rem;
+    max-width: 100%;
   }
 
   .manager-header {
@@ -124,14 +125,14 @@ const { series, r2PublicUrlAssets } = Astro.props;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
-    overflow: hidden;
+    overflow-x: auto; /* Permitir scroll horizontal si es necesario */
   }
 
   .table-header {
     display: grid;
     /* Grid Columns: Checkbox | Img | Num | Title (flexible) | Actions */
     grid-template-columns: 40px 60px 60px 1fr 140px;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 1rem;
     background-color: #2a2a2a;
     border-bottom: 1px solid #333;
     font-weight: bold;
@@ -139,6 +140,13 @@ const { series, r2PublicUrlAssets } = Astro.props;
     color: #888;
     text-transform: uppercase;
     align-items: center;
+  }
+
+  @media (max-width: 600px) {
+    .table-header {
+      grid-template-columns: 40px 60px 50px 1fr 60px;
+      padding: 0.5rem;
+    }
   }
 
   .table-body {
@@ -155,9 +163,10 @@ const { series, r2PublicUrlAssets } = Astro.props;
 
   /* Column alignments */
   .col-select { display: flex; justify-content: center; }
-  .col-img { text-align: center; }
-  .col-num { text-align: center; }
-  .col-actions { text-align: right; }
+  .col-img { display: flex; justify-content: center; align-items: center; }
+  .col-num { display: flex; justify-content: center; align-items: center; }
+  .col-title { display: flex; justify-content: flex-start; align-items: center; }
+  .col-actions { display: flex; justify-content: center; align-items: center; }
 
   /* Custom Scrollbar */
   .table-body::-webkit-scrollbar { width: 8px; }

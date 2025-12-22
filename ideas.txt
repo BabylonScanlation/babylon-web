@@ -136,3 +136,15 @@ Al recibir una petición de vista:
 * **UI Admin:**
     * Panel con tarjetas: "Vistas Hoy", "Usuarios Activos", "Serie del Mes".
     * Gráfico de líneas para tendencia de tráfico mensual.
+
+---
+
+### Tareas adicionales
+- [ ] IMPLEMENTAR SISTEMA AD-SHIELD HÍBRIDO (Monetización + Detección)
+    *   Integrar scripts de Monetag con tecnología Anti-AdBlock (Service Workers).
+    *   Crear componente `AdBlockManager.svelte` para gestionar la detección de bloqueadores.
+    *   Diseño Híbrido:
+        *   Fase 1 (Aviso): Notificación no intrusiva pidiendo apoyo al detectar AdBlock.
+        *   Fase 2 (Bloqueo): Modal persistente (estilo AuthModal) que impida la lectura si el bloqueo persiste.
+    *   Añadir bypass para usuarios con suscripción/donantes (futuro).
+    *   Configurar archivo de verificación en `public/` y scripts en el `<head>` del Layout global.

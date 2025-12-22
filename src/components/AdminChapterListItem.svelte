@@ -202,12 +202,28 @@
 
   /* Columns */
   .col-select { display: flex; justify-content: center; }
-  .col-img { display: flex; justify-content: center; position: relative; }
-  .col-num { text-align: center; font-weight: bold; color: #888; }
-  .col-title { padding: 0 1rem; position: relative; }
-  .col-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+  .col-img { display: flex; justify-content: center; align-items: center; position: relative; }
+  .col-num { display: flex; justify-content: center; align-items: center; font-weight: bold; color: #888; }
+  .col-title { display: flex; justify-content: flex-start; align-items: center; padding: 0; position: relative; }
+  .col-actions { 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    gap: 0.5rem; 
+  }
 
-  /* Image & Hover Controls */
+  @media (max-width: 600px) {
+    .chapter-row {
+      grid-template-columns: 40px 60px 50px 1fr 60px; /* Ajuste de anchos para móvil */
+      padding: 0.5rem;
+    }
+    .col-title {
+      font-size: 0.85rem;
+    }
+    .col-num {
+      font-size: 0.85rem;
+    }
+  }
   .img-wrapper {
     position: relative;
     width: 60px; /* Ancho fijo */
@@ -246,7 +262,7 @@
   /* Editable Title */
   .text-display {
     cursor: pointer;
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.5rem 0.25rem 0; /* Padding izquierdo a 0 */
     border-radius: 4px;
     color: #ddd;
     display: flex;
