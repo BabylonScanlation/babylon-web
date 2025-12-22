@@ -22,7 +22,7 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter
 
 <div class="chapter-list-container">
   <div class="chapter-list-header">
-    <span class="header-num">#</span>
+    <span class="header-num">Nº</span>
     <span class="header-title">Título del Capítulo</span>
     <span class="header-date">Fecha</span>
     <span class="header-actions">Acciones</span>
@@ -34,7 +34,10 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter
         <li class={`chapter-row ${index % 2 === 0 ? 'even' : 'odd'}`}>
           <a href={`/series/${seriesSlug}/${chapter.chapter_number}`} class="row-link">
             <div class="row-content">
-              <span class="col-num">{chapter.chapter_number}</span>
+              <span class="col-num">
+                <span class="mobile-text">Capítulo </span>
+                {chapter.chapter_number}
+              </span>
               <span class="col-title" title={chapter.title || `Capítulo ${chapter.chapter_number}`}>
                 {chapter.title || 'Sin título'}
               </span>
@@ -131,6 +134,10 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter
     font-size: 0.95rem;
   }
 
+  .mobile-text {
+    display: none;
+  }
+
   .col-title {
     color: #ccc;
     font-size: 0.95rem;
@@ -208,7 +215,12 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapter_number - a.chapter
       padding: 0.75rem 1rem;
     }
 
-    .col-num { grid-area: num; }
+    .col-num { 
+      grid-area: num; 
+    }
+    .mobile-text {
+      display: inline;
+    }
     .col-title { grid-area: title; }
     .col-date { grid-area: date; }
     .col-actions { 
