@@ -187,24 +187,24 @@
           <form onsubmit={(e) => { e.preventDefault(); handleLogin(); }}>
             <div class="form-group">
               <label class="form-label" for="login-email">Email</label>
-              <input class="form-control" type="email" name="email" id="login-email" placeholder="tu@email.com" required bind:value={loginEmail} />
+              <input class="form-control" type="email" name="email" id="login-email" placeholder="ejemplo@email.com" required bind:value={loginEmail} />
             </div>
             <div class="form-group">
               <label class="form-label" for="login-password">Contraseña</label>
-              <input class="form-control" type="password" name="password" id="login-password" required bind:value={loginPassword} />
+              <input class="form-control" type="password" name="password" id="login-password" placeholder="••••••••" required bind:value={loginPassword} />
             </div>
             <button type="submit" class="btn btn-primary" disabled={isLoading}>
-              <span class="button-text">Entrar</span>
+              <span class="button-text">Iniciar Sesión</span>
               <div class="button-loader"></div>
             </button>
           </form>
           <div class="divider"><span>O</span></div>
-          <button class="btn btn-google" onclick={handleGoogleSignIn}>
+          <button class="btn btn-google" onclick={handleGoogleSignIn} disabled={isLoading}>
             <img src="https://static.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google icon" class="google-icon" />
             Continuar con Google
           </button>
           <div class="form-footer">
-            <p>¿No tienes una cuenta? <button class="btn-link" onclick={() => authModal.switchTo('register')}>Regístrate aquí</button></p>
+            <p>¿No tienes una cuenta? <button class="btn-link" onclick={() => authModal.switchTo('register')} disabled={isLoading}>Regístrate aquí</button></p>
           </div>
         </div>
       {/if}
@@ -221,15 +221,15 @@
           <form onsubmit={(e) => { e.preventDefault(); handleRegister(); }}>
             <div class="form-group">
               <label class="form-label" for="reg-email">Email</label>
-              <input class="form-control" type="email" name="email" id="reg-email" placeholder="nombre@ejemplo.com" required bind:value={regEmail} />
+              <input class="form-control" type="email" name="email" id="reg-email" placeholder="ejemplo@email.com" required bind:value={regEmail} />
             </div>
             <div class="form-group">
               <label class="form-label" for="reg-password">Contraseña</label>
-              <input class="form-control" type="password" name="password" id="reg-password" required minlength="6" bind:value={regPassword} />
+              <input class="form-control" type="password" name="password" id="reg-password" placeholder="••••••••" required minlength="6" bind:value={regPassword} />
             </div>
             <div class="form-group">
               <label class="form-label" for="reg-confirm-password">Confirmar Contraseña</label>
-              <input class="form-control" type="password" name="confirmPassword" id="reg-confirm-password" required minlength="6" bind:value={regConfirmPassword} />
+              <input class="form-control" type="password" name="confirmPassword" id="reg-confirm-password" placeholder="••••••••" required minlength="6" bind:value={regConfirmPassword} />
             </div>
             <button type="submit" class="btn btn-primary" disabled={isLoading}>
               <span class="button-text">Registrarse</span>
@@ -237,12 +237,12 @@
             </button>
           </form>
           <div class="divider"><span>O</span></div>
-          <button class="btn btn-google" onclick={handleGoogleSignIn}>
+          <button class="btn btn-google" onclick={handleGoogleSignIn} disabled={isLoading}>
             <img src="https://static.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google icon" class="google-icon" />
             Continuar con Google
           </button>
           <div class="form-footer">
-            <p>¿Ya tienes una cuenta? <button class="btn-link" onclick={() => authModal.switchTo('login')}>Inicia sesión</button></p>
+            <p>¿Ya tienes una cuenta? <button class="btn-link" onclick={() => authModal.switchTo('login')} disabled={isLoading}>Inicia sesión</button></p>
           </div>
         </div>
       {/if}
@@ -264,7 +264,7 @@
             </div>
             <div class="form-group">
               <label class="form-label" for="link-password">Contraseña</label>
-              <input class="form-control" type="password" name="password" id="link-password" required bind:value={linkPassword} />
+              <input class="form-control" type="password" name="password" id="link-password" placeholder="••••••••" required bind:value={linkPassword} />
             </div>
             <button type="submit" class="btn btn-primary" disabled={isLoading}>
               <span class="button-text">Vincular y Entrar</span>
@@ -272,7 +272,7 @@
             </button>
           </form>
           <div class="form-footer">
-            <button class="btn-link" onclick={authModal.close}>Cancelar</button>
+            <button class="btn-link" onclick={authModal.close} disabled={isLoading}>Cancelar</button>
           </div>
         </div>
       {/if}
@@ -327,6 +327,7 @@
     border-top-color: #fff;
     border-radius: 50%;
     animation: spin 1s linear infinite;
+    margin: 0 auto;
   }
   .btn:disabled .button-text {
     display: none;

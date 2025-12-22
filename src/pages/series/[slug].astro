@@ -66,6 +66,8 @@ interface SeriesDetails {
 // ----------------------------------------------------------------------------- 
 const { slug } = Astro.params; 
 const user = Astro.locals.user; 
+// Intentar obtener la URL de assets del entorno, con un fallback a la URL pública proporcionada
+const r2PublicUrlAssets = Astro.locals.runtime.env?.R2_PUBLIC_URL_ASSETS || 'https://pub-2e7d3fdb6a36489c808eaae6d2263bc7.r2.dev';
 
 let series: SeriesDetails | null = null; 
 let comments: Comment[] = []; 
@@ -124,7 +126,7 @@ const reactions = [
 ]; 
 ---
 
-<Layout title={series?.title ?? 'Serie no encontrada'}> 
+<Layout title={series?.title ?? 'Serie no encontrada'}>
   { 
     series && ( 
       <div class="series-detail-page" data-series-id={series.id}> 
@@ -163,7 +165,7 @@ const reactions = [
               <div class="series-cover"> 
                 <img 
                   src={series.cover_image_url} 
-                  alt={`Portada de ${series.title}`} 
+                  alt={`Portada de ${series.title}`}
                   class="cover-image" 
                 /> 
               </div> 
@@ -192,34 +194,35 @@ const reactions = [
               </div> 
 
               <div class="content-wrapper"> 
+                <!-- Detalles -->
                 <div id="details-content" class="tab-content active"> 
                   <div class="series-meta"> 
                     <div class="meta-item"> 
-                      <> 
+                      <>
                         <span class="meta-label">Tipo: </span> 
                         <span class="meta-value">{series.type || 'N/A'}</span> 
                       </>
                     </div> 
                     <div class="meta-item"> 
-                      <> 
+                      <>
                         <span class="meta-label">Demografía: </span> 
                         <span class="meta-value">{series.demographic || 'N/A'}</span> 
                       </>
                     </div> 
                     <div class="meta-item"> 
-                      <> 
+                      <>
                         <span class="meta-label">Autor: </span> 
                         <span class="meta-value">{series.author || 'N/A'}</span> 
                       </>
                     </div> 
                     <div class="meta-item"> 
-                      <> 
+                      <>
                         <span class="meta-label">Artista: </span> 
                         <span class="meta-value">{series.artist || 'N/A'}</span> 
                       </>
                     </div> 
                     <div class="meta-item"> 
-                      <> 
+                      <>
                         <span class="meta-label">Serializado por: </span> 
                         <span class="meta-value"> 
                           {series.serialized_by || 'N/A'} 
@@ -243,121 +246,124 @@ const reactions = [
                   </div> 
                   <div class="series-meta-grid"> 
                     <div class="meta-grid-item"> 
-                      <> 
+                      <>
                         <span>🗓️ Publicado:</span> 
                         <span>{formatFullDate(series.created_at)}</span> 
                       </>
                     </div> 
                     <div class="meta-grid-item"> 
-                      <> 
+                      <>
                         <span>📶 Estado:</span> 
                         <span class="status-na">{series.status || 'N/A'}</span> 
                       </>
                     </div> 
                     <div class="meta-grid-item"> 
-                      <> 
+                      <>
                         <span>✍️ Publicado por:</span> 
                         <span>{series.published_by || 'N/A'}</span> 
                       </>
                     </div> 
                     <div class="meta-grid-item"> 
-                      <> 
+                      <>
                         <span>👁️ Vistas:</span> 
                         <span>{series.views?.toLocaleString() || 0}</span> 
                       </>
                     </div> 
                     <div class="meta-grid-item full-width-grid"> 
-                      <> 
+                      <>
                         <span>📚 Nombres alternativos:</span> 
                         <span>{series.alternative_names || 'N/A'}</span> 
                       </>
                     </div> 
                     <div class="reactions-container"> 
-                      {reactions.map((reaction) => ( 
+                      {reactions.map((reaction) => (
                         <div class="reaction-item"> 
-                          {user ? ( 
+                          {user ? (
                             <button 
-                              class:list={[ 
-                                'reaction-emoji', 
-                                { 
+                              class:list={[
+                                'reaction-emoji',
+                                {
                                   selected: 
                                     series.stats.userReaction === 
-                                    reaction.emoji, 
-                                }, 
-                              ]} 
-                              data-emoji={reaction.emoji} 
-                              title={reaction.title} 
-                            > 
-                              {reaction.emoji} 
-                            </button> 
-                          ) : ( 
+                                    reaction.emoji,
+                                },
+                              ]}
+                              data-emoji={reaction.emoji}
+                              title={reaction.title}
+                            >
+                              {reaction.emoji}
+                            </button>
+                          ) : (
                             <button 
-                              class="reaction-emoji" 
-                              data-open-modal="login" 
-                              title="Debes tener una cuenta para reaccionar." 
-                            > 
-                              {reaction.emoji} 
-                            </button> 
+                              class="reaction-emoji"
+                              data-open-modal="login"
+                              title="Debes tener una cuenta para reaccionar."
+                            >
+                              {reaction.emoji}
+                            </button>
                           )}
-                          <span class="reaction-count"> 
-                            {series.stats.reactionCounts[reaction.emoji] || 0} 
-                          </span> 
-                        </div> 
+                          <span class="reaction-count">
+                            {series.stats.reactionCounts[reaction.emoji] || 0}
+                          </span>
+                        </div>
                       ))}
                     </div> 
                   </div> 
                 </div> 
+
+                <!-- Sinopsis -->
                 <div id="synopsis-content" class="tab-content synopsis-panel"> 
                   <p set:html={formatDescription(series.description)} /> 
                 </div> 
+
+                <!-- Capítulos -->
                 <div id="chapters-content" class="tab-content"> 
                   {series.is_app_series && (
-                    <div class="app-promo-banner">
-                      <div class="app-promo-content">
-                        <div class="app-promo-text">
-                          <h3>¡Más capítulos en la App!</h3>
-                          <p>Esta serie tiene contenido exclusivo y actualizaciones más rápidas en nuestra aplicación oficial.</p>
-                        </div>
-                        <a href="https://assets.babylonscan.com/babylonweb-app/DtupScan.apk" class="btn btn-app-download" download>
-                          <span class="icon">🤖</span> Descargar APK
-                        </a>
-                      </div>
+                    <div class="app-promo-banner-mini">
+                      <span>¡Más capítulos en la App!</span>
+                      <a href={`${r2PublicUrlAssets}/babylonweb-app/DtupScan.apk`} class="btn-app-download-mini" download>
+                        Descargar App
+                      </a>
                     </div>
                   )}
                   <ChapterList chapters={series.chapters} seriesSlug={slug!} />
-                </div> 
+                </div>
+
+                <!-- Comentarios -->
                 <div id="comments-content" class="tab-content"> 
                   <div class="comments-container-wrapper"> 
                     <UnifiedComments 
                       targetType="series"
                       targetId={series.id} 
                       comments={comments} 
-                      user={user ?? null} 
+                      user={user ?? null}
                     /> 
                   </div> 
                 </div>
 
+                <!-- Noticias -->
                 <div id="news-content" class="tab-content"> 
                     <div class="news-container-wrapper"> 
-                        {user?.isAdmin && ( 
+                        {user?.isAdmin && (
                             <AdminSeriesNewsForm seriesId={series.id} seriesTitle={series.title} /> 
-                        )} 
+                        )}
                         <NewsFeed seriesId={series.id} user={user} /> 
                     </div> 
                 </div> 
+
               </div> 
             </div> 
           </div> 
         </section> 
       </div> 
-    ) 
+    )
   }
 
   {error && <p class="error-message">{error}</p>}
 </Layout>
 
 <script is:inline define:vars={{ initialState, slug }}> 
-  // ... (Tu script del cliente se mantiene exactamente igual) 
+  // ... (Tu script del cliente) 
   function initializePage() { 
     const state = initialState; 
     if (!state) return; 
@@ -370,9 +376,9 @@ const reactions = [
         const tabName = tab.getAttribute('data-tab'); 
         contents.forEach((content) => { 
           content.classList.toggle( 
-            'active', 
+            'active',
             content.id === `${tabName}-content` 
-          ); 
+          );
         }); 
       }); 
     }); 
@@ -427,9 +433,9 @@ const reactions = [
         reactionButtons.forEach((btn) => { 
           if (btn instanceof HTMLElement && btn.dataset.emoji) { 
             btn.classList.toggle( 
-              'selected', 
+              'selected',
               btn.dataset.emoji === userReaction 
-            ); 
+            );
           }
         }); 
       };
@@ -476,408 +482,380 @@ const reactions = [
     }
   }
   initializePage(); 
-  document.addEventListener('astro:page-load', initializePage); 
+  document.addEventListener('astro:page-load', initializePage);
 </script> 
 
-<style> 
+<style>
   /* === INICIO DE ESTILOS MODIFICADOS PARA LA SOLUCIÓN === */ 
-  .series-hero { 
-    width: 100%; 
-    /* LA CORRECCIÓN ESTÁ AQUÍ: 
-      Eliminamos 'background-color' para que herede el color oscuro del body, 
-      tal como lo tenías originalmente. 
-*/ 
-    padding-top: 1rem; 
+  .series-hero {
+    width: 100%;
+    padding-top: 1rem;
   }
 
-  .series-header-grid { 
-    display: grid; 
-    grid-template-columns: 250px 1fr; 
-    gap: 2rem; 
+  .series-header-grid {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 2rem;
     align-items: start;
-
-    /* Esto centra el grid dentro del .series-hero de ancho completo */ 
-    max-width: 1200px; 
-    width: 100%; 
-    margin: 0 auto; 
-    padding: 0 1rem; /* Espaciado para los bordes en pantallas pequeñas */ 
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 1rem;
   }
 
-  /* El resto de la página ahora vive dentro del grid centrado, 
-     así que ya no necesitamos este contenedor con max-width aquí. 
-*/ 
-  .main-content-wrapper { 
-    width: 100%; 
-    /* max-width: 1200px; 
-*/ /* <- Esto era el problema */ 
-    /* margin: 0 auto; 
-*/ /* <- Esto era el problema */ 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: center; 
+  .main-content-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
-  .series-detail-page { 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    width: 100%; 
-  }
-  /* === FIN DE ESTILOS MODIFICADOS PARA LA SOLUCIÓN === */ 
-
-  /* El resto de los estilos se mantienen como los tenías */ 
-  .cover-and-rating-wrapper { 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    gap: 0.75rem; 
+  .series-detail-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
   }
 
-  .series-info-panel { 
-    min-width: 0; 
-    color: #fff; 
-    display: flex; 
-    flex-direction: column; 
+  .cover-and-rating-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
   }
 
-  .series-title-header { 
-    font-size: 2rem; 
-    text-align: left; /* Alineado a la izquierda en desktop */
+  .series-info-panel {
+    min-width: 0;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .series-title-header {
+    font-size: 2rem;
+    text-align: left;
     margin-bottom: 1rem;
   }
-  .series-cover { 
-    position: relative; 
-    border-radius: 8px; 
-    overflow: hidden; 
-    aspect-ratio: 2 / 3; 
-    width: 100%; 
+  .series-cover {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 2 / 3;
+    width: 100%;
   }
-  .cover-image { 
-    width: 100%; 
-    height: 100%; 
-    object-fit: cover; 
+  .cover-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
-  .rating-section { 
-    display: flex; 
-    flex-direction: row; 
-    align-items: center; 
-    justify-content: center; 
-    gap: 1rem; 
-    margin-top: 0.5rem; 
-    margin-bottom: 0.5rem; 
-    width: 100%; 
+  .rating-section {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    width: 100%;
   }
-  .stars-container { 
-    display: flex; 
-    align-items: center; 
+  .stars-container {
+    display: flex;
+    align-items: center;
   }
-  .star, 
-  .star-icon { 
-    font-size: 1.75rem; 
-    color: #777; 
-    background: none; 
-    border: none; 
-    padding: 0; 
-    line-height: 1; 
-    display: inline-block; 
+  .star,
+  .star-icon {
+    font-size: 1.75rem;
+    color: #777;
+    background: none;
+    border: none;
+    padding: 0;
+    line-height: 1;
+    display: inline-block;
   }
-  .star-link { 
-    text-decoration: none; 
-    cursor: pointer; 
+  .star-link {
+    text-decoration: none;
+    cursor: pointer;
   }
-  .vote-count { 
-    font-size: 0.9rem; 
-    color: #aaa; 
-    display: flex; 
-    align-items: baseline; 
-    gap: 0.5rem; 
+  .vote-count {
+    font-size: 0.9rem;
+    color: #aaa;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
   }
-  .avg-rating { 
-    font-size: 1.1rem; 
-    font-weight: bold; 
-    color: #ffc107; 
+  .avg-rating {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #ffc107;
   }
-  .rating-section .star { 
-    cursor: pointer; 
-    transition: 
-      transform 0.2s ease, 
-      color 0.1s; 
+  .rating-section .star {
+    cursor: pointer;
+    transition:
+      transform 0.2s ease,
+      color 0.1s;
   }
-  .rating-section .star:hover { 
-    transform: scale(1.2); 
-    color: #ffc107; 
+  .rating-section .star:hover {
+    transform: scale(1.2);
+    color: #ffc107;
   }
-  .star.selected, 
-  .stars-container:hover .star:hover, 
-  .stars-container:hover .star:hover ~ .star { 
-    color: #777; 
+  .star.selected,
+  .stars-container:hover .star:hover,
+  .stars-container:hover .star:hover ~ .star {
+    color: #777;
   }
-  .stars-container:hover .star:hover, 
-  .star.selected, 
-  .stars-container:hover .star.selected ~ .star { 
-    color: #ffc107; 
+  .stars-container:hover .star:hover,
+  .star.selected,
+  .stars-container:hover .star.selected ~ .star {
+    color: #ffc107;
   }
-  .info-tabs { 
-    display: flex; 
-    gap: 0.5rem; 
-    border-bottom: 1px solid #333; 
-    flex-wrap: wrap; 
+  .info-tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid #333;
+    flex-wrap: wrap;
   }
-  .info-tabs .tab { 
-    background: none; 
-    border: none; 
-    color: #aaa; 
-    padding: 0.5rem 1rem; 
-    cursor: pointer; 
-    font-size: 1rem; 
-    border-bottom: 2px solid transparent; 
-    transition: 
-      color 0.2s, 
-      border-color 0.2s; 
+  .info-tabs .tab {
+    background: none;
+    border: none;
+    color: #aaa;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 1rem;
+    border-bottom: 2px solid transparent;
+    transition:
+      color 0.2s,
+      border-color 0.2s;
   }
-  .info-tabs .tab.active { 
-    color: #fff; 
-    border-bottom-color: var(--accent-color); 
+  .info-tabs .tab.active {
+    color: #fff;
+    border-bottom-color: var(--accent-color);
   }
-  .content-wrapper { 
-    position: relative; 
-    padding-top: 0.5rem; /* Reducido de 1rem */
-    flex-grow: 1; 
+  .content-wrapper {
+    position: relative;
+    padding-top: 0.5rem;
+    flex-grow: 1;
   }
-  .tab-content { 
-    display: none; 
+  .tab-content {
+    display: none;
   }
-  .tab-content.active { 
-    display: flex; 
-    flex-direction: column; 
+  .tab-content.active {
+    display: flex;
+    flex-direction: column;
   }
-  .synopsis-panel { 
-    line-height: 1.6; 
+  .synopsis-panel {
+    line-height: 1.6;
   }
-  .series-meta { 
-    margin-bottom: 0.75rem; /* Reducido de 1.5rem */
-    line-height: 1.8; 
+  .series-meta {
+    margin-bottom: 0.75rem;
+    line-height: 1.8;
   }
-  .meta-item { 
-    display: inline-flex; 
-    align-items: baseline; 
-    margin-right: 1.5rem; 
-    margin-bottom: 0.5rem; 
-    font-size: 0.9rem; 
+  .meta-item {
+    display: inline-flex;
+    align-items: baseline;
+    margin-right: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
   }
-  .meta-label { 
-    font-weight: bold; 
-    color: #ccc; 
-    margin-right: 0.5rem; 
-    white-space: nowrap; 
+  .meta-label {
+    font-weight: bold;
+    color: #ccc;
+    margin-right: 0.5rem;
+    white-space: nowrap;
   }
-  .meta-value { 
-    color: #e0e0e0; 
+  .meta-value {
+    color: #e0e0e0;
   }
-  .genre-tags { 
-    display: flex; /* Cambio de inline-grid a flex */
-    flex-wrap: wrap; /* Permitir varias filas si es necesario */
-    gap: 0.5rem; 
-    vertical-align: baseline; 
+  .genre-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    vertical-align: baseline;
   }
-  .genre-tag { 
-    background-color: #333; 
-    color: #eee; 
-    padding: 0.25rem 0.6rem; 
-    border-radius: 12px; 
-    font-size: 0.8rem; 
-    border: 1px solid #555; 
-    white-space: nowrap; 
-    text-align: center; 
+  .genre-tag {
+    background-color: #333;
+    color: #eee;
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    border: 1px solid #555;
+    white-space: nowrap;
+    text-align: center;
   }
-  .series-meta-grid { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 1rem; 
-    background-color: #2a2a2a; 
-    padding: 1rem; 
-    border-radius: 8px; 
+  .series-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    background-color: #2a2a2a;
+    padding: 1rem;
+    border-radius: 8px;
   }
-  .meta-grid-item { 
-    display: flex; 
-    flex-direction: row; 
-    align-items: center; 
-    gap: 0.5rem; 
-    font-size: 0.9rem; 
+  .meta-grid-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
   }
-  .meta-grid-item.full-width-grid { 
-    grid-column: 1 / -1; 
+  .meta-grid-item.full-width-grid {
+    grid-column: 1 / -1;
   }
-  .meta-grid-item span:first-child { 
-    color: #aaa; 
-    font-weight: bold; 
-    display: inline-flex; 
-    align-items: center; 
-    gap: 0.4rem; 
+  .meta-grid-item span:first-child {
+    color: #aaa;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
   }
-  .reactions-container { 
-    grid-column: 1 / -1; 
-    display: flex; 
-    flex-direction: row; 
-    justify-content: space-around; 
-    align-items: center; 
-    padding-top: 0.75rem; 
-    margin-top: 0.75rem; 
-    border-top: 1px solid #444; 
+  .reactions-container {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    padding-top: 0.75rem;
+    margin-top: 0.75rem;
+    border-top: 1px solid #444;
   }
-  .reaction-item { 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    gap: 0.25rem; 
+  .reaction-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
   }
-  .reaction-emoji, 
-  .reaction-emoji-icon { 
-    font-size: 2rem; 
-    background: none; 
-    border: none; 
-    color: #fff; 
-    padding: 0; 
-    line-height: 1; 
-    display: inline-block; 
-    transition: 
-      transform 0.2s ease, 
-      filter 0.2s; 
+  .reaction-emoji,
+  .reaction-emoji-icon {
+    font-size: 2rem;
+    background: none;
+    border: none;
+    color: #fff;
+    padding: 0;
+    line-height: 1;
+    display: inline-block;
+    transition:
+      transform 0.2s ease,
+      filter 0.2s;
   }
-  .reaction-link { 
-    text-decoration: none; 
-    cursor: pointer; 
+  .reaction-link {
+    text-decoration: none;
+    cursor: pointer;
   }
-  .reaction-count { 
-    font-size: 0.8rem; 
-    color: #ccc; 
+  .reaction-count {
+    font-size: 0.8rem;
+    color: #ccc;
   }
-  .reactions-container .reaction-emoji { 
-    cursor: pointer; 
+  .reactions-container .reaction-emoji {
+    cursor: pointer;
   }
-  .reactions-container .reaction-emoji:hover { 
-    transform: scale(1.2); 
+  .reactions-container .reaction-emoji:hover {
+    transform: scale(1.2);
   }
-  .reactions-container .reaction-emoji.selected { 
-    transform: scale(1.1); 
-    filter: drop-shadow(0 0 5px var(--accent-color)); 
+  .reactions-container .reaction-emoji.selected {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 5px var(--accent-color));
   }
-  .reaction-link:hover .reaction-emoji-icon { 
-    transform: scale(1.1); 
-    opacity: 0.8; 
+  .reaction-link:hover .reaction-emoji-icon {
+    transform: scale(1.1);
+    opacity: 0.8;
   }
-  .chapters-list { 
-    list-style: none; 
-    padding: 0; 
-    max-height: 400px; 
-    overflow-y: auto; 
-    border: 1px solid #333; 
-    border-radius: 8px; 
-    width: 100%; 
+  .chapters-list {
+    list-style: none;
+    padding: 0;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #333;
+    border-radius: 8px;
+    width: 100%;
   }
-  .chapters-list li { 
-    border-bottom: 1px solid #333; 
+  .chapters-list li {
+    border-bottom: 1px solid #333;
   }
-  .chapters-list li:last-child { 
-    border-bottom: none; 
+  .chapters-list li:last-child {
+    border-bottom: none;
   }
-  .chapters-list li a { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    gap: 0.75rem; 
-    padding: 1rem; 
-    background-color: var(--card-background); 
-    transition: background-color 0.2s; 
-    white-space: nowrap; 
+  .chapters-list li a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background-color: var(--card-background);
+    transition: background-color 0.2s;
+    white-space: nowrap;
   }
-  .chapters-list li a:hover { 
-    background-color: #333; 
+  .chapters-list li a:hover {
+    background-color: #333;
   }
-  .chapter-number { 
-    color: #e0e0e0; 
-    font-weight: bold; 
-    flex-shrink: 0; 
+  .chapter-number {
+    color: #e0e0e0;
+    font-weight: bold;
+    flex-shrink: 0;
   }
-  .chapter-name { 
-    color: #e0e0e0; 
-    flex-grow: 1; 
-    overflow: hidden; 
-    text-overflow: ellipsis; 
-    text-align: left; 
+  .chapter-name {
+    color: #e0e0e0;
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
   }
-  .chapter-views { 
-    color: #aaa; 
-    font-size: 0.9em; 
-    flex-shrink: 0; 
+  .chapter-views {
+    color: #aaa;
+    font-size: 0.9em;
+    flex-shrink: 0;
   }
-  .chapter-date { 
-    color: #aaa; 
-    font-size: 0.9em; 
-    flex-shrink: 0; 
+  .chapter-date {
+    color: #aaa;
+    font-size: 0.9em;
+    flex-shrink: 0;
   }
-  .chapter-separator { 
-    color: #555; 
+  .chapter-separator {
+    color: #555;
   }
-  .chapters-list li p { 
-    padding: 1rem; 
-    text-align: center; 
-    color: #888; 
+  .chapters-list li p {
+    padding: 1rem;
+    text-align: center;
+    color: #888;
   }
-  #comments-content > :global(.comments-section) { 
-    width: 100%; 
-    max-width: none; 
-    margin: 0; 
-    padding: 0; 
-    border-top: none; 
+  #comments-content > :global(.comments-section) {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border-top: none;
   }
-  .comments-container-wrapper { 
-    width: 100%; 
+  .comments-container-wrapper {
+    width: 100%;
   }
 
-  @media (max-width: 900px) { 
-    .series-header-grid { 
-      /* Cambiamos a flex column para manejar el orden fácilmente */
+  @media (max-width: 900px) {
+    .series-header-grid {
       display: flex;
       flex-direction: column;
-      text-align: center; 
-      gap: 1rem; /* Reducimos gap para móvil */
-      padding: 0 1rem; 
+      text-align: center;
+      gap: 1rem;
+      padding: 0 1rem;
     }
-
-    /* "Deshacemos" los contenedores para que sus hijos sean directos del grid/flex padre */
-    .cover-and-rating-wrapper, 
-    .series-info-panel { 
-      display: contents; 
+    .cover-and-rating-wrapper,
+    .series-info-panel {
+      display: contents;
     }
-
-    /* REORDENAMIENTO PARA MÓVIL (ANDROID) */
-    
-    /* 1. Título */
     .series-title-header {
       order: 1;
       text-align: center;
       margin-bottom: 0.5rem;
       width: 100%;
     }
-
-    /* 2. Portada */
-    .series-cover { 
+    .series-cover {
       order: 2;
-      max-width: 200px; 
-      margin: 0 auto; 
+      max-width: 200px;
+      margin: 0 auto;
       width: 100%;
     }
-
-    /* 3. Rating */
     .rating-section {
       order: 3;
       width: 100%;
       justify-content: center;
       margin-bottom: 1rem;
     }
-
-    /* 4. Tabs e Info */
     .info-tabs {
       order: 4;
       justify-content: center;
@@ -887,186 +865,79 @@ const reactions = [
       order: 5;
       width: 100%;
     }
-
-    /* Ajustes visuales extra para móvil */
-    .cover-and-rating-wrapper, 
-    .series-info-panel { 
-      width: 100%; 
+    .series-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.5rem;
+      text-align: left;
+      line-height: 1.6;
+      border-bottom: 1px solid #333;
+      padding-bottom: 1rem;
     }
-    .series-meta { 
-      display: flex; 
-      flex-wrap: wrap; 
-      gap: 0.5rem 1.5rem; 
-      text-align: left; 
-      line-height: 1.6; 
-      border-bottom: 1px solid #333; 
-      padding-bottom: 1rem; 
-    }
-    .meta-item { 
-      margin: 0; 
-      padding: 0; 
-      border: none; 
-    }
-    .meta-item.meta-item-full { 
-      flex-basis: 100%; 
-    }
-    .genre-tags { 
-      display: flex; 
-      flex-wrap: wrap; 
-      gap: 0.5rem; 
-      margin-top: 0.25rem; 
-    }
-    .series-meta-grid { 
-      text-align: left; 
-      grid-template-columns: 1fr; 
-    }
-    .chapters-list li a { 
-      flex-wrap: wrap; 
-      justify-content: space-between; 
-      row-gap: 0.25rem; 
-      flex-direction: column; /* Cambiar a columna para que los elementos se apilen */ 
-      align-items: flex-start; /* Alinear a la izquierda */ 
-    }
-    .chapter-number { 
-      order: 1; 
-      width: 100%; /* Ocupar todo el ancho */ 
-    }
-    .chapter-name { 
-      width: 100%; 
-      order: 2; /* Cambiado de 3 a 2 */ 
-      text-align: left; 
-      margin-top: 0.25rem; 
-      color: #ccc; 
-    }
-    .chapter-views { 
-      order: 3; /* Cambiado de 2 a 3 */ 
-      display: inline; 
-      width: 100%; /* Ocupar todo el ancho */ 
-      text-align: left; 
-      font-size: 0.8em; /* Reducir tamaño de fuente */ 
-      color: #888; 
-    }
-    .chapter-date { 
-      order: 4; /* Añadido */ 
-      display: block; /* Mostrar la fecha */ 
-      width: 100%; /* Ocupar todo el ancho */ 
-      text-align: left; 
-      font-size: 0.8em; /* Reducir tamaño de fuente */ 
-      color: #888; 
-    }
-    .chapter-separator { 
-      display: none; /* Mantener oculto el separador */ 
+    .series-meta-grid {
+      text-align: left;
+      grid-template-columns: 1fr;
     }
   }
 
-  @media (max-width: 480px) { 
-    .series-title-header { 
-      font-size: 1.5rem; 
-      padding-top: 1rem; 
+  @media (max-width: 480px) {
+    .series-title-header {
+      font-size: 1.5rem;
+      padding-top: 1rem;
     }
-    .info-tabs .tab { 
-      padding: 0.5rem 0.75rem; 
-      font-size: 0.9rem; 
+    .info-tabs .tab {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
     }
-    .reaction-emoji, 
-    .reaction-emoji-icon { 
-      font-size: 1.5rem; 
+    .reaction-emoji,
+    .reaction-emoji-icon {
+      font-size: 1.5rem;
     }
   }
 
-  /* APP PROMO BANNER STYLES */
-  .app-promo-banner {
-    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-    border: 2px solid var(--accent-color, #ffc107);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .app-promo-banner::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,193,7,0.05) 0%, transparent 70%);
-    pointer-events: none;
-  }
-
-  .app-promo-content {
+  /* APP PROMO BANNER MINI STYLES */
+  .app-promo-banner-mini {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 1.5rem;
-    position: relative;
-    z-index: 1;
-  }
-
-  .app-promo-text h3 {
-    color: var(--accent-color, #ffc107);
-    margin: 0 0 0.5rem 0;
-    font-size: 1.25rem;
-    font-weight: bold;
-  }
-
-  .app-promo-text p {
-    color: #ccc;
-    margin: 0;
+    background-color: #222;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1.5rem;
+    color: #fff;
     font-size: 0.95rem;
-    line-height: 1.4;
+    font-weight: 500;
   }
 
-  .btn-app-download {
+  .btn-app-download-mini {
     background-color: var(--accent-color, #ffc107);
     color: #000 !important;
-    padding: 0.8rem 1.5rem;
-    border-radius: 8px;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
     font-weight: bold;
     text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    transition: transform 0.2s, box-shadow 0.2s;
-    flex-shrink: 0;
-    animation: pulse-button 2s infinite;
+    transition: transform 0.2s, opacity 0.2s;
+    white-space: nowrap;
   }
 
-  .btn-app-download:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
-    background-color: #ffca2c;
+  .btn-app-download-mini:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 
-  .btn-app-download .icon {
-    font-size: 1.2rem;
-  }
-
-  @keyframes pulse-button {
-    0% {
-      box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
-    }
-    70% {
-      box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
-    }
-  }
-
-  @media (max-width: 768px) {
-    .app-promo-content {
+  @media (max-width: 600px) {
+    .app-promo-banner-mini {
       flex-direction: column;
+      gap: 0.75rem;
       text-align: center;
-      gap: 1rem;
+      padding: 1rem;
     }
-    
-    .btn-app-download {
+    .btn-app-download-mini {
       width: 100%;
-      justify-content: center;
+      text-align: center;
     }
   }
 </style>
