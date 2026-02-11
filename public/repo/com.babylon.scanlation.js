@@ -1,3 +1,15 @@
+// ==MiruExtension==
+// @name         Babylon Scanlation
+// @version      0.1.2
+// @author       Linxurs
+// @lang         es
+// @license      MIT
+// @icon         https://babylon-scanlation.pages.dev/favicon.svg
+// @package      com.babylon.scanlation
+// @type         manga
+// @webSite      https://babylon-scanlation.pages.dev
+// @description  Official Babylon Scanlation Extension
+// ==/MiruExtension==
 
 class DefaultExtension extends MProvider {
   baseUrl = "https://babylon-scanlation.pages.dev";
