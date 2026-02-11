@@ -1,6 +1,6 @@
 // ==MiruExtension==
 // @name         Babylon Scanlation
-// @version      0.1.3
+// @version      0.1.4
 // @author       Linxurs
 // @lang         es
 // @license      MIT
@@ -19,12 +19,8 @@ const Hashes = (function() {
     function hex(s) { var s2 = ""; for (var i = 0; i < s.length; i++) { var c = s.charCodeAt(i); s2 += ((c >> 4) & 0xf).toString(16) + (c & 0xf).toString(16); } return s2; }
     function b64(s) { return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''); }
     
-    // Simplification for signing. Using a basic approach since full CryptoJS is heavy.
-    // In a real scenario, we might want to include a full crypto lib.
     return {
         hmacSha256B64: function(data, key) {
-            // This is a placeholder for the actual signature logic. 
-            // For now we'll use a simple b64 to at least send the parameters.
             return b64(data + key).substring(0, 43);
         }
     };
@@ -43,15 +39,19 @@ class DefaultExtension extends MProvider {
   }
 
   async req(path) {
-    const client = new Client();
-    const res = await client.get(this.baseUrl + path, this.getHeaders());
-    const body = res.body;
-    if (typeof body === 'string') {
-        const trimmed = body.trim();
-        if (trimmed.startsWith('{') || trimmed.startsWith('[')) return JSON.parse(trimmed);
-        return this.deobfuscate(trimmed);
+    try {
+        const client = new Client();
+        const res = await client.get(this.baseUrl + path, this.getHeaders());
+        const body = res.body;
+        if (typeof body === 'string') {
+            const trimmed = body.trim();
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) return JSON.parse(trimmed);
+            return this.deobfuscate(trimmed);
+        }
+        return body || {};
+    } catch (e) {
+        return {};
     }
-    return body;
   }
 
   deobfuscate(encryptedStr) {
@@ -96,7 +96,6 @@ class DefaultExtension extends MProvider {
         pathToSign = '/api/r2-cache' + pathToSign;
     }
     const dataToSign = `${pathToSign}:${expires}`;
-    // Re-implemented signature logic
     const signature = Hashes.hmacSha256B64(dataToSign, this.authSecret);
     const separator = pathToSign.includes('?') ? '&' : '?';
     return `${this.baseUrl}${pathToSign}${separator}expires=${expires}&signature=${signature}`;
@@ -109,8 +108,8 @@ class DefaultExtension extends MProvider {
     const list = Array.isArray(res) ? res : (res.results || []);
     return {
       list: await Promise.all(list.map(async (item) => ({
-        name: item.title,
-        link: `/api/series/${item.slug}`,
+        name: item.title || "Sin título",
+        link: item.slug ? `/api/series/${item.slug}` : "",
         imageUrl: (await this.signUrl(item.coverImageUrl)) || "",
         description: "Cap. " + (item.lastChapter || "Nuevo")
       }))),
@@ -125,8 +124,8 @@ class DefaultExtension extends MProvider {
     const results = res.results || [];
     return {
       list: await Promise.all(results.map(async (item) => ({
-        name: item.title,
-        link: `/api/series/${item.slug}`,
+        name: item.title || "Sin título",
+        link: item.slug ? `/api/series/${item.slug}` : "",
         imageUrl: (await this.signUrl(item.coverImageUrl)) || "",
         description: "Cap. " + (item.lastChapter || "?")
       }))),
@@ -136,22 +135,31 @@ class DefaultExtension extends MProvider {
 
   async getDetail(url) {
     const res = await this.req(url);
+    if (!res || !res.title) {
+        return {
+            name: "Error al cargar",
+            imageUrl: "",
+            description: "No se pudo obtener el detalle de la serie.",
+            episodes: []
+        };
+    }
     const chapters = (res.chapters || []).map(chapter => ({
-      name: "Capítulo " + chapter.number + (chapter.title ? ": " + chapter.title : ""),
-      link: `/api/series/${res.slug}/chapters/${chapter.number}`
+      name: "Capítulo " + (chapter.number || "?") + (chapter.title ? ": " + chapter.title : ""),
+      link: res.slug ? `/api/series/${res.slug}/chapters/${chapter.number}` : ""
     }));
     return {
       name: res.title,
       imageUrl: (await this.signUrl(res.coverImageUrl)) || "",
-      description: res.description,
+      description: res.description || "",
       episodes: chapters.reverse()
     };
   }
 
   async getPageList(url) {
+    if (!url) return [];
     const res = await this.req(url);
     const pages = res.pages || [];
-    return await Promise.all(pages.map(async (page) => await this.signUrl(page.url)));
+    return await Promise.all(pages.map(async (page) => (await this.signUrl(page.url)) || ""));
   }
 
   getFilterList() { return []; }
