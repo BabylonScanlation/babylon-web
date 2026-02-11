@@ -1,6 +1,6 @@
 // ==MiruExtension==
 // @name         Babylon Scanlation
-// @version      0.1.9
+// @version      0.2.0
 // @author       Linxurs
 // @lang         es
 // @license      MIT
@@ -36,13 +36,22 @@ class DefaultExtension extends MProvider {
     try {
         const client = new Client();
         const res = await client.get(this.baseUrl + path, this.getHeaders());
-        const body = res.body;
+        let body = res.body;
+        
         if (typeof body === 'string') {
             const trimmed = body.trim();
-            if (trimmed.startsWith('{') || trimmed.startsWith('[')) return JSON.parse(trimmed);
-            const decrypted = this.deobfuscate(trimmed);
-            return decrypted || {};
+            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                body = JSON.parse(trimmed);
+            } else {
+                return this.deobfuscate(trimmed) || {};
+            }
         }
+        
+        if (body && body.payload) {
+            const decrypted = this.deobfuscate(body.payload);
+            return decrypted || body;
+        }
+        
         return body || {};
     } catch (e) {
         return {};
@@ -53,28 +62,30 @@ class DefaultExtension extends MProvider {
     try {
       if (!encryptedStr || encryptedStr.length < 10) return null;
       const decoded = this.base64Decode(encryptedStr);
-      if (!decoded.startsWith(this.nuclearSalt)) return null;
+      if (!decoded || !decoded.startsWith(this.nuclearSalt)) return null;
       return JSON.parse(decoded.slice(this.nuclearSalt.length));
     } catch (e) { return null; }
   }
 
   base64Decode(str) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-    let output = '';
+    let bytes = [];
     str = str.replace(/[^A-Za-z0-9+/=]/g, '');
     for (let i = 0; i < str.length; i += 4) {
       const enc1 = chars.indexOf(str[i]);
       const enc2 = chars.indexOf(str[i + 1]);
       const enc3 = chars.indexOf(str[i + 2]);
       const enc4 = chars.indexOf(str[i + 3]);
-      const chr1 = (enc1 << 2) | (enc2 >> 4);
-      const chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
-      const chr3 = ((enc3 & 3) << 6) | enc4;
-      output += String.fromCharCode(chr1);
-      if (enc3 !== 64) output += String.fromCharCode(chr2);
-      if (enc4 !== 64) output += String.fromCharCode(chr3);
+      bytes.push((enc1 << 2) | (enc2 >> 4));
+      if (enc3 !== 64) bytes.push(((enc2 & 15) << 4) | (enc3 >> 2));
+      if (enc4 !== 64) bytes.push(((enc3 & 3) << 6) | enc4);
     }
-    return decodeURIComponent(escape(output));
+    try {
+        return decodeURIComponent(bytes.map(c => '%' + ('00' + c.toString(16)).slice(-2)).join(''));
+    } catch (e) {
+        // Fallback to simple string if UTF-8 decode fails
+        return String.fromCharCode.apply(null, bytes);
+    }
   }
 
   async signUrl(path) {
@@ -180,14 +191,26 @@ class DefaultExtension extends MProvider {
 
   async getPageList(url) {
     if (!url) return [];
-    const res = await this.req(url);
-    if (!res) return [];
-    const pages = res.pages || [];
-    // Important: Mangayomi expects a list of STRINGS (urls), not objects for JS extensions by default unless using specific map.
-    // Ensure we return clean strings.
-    return await Promise.all(pages.map(async (page) => {
-        const url = await this.signUrl(page.imageUrl);
-        return url || "";
+    let res = null;
+    let attempts = 0;
+    
+    // Polling logic for chapters being processed
+    while (attempts < 10) {
+        res = await this.req(url);
+        if (res && res.pages && res.pages.length > 0) break;
+        if (res && res.status !== 'processing') break;
+        
+        attempts++;
+        // Wait 5 seconds before next poll
+        const client = new Client();
+        await new Promise(r => setTimeout(r, 5000));
+    }
+    
+    if (!res || !res.pages) return [];
+    
+    return await Promise.all(res.pages.map(async (page) => {
+        const imageUrl = page.imageUrl || page.url;
+        return (await this.signUrl(imageUrl)) || "";
     }));
   }
 
