@@ -87,7 +87,7 @@ class DefaultExtension extends MProvider {
       list: await Promise.all(list.map(async (item) => ({
         name: item.title,
         link: `/api/series/${item.slug}`,
-        imageUrl: await this.signUrl(item.coverImageUrl),
+        imageUrl: (await this.signUrl(item.coverImageUrl)) || "",
         description: "Cap. " + (item.lastChapter || "Nuevo")
       }))),
       hasNextPage: list.length > 0
@@ -105,7 +105,7 @@ class DefaultExtension extends MProvider {
       list: await Promise.all(results.map(async (item) => ({
         name: item.title,
         link: `/api/series/${item.slug}`,
-        imageUrl: await this.signUrl(item.coverImageUrl),
+        imageUrl: (await this.signUrl(item.coverImageUrl)) || "",
         description: "Cap. " + (item.lastChapter || "?")
       }))),
       hasNextPage: results.length > 0
@@ -121,7 +121,7 @@ class DefaultExtension extends MProvider {
     
     return {
       name: res.title,
-      imageUrl: await this.signUrl(res.coverImageUrl),
+      imageUrl: (await this.signUrl(res.coverImageUrl)) || "",
       description: res.description,
       episodes: chapters.reverse()
     };
