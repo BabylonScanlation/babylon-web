@@ -1,6 +1,6 @@
 // ==MiruExtension==
 // @name         Babylon Scanlation
-// @version      0.2.0
+// @version      0.2.1
 // @author       Linxurs
 // @lang         es
 // @license      MIT
@@ -10,15 +10,6 @@
 // @webSite      https://babylon-scanlation.pages.dev
 // @description  Official Babylon Scanlation Extension
 // ==/MiruExtension==
-
-const Hashes = (function() {
-    function b64(s) { return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''); }
-    return {
-        hmacSha256B64: function(data, key) {
-            return b64(data + key).substring(0, 43);
-        }
-    };
-})();
 
 class DefaultExtension extends MProvider {
   baseUrl = "https://babylon-scanlation.pages.dev";
@@ -67,6 +58,7 @@ class DefaultExtension extends MProvider {
     } catch (e) { return null; }
   }
 
+  // Robust UTF-8 safe Base64 decode
   base64Decode(str) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
     let bytes = [];
@@ -80,31 +72,21 @@ class DefaultExtension extends MProvider {
       if (enc3 !== 64) bytes.push(((enc2 & 15) << 4) | (enc3 >> 2));
       if (enc4 !== 64) bytes.push(((enc3 & 3) << 6) | enc4);
     }
-    try {
-        return decodeURIComponent(bytes.map(c => '%' + ('00' + c.toString(16)).slice(-2)).join(''));
-    } catch (e) {
-        // Fallback to simple string if UTF-8 decode fails
-        return String.fromCharCode.apply(null, bytes);
+    
+    // Manual UTF-8 decoding to avoid "Ã" and other mojibake
+    let out = "", i = 0;
+    while (i < bytes.length) {
+        let c = bytes[i++];
+        if (c < 128) out += String.fromCharCode(c);
+        else if (c > 191 && c < 224) out += String.fromCharCode(((c & 31) << 6) | (bytes[i++] & 63));
+        else if (c > 239 && c < 248) {
+            let val = ((c & 7) << 18) | ((bytes[i++] & 63) << 12) | ((bytes[i++] & 63) << 6) | (bytes[i++] & 63);
+            val -= 0x10000;
+            out += String.fromCharCode(0xD800 | (val >> 10)) + String.fromCharCode(0xDC00 | (val & 0x3FF));
+        }
+        else out += String.fromCharCode(((c & 15) << 12) | ((bytes[i++] & 63) << 6) | (bytes[i++] & 63));
     }
-  }
-
-  async signUrl(path) {
-    if (!path) return "";
-    if (path.startsWith('http') && !path.includes('api/r2-cache')) return path;
-    const ttlMs = 1000 * 60 * 60 * 2;
-    const expires = Date.now() + ttlMs;
-    let pathToSign = path;
-    if (path.startsWith('http')) {
-       try { pathToSign = new URL(path).pathname; } catch(e) {}
-    }
-    if (!pathToSign.startsWith('/')) pathToSign = '/' + pathToSign;
-    if (!pathToSign.startsWith('/api/r2-cache') && !pathToSign.startsWith('/api/assets')) {
-        pathToSign = '/api/r2-cache' + pathToSign;
-    }
-    const dataToSign = `${pathToSign}:${expires}`;
-    const signature = Hashes.hmacSha256B64(dataToSign, this.authSecret);
-    const separator = pathToSign.includes('?') ? '&' : '?';
-    return `${this.baseUrl}${pathToSign}${separator}expires=${expires}&signature=${signature}`;
+    return out;
   }
 
   get supportsLatest() { return true; }
@@ -113,12 +95,12 @@ class DefaultExtension extends MProvider {
     const res = await this.req(`/api/series/recent?page=${page}`);
     const list = Array.isArray(res) ? res : (res.results || []);
     return {
-      list: await Promise.all(list.map(async (item) => ({
+      list: list.map((item) => ({
         name: item.title || "Sin título",
         link: item.slug ? `/api/series/${item.slug}` : "",
-        imageUrl: (await this.signUrl(item.coverImageUrl)) || "",
+        imageUrl: item.coverImageUrl || "",
         description: "Cap. " + (item.lastChapter || "Nuevo")
-      }))),
+      })),
       hasNextPage: list.length > 0
     };
   }
@@ -129,12 +111,12 @@ class DefaultExtension extends MProvider {
     const res = await this.req(`/api/search?q=${encodeURIComponent(query)}&page=${page}`);
     const results = res.results || [];
     return {
-      list: await Promise.all(results.map(async (item) => ({
+      list: results.map((item) => ({
         name: item.title || "Sin título",
         link: item.slug ? `/api/series/${item.slug}` : "",
-        imageUrl: (await this.signUrl(item.coverImageUrl)) || "",
+        imageUrl: item.coverImageUrl || "",
         description: "Cap. " + (item.lastChapter || "?")
-      }))),
+      })),
       hasNextPage: results.length > 0
     };
   }
@@ -179,7 +161,7 @@ class DefaultExtension extends MProvider {
 
     return {
       name: res.title || "Sin título",
-      imageUrl: (await this.signUrl(res.coverImageUrl)) || "",
+      imageUrl: res.coverImageUrl || "",
       description: res.description || "Sin descripción",
       author: res.author || "Desconocido",
       artist: res.artist || "Desconocido",
@@ -195,23 +177,29 @@ class DefaultExtension extends MProvider {
     let attempts = 0;
     
     // Polling logic for chapters being processed
-    while (attempts < 10) {
+    while (attempts < 15) {
         res = await this.req(url);
         if (res && res.pages && res.pages.length > 0) break;
         if (res && res.status !== 'processing') break;
         
         attempts++;
-        // Wait 5 seconds before next poll
-        const client = new Client();
-        await new Promise(r => setTimeout(r, 5000));
+        // Use a small loop instead of setTimeout if needed, but await should work
+        await new Promise(r => {
+            const start = Date.now();
+            while(Date.now() - start < 3000) {} // Busy wait fallback for 3s if needed
+            r();
+        });
     }
     
     if (!res || !res.pages) return [];
     
-    return await Promise.all(res.pages.map(async (page) => {
-        const imageUrl = page.imageUrl || page.url;
-        return (await this.signUrl(imageUrl)) || "";
-    }));
+    return res.pages.map((page) => {
+        let imageUrl = page.imageUrl || page.url;
+        if (imageUrl && !imageUrl.startsWith('http')) {
+            imageUrl = this.baseUrl + (imageUrl.startsWith('/') ? '' : '/') + imageUrl;
+        }
+        return imageUrl || "";
+    });
   }
 
   getFilterList() { return []; }
