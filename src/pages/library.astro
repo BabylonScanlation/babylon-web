@@ -1,0 +1,73 @@
+---
+import Layout from '../layouts/Layout.astro';
+import LibraryManager from '../components/LibraryManager.svelte';
+---
+
+<Layout title="Mi Biblioteca - Babylon">
+  <main class="library-page-container">
+    <div class="library-header">
+      <h1>Mi Biblioteca</h1>
+      <p>Gestiona tu lectura y sigue tus series favoritas</p>
+    </div>
+
+    <LibraryManager client:load />
+  </main>
+</Layout>
+
+<style>
+  .library-page-container {
+    padding: 3rem 1rem 6rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .library-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .library-header h1 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    margin-bottom: 0;
+    background: linear-gradient(to bottom, #fff, #999);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .library-header p {
+    color: #888;
+    font-size: 1.1rem;
+  }
+
+  @media (min-width: 1024px) {
+    .library-page-container {
+      padding: 0 4rem 8rem;
+      max-width: 100%;
+      width: 100%;
+      margin: 0;
+    }
+
+    .library-header {
+      text-align: left;
+      margin-bottom: 2rem;
+      padding-top: 2rem; /* Estándar ASTRA (antes 4rem) */
+      max-width: 1400px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: center; /* Centrado para igualar a News/Search */
+    }
+
+    .library-header h1 {
+      font-size: 3.5rem; /* Estándar ASTRA (antes 4rem) */
+      margin-bottom: 0;
+    }
+
+    .library-header p {
+      font-size: 1.25rem;
+      max-width: 600px;
+      margin-left: auto; /* Centrado */
+      margin-right: auto; /* Centrado */
+    }
+  }
+</style>

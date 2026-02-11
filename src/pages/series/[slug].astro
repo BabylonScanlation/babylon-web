@@ -1,0 +1,1021 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Image from '../../components/Image.astro';
+import UnifiedComments from '../../components/UnifiedComments.astro';
+import NewsFeed from '../../components/NewsFeed.astro';
+import AdminSeriesNewsForm from '../../components/AdminSeriesNewsForm.astro';
+import FavoriteButton from '../../components/FavoriteButton.svelte';
+import AdContainer from '../../components/AdContainer.astro';
+import { logError } from '../../lib/logError';
+import { formatFullDate, timeAgo, getImageUrl } from '../../lib/utils';
+import { getDB } from '../../lib/db';
+import { getCommentsForTarget } from '../../lib/data/comments';
+import { getSeriesDetails } from '../../lib/data/series';
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/404');
+
+const user = Astro.locals.user;
+const r2PublicUrlAssets = Astro.locals.runtime.env?.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
+const drizzleDb = getDB(Astro.locals.runtime.env);
+
+let series: any = null;
+let comments: any[] = [];
+let error: string | null = null;
+
+try {
+  series = await getSeriesDetails(drizzleDb, slug, user ? { uid: user.uid, isAdmin: !!user.isAdmin } : undefined);
+  
+  if (series) {
+    comments = await getCommentsForTarget(drizzleDb, 'series', series.id, user?.uid);
+  } else {
+    error = `Serie no encontrada.`;
+  }
+} catch (e) {
+  logError(e, 'Error cargando serie', { slug });
+  error = 'Error de conexión.';
+}
+
+// Orion: Evitar caché de Cloudflare para mostrar vistas reales instantáneamente
+Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+const formatDescription = (text: string | undefined) => {
+  if (!text) return '';
+  return text.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*(.*?)\*/g, '<i>$1</i>');
+};
+
+const initialState = {
+  userVote: series?.stats.userVote ?? null,
+  userReaction: series?.stats.userReaction ?? null,
+  isLoggedIn: !!user,
+};
+
+const stars = [1, 2, 3, 4, 5];
+const reactions = [
+  { emoji: '😀', id: 'love' },
+  { emoji: '😊', id: 'like' },
+  { emoji: '🤔', id: 'interesting' },
+  { emoji: '😟', id: 'dislike' },
+  { emoji: '😠', id: 'hate' },
+];
+---
+
+<Layout title={series?.title ?? 'Serie - Babylon'}>
+  {
+    series && (
+      <main class="series-minimal-page" data-series-id={series.id}>
+        <div class="series-content-grid">
+          <!-- Sidebar: Reactions & Poster -->
+          <aside class="compact-sidebar">
+            <div class="reactions-top-bar">
+              {reactions.map((r) => (
+                <div class="react-mini-item">
+                  <button
+                    class:list={['react-mini-btn', { selected: series.stats.userReaction === r.emoji }]}
+                    data-emoji={r.emoji}
+                    data-open-modal={!user ? "login" : undefined}
+                  >{r.emoji}</button>
+                  <span class="react-mini-count">{series.stats.reactionCounts[r.emoji] || 0}</span>
+                </div>
+              ))}
+            </div>
+
+            <div class="poster-container">
+              <Image 
+                src={getImageUrl(series.coverImageUrl, r2PublicUrlAssets, 'series')} 
+                alt={series.title} 
+                class="compact-poster" 
+                width={280}
+                height={420}
+              />
+              {series.isAppSeries && (
+                <button id="download-app-btn" class="compact-app-btn" title="Descargar App">
+                  <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  App Babylon
+                </button>
+              )}
+            </div>
+          </aside>
+
+          <!-- Main Content -->
+          <div class="main-info-area">
+            <header class="compact-header">
+              <div class="badge-row">
+                <FavoriteButton
+                  client:visible
+                  seriesId={series.id}
+                  isFavorited={series.stats.isFavorited}
+                  isLoggedIn={!!user}
+                />
+
+                <div class="rating-inline-header">
+                  <div class="stars-row-minimal">
+                    {stars.map((star) => (
+                      <button class="star-mini" data-value={star} data-open-modal={!user ? "login" : undefined}>☆</button>
+                    ))}
+                  </div>
+                  <div class="rating-text-minimal">
+                    <span class="rating-avg">{series.stats.averageRating.toFixed(1)}</span>
+                    <span class="rating-count">({series.stats.totalVotes})</span>
+                  </div>
+                </div>
+
+                {series.status && <span class="mini-badge accent">{series.status}</span>}
+                {series.type && <span class="mini-badge">{series.type}</span>}
+
+                <div class="mini-badge views-badge">
+                  <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="3" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <span>{series.views?.toLocaleString() || 0}</span>
+                </div>
+              </div>
+
+              <h1>{series.title}</h1>
+              {series.alternativeNames && <p class="alt-titles">{series.alternativeNames}</p>}
+            </header>
+
+            <nav class="minimal-tabs">
+              <button class="tab-link active" data-tab="details">Detalles</button>
+              <button class="tab-link" data-tab="synopsis">Sinopsis</button>
+              <button class="tab-link" data-tab="chapters">Capítulos</button>
+              <button class="tab-link" data-tab="comments">
+                Comentarios
+                <span class="tab-count">{comments.length}</span>
+              </button>
+              <button class="tab-link" data-tab="news">Noticias</button>
+            </nav>
+
+            <div class="tab-panes">
+              <!-- DETALLES -->
+              <div id="details-content" class="tab-pane active">
+                <div class="details-list">
+                  {series.author && (
+                    <div class="detail-row">
+                      <span class="label">Autor</span>
+                      <span class="value">{series.author}</span>
+                    </div>
+                  )}
+                  {series.artist && (
+                    <div class="detail-row">
+                      <span class="label">Artista</span>
+                      <span class="value">{series.artist}</span>
+                    </div>
+                  )}
+                  {series.demographic && (
+                    <div class="detail-row">
+                      <span class="label">Demografía</span>
+                      <span class="value">{series.demographic}</span>
+                    </div>
+                  )}
+                  {series.genres && (
+                    <div class="detail-row">
+                      <span class="label">Géneros</span>
+                      <div class="tags">
+                        {series.genres.split(',').map((g: string) => (
+                          <span class="tag-mini">{g.trim()}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {series.publishedBy && (
+                    <div class="detail-row">
+                      <span class="label">Editorial</span>
+                      <span class="value">{series.publishedBy}</span>
+                    </div>
+                  )}
+                  {series.serializedBy && (
+                    <div class="detail-row">
+                      <span class="label">Revista / Sitio</span>
+                      <span class="value">{series.serializedBy}</span>
+                    </div>
+                  )}
+                  <div class="detail-row">
+                    <span class="label">Publicado</span>
+                    <span class="value">{formatFullDate(series.createdAt)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SINOPSIS -->
+              <div id="synopsis-content" class="tab-pane">
+                <div class="synopsis-text">
+                  <p set:html={formatDescription(series.description)} />
+                </div>
+              </div>
+
+              <!-- CAPÍTULOS -->
+              <div id="chapters-content" class="tab-pane">
+                <div class="chapters-premium-grid">
+                  {series.chapters && series.chapters.length > 0 ? (
+                    series.chapters
+                      .sort((a: any, b: any) => b.chapterNumber - a.chapterNumber)
+                      .map((chapter: any) => {
+                        const isAppOnly = chapter.status === 'app_only';
+                        return (
+                          <div class="chapter-card-wrapper">
+                            <a
+                              href={isAppOnly ? '#' : `/series/${series.slug}/${chapter.chapterNumber}`}
+                              class:list={['chapter-card-premium', { 'app-locked-trigger': isAppOnly, 'is-locked': isAppOnly }]}
+                            >
+                              <div class="card-bg-glow"></div>
+                              <div class="card-content">
+                                <div class="chapter-main">
+                                  <span class="chapter-label">CAPÍTULO</span>
+                                  <h3 class="chapter-num">{chapter.chapterNumber}</h3>
+                                  <h4 class="chapter-title">
+                                    {chapter.title ? chapter.title : 'Sin título'}
+                                  </h4>
+                                </div>
+                                <div class="chapter-meta-row">
+                                  <div class="meta-item date">
+                                    <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                    {timeAgo(chapter.createdAt)}
+                                  </div>
+                                  <div class="meta-item views">
+                                    <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    {chapter.views.toLocaleString()}
+                                  </div>
+                                </div>
+                              </div>
+                              <div class="card-action">
+                                {isAppOnly ? (
+                                  <span class="status-badge app-only">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                                    APP
+                                  </span>
+                                ) : (
+                                  <span class="status-badge read">
+                                    LEER
+                                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                  </span>
+                                )}
+                              </div>
+                              <div class="watermark-num">{chapter.chapterNumber}</div>
+                            </a>
+                          </div>
+                        );
+                      })
+                  ) : (
+                    <div class="empty-chapters-premium">
+                      <p>No hay capítulos disponibles.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <!-- COMENTARIOS -->
+              <div id="comments-content" class="tab-pane">
+                <div class="comments-container-glass">
+                  <UnifiedComments targetType="series" targetId={series.id} comments={comments} user={user ?? null} />
+                </div>
+              </div>
+
+              <!-- NOTICIAS -->
+              <div id="news-content" class="tab-pane">
+                {user?.isAdmin && (
+                  <AdminSeriesNewsForm
+                    seriesId={series.id}
+                    seriesTitle={series.title}
+                    userName={user.username || user.displayName || 'Staff'}
+                    seriesCover={getImageUrl(series.coverImageUrl, r2PublicUrlAssets, 'series')}
+                  />
+                )}
+                <NewsFeed seriesId={series.id} user={user} />
+              </div>
+            </div>
+
+            <div class="series-bottom-ad-wrapper">
+              <AdContainer type="banner" className="series-mid-ad">
+                <script is:inline async="async" data-cfasync="false" src="https://crowdsubsequentadmire.com/2cd2af2560f6df7e49d533c069a08932/invoke.js" onerror="window.isAdsterraBlocked = true;"></script>
+                <div id="container-2cd2af2560f6df7e49d533c069a08932"></div>
+              </AdContainer>
+            </div>
+          </div>
+        </div>
+
+        <!-- Download Modal Minimal -->
+        <div id="download-modal" class="modal-overlay-minimal" style="display: none;">
+          <div class="modal-card-minimal">
+            <h3>App Babylon</h3>
+            <p>Descarga el APK oficial para Android.</p>
+            <div class="modal-actions">
+              <button id="cancel-download-btn">Cancelar</button>
+              <a href={`${r2PublicUrlAssets}/babylonweb-app/DtupScan.apk`} download class="btn-confirm">Descargar</a>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+  {
+    !series && error && (
+      <div class="error-container-full">
+        <div class="error-box-glass">
+          <svg viewBox="0 0 24 24" width="64" height="64" stroke="currentColor" stroke-width="1.5" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <h2>Lo sentimos</h2>
+          <p>{error}</p>
+          <a href="/" class="btn-back-home">Volver al Inicio</a>
+        </div>
+      </div>
+    )
+  }
+</Layout>
+
+<script is:inline define:vars={{ initialState }}>
+  function init() {
+    const state = initialState;
+    if (!state) return;
+
+    const tabs = document.querySelectorAll('.tab-link');
+    const panes = document.querySelectorAll('.tab-pane');
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        tabs.forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+        const target = tab.getAttribute('data-tab');
+        panes.forEach((p) => p.classList.toggle('active', p.id === `${target}-content`));
+      });
+    });
+
+    const main = document.querySelector('.series-minimal-page');
+    const seriesId = parseInt(main?.dataset.seriesId || '0', 10);
+    if (seriesId) fetch('/api/view', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seriesId }) }).catch(() => {});
+
+    const stars = document.querySelector('.stars-row-minimal');
+    if (stars) {
+      if (state.isLoggedIn) {
+        const update = (v) => stars.querySelectorAll('.star-mini').forEach((s, i) => s.classList.toggle('filled', i < (v || 0)));
+        update(state.userVote);
+        stars.addEventListener('mouseover', (e) => { const s = e.target.closest('.star-mini'); if (s) update(parseInt(s.dataset.value)); });
+        stars.addEventListener('mouseleave', () => update(state.userVote));
+        stars.addEventListener('click', async (e) => {
+          const s = e.target.closest('.star-mini'); if (!s) return;
+          const v = parseInt(s.dataset.value);
+          const nv = state.userVote === v ? null : v;
+          state.userVote = nv; update(nv);
+          const res = await fetch('/api/series/rate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seriesId, rating: nv }) });
+          const d = await res.json();
+          if (d.success) { document.querySelector('.rating-avg').textContent = d.newAverage.toFixed(1); document.querySelector('.rating-count').textContent = `(${d.newCount})`; }
+        });
+      } else {
+        stars.addEventListener('click', () => {
+          document.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }));
+        });
+      }
+    }
+
+    const reacts = document.querySelector('.reactions-top-bar');
+    if (reacts) {
+      if (state.isLoggedIn) {
+        reacts.addEventListener('click', async (e) => {
+          const b = e.target.closest('.react-mini-btn'); if (!b) return;
+          const emoji = b.dataset.emoji; const old = state.userReaction; const nv = old === emoji ? null : emoji;
+          state.userReaction = nv;
+          reacts.querySelectorAll('.react-mini-btn').forEach(btn => btn.classList.toggle('selected', btn.dataset.emoji === nv));
+          reacts.querySelectorAll('.react-mini-item').forEach(item => {
+            const btn = item.querySelector('.react-mini-btn'); const countEl = item.querySelector('.react-mini-count');
+            let c = parseInt(countEl.textContent || '0');
+            if (btn.dataset.emoji === old) c = Math.max(0, c - 1);
+            if (btn.dataset.emoji === nv) c += 1;
+            countEl.textContent = c.toString();
+          });
+          fetch('/api/series/react', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seriesId, emoji: nv }) }).catch(() => {});
+        });
+      } else {
+        reacts.addEventListener('click', () => {
+          document.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }));
+        });
+      }
+    }
+
+    const modal = document.getElementById('download-modal');
+    document.getElementById('download-app-btn')?.addEventListener('click', () => modal.style.display = 'flex');
+    document.getElementById('cancel-download-btn')?.addEventListener('click', () => modal.style.display = 'none');
+
+    // Manejar clics en capítulos bloqueados (App Only)
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('.app-locked-trigger');
+      if (target) {
+        e.preventDefault();
+        modal.style.display = 'flex';
+      }
+    });
+
+    // Escuchar cambios en el conteo de comentarios para actualizar la pestaña
+    window.addEventListener('comment-count-change', (e) => {
+      const { count, targetType: type, targetId: id } = e.detail;
+      // Verificar que el evento es para esta serie
+      if (type === 'series' && parseInt(id) === seriesId) {
+        const countEl = document.querySelector('.tab-link[data-tab="comments"] .tab-count');
+        if (countEl) countEl.textContent = count.toString();
+      }
+    });
+  }
+  init(); document.addEventListener('astro:page-load', init);
+</script>
+
+<style>
+  /* Astra: Ajuste equilibrado para separar contenido del header absolute */
+  @media (min-width: 1024px) {
+    .series-minimal-page {
+      padding-top: 0 !important;
+    }
+  }
+  @media (max-width: 1023px) {
+    .series-minimal-page {
+      padding-top: 0 !important;
+    }
+  }
+
+  .series-minimal-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .series-content-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 3rem;
+    align-items: start;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  /* Sidebar: Reactions + Poster */
+  .compact-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    align-self: start;
+  }
+
+  .poster-container {
+    width: 100%;
+    max-width: 280px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #111;
+    border: 1px solid #222;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .reactions-top-bar {
+    display: flex;
+    justify-content: space-between;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 0.6rem;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .react-mini-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .react-mini-btn {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    filter: grayscale(1);
+    opacity: 0.4;
+    transition: all 0.2s;
+    padding: 0;
+  }
+  .react-mini-btn:hover, .react-mini-btn.selected { filter: grayscale(0); opacity: 1; transform: scale(1.1); }
+  .react-mini-count { font-size: 0.65rem; color: #555; font-weight: 800; }
+
+  .compact-poster {
+    width: 100%;
+    aspect-ratio: 2/3;
+    object-fit: cover;
+    display: block;
+  }
+
+  .compact-app-btn {
+    width: 100%;
+    background: #1a1a1a;
+    border: none;
+    border-top: 1px solid #222;
+    color: var(--accent-color);
+    padding: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: background 0.2s;
+  }
+
+  .compact-app-btn:hover { background: #222; }
+
+  /* Main Area Header */
+  .main-info-area {
+    min-width: 0;
+    flex: 1;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .compact-header { margin-bottom: 1rem !important; min-width: 0; width: 100%; }
+  .badge-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem !important; flex-wrap: wrap; }
+  .mini-badge { font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 4px; background: #1a1a1a; color: #888; border: 1px solid #222; text-transform: uppercase; }
+  .mini-badge.accent { color: var(--accent-color); border-color: rgba(0, 191, 255, 0.3); background: rgba(0, 191, 255, 0.05); }
+  .mini-badge.views-badge { display: flex; align-items: center; gap: 5px; color: #777; }
+  .mini-badge.views-badge svg { color: #555; }
+
+  .rating-inline-header { display: flex; align-items: center; gap: 0.75rem; background: rgba(255, 255, 255, 0.02); padding: 4px 10px; border-radius: 8px; border: 1px solid #1a1a1a; }
+  .stars-row-minimal { display: flex; gap: 2px; }
+  .star-mini {
+    background: none;
+    border: none;
+    color: #444;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+  .star-mini.filled { color: #ffc107; }
+  .rating-text-minimal { font-size: 0.8rem; font-weight: 700; color: #555; display: flex; align-items: baseline; gap: 4px; }
+  .rating-avg { color: #aaa; }
+
+  .compact-header h1 {
+    font-size: 2.2rem;
+    font-weight: 900;
+    color: #fff;
+    margin: 0;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+  }
+  .alt-titles {
+    font-size: 0.95rem;
+    color: #444;
+    margin-top: 0.25rem !important;
+    font-weight: 500;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* Tabs */
+  .minimal-tabs { display: flex; gap: 1.25rem; border-bottom: 1px solid #1a1a1a; margin-bottom: 1rem !important; overflow-x: auto; }
+  .tab-link {
+    background: none;
+    border: none;
+    color: #555;
+    padding: 0.5rem 0 !important;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .tab-link:hover { color: #aaa; }
+  .tab-link.active { color: #fff; border-bottom-color: var(--accent-color); }
+
+  .tab-count {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 800;
+  }
+  .tab-link.active .tab-count {
+    background: var(--accent-color);
+    color: #000;
+  }
+
+  .tab-panes {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    min-height: auto;
+    margin-top: 1rem !important;
+  }
+  .tab-pane { display: none; width: 100%; min-width: 0; box-sizing: border-box; }
+  .tab-pane.active { display: block; animation: fadeIn 0.3s ease; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .details-list { display: flex; flex-direction: column; gap: 0.5rem !important; width: 100%; }
+  .detail-row { display: flex; align-items: center; justify-content: space-between; padding-bottom: 0.35rem !important; border-bottom: 1px solid #111; gap: 1rem; width: 100%; min-height: 2.5rem; }
+  .detail-row .label { font-size: 0.75rem; font-weight: 800; color: #444; text-transform: uppercase; width: auto; flex-shrink: 0; }
+  .detail-row .value { font-size: 0.95rem; color: #aaa; font-weight: 500; word-break: break-word; text-align: right; flex: 1; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; width: 100%; }
+  .tag-mini { font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; background: #111; border: 1px solid #222; color: #777; white-space: nowrap; }
+
+  .synopsis-text { font-size: 1rem; line-height: 1.7; color: #999; width: 100%; }
+  .ad-placeholder-mini {
+    margin-bottom: 0.65rem !important;
+    max-width: 100%;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+  }
+  .series-bottom-ad-wrapper {
+    margin-top: 2rem !important;
+  }
+
+  /* Modal */
+  .modal-overlay-minimal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-card-minimal { background: #111; border: 1px solid #222; border-radius: 16px; padding: 2rem; max-width: 320px; width: 100%; text-align: center; }
+  .btn-confirm { background: var(--accent-color); color: #000; border: none; }
+
+  .error-container-full {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+  .error-box-glass {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 32px;
+    padding: 4rem;
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+    color: #fff;
+  }
+
+  @media (max-width: 900px) {
+    .series-content-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .compact-sidebar { position: static; flex-direction: column; align-items: center; width: 100%; }
+    .poster-container { width: 180px; margin-bottom: 1.5rem; }
+    .badge-row { justify-content: center; }
+    .compact-header { text-align: center; }
+    .detail-row { padding: 0.5rem 0; }
+  }
+
+  @media (max-width: 500px) {
+    .poster-container { width: 160px; }
+    .compact-header h1 { font-size: 1.8rem; }
+  }
+
+  /* PREMIUM CHAPTERS GRID */
+  .chapters-premium-grid {
+    display: grid;
+    /* Móvil: Tarjetas más compactas para asegurar 2 columnas */
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
+    width: 100%;
+    margin-top: 1rem;
+    /* Altura dinámica basada en el viewport */
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+  }
+
+  /* Tablet */
+  @media (min-width: 640px) {
+    .chapters-premium-grid {
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem;
+      max-height: 70vh;
+    }
+  }
+
+  /* Laptop/Desktop */
+  @media (min-width: 1024px) {
+    .chapters-premium-grid {
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.25rem;
+      max-height: 75vh;
+    }
+  }
+
+  /* Monitores Grandes */
+  @media (min-width: 1600px) {
+    .chapters-premium-grid {
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      max-height: 85vh;
+    }
+  }
+
+
+  /* Astra: Scrollbar elegante para la lista de capítulos */
+  .chapters-premium-grid::-webkit-scrollbar {
+    width: 6px;
+  }
+  .chapters-premium-grid::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+  }
+  .chapters-premium-grid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+  }
+  .chapters-premium-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-color);
+  }
+
+  /* NUEVO: Wrapper Estático para el Grid Item */
+  .chapter-card-wrapper {
+    position: relative;
+    z-index: 1;
+    display: block;
+    /* Aseguramos que ocupe el espacio asignado por el grid */
+    height: 100%;
+    min-height: 140px;
+  }
+
+  /* Ajuste al componente interno */
+  .chapter-card-premium {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 1.25rem;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    /* min-height ya lo maneja el wrapper o se ajusta a 100% */
+    height: 100%; 
+    contain: content;
+    will-change: transform;
+  }
+
+  /* Trigger Hover en Wrapper -> Efecto en Inner */
+  .chapter-card-wrapper:hover .chapter-card-premium {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  }
+
+  .card-bg-glow {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at 100% 0%, var(--accent-color-transparent, rgba(0, 255, 255, 0.05)), transparent 50%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .chapter-card-wrapper:hover .card-bg-glow { opacity: 1; }
+
+  .card-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex-grow: 1;
+  }
+
+  .chapter-label {
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    color: #555;
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+    display: block;
+  }
+
+  .chapter-num {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .chapter-title {
+    font-size: 0.85rem;
+    color: #aaa;
+    font-weight: 500;
+    line-height: 1.3;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .chapter-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: auto;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    color: #666;
+    font-weight: 600;
+  }
+
+  .card-action {
+    position: absolute;
+    bottom: 0.75rem;
+    right: 0.75rem;
+    z-index: 3;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+
+  .status-badge.read {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .chapter-card-wrapper:hover .status-badge.read {
+    background: var(--accent-color, #00bfff);
+    color: #000;
+    border-color: var(--accent-color, #00bfff);
+  }
+
+  .status-badge.app-only {
+    background: rgba(252, 163, 17, 0.1);
+    color: #fca311;
+    border: 1px solid rgba(252, 163, 17, 0.2);
+  }
+
+  .watermark-num {
+    position: absolute;
+    top: -1rem;
+    right: -0.5rem;
+    font-size: 6rem;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.02);
+    z-index: 1;
+    pointer-events: none;
+    line-height: 1;
+    user-select: none;
+    transition: transform 0.4s ease, color 0.4s ease;
+  }
+
+  .chapter-card-wrapper:hover .watermark-num {
+    transform: translateY(-5px) scale(1.05);
+    color: rgba(255, 255, 255, 0.04);
+  }
+
+  .empty-chapters-premium {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem;
+    color: #444;
+    font-weight: 600;
+  }
+
+  @media (max-width: 640px) {
+    .chapters-premium-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      padding-right: 0;
+      max-height: none;
+    }
+    
+    .chapter-card-wrapper {
+      min-height: auto;
+      height: auto;
+    }
+
+    .chapter-card-premium {
+      display: grid;
+      grid-template-columns: 75px 1fr 85px;
+      grid-template-rows: auto auto;
+      grid-template-areas:
+        "num   title btn"
+        "date  title views";
+      align-items: center;
+      gap: 0.2rem 0.75rem;
+      padding: 0.8rem 1rem;
+      background: rgba(255, 255, 255, 0.01);
+      border-radius: 16px;
+      min-height: 95px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .chapter-card-wrapper:hover .chapter-card-premium {
+      transform: none;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .card-content, .chapter-main, .chapter-meta-row {
+      display: contents;
+    }
+
+    .chapter-label {
+      display: none;
+    }
+
+    .chapter-num {
+      grid-area: num;
+      font-size: 1.6rem;
+      margin: 0;
+      color: var(--accent-color);
+      text-align: center;
+      font-weight: 900;
+      align-self: end;
+      line-height: 1;
+    }
+
+    .meta-item.date {
+      grid-area: date;
+      font-size: 0.7rem;
+      color: #777;
+      text-align: center;
+      align-self: start;
+      justify-content: center;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      font-weight: 600;
+    }
+    .meta-item.date svg {
+      display: none;
+    }
+
+    .chapter-title {
+      grid-area: title;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      margin: 0;
+      display: block;
+      line-height: 1.3;
+      align-self: center;
+      text-align: left;
+    }
+
+    .card-action {
+      grid-area: btn;
+      position: static;
+      margin: 0;
+      align-self: end;
+      display: flex;
+      justify-content: center;
+    }
+
+    .status-badge {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.65rem;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .meta-item.views {
+      grid-area: views;
+      font-size: 0.8rem;
+      color: #666;
+      justify-content: center;
+      align-self: start;
+      margin-top: 2px;
+      font-weight: 600;
+    }
+
+    .meta-item svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .watermark-num {
+      display: none;
+    }
+
+    .card-bg-glow {
+      background: linear-gradient(90deg, var(--accent-color-transparent), transparent);
+      z-index: 0;
+    }
+  }
+</style>

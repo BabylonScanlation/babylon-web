@@ -1,0 +1,115 @@
+---
+// src/components/LibraryCard.astro
+import type { Series } from '../types';
+import Image from './Image.astro';
+
+interface Props {
+  manga: Series;
+}
+
+const { manga } = Astro.props;
+
+const finalCoverUrl = manga.urlPortada || manga.coverImageUrl || '';
+---
+
+<div class="library-card-wrapper">
+  <a href={`/series/${manga.slug}`} class="library-card-inner">
+    <div class="card-background">
+      <Image
+        src={finalCoverUrl}
+        alt={`Portada de ${manga.title}`}
+        width={400}
+        height={600}
+        loading="lazy"
+        class="card-img"
+      />
+    </div>
+    <div class="card-overlay">
+      <h3 class="series-title">{manga.title}</h3>
+      <p class="views-count">{manga.views?.toLocaleString() || 0} Vistas</p>
+    </div>
+  </a>
+</div>
+
+<style>
+  /* Wrapper Estático: Define el espacio y detecta el hover */
+  .library-card-wrapper {
+    position: relative;
+    z-index: 1;
+    display: block;
+    aspect-ratio: 2 / 3;
+    /* No se mueve nunca */
+  }
+
+  /* Inner Dinámico: Recibe la transformación visual */
+  .library-card-inner {
+    display: block;
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+    background: #1a1a1a;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* Trigger en el wrapper -> Efecto en el inner */
+  .library-card-wrapper:hover .library-card-inner {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+    z-index: 10;
+  }
+
+  .card-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .card-background .card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  /* Zoom en la imagen al hacer hover en el wrapper */
+  .library-card-wrapper:hover .card-img {
+    transform: scale(1.1);
+  }
+
+  .card-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
+    padding: 1rem;
+    padding-top: 3rem;
+    text-align: left;
+    transition: opacity 0.3s ease;
+  }
+
+  .series-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    margin-bottom: 0.25rem;
+  }
+
+  .views-count {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.7);
+    font-weight: 500;
+  }
+</style>

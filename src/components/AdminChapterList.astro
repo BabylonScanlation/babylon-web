@@ -1,0 +1,535 @@
+---
+// src/components/AdminChapterList.astro
+import AdminChapterListItem from './AdminChapterListItem.svelte';
+
+interface Chapter {
+  id: number;
+  seriesId: number;
+  chapterNumber: number;
+  title: string | null;
+  telegramFileId: string;
+  urlPortada: string | null;
+  status: string;
+  views: number | null;
+  createdAt: string | null;
+}
+
+interface Series {
+  id: number;
+  title: string;
+  slug: string;
+  chapters: Chapter[];
+  isAppSeries: boolean | null;
+}
+
+interface Props {
+  series: Series;
+  r2PublicUrlAssets: string;
+}
+
+const { series, r2PublicUrlAssets } = Astro.props;
+---
+
+<chapter-manager class="chapters-manager">
+  <div class="manager-header">
+    <div class="header-title">
+      <h3>Capítulos</h3>
+      <span class="counter-badge chapter-count">{series.chapters.length}</span>
+    </div>
+
+    <!-- Acciones en Lote (Ocultas por defecto) -->
+    <div class="bulk-actions" style="display: none;">
+      <span class="selected-count">0 seleccionados</span>
+      <button class="bulk-delete-btn" title="Eliminar seleccionados">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          ><polyline points="3 6 5 6 21 6"></polyline><path
+            d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-4"
+          ></path></svg
+        >
+      </button>
+    </div>
+
+    <div class="header-tools">
+      {
+        series.isAppSeries && (
+          <div class="fill-tool">
+            <input
+              type="number"
+              class="fill-chapters-input"
+              placeholder="Meta"
+              min="1"
+            />
+            <button class="fill-chapters-btn" data-series-id={series.id}>
+              Rellenar
+            </button>
+          </div>
+        )
+      }
+      <label class="select-all-wrapper">
+        <input type="checkbox" class="select-all-checkbox" />
+        <span>Todo</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="chapters-scroll-area">
+    <div class="chapters-grid table-body">
+      {
+        series.chapters.length > 0 ? (
+          series.chapters.map((chapter) => (
+            <AdminChapterListItem
+              client:load
+              chapter={chapter}
+              seriesSlug={series.slug}
+              r2PublicUrlAssets={r2PublicUrlAssets}
+            />
+          ))
+        ) : (
+          <div class="empty-state">
+            <div class="empty-icon">📂</div>
+            <p>Sin capítulos aún</p>
+          </div>
+        )
+      }
+    </div>
+  </div>
+</chapter-manager>
+
+<style>
+  .chapters-manager {
+    background-color: #161616;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+
+  .manager-header {
+    padding: 0.75rem 1.25rem;
+    background-color: #1e1e1e;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 1rem;
+  }
+
+  @media (max-width: 640px) {
+    .manager-header {
+      flex-wrap: wrap;
+      padding: 1rem;
+    }
+    .header-title,
+    .header-tools {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
+
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .header-title h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .counter-badge {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: #aaa;
+  }
+
+  /* Bulk Actions */
+  .bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 71, 87, 0.1);
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .selected-count {
+    font-size: 0.8rem;
+    color: #ff6b81;
+    font-weight: 700;
+  }
+
+  .bulk-delete-btn {
+    background: transparent;
+    border: none;
+    color: #ff4757;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .bulk-delete-btn:hover {
+    background: rgba(255, 71, 87, 0.2);
+  }
+
+  /* Tools */
+  .header-tools {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: nowrap;
+  }
+
+  .fill-tool {
+    display: flex;
+    background: #252525;
+    padding: 2px;
+    border-radius: 6px;
+    border: 1px solid #333;
+  }
+
+  .fill-chapters-input {
+    width: 60px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    padding: 0.4rem;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  .fill-chapters-input:focus {
+    outline: none;
+  }
+
+  .fill-chapters-btn {
+    background: #333;
+    color: #ccc;
+    border: none;
+    padding: 0 0.8rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .fill-chapters-btn:hover {
+    background: #4facfe;
+    color: #fff;
+  }
+
+  .select-all-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #888;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .select-all-checkbox {
+    accent-color: #4facfe;
+    cursor: pointer;
+  }
+
+  /* Content Area Optimizado */
+  .chapters-scroll-area {
+    overflow-y: auto;
+    flex: 1;
+    /* Altura ajustada a un punto medio para mejor equilibrio visual */
+    max-height: 660px;
+    padding: 1rem;
+    background: #121212;
+  }
+
+  .chapters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .empty-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem;
+    color: #444;
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  /* Scrollbar */
+  .chapters-scroll-area::-webkit-scrollbar {
+    width: 6px;
+  }
+  .chapters-scroll-area::-webkit-scrollbar-track {
+    background: #121212;
+  }
+  .chapters-scroll-area::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 3px;
+  }
+</style>
+
+<script>
+  import { toast } from '../lib/toastStore';
+
+  class ChapterManager extends HTMLElement {
+    selectedIds: Set<string>;
+    selectAllCb: HTMLInputElement | null;
+    bulkActions: HTMLElement | null;
+    selectedCountSpan: HTMLElement | null;
+    bulkDeleteBtn: HTMLElement | null;
+    fillChaptersBtn: HTMLElement | null;
+    fillChaptersInput: HTMLInputElement | null;
+    countSpan: HTMLElement | null;
+    listBody: HTMLElement | null;
+
+    constructor() {
+      super();
+      this.selectedIds = new Set();
+
+      this.selectAllCb = this.querySelector('.select-all-checkbox');
+      this.bulkActions = this.querySelector('.bulk-actions');
+      this.selectedCountSpan = this.querySelector('.selected-count');
+      this.bulkDeleteBtn = this.querySelector('.bulk-delete-btn');
+      this.fillChaptersBtn = this.querySelector('.fill-chapters-btn');
+      this.fillChaptersInput = this.querySelector('.fill-chapters-input');
+      this.countSpan = this.querySelector('.chapter-count');
+      this.listBody = this.querySelector('.table-body');
+
+      this.handleChange = this.handleChange.bind(this);
+      this.handleGlobalDelete = this.handleGlobalDelete.bind(this);
+      this.handleBulkDelete = this.handleBulkDelete.bind(this);
+      this.handleFillChapters = this.handleFillChapters.bind(this);
+    }
+
+    connectedCallback() {
+      this.addEventListener('change', this.handleChange);
+      this.bulkDeleteBtn?.addEventListener('click', this.handleBulkDelete);
+      this.fillChaptersBtn?.addEventListener('click', () =>
+        this.handleFillChapters()
+      );
+
+      this.fillChaptersInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') this.handleFillChapters();
+      });
+
+      window.addEventListener('chapterDeleted', this.handleGlobalDelete);
+    }
+
+    disconnectedCallback() {
+      this.removeEventListener('change', this.handleChange);
+      this.bulkDeleteBtn?.removeEventListener('click', this.handleBulkDelete);
+      this.fillChaptersBtn?.removeEventListener('click', () =>
+        this.handleFillChapters()
+      );
+      window.removeEventListener('chapterDeleted', this.handleGlobalDelete);
+    }
+
+    async handleFillChapters() {
+      if (!this.fillChaptersBtn || !this.fillChaptersInput) return;
+
+      const seriesId = this.fillChaptersBtn.dataset.seriesId;
+      if (!seriesId) return;
+
+      const targetChapter = parseInt(this.fillChaptersInput.value);
+
+      if (!this.fillChaptersInput.value) {
+        toast.warning('Por favor, ingresa un número de capítulo objetivo.');
+        return;
+      }
+
+      if (isNaN(targetChapter) || targetChapter < 1) {
+        toast.warning('Por favor, ingresa un número de capítulo válido.');
+        return;
+      }
+
+      const originalText = this.fillChaptersBtn.textContent;
+      try {
+        this.fillChaptersBtn.textContent = '⏳...';
+        (this.fillChaptersBtn as HTMLButtonElement).disabled = true;
+        this.fillChaptersInput.disabled = true;
+
+        const response = await fetch('/api/admin/chapters/bulk-create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            seriesId: parseInt(seriesId),
+            targetTotal: targetChapter,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          toast.success(`¡Éxito! Se añadieron ${result.added} capítulos.`);
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          toast.error(`Error: ${result.error || result.message}`);
+          this.fillChaptersBtn.textContent = originalText;
+          (this.fillChaptersBtn as HTMLButtonElement).disabled = false;
+          this.fillChaptersInput.disabled = false;
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error(
+          err instanceof Error
+            ? `Error: ${err.message}`
+            : 'Ocurrió un error de conexión.'
+        );
+        this.fillChaptersBtn.textContent = originalText;
+        (this.fillChaptersBtn as HTMLButtonElement).disabled = false;
+        this.fillChaptersInput.disabled = false;
+      }
+    }
+
+    handleChange(e: Event) {
+      const target = e.target as HTMLInputElement;
+
+      if (target.matches('.select-all-checkbox')) {
+        const isChecked = target.checked;
+        const checkboxes = this.querySelectorAll('.chapter-checkbox');
+
+        checkboxes.forEach((cb: any) => {
+          if (cb.checked !== isChecked) {
+            cb.checked = isChecked;
+            cb.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+
+        this.recalculateSelection();
+        return;
+      }
+
+      if (target.matches('.chapter-checkbox')) {
+        this.recalculateSelection();
+      }
+    }
+
+    recalculateSelection() {
+      this.selectedIds.clear();
+      const checkedBoxes = this.querySelectorAll('.chapter-checkbox:checked');
+
+      checkedBoxes.forEach((cb: any) => {
+        const row = cb.closest('.chapter-card');
+        const id = row?.dataset.chapterId;
+        if (id) this.selectedIds.add(id);
+      });
+
+      this.updateUI();
+    }
+
+    updateUI() {
+      if (!this.bulkActions || !this.selectedCountSpan) return;
+
+      if (this.selectedIds.size > 0) {
+        this.bulkActions.style.display = 'flex';
+        this.selectedCountSpan.textContent = `${this.selectedIds.size} seleccionados`;
+      } else {
+        this.bulkActions.style.display = 'none';
+        if (this.selectAllCb) this.selectAllCb.checked = false;
+      }
+    }
+
+    handleGlobalDelete(e: any) {
+      const { id } = e.detail;
+      if (this.selectedIds.has(id.toString())) {
+        this.selectedIds.delete(id.toString());
+        this.updateUI();
+        this.updateTotalCount();
+      }
+    }
+
+    async handleBulkDelete() {
+      if (this.selectedIds.size === 0) return;
+      if (
+        !confirm(
+          `¿Estás seguro de eliminar ${this.selectedIds.size} capítulos de esta serie?`
+        )
+      )
+        return;
+
+      const idsToDelete = Array.from(this.selectedIds);
+
+      try {
+        const response = await fetch('/api/delete-chapters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chapterIds: idsToDelete }),
+        });
+
+        if (response.ok) {
+          idsToDelete.forEach((id) => {
+            const row = this.querySelector(`div[data-chapter-id="${id}"]`);
+            row?.remove();
+          });
+
+          this.selectedIds.clear();
+          this.updateUI();
+          this.updateTotalCount();
+          toast.success('Capítulos eliminados correctamente.');
+        } else {
+          toast.error('Error al eliminar capítulos.');
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error('Error de conexión.');
+      }
+    }
+
+    updateTotalCount() {
+      if (this.countSpan && this.listBody) {
+        const count = this.listBody.querySelectorAll('.chapter-card').length;
+        this.countSpan.textContent = count.toString();
+      }
+    }
+  }
+
+  if (!customElements.get('chapter-manager')) {
+    customElements.define('chapter-manager', ChapterManager);
+  }
+</script>

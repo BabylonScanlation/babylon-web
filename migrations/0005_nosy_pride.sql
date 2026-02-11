@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `idx_chapter_views_user_chapter` ON `ChapterViews` (`chapter_id`,`user_id`);

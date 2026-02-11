@@ -1,0 +1,174 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1766111019104,
+      "tag": "0000_lazy_ink",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1766356500880,
+      "tag": "0001_remarkable_loki",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1767385773820,
+      "tag": "0002_even_night_thrasher",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1767386468967,
+      "tag": "0003_overrated_shockwave",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1767388219113,
+      "tag": "0004_omniscient_zeigeist",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1767388388669,
+      "tag": "0005_nosy_pride",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1767411540208,
+      "tag": "0006_dusty_wasp",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1768003615105,
+      "tag": "0007_sleepy_midnight",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1768003808307,
+      "tag": "0008_minor_proudstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1768004000000,
+      "tag": "0009_add_country",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1768005000000,
+      "tag": "0010_series_fts",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1768850000000,
+      "tag": "0011_add_viewed_at_indices",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1768879472359,
+      "tag": "0012_complex_scrambler",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1768925347768,
+      "tag": "0013_slimy_firedrake",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1768945425781,
+      "tag": "0014_narrow_wilson_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1769124292262,
+      "tag": "0015_flawless_nicolaos",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1769169877471,
+      "tag": "0016_large_professor_monster",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1769171215992,
+      "tag": "0017_perpetual_hiroim",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1769196826462,
+      "tag": "0018_clumsy_vivisector",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1769198083133,
+      "tag": "0019_massive_tag",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1769200791589,
+      "tag": "0020_silly_apocalypse",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1769569841042,
+      "tag": "0021_marvelous_mariko_yashida",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1770409492783,
+      "tag": "0022_greedy_groot",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1770579279237,
+      "tag": "0023_motionless_loners",
+      "breakpoints": true
+    }
+  ]
+}

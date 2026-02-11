@@ -1,0 +1,1 @@
+ALTER TABLE `AnonymousUsers` ADD `user_agent` text;

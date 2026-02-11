@@ -1,0 +1,333 @@
+---
+// src/components/NewsFeed.astro
+import type { User } from '../types';
+import { getDB, getAllNews, getNewsImages, type NewsItem, type NewsImageItem } from '../lib/db';
+import { logError } from '../lib/logError';
+
+interface Props {
+  seriesId?: number | null;
+  user?: User | undefined;
+  title?: string;
+}
+
+const { seriesId = null, user } = Astro.props;
+const isAdmin = user?.isAdmin ?? false;
+
+let newsWithImages: any[] = [];
+
+try {
+  const db = getDB(Astro.locals.runtime.env);
+  const newsForSeries = await getAllNews(db, 'published', seriesId);
+
+  if (newsForSeries.length > 0) {
+    newsWithImages = await Promise.all(
+      newsForSeries.map(async (newsItem: NewsItem) => {
+        const images = await getNewsImages(db, newsItem.id);
+        const imageUrls = images.map((img: NewsImageItem) => `${Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`);
+
+        return {
+          ...newsItem,
+          imageUrls,
+        };
+      })
+    );
+  }
+} catch (error) {
+  logError(error, 'Error cargando NewsFeed en SSR');
+}
+
+// Astra: Si no hay noticias, mostramos un estado vacío informativo en lugar de nada.
+const hasNews = newsWithImages.length > 0;
+
+function formatDate(timestamp: number | string | Date) {
+  return new Date(timestamp).toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+---
+
+<section class="news-feed-section">
+  <div id="news-feed-container">
+    {hasNews ? (
+      newsWithImages.map((newsItem) => (
+        <div class="premium-news-post-wrapper">
+          <div class="premium-news-post" data-news-id={newsItem.id}>
+            <div class="post-glass-frame">
+              <div class="post-header-area">
+                <div class="author-pill">
+                  {newsItem.authorAvatar ? (
+                    <img src={newsItem.authorAvatar} alt={newsItem.authorName} class="author-avatar-img" />
+                  ) : (
+                    <div class="author-avatar">{(newsItem.authorName || 'A').charAt(0).toUpperCase()}</div>
+                  )}
+                  <span class="author-name">{newsItem.authorName || 'Staff Babylon'}</span>
+                </div>
+                <div class="header-meta">
+                  <span class="post-timestamp">{formatDate(newsItem.createdAt)}</span>
+                  {isAdmin && (
+                    <div class="news-admin-actions">
+                      <button class="action-btn status-btn" title={newsItem.status === 'published' ? 'Mover a borrador' : 'Publicar'} onclick={`handleToggleStatus('${newsItem.id}', '${newsItem.status}')`}>
+                        {newsItem.status === 'published' ? (
+                          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        )}
+                      </button>
+                      <button class="action-btn edit-btn" title="Editar publicación" onclick={`handleEdit('${newsItem.id}')`}>
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
+                      <button class="action-btn delete-btn" title="Eliminar" onclick={`handleDelete('${newsItem.id}')`}>
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div class="post-content-area" id={`content-${newsItem.id}`}>
+                <p>{newsItem.content}</p>
+              </div>
+              {newsItem.imageUrls.length > 0 && (
+                <div class="news-gallery">
+                  {newsItem.imageUrls.map((url: string) => (
+                    <div class="image-wrapper">
+                      <img src={url} alt="Adjunto" loading="lazy" />
+                      <a href={url} target="_blank" class="zoom-btn">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path></svg>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ))
+    ) : (
+      <div class="empty-news-state">
+        <div class="empty-icon-box">
+          <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" stroke-width="1.5" fill="none"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+        </div>
+        <h3>No hay noticias recientes</h3>
+        <p>Mantente al tanto, pronto publicaremos novedades sobre esta serie.</p>
+      </div>
+    )}
+  </div>
+</section>
+
+<script is:inline>
+  // Astra: Recargar la página cuando se publica una nueva noticia para actualizar el feed SSR
+  document.addEventListener('new-news-created', (event) => {
+    // Si queremos evitar el reload, aquí inyectamos el HTML.
+    // Como el componente es complejo (tiene permisos de admin, iconos, etc.), 
+    // y el HTML se genera en servidor, replicarlo en JS cliente es propenso a errores de diseño.
+    // Sin embargo, para cumplir con el requisito de "no recargar si es posible",
+    // intentaremos inyectar una versión simplificada o hacer un fetch parcial si tuvieramos API de fragmentos.
+    // Dado que NO tenemos API de fragmentos HTML, la opción más segura y "Edge" es recargar para obtener el SSR actualizado.
+    // PERO, el usuario pidió explícitamente NO recargar. Así que inyectaremos el DOM.
+    
+    const container = document.getElementById('news-feed-container');
+    const { news, hasImage } = event.detail;
+    
+    // Remover estado vacío si existe
+    const emptyState = container.querySelector('.empty-news-state');
+    if (emptyState) emptyState.remove();
+
+    // Crear wrapper
+    const wrapper = document.createElement('div');
+    wrapper.className = 'premium-news-post-wrapper';
+
+    // Crear elemento con las clases EXACTAS del componente SSR
+    const div = document.createElement('div');
+    // IMPORTANTE: Aquí asignamos la clase que lleva los estilos de borde y fondo
+    div.className = 'premium-news-post'; 
+    div.dataset.newsId = news.id;
+    
+    // Formatear fecha
+    const dateStr = new Date().toLocaleDateString('es-ES', {
+        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    // Construir HTML interno (el contenido dentro del marco)
+    div.innerHTML = `
+      <div class="post-glass-frame">
+        <div class="post-header-area">
+          <div class="author-pill">
+            ${news.authorAvatar ? 
+              `<img src="${news.authorAvatar}" alt="${news.authorName}" class="author-avatar-img" />` : 
+              `<div class="author-avatar">${(news.authorName || 'A').charAt(0).toUpperCase()}</div>`
+            }
+            <span class="author-name">${news.authorName || 'Staff Babylon'}</span>
+          </div>
+          <div class="header-meta">
+            <span class="post-timestamp">${dateStr}</span>
+            <div class="news-admin-actions">
+                <button class="action-btn status-btn" title="Mover a borrador" onclick="handleToggleStatus('${news.id}', 'published')">
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+                <button class="action-btn edit-btn" title="Editar publicación" onclick="handleEdit('${news.id}')">
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+                <button class="action-btn delete-btn" title="Eliminar" onclick="handleDelete('${news.id}')">
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            </div>
+          </div>
+        </div>
+        <div class="post-content-area" id="content-${news.id}">
+          <p>${news.content}</p>
+        </div>
+        ${hasImage ? `<div class="news-gallery"><div class="image-wrapper" style="border:1px dashed rgba(255,255,255,0.2); display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);color:#aaa;font-size:0.85rem; aspect-ratio:16/9; border-radius:16px;">
+            <div style="text-align:center;">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" style="margin-bottom:0.5rem;display:block;margin:0 auto 0.5rem;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                Procesando imagen...
+            </div>
+        </div></div>` : ''}
+      </div>
+    `;
+    
+    wrapper.appendChild(div);
+
+    // Animación de entrada
+    wrapper.style.opacity = '0';
+    wrapper.style.transform = 'translateY(-20px)';
+    container.prepend(wrapper);
+    
+    requestAnimationFrame(() => {
+        wrapper.style.transition = 'all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1)';
+        wrapper.style.opacity = '1';
+        wrapper.style.transform = 'translateY(0)';
+    });
+  });
+
+  // Astra: Lógica de cliente mínima para administración (solo si es necesario)
+  window.handleDelete = async function(id) {
+    if(!confirm('¿Eliminar esta noticia?')) return;
+
+    // Disable buttons to prevent race conditions
+    const btn = document.querySelector(`button[onclick="handleDelete('${id}')"]`);
+    if(btn) btn.disabled = true;
+
+    try {
+      const res = await fetch(`/api/admin/news/${id}`, { method: 'DELETE' });
+      if(res.ok || res.status === 404) {
+        // Reload on success (200/204) OR if it was already gone (404 handled gracefully just in case)
+        window.location.reload();
+      } else {
+        alert('Error al eliminar');
+        if(btn) btn.disabled = false;
+      }
+    } catch(e) {
+      console.error(e);
+      if(btn) btn.disabled = false;
+    }
+  }
+
+  window.handleEdit = function(id) {
+    const area = document.getElementById(`content-${id}`);
+    const original = area.querySelector('p').textContent;
+    area.innerHTML = `
+      <textarea class="glass-textarea" id="edit-text-${id}">${original}</textarea>
+      <div style="display:flex; gap:10px; margin-top:10px; justify-content:flex-end;">
+        <button onclick="location.reload()" style="padding:5px 15px; border-radius:8px; background:rgba(255,255,255,0.05); color:#666; border:none; cursor:pointer;">Cancelar</button>
+        <button onclick="saveEdit('${id}')" style="padding:5px 15px; border-radius:8px; background:var(--accent-color); color:#000; font-weight:800; border:none; cursor:pointer;">Guardar</button>
+      </div>
+    `;
+  }
+
+  window.saveEdit = async function(id) {
+    const content = document.getElementById(`edit-text-${id}`).value;
+    const res = await fetch(`/api/admin/news/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content })
+    });
+    if(res.ok) window.location.reload();
+  }
+
+  window.handleToggleStatus = async function(id, currentStatus) {
+    const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+    const res = await fetch(`/api/admin/news/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    if(res.ok) window.location.reload();
+  }
+</script>
+
+<style>
+  .news-feed-section a { text-decoration: none !important; }
+  .news-feed-section { width: 100%; margin: 0; }
+
+  .section-header.centered {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    width: 100%;
+  }
+
+  .header-line { height: 1px; width: 100%; background: linear-gradient(90deg, transparent, var(--accent-color)); opacity: 0.2; }
+  .header-line.reversed { background: linear-gradient(90deg, var(--accent-color), transparent); }
+
+  .section-title {
+    font-size: 1.6rem; color: #fff; display: flex; align-items: center; gap: 0.75rem;
+    font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em;
+  }
+
+  .section-title svg { color: var(--accent-color); }
+
+  .glass-textarea {
+    width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--accent-color);
+    border-radius: 12px; color: #fff; padding: 1rem; min-height: 100px;
+  }
+
+  /* Empty State Styles */
+  .empty-news-state {
+    text-align: center;
+    padding: 2rem;
+    background: transparent;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .empty-icon-box {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #444;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-news-state h3 {
+    color: #fff;
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: 800;
+  }
+
+  .empty-news-state p {
+    color: #666;
+    font-size: 0.95rem;
+    max-width: 300px;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .section-title { font-size: 1.2rem; }
+    .header-line { display: none; }
+  }
+</style>

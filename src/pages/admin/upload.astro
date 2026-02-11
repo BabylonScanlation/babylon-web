@@ -1,0 +1,123 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminCreateSeries from '../../components/AdminCreateSeries.astro';
+---
+
+<Layout title="Crear Series y Capítulos | Admin">
+  <main class="admin-page-container">
+    <div class="glass-header">
+      <div class="header-content">
+        <a href="/admin" class="back-pill">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          Panel Admin
+        </a>
+        <div class="title-section">
+          <h1>Gestor de Contenido</h1>
+          <p class="subtitle">Expande tu biblioteca creando nuevas series o añadiendo capítulos a las existentes.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-grid">
+      <div class="creation-zone">
+        <AdminCreateSeries />
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .admin-page-container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    min-height: 100vh;
+  }
+
+  .glass-header {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 2.5rem;
+    margin-bottom: 3rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  }
+
+  .header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .back-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    color: #888;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.3s ease;
+    align-self: flex-start;
+  }
+
+  .back-pill:hover {
+    background: rgba(0, 191, 255, 0.1);
+    border-color: var(--accent-color);
+    color: #fff;
+    transform: translateX(-5px);
+  }
+
+  .title-section h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0 0 0.5rem 0;
+    background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    color: #666;
+    font-size: 1.1rem;
+    margin: 0;
+    max-width: 600px;
+    line-height: 1.5;
+  }
+
+  .content-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .creation-zone {
+    animation: slideUp 0.6s ease-out;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @media (max-width: 768px) {
+    .glass-header {
+      padding: 2rem 1.5rem;
+      border-radius: 20px;
+    }
+    
+    .title-section h1 {
+      font-size: 2rem;
+    }
+  }
+</style>

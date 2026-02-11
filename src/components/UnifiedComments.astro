@@ -1,0 +1,21 @@
+---
+import CommentsWrapper from './comments/CommentsWrapper.svelte';
+import type { Comment, User } from '../types';
+
+interface Props {
+  targetType: 'series' | 'chapter' | 'news';
+  targetId: number | string;
+  comments: Comment[];
+  user?: User | null;
+}
+
+const { targetType, targetId, comments: initialComments = [], user = null } = Astro.props;
+---
+
+<CommentsWrapper
+  client:visible
+  targetType={targetType}
+  targetId={targetId}
+  initialComments={initialComments}
+  user={user}
+/>

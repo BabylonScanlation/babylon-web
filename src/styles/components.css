@@ -1,0 +1,368 @@
+/* src/styles/components.css */
+
+/* --- Buttons --- */
+.btn {
+  padding: 0.8rem 1.6rem;
+  border-radius: 12px;
+  font-weight: 800;
+  text-align: center;
+  font-family: inherit;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+.btn-primary {
+  background: var(--accent-color);
+  color: #000;
+  box-shadow: 0 4px 15px var(--accent-glow);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px var(--accent-glow);
+  filter: brightness(1.1);
+}
+
+.btn-secondary {
+  background: var(--card-background);
+  color: #fff;
+  border-color: var(--glass-border);
+  backdrop-filter: blur(10px);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* --- Modals --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  z-index: 5000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid var(--glass-border);
+  width: 100%;
+  max-width: 500px;
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+
+/* --- Forms --- */
+.form-control {
+  width: 100%;
+  padding: 1rem 1.2rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  color: #fff;
+  border-radius: 14px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #444;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #444;
+}
+
+/* --- Forms --- */
+.form-group {
+  text-align: left;
+  margin-bottom: 1.25rem;
+}
+
+.form-label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #ccc;
+  margin-bottom: 0.25rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #333;
+  border: 1px solid #555;
+  color: var(--font-color);
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+/* --- Alerts --- */
+.alert {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.alert-success {
+  color: #2ecc71;
+  background-color: rgba(46, 204, 113, 0.1);
+}
+
+.alert-danger {
+  color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.1);
+}
+
+.alert-info {
+  color: #3498db;
+  background-color: rgba(52, 152, 219, 0.1);
+}
+
+/* --- Specific Buttons --- */
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background-color: #f8f8f8;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.btn-google:hover {
+  background-color: #e0e0e0;
+  border-color: #bbb;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent-color);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+/* --- Misc --- */
+.divider {
+  margin: 1.5rem 0;
+  text-align: center;
+  border-bottom: 1px solid #555;
+  line-height: 0.1em;
+  color: #aaa;
+}
+
+.divider span {
+  background: var(--card-background);
+  padding: 0 10px;
+}
+
+/* --- Admin Panel Shared Styles --- */
+.admin-container {
+  padding: 2rem;
+  max-width: 1200px; /* Un poco más ancho para tablas/grids */
+  margin: 0 auto;
+}
+
+.admin-container h1 {
+  margin-bottom: 1.5rem;
+  font-size: 2rem;
+}
+
+.description {
+  margin-bottom: 2rem;
+  color: #aaa;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  color: var(--accent-color);
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.info-card {
+  background-color: var(--card-background);
+  padding: 1.5rem;
+  border-radius: 8px;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  border: 1px solid #444; /* Added solid border */
+}
+
+.info-card h2 {
+  margin-bottom: 1rem;
+}
+
+.info-card p {
+  margin-bottom: 0.5rem;
+}
+
+.info-card code {
+  background-color: #333;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+/* --- Empty States --- */
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  background: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #444;
+  margin-top: 2rem;
+  color: #ccc;
+}
+
+.empty-state h3 {
+  margin-bottom: 0.5rem;
+  color: #fff;
+}
+
+/* --- News Feed Global Styles (Astra) --- */
+
+/* Wrapper Estático: Ocupa el espacio en el flujo, tiene el margen */
+.premium-news-post-wrapper {
+  margin-bottom: 1.5rem;
+  /* El wrapper es el trigger del hover, pero no se mueve */
+  position: relative;
+  z-index: 1;
+}
+
+.premium-news-post-wrapper:last-child {
+  margin-bottom: 0;
+}
+
+/* Elemento interno: Recibe la transformación visual */
+.premium-news-post {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  background: rgba(20, 20, 25, 0.4);
+  padding: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  /* Asegurar que llene el wrapper si fuera necesario, aunque aquí es bloque por defecto */
+  will-change: transform;
+}
+
+/* Trigger en Wrapper -> Efecto en Inner */
+.premium-news-post-wrapper:hover .premium-news-post {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); /* Añadida sombra para énfasis */
+}
+
+/* Legacy fix: por si algo sigue usando la clase antigua directamente sin wrapper (no debería) */
+.premium-news-post:last-child { margin-bottom: 0; }
+
+.post-glass-frame {
+  background: transparent;
+  backdrop-filter: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.post-header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+.author-pill {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.03); padding: 6px 16px 6px 6px; border-radius: 100px;
+}
+.author-avatar { width: 32px; height: 32px; background: var(--accent-color); color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+.author-avatar-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); }
+.author-name { color: #eee; font-weight: 700; font-size: 0.9rem; text-decoration: none !important; }
+
+.post-timestamp { font-size: 0.8rem; color: #555; font-weight: 600; text-decoration: none !important; }
+.post-content-area p { font-size: 1.05rem; line-height: 1.8; color: #aaa; white-space: pre-wrap; text-decoration: none !important; }
+
+.news-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.image-wrapper { position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 16/9; border: 1px solid rgba(255, 255, 255, 0.05); text-decoration: none !important; }
+.image-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+.zoom-btn { position: absolute; top: 1rem; right: 1rem; background: rgba(0,0,0,0.5); color: #fff; padding: 8px; border-radius: 10px; opacity: 0; transition: 0.3s; text-decoration: none !important; }
+.image-wrapper:hover .zoom-btn { opacity: 1; }
+
+.news-admin-actions { display: flex; gap: 0.5rem; margin-left: 1rem; }
+.action-btn { background: rgba(255,255,255,0.05); border: none; color: #666; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.action-btn:hover { background: var(--accent-color); color: #000; }
+
+/* --- Comments Shared Styles --- */
+.comments-container-glass {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 2rem;
+  backdrop-filter: blur(10px);
+}
+
+@media (max-width: 768px) {
+  .comments-container-glass { padding: 1rem; }
+}

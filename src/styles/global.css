@@ -1,0 +1,198 @@
+/* src/styles/global.css */
+
+:root {
+  /* Theme Colors */
+  --background-color: #020205;
+  --accent-color: #00bfff;
+  --accent-glow: rgba(0, 191, 255, 0.3);
+  --glass-bg: rgba(10, 10, 15, 0.9);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --font-color: #e0e0e0;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Astra + Orion: Global accessibility utilities */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--font-color);
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* --- COSMOS BACKGROUND SYSTEM (Astra Deep Space) --- */
+.cosmos-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: #020205; /* Base negra pura */
+  perspective: 1000px;
+}
+
+/* Capas Comunes */
+.stars-layer {
+  position: absolute;
+  top: -15%; 
+  left: -15%;
+  width: 130%;
+  height: 130%;
+  background-repeat: repeat;
+  /* Removed global will-change to save memory */
+}
+
+/* CAPA 1: Fondo Lejano (Desenfocado y Lento) */
+.stars-layer.base {
+  background-image: 
+    radial-gradient(1px 1px at 20px 30px, rgba(255,255,255,0.7), rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 40px 70px, rgba(255,255,255,0.7), rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 50px 160px, rgba(255,255,255,0.7), rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.7), rgba(0,0,0,0));
+  background-size: 200px 200px;
+  opacity: 0.4;
+  filter: blur(1.5px); /* Profundidad de campo */
+  animation: pulse-deep 10s ease-in-out infinite alternate;
+}
+
+/* CAPA 2: Estrellas Medias (Nítidas) */
+.stars-layer.mid {
+  background-image: 
+    radial-gradient(1.5px 1.5px at 100px 50px, #fff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 200px 150px, #aaddff, rgba(0,0,0,0)), /* Azuladas */
+    radial-gradient(1.5px 1.5px at 300px 250px, #fff, rgba(0,0,0,0));
+  background-size: 450px 450px;
+  opacity: 0.8;
+  animation: pulse-light 4s ease-in-out infinite alternate-reverse;
+}
+
+/* CAPA 3: Polvo Cósmico (Primer Plano, Rápido) */
+.stars-layer.dust {
+  background-image: 
+    radial-gradient(1px 1px at 150px 80px, rgba(255,255,255,0.4), rgba(0,0,0,0)),
+    radial-gradient(1.5px 1.5px at 400px 300px, rgba(255,255,255,0.3), rgba(0,0,0,0));
+  background-size: 600px 600px;
+  opacity: 0.6;
+}
+
+/* Nebulosa Aurora (Dinámica) */
+.nebula-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    rgba(2, 2, 5, 0) 0deg,
+    rgba(0, 191, 255, 0.03) 60deg,
+    rgba(138, 43, 226, 0.02) 120deg,
+    rgba(2, 2, 5, 0) 180deg,
+    rgba(0, 191, 255, 0.02) 240deg,
+    rgba(2, 2, 5, 0) 360deg
+  );
+  filter: blur(80px);
+  animation: aurora-spin 60s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes pulse-deep { 0% { opacity: 0.3; } 100% { opacity: 0.5; } }
+@keyframes pulse-light { 0% { opacity: 0.6; } 100% { opacity: 0.9; } }
+@keyframes aurora-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Estrellas Fugaces */
+.shooting-stars {
+  position: absolute;
+  inset: 0;
+  transform: rotateZ(45deg);
+}
+
+.shooting-stars span {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: linear-gradient(-45deg, #fff, rgba(0, 0, 255, 0));
+  border-radius: 50%;
+  filter: drop-shadow(0 0 6px rgba(105, 155, 255, 1));
+  animation: tail 3s ease-in-out infinite, shooting 3s ease-in-out infinite;
+  opacity: 0;
+}
+
+.shooting-stars span::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 200px;
+  height: 1px;
+  background: linear-gradient(90deg, #fff, transparent);
+}
+
+.shooting-stars span:nth-child(1) { top: 0; left: 0; animation-delay: 0s; animation-duration: 8s; }
+.shooting-stars span:nth-child(2) { top: 0; left: 40%; animation-delay: 3s; animation-duration: 12s; }
+.shooting-stars span:nth-child(3) { top: 60%; left: 0; animation-delay: 6s; animation-duration: 7s; }
+
+@keyframes tail { 0% { width: 0; } 30% { width: 100px; } 100% { width: 0; } }
+@keyframes shooting { 0% { transform: translateX(0); opacity: 1; } 100% { transform: translateX(1000px); opacity: 0; } }
+
+/* --- Layout Responsivo --- */
+/* --- ESTILOS EXCLUSIVOS PC --- */
+@media (min-width: 1024px) {
+  main.site-main-content {
+    padding-top: 90px; /* Astra: Layout ultra-compacto */
+    padding-bottom: 0;
+  }
+}
+@media (max-width: 1023px) {
+  main.site-main-content {
+    padding-top: 100px; /* Astra: Espacio para el logo absoluto (antes 10px) */
+    padding-bottom: 0; /* Astra: Hueco inferior eliminado */
+  }
+  body[data-reader-active="true"] main.site-main-content { padding-top: 0 !important; margin-top: 0 !important; }
+}
+
+/* --- Global Link Reset for Card Components (Astra Fix) --- */
+/* Forces links to behave like unstyled blocks to prevent purple visited colors */
+a.library-card-inner,
+a.cover-link,
+a.series-title-link,
+a.chapter-pill,
+a.chapter-card-premium,
+a.news-card-inner,
+a.nav-btn-modern {
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+a.library-card-inner:visited,
+a.cover-link:visited,
+a.series-title-link:visited,
+a.chapter-pill:visited,
+a.chapter-card-premium:visited,
+a.news-card-inner:visited,
+a.nav-btn-modern:visited {
+  color: inherit !important;
+  text-decoration: none !important;
+}

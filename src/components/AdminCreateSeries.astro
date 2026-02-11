@@ -1,0 +1,680 @@
+---
+// src/components/AdminCreateSeries.astro
+import AdminDescriptionTextarea from './AdminDescriptionTextarea.astro';
+---
+
+<div class="creation-glass-card">
+  <div class="card-header">
+    <div class="header-icon">
+      <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 5v14M5 12h14"></path></svg>
+    </div>
+    <div class="header-text">
+      <h2>Añadir Nueva Serie</h2>
+      <p>Configura los metadatos y crea automáticamente el tema en Telegram.</p>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <form id="create-series-form" class="modern-creation-form">
+      <div id="create-status" class="form-status-bar"></div>
+
+      <div class="form-layout-main">
+        <!-- Lado Izquierdo: Portada -->
+        <div class="upload-sidebar">
+          <div class="cover-dropzone" id="cover-dropzone">
+            <div class="preview-overlay" id="preview-overlay">
+              <img id="cover-preview-img" alt="Vista previa" />
+              <div class="change-hint">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <span>Cambiar Portada</span>
+              </div>
+            </div>
+            <div class="placeholder-content" id="placeholder-content">
+              <div class="icon-circle">
+                <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+              </div>
+              <span class="main-text">Subir Portada</span>
+              <p class="sub-text">Click para seleccionar</p>
+            </div>
+            <!-- El input nativo está oculto por CSS (.hidden-input) -->
+            <input type="file" id="new-cover" name="coverImage" accept="image/*" class="hidden-input" />
+          </div>
+          <div id="file-name-display" class="file-name-badge">Ningún archivo seleccionado</div>
+        </div>
+        
+        <!-- Lado Derecho: Campos Principales -->
+        <div class="fields-main">
+          <div class="form-group">
+            <label for="new-title">Título Oficial</label>
+            <input type="text" id="new-title" name="title" required placeholder="Ej: Solo Leveling" class="glass-input" />
+            <!-- El slug se mantiene oculto pero funcional -->
+            <input type="hidden" id="new-slug" name="slug" />
+          </div>
+
+          <div class="form-group">
+            <label for="new-desc">Sinopsis / Descripción</label>
+            <AdminDescriptionTextarea id="new-desc" name="description" rows={5} required={true} value="" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-divider"><span>Metadatos Adicionales</span></div>
+
+      <div class="form-grid-secondary">
+        <div class="form-group">
+          <label for="new-status">Estado</label>
+          <input type="text" id="new-status" name="status" placeholder="Ej: En emisión" class="glass-input" />
+        </div>
+        <div class="form-group">
+          <label for="new-type">Tipo</label>
+          <input type="text" id="new-type" name="type" placeholder="Ej: Manhwa" class="glass-input" />
+        </div>
+        <div class="form-group">
+          <label for="new-author">Autor</label>
+          <input type="text" id="new-author" name="author" placeholder="Nombre del autor" class="glass-input" />
+        </div>
+        <div class="form-group">
+          <label for="new-artist">Artista</label>
+          <input type="text" id="new-artist" name="artist" placeholder="Nombre del artista" class="glass-input" />
+        </div>
+        <div class="form-group">
+          <label for="new-published-by">Editorial</label>
+          <input type="text" id="new-published-by" name="publishedBy" placeholder="Ej: Shueisha" class="glass-input" />
+        </div>
+        <div class="form-group">
+          <label for="new-serialized-by">Revista / Sitio</label>
+          <input type="text" id="new-serialized-by" name="serializedBy" placeholder="Ej: Shōnen Jump" class="glass-input" />
+        </div>
+        <div class="form-group">
+          <label for="new-genres">Géneros</label>
+          <input type="text" id="new-genres" name="genres" placeholder="Acción, Aventura..." class="glass-input" />
+        </div>
+        <div class="form-group">
+          <label for="new-demographic">Demografía</label>
+          <input type="text" id="new-demographic" name="demographic" placeholder="Ej: Seinen" class="glass-input" />
+        </div>
+        <div class="form-group">
+          <label for="new-alt-names">Nombres Alternativos</label>
+          <input type="text" id="new-alt-names" name="alternativeNames" placeholder="Otros nombres..." class="glass-input" />
+        </div>
+      </div>
+
+      <div class="form-footer-actions">
+        <div class="switches-group">
+          <label class="premium-switch">
+            <input type="checkbox" name="isHidden" value="true" checked />
+            <span class="switch-slider"></span>
+            <span class="switch-label">Ocultar</span>
+          </label>
+          <label class="premium-switch">
+            <input type="checkbox" name="isAppSeries" value="true" />
+            <span class="switch-slider"></span>
+            <span class="switch-label">Solo App</span>
+          </label>
+          <label class="premium-switch">
+            <input type="checkbox" name="isNsfw" value="true" />
+            <span class="switch-slider"></span>
+            <span class="switch-label">+18 (NSFW)</span>
+          </label>
+        </div>
+
+        <button type="submit" id="btn-create-submit" class="btn-premium-submit">
+          <span class="btn-text">Crear Serie y Tema</span>
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </div>
+    </form>
+
+    <div class="creation-info-sidebar">
+      <div class="info-card-premium">
+        <h3>
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" style="margin-right: 8px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          Proceso Automático
+        </h3>
+        <ul class="process-steps">
+          <li>
+            <span class="step-num">01</span>
+            <div>
+              <strong>Validación</strong>
+              <p>Se verifica que el título sea único en la base de datos.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">02</span>
+            <div>
+              <strong>Telegram Bot</strong>
+              <p>Se crea un tema dedicado para la serie en el grupo oficial.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">03</span>
+            <div>
+              <strong>Sincronización</strong>
+              <p>La serie aparece en la biblioteca lista para recibir capítulos.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('create-series-form') as HTMLFormElement;
+  const titleInput = document.getElementById('new-title') as HTMLInputElement;
+  const slugInput = document.getElementById('new-slug') as HTMLInputElement;
+  const coverInput = document.getElementById('new-cover') as HTMLInputElement;
+  const fileNameDisplay = document.getElementById('file-name-display');
+  const dropzone = document.getElementById('cover-dropzone');
+  const previewImg = document.getElementById('cover-preview-img') as HTMLImageElement;
+  const previewOverlay = document.getElementById('preview-overlay');
+  const placeholderContent = document.getElementById('placeholder-content');
+  const submitBtn = document.getElementById('btn-create-submit') as HTMLButtonElement;
+  const statusMsg = document.getElementById('create-status') as HTMLDivElement;
+
+  dropzone?.addEventListener('click', () => coverInput?.click());
+
+  coverInput?.addEventListener('change', () => {
+    const file = coverInput.files?.[0];
+    if (file) {
+      if (fileNameDisplay) fileNameDisplay.textContent = file.name;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result && previewImg && previewOverlay && placeholderContent) {
+          previewImg.src = e.target.result as string;
+          previewOverlay.style.display = 'block';
+          placeholderContent.style.display = 'none';
+        }
+      };
+      reader.readAsDataURL(file);
+    } else {
+      if (fileNameDisplay) fileNameDisplay.textContent = "Ningún archivo seleccionado";
+    }
+  });
+
+  titleInput?.addEventListener('input', () => {
+    if (titleInput.value && slugInput) {
+      slugInput.value = titleInput.value
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+  });
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    const originalContent = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<span class="loader"></span> Procesando...';
+    
+    if (statusMsg) { 
+      statusMsg.style.display = 'none'; 
+      statusMsg.className = 'form-status-bar'; 
+    }
+
+    try {
+      const formData = new FormData(form);
+      const res = await fetch('/api/admin/series', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        if (statusMsg) {
+          statusMsg.textContent = '¡Serie creada con éxito! Sincronizando...';
+          statusMsg.className = 'form-status-bar success';
+          statusMsg.style.display = 'block';
+        }
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        throw new Error(data.error || 'Ocurrió un error inesperado al crear la serie.');
+      }
+    } catch (err: any) {
+      if (statusMsg) {
+        statusMsg.textContent = err.message;
+        statusMsg.className = 'form-status-bar error';
+        statusMsg.style.display = 'block';
+      }
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalContent;
+    }
+  });
+</script>
+
+<style>
+  .creation-glass-card {
+    background: rgba(30, 30, 30, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .card-header {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .header-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(0, 191, 255, 0.1);
+    color: var(--accent-color);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .header-text h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .header-text p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #888;
+  }
+
+  .card-body {
+    padding: 2.5rem;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 4rem; /* Aumentado para más espacio entre columnas */
+  }
+
+  .modern-creation-form {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .form-layout-main {
+    display: flex;
+    gap: 2.5rem; /* Más separación entre sidebar y campos */
+  }
+
+  /* Upload Sidebar */
+  .upload-sidebar {
+    flex-shrink: 0;
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cover-dropzone {
+    width: 100%;
+    aspect-ratio: 2/3;
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .cover-dropzone:hover {
+    border-color: var(--accent-color);
+    background: rgba(0, 191, 255, 0.05);
+  }
+
+  .hidden-input {
+    display: none !important;
+  }
+
+  .preview-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+  }
+
+  .preview-overlay img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .change-hint {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #fff;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .preview-overlay:hover .change-hint {
+    opacity: 1;
+  }
+
+  .placeholder-content {
+    text-align: center;
+    color: #666;
+  }
+
+  .icon-circle {
+    width: 64px;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: #444;
+  }
+
+  .main-text {
+    display: block;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #aaa;
+  }
+
+  .sub-text {
+    font-size: 0.75rem;
+    margin: 0.25rem 0 0;
+    color: #666;
+  }
+
+  .file-name-badge {
+    font-size: 0.7rem;
+    color: #888;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.4rem;
+    border-radius: 8px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  /* Fields Main */
+  .fields-main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .glass-input {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0.9rem 1.2rem;
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  .glass-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 4px rgba(0, 191, 255, 0.1);
+  }
+
+  .form-divider {
+    position: relative;
+    text-align: center;
+    margin: 1rem 0;
+  }
+
+  .form-divider::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .form-divider span {
+    position: relative;
+    background: rgb(35, 35, 35);
+    padding: 0 1rem;
+    color: #555;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .form-grid-secondary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  /* Footer Actions */
+  .form-footer-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .switches-group {
+    display: flex;
+    gap: 2rem;
+  }
+
+  .premium-switch {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .premium-switch input { display: none; }
+
+  .switch-slider {
+    width: 44px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 100px;
+    position: relative;
+    transition: all 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .switch-slider::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: #444;
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .premium-switch input:checked + .switch-slider {
+    background: rgba(0, 191, 255, 0.1);
+    border-color: var(--accent-color);
+  }
+
+  .premium-switch input:checked + .switch-slider::after {
+    left: calc(100% - 20px);
+    background: var(--accent-color);
+    box-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+  }
+
+  .switch-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #888;
+  }
+
+  .btn-premium-submit {
+    background: linear-gradient(135deg, var(--accent-color) 0%, #0077ff 100%);
+    color: #fff;
+    border: none;
+    padding: 1rem 2.5rem;
+    border-radius: 16px;
+    font-weight: 800;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    box-shadow: 0 10px 20px -5px rgba(0, 162, 255, 0.4);
+    transition: all 0.3s ease;
+  }
+
+  .btn-premium-submit:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 15px 30px -5px rgba(0, 162, 255, 0.5);
+  }
+
+  .btn-premium-submit:disabled {
+    filter: grayscale(1);
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  /* Info Sidebar */
+  .creation-info-sidebar {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .info-card-premium {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 1.5rem;
+  }
+
+  .info-card-premium h3 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1rem;
+    color: #fff;
+    display: flex;
+    align-items: center;
+  }
+
+  .process-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .process-steps li {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .step-num {
+    font-family: monospace;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--accent-color);
+    background: rgba(0, 191, 255, 0.1);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .process-steps strong {
+    display: block;
+    font-size: 0.85rem;
+    color: #ccc;
+    margin-bottom: 0.25rem;
+  }
+
+  .process-steps p {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #666;
+    line-height: 1.4;
+  }
+
+  .form-status-bar {
+    padding: 1rem;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    display: none;
+    margin-bottom: 1rem;
+  }
+
+  .form-status-bar.success { background: rgba(46, 204, 113, 0.1); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.2); }
+  .form-status-bar.error { background: rgba(255, 107, 107, 0.1); color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.2); }
+
+  .loader {
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    display: inline-block;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 1100px) {
+    .card-body { grid-template-columns: 1fr; }
+    .creation-info-sidebar { display: none; }
+  }
+
+  @media (max-width: 768px) {
+    .form-layout-main { flex-direction: column; align-items: center; }
+    .upload-sidebar { width: 140px; }
+    .form-grid-secondary { grid-template-columns: 1fr; }
+    .form-footer-actions { flex-direction: column; gap: 2rem; align-items: stretch; }
+    .switches-group { flex-direction: column; gap: 1rem; }
+  }
+</style>

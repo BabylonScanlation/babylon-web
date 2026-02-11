@@ -1,0 +1,416 @@
+---
+// src/pages/admin/series.astro
+import Layout from '../../layouts/Layout.astro';
+import AdminSeriesManager from '../../components/AdminSeriesManager.astro';
+import AdminThumbnailCropperModalSvelte from '../../components/AdminThumbnailCropperModal.svelte';
+import { logError } from '../../lib/logError';
+import { getDB } from '../../lib/db';
+import { getAdminSeriesWithChapters } from '../../lib/data/admin';
+
+const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
+
+const limit = 12;
+const offsetParam = Astro.url.searchParams.get('offset');
+const offset = offsetParam ? parseInt(offsetParam) : 0;
+
+let allSeries: any[] = [];
+let totalSeries = 0;
+const success = Astro.url.searchParams.get('success');
+let error = Astro.url.searchParams.get('error');
+
+try {
+  const db = getDB(Astro.locals.runtime.env);
+  const data = await getAdminSeriesWithChapters(db, limit, offset, false);
+  allSeries = data.series;
+  totalSeries = data.total;
+} catch (e) {
+  const errorForLog = e;
+  logError(errorForLog, 'Error al cargar las series para el panel de administración (Direct DB)');
+  error = 'No se pudo conectar con la base de datos para cargar las series.';
+}
+---
+
+<Layout title="Gestionar Series">
+
+  <main class="admin-container">
+    <div class="page-header">
+      <div class="header-content">
+        <a href="/admin" class="back-link-modern">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Panel Principal
+        </a>
+        <div class="title-group">
+          <h1>Biblioteca de Series</h1>
+          <p class="subtitle">Gestiona el catálogo, edita metadatos y administra capítulos.</p>
+        </div>
+      </div>
+
+      <div class="search-wrapper">
+        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input
+          type="text"
+          id="series-search"
+          placeholder="Buscar serie..."
+          class="search-input"
+        />
+      </div>
+    </div>
+
+    {success && <div class="alert success">{success}</div>}
+    {error && <div class="alert error">{error}</div>}
+
+    <div id="series-list" class="series-grid">
+    {
+      allSeries.length > 0 ? (
+        allSeries.map((series) => (
+          <div class="series-item-wrapper">
+            <AdminSeriesManager series={series} r2PublicUrlAssets={r2PublicUrlAssets} />
+          </div>
+        ))
+      ) : (
+        <div class="empty-state">
+          <div class="empty-icon">📚</div>
+          <h3>Fin del Catálogo</h3>
+          <p>No se encontraron más series en esta página.</p>
+        </div>
+      )
+    }
+    </div>
+
+    <!-- Controles de Paginación -->
+    <div class="pagination-controls">
+      <button id="prev-page" class="pagination-btn" disabled>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        Anterior
+      </button>
+      <span class="page-indicator">Página <span id="current-page-display">1</span></span>
+      <button 
+        id="next-page" 
+        class="pagination-btn" 
+        disabled={allSeries.length < 12}
+        data-total={totalSeries}
+      >
+        Siguiente
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+  </main>
+
+  <AdminThumbnailCropperModalSvelte client:idle />
+
+  <script>
+    // Limpieza de URL Selectiva (Preservar offset para paginación)
+    if (window.location.search) {
+      const url = new URL(window.location.href);
+      const params = url.searchParams;
+      let changed = false;
+
+      if (params.has('success') || params.has('error')) {
+        params.delete('success');
+        params.delete('error');
+        changed = true;
+      }
+
+      if (changed) {
+        window.history.replaceState({}, document.title, url.pathname + url.search);
+      }
+    }
+
+    const searchInput = document.getElementById('series-search') as HTMLInputElement;
+    const seriesList = document.getElementById('series-list');
+    const detailsElements = document.querySelectorAll('details.series-card') as NodeListOf<HTMLDetailsElement>;
+
+    // 1. Buscador en tiempo real
+    if (searchInput && seriesList) {
+      searchInput.addEventListener('input', (e) => {
+        const searchTerm = (e.target as HTMLInputElement).value.toLowerCase();
+        const seriesItems = seriesList.querySelectorAll('.series-item-wrapper');
+
+        seriesItems.forEach((item) => {
+          const summary = item.querySelector('summary');
+          if (summary) {
+            const titleElement = summary.querySelector('.series-title') || summary;
+            const title = titleElement.textContent?.toLowerCase() || '';
+
+            if (title.includes(searchTerm)) {
+              (item as HTMLElement).style.display = '';
+            } else {
+              (item as HTMLElement).style.display = 'none';
+            }
+          }
+        });
+      });
+    }
+
+    // 2. Lógica de Acordeón con Expansión de Fila Optimizada
+    detailsElements.forEach((detail) => {
+      detail.addEventListener('toggle', (event) => {
+        const target = event.target as HTMLDetailsElement;
+        if (!target.open) {
+          target.closest('.series-item-wrapper')?.classList.remove('is-expanded');
+          return;
+        }
+
+        // Si estamos abriendo, optimizamos el proceso
+        requestAnimationFrame(() => {
+          const wrapper = target.closest('.series-item-wrapper');
+
+          if (seriesList) {
+            // A) Cerrar otros de forma eficiente
+            detailsElements.forEach((otherDetail) => {
+              if (otherDetail !== target && otherDetail.open) {
+                otherDetail.removeAttribute('open');
+                otherDetail.closest('.series-item-wrapper')?.classList.remove('is-expanded');
+              }
+            });
+
+            // B) Activar expansión
+            wrapper?.classList.add('is-expanded');
+
+            // C) Scroll suave desacoplado del reflow inicial
+            setTimeout(() => {
+              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 50);
+          }
+        });
+      });
+    });
+    // 3. Lógica de Paginación
+    const prevBtn = document.getElementById('prev-page') as HTMLButtonElement;
+    const nextBtn = document.getElementById('next-page') as HTMLButtonElement;
+    const pageDisplay = document.getElementById('current-page-display');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const limit = 12; 
+    const currentOffset = parseInt(urlParams.get('offset') || '0');
+    const total = parseInt(nextBtn?.dataset.total || '0');
+    const currentPage = Math.floor(currentOffset / limit) + 1;
+
+    if (pageDisplay) pageDisplay.textContent = currentPage.toString();
+    if (prevBtn) prevBtn.disabled = currentOffset === 0;
+    if (nextBtn) nextBtn.disabled = (currentOffset + limit) >= total;
+
+    prevBtn?.addEventListener('click', () => {
+      const newOffset = Math.max(0, currentOffset - limit);
+      window.location.href = `/admin/series?offset=${newOffset}`;
+    });
+
+    nextBtn?.addEventListener('click', () => {
+      const newOffset = currentOffset + limit;
+      window.location.href = `/admin/series?offset=${newOffset}`;
+    });
+  </script>
+
+  <style>
+    .pagination-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2rem;
+      margin-top: 0rem;
+      padding: 2rem; /* Astra: Espaciado uniforme para simetría total */
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .pagination-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.8rem 1.5rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+      background: rgba(79, 172, 254, 0.1);
+      border-color: #4facfe;
+      color: #4facfe;
+      transform: translateY(-2px);
+    }
+
+    .pagination-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .page-indicator {
+      color: #666;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    #current-page-display {
+      color: #fff;
+    }
+    .admin-container {
+      width: 100%;
+      max-width: 1400px; /* Reducido de 1800px para evitar estiramiento extremo */
+      margin: 0 auto;
+      padding: 2rem 2rem 0 2rem; /* Astra: Padding inferior a 0 para pegar al footer */
+      min-height: auto; /* Astra: Eliminado 100vh para evitar espacio vacío */
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .page-header {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 2rem;
+    }
+
+    @media (min-width: 1024px) {
+      .page-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .header-content {
+        max-width: 60%;
+      }
+      .search-wrapper {
+        width: auto;
+        min-width: 300px;
+      }
+    }
+
+    .header-content {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .back-link-modern {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 1.2rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      color: #aaa;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      align-self: flex-start;
+    }
+
+    .back-link-modern:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: #fff;
+      color: #fff;
+      transform: translateX(-4px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .title-group h1 {
+      font-size: 2rem;
+      margin: 0;
+      background: linear-gradient(90deg, #fff, #aaa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: #666;
+      margin: 0.5rem 0 0 0;
+      font-size: 0.95rem;
+    }
+
+    /* Search */
+    .search-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #666;
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.8rem 1rem 0.8rem 2.8rem;
+      background-color: #1a1a1a;
+      border: 1px solid #333;
+      color: #fff;
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #4facfe;
+      background-color: #222;
+      box-shadow: 0 0 0 4px rgba(79, 172, 254, 0.1);
+    }
+
+    /* Grid Layout */
+    .series-grid {
+      display: grid;
+      /* Ajustamos el mínimo a 280px y permitimos que crezca con 1fr para llenar huecos
+         pero sin forzar un ancho máximo tan grande que impida nuevas columnas */
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      align-items: start;
+      transition: all 0.3s ease;
+    }
+
+    .series-item-wrapper {
+      width: 100%;
+      /* Orion: Optimización de renderizado masivo */
+      content-visibility: auto;
+      contain-intrinsic-size: 1px 220px; /* Tamaño estimado de la card cerrada */
+    }
+
+    /* Estado Expandido: El item ocupa toda la fila sin afectar a los demás */
+    .series-item-wrapper.is-expanded {
+      grid-column: 1 / -1; /* Se estira de borde a borde */
+      z-index: 20;
+      content-visibility: visible; /* Forzar visibilidad al expandir */
+    }
+
+    @media (max-width: 600px) {
+      .series-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Alerts */
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+      font-weight: 500;
+    }
+    .alert.success { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
+    .alert.error { background: rgba(231, 76, 60, 0.15); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.3); }
+
+    /* Empty State */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem;
+      color: #444;
+      background: #111;
+      border-radius: 16px;
+      border: 2px dashed #222;
+    }
+    .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+  </style>
+</Layout>

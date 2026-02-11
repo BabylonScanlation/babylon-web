@@ -1,0 +1,17 @@
+[
+  {
+    "id": 413829,
+    "name": "Babylon Scanlation",
+    "version": "0.1.1",
+    "lang": "es",
+    "baseUrl": "https://babylon-scanlation.pages.dev",
+    "apiUrl": "",
+    "iconUrl": "https://babylon-scanlation.pages.dev/favicon.svg",
+    "sourceCodeUrl": "https://babylon-scanlation.pages.dev/repo/com.babylon.scanlation.js",
+    "typeSource": "single",
+    "nsfw": false,
+    "itemType": 0,
+    "sourceCodeLanguage": 1,
+    "appMinVerReq": "0.1.0"
+  }
+]

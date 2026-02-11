@@ -1,0 +1,260 @@
+---
+// src/pages/admin/comments.astro
+import Layout from '../../layouts/Layout.astro';
+import AdminCommentModerationItem from '../../components/AdminCommentModerationItem.svelte';
+import { logError } from '../../lib/logError';
+import { getDB } from '../../lib/db';
+import { getAdminSeriesWithChapters } from '../../lib/data/admin';
+
+let allSeries: any[] = [];
+let hasAnyComments = false;
+
+try {
+  const drizzleDb = getDB(Astro.locals.runtime.env);
+  const result = await getAdminSeriesWithChapters(drizzleDb, 100, 0, true);
+  allSeries = result.series;
+
+  // Calcular si hay comentarios reales en alguna parte
+  hasAnyComments = allSeries.some((s: any) => 
+    s.seriesComments.length > 0 || s.chapters.some((c: any) => c.comments.length > 0)
+  );
+} catch (e) {
+  logError(e, 'Error al cargar series y comentarios para el panel de administración', { userId: Astro.locals.user?.uid });
+}
+---
+
+<Layout title="Moderación de Comunidad">
+  <main class="admin-container">
+    <div class="page-header">
+      <div class="header-nav">
+        <a href="/admin" class="back-link-modern">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Volver al Panel
+        </a>
+      </div>
+      <div class="title-group">
+        <h1>Moderación de Comunidad</h1>
+        <p class="subtitle">Gestiona y modera las interacciones de los lectores en el sitio.</p>
+      </div>
+    </div>
+
+    <div class="moderation-feed">
+      {
+        hasAnyComments ? (
+          allSeries.map((series: any) => {
+            const seriesCommentsCount = series.seriesComments.length;
+            const chaptersCommentsCount = series.chapters.flatMap(
+              (c: any) => c.comments
+            ).length;
+            const totalComments = seriesCommentsCount + chaptersCommentsCount;
+            
+            if (totalComments === 0) return null;
+
+            return (
+              <details class="series-section">
+                <summary class="series-summary">
+                  <div class="summary-left">
+                    <span class="series-title">{series.title}</span>
+                    <div class="summary-badges">
+                      <span class="badge badge-total">{totalComments} Mensajes</span>
+                      {seriesCommentsCount > 0 && <span class="badge badge-series">{seriesCommentsCount} en Obra</span>}
+                    </div>
+                  </div>
+                  <div class="summary-right">
+                    <span class="chevron">▼</span>
+                  </div>
+                </summary>
+                
+                <div class="series-content">
+                  {/* Comentarios Directos */}
+                  {seriesCommentsCount > 0 && (
+                    <div class="comments-block">
+                      <h4 class="block-label">Comentarios Generales</h4>
+                      <div class="comments-list">
+                        {series.seriesComments.map((comment: any) => (
+                          <AdminCommentModerationItem 
+                            client:load
+                            commentId={comment.id}
+                            userEmail={comment.userEmail}
+                            text={comment.commentText}
+                            targetType="series"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Por Capítulos */}
+                  <div class="chapters-moderation">
+                    <h4 class="block-label">Comentarios por Capítulo</h4>
+                    <div class="chapters-grid">
+                      {series.chapters.filter((c: any) => c.comments.length > 0).map((chapter: any) => (
+                        <div class="chapter-mod-box">
+                          <div class="chapter-header">
+                            <span class="cap-num">Capítulo {chapter.chapterNumber}</span>
+                            <span class="cap-count">{chapter.comments.length}</span>
+                          </div>
+                          <div class="mini-feed">
+                            {chapter.comments.map((comment: any) => (
+                              <AdminCommentModerationItem 
+                                client:load
+                                commentId={comment.id}
+                                userEmail={comment.userEmail}
+                                text={comment.commentText}
+                                targetType="chapter"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </details>
+            );
+          })
+        ) : (
+          <div class="empty-state">
+            <div class="empty-icon">💬</div>
+            <h3>Comunidad en calma</h3>
+            <p>No hay comentarios recientes para moderar.</p>
+          </div>
+        )
+      }
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .admin-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #e0e0e0;
+  }
+
+  /* Header */
+  .page-header {
+    margin-bottom: 3rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 2rem;
+  }
+
+  .back-link-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1.2rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #aaa;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    margin-bottom: 1.5rem;
+  }
+
+  .back-link-modern:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #fff;
+    color: #fff;
+    transform: translateX(-4px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  }
+
+  .title-group h1 { font-size: 2.2rem; margin: 0; color: #fff; letter-spacing: -0.5px; }
+  .subtitle { color: #666; margin: 0.5rem 0 0 0; font-size: 1rem; }
+
+  /* Sections */
+  .series-section {
+    background: #1a1a1a;
+    border-radius: 16px;
+    margin-bottom: 1.2rem;
+    border: 1px solid rgba(255,255,255,0.03);
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+
+  .series-summary {
+    padding: 1.2rem 1.5rem;
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #222;
+    transition: background 0.2s;
+  }
+  .series-summary:hover { background: #282222; }
+  .series-summary::-webkit-details-marker { display: none; }
+
+  .summary-left { display: flex; align-items: center; gap: 1.5rem; }
+  .series-title { font-weight: 800; font-size: 1.1rem; color: #fff; }
+  
+  .summary-badges { display: flex; gap: 0.6rem; }
+  .badge {
+    font-size: 0.7rem;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-total { background: rgba(79, 172, 254, 0.1); color: #4facfe; border: 1px solid rgba(79, 172, 254, 0.2); }
+  .badge-series { background: rgba(255, 255, 255, 0.05); color: #888; border: 1px solid rgba(255,255,255,0.05); }
+
+  .chevron { color: #444; font-size: 0.8rem; transition: transform 0.3s; }
+  .series-section[open] .chevron { transform: rotate(180deg); color: #fff; }
+
+  /* Content */
+  .series-content {
+    padding: 2rem;
+    background: #161616;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+
+  .block-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #444;
+    margin: 0 0 1.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .block-label::after { content: ''; flex-grow: 1; height: 1px; background: rgba(255,255,255,0.03); }
+
+  /* Chapters Grid */
+  .chapters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .chapter-mod-box {
+    background: rgba(255,255,255,0.01);
+    border-radius: 14px;
+    padding: 1.2rem;
+    border: 1px solid rgba(255,255,255,0.03);
+  }
+
+  .chapter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.2rem;
+  }
+  .cap-num { font-size: 0.9rem; font-weight: 800; color: #666; }
+  .cap-count { background: #252525; color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; }
+
+  /* Empty States */
+  .empty-state { text-align: center; padding: 6rem 2rem; color: #444; }
+  .empty-icon { font-size: 3.5rem; opacity: 0.2; margin-bottom: 1.5rem; }
+  .empty-state h3 { color: #666; margin-bottom: 0.5rem; }
+</style>

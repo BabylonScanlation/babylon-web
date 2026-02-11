@@ -1,0 +1,265 @@
+---
+const { user, runtime } = Astro.locals;
+const r2PublicUrlAssets =
+  runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
+---
+
+<header class="site-header">
+  <div class="header-container">
+    <div class="logo-section">
+      <a href="/" class="logo-link">
+        <img
+          src={`${r2PublicUrlAssets}/iconpage/babylon-logo-2.webp`}
+          alt="Babylon Logo"
+          class="header-logo"
+        />
+      </a>
+    </div>
+
+    <nav class="desktop-nav">
+      <div class="main-nav-links">
+        <a href="/" class="nav-link-pc"><span>INICIO</span></a>
+        <a href="/search" class="nav-link-pc"><span>EXPLORAR</span></a>
+        <a href="/news" class="nav-link-pc news-link">
+          <span>NOTICIAS</span>
+          <span id="news-badge-pc" class="news-badge-dot hidden">0</span>
+        </a>
+        <a href="/library" class="nav-link-pc"><span>BIBLIOTECA</span></a>
+      </div>
+
+      <div class="user-actions">
+        <a
+          href={user ? '/profile' : '#'}
+          class="nav-link-pc profile-link"
+          data-open-modal={!user ? 'login' : undefined}
+        >
+          <span>PERFIL</span>
+        </a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<script>
+  async function checkNewNews() {
+    const pcBadge = document.getElementById('news-badge-pc');
+    const mobileBadge = document.getElementById('news-badge-mobile');
+    const isNewsPage =
+      window.location.pathname === '/news' ||
+      window.location.pathname === '/news/';
+
+    // console.log('[DEBUG NEWS] Checking...', { isNewsPage, pathname: window.location.pathname });
+
+    if (isNewsPage) {
+      try {
+        const res = await fetch('/api/news/check');
+        const latest = await res.json();
+        if (latest && latest.length > 0) {
+          const latestDate = latest[0].createdAt;
+          localStorage.setItem(
+            'babylon_last_seen_news_date',
+            latestDate.toString()
+          );
+          // console.log('[DEBUG NEWS] Marked all as seen. Last date:', latestDate);
+        }
+      } catch {
+        // Silently ignore
+      }
+      if (pcBadge) pcBadge.classList.add('hidden');
+      if (mobileBadge) mobileBadge.classList.add('hidden');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/news/check');
+      const latest = await res.json();
+      const lastSeenDateStr =
+        localStorage.getItem('babylon_last_seen_news_date') || '0';
+      const lastSeenDate = parseInt(lastSeenDateStr, 10);
+
+      // Contar noticias nuevas (comparación numérica)
+      const newItems = latest.filter((n: any) => {
+        const newsDate =
+          typeof n.createdAt === 'string'
+            ? new Date(n.createdAt).getTime()
+            : n.createdAt;
+        return newsDate > lastSeenDate;
+      });
+
+      const unreadCount = newItems.length;
+      // console.log('[DEBUG NEWS] Unread count:', unreadCount, { lastSeenDate, latestDate: latest[0]?.createdAt });
+
+      if (unreadCount > 0) {
+        if (pcBadge) {
+          pcBadge.textContent = unreadCount > 9 ? '+9' : unreadCount.toString();
+          pcBadge.classList.remove('hidden');
+        }
+        if (mobileBadge) {
+          mobileBadge.textContent =
+            unreadCount > 9 ? '+9' : unreadCount.toString();
+          mobileBadge.classList.remove('hidden');
+        }
+      } else {
+        if (pcBadge) pcBadge.classList.add('hidden');
+        if (mobileBadge) mobileBadge.classList.add('hidden');
+      }
+    } catch {
+      // Silently ignore
+    }
+  }
+
+  // Ejecutar de forma diferida para no bloquear el inicio
+  if ('requestIdleCallback' in window) {
+    (window as any).requestIdleCallback(() => checkNewNews());
+  } else {
+    setTimeout(checkNewNews, 500);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const header = document.querySelector('.site-header');
+    header?.addEventListener('click', (e) => {
+      if (!(e.target instanceof Element)) return;
+      const trigger = e.target.closest('[data-open-modal]');
+      if (trigger) {
+        const view = trigger.getAttribute('data-open-modal');
+        document.dispatchEvent(
+          new CustomEvent('open-auth-modal', {
+            detail: { view: view || 'login' },
+          })
+        );
+      }
+    });
+  });
+
+  document.addEventListener('astro:page-load', checkNewNews);
+  document.addEventListener('astro:after-swap', checkNewNews);
+</script>
+
+<style>
+  .news-link {
+    position: relative;
+  }
+
+  .news-badge-dot {
+    position: absolute;
+    top: -8px;
+    right: -12px;
+    background: #ff4444;
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 900;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+    border: 2px solid #050505;
+    z-index: 10;
+  }
+
+  .news-badge-dot.hidden {
+    display: none;
+  }
+
+  /* --- MUNDO PC: Diseño de Escritorio (No te sigue al scrollear) --- */
+  @media (min-width: 1024px) {
+    .site-header {
+      width: 100%;
+      position: absolute; /* Astra: Se queda anclado arriba de la página */
+      top: 0;
+      left: 0;
+      z-index: 2000;
+      height: 90px; /* Astra: Incrementado para dar aire al logo de 60px */
+      display: flex;
+      align-items: center;
+      background: transparent;
+    }
+
+    .header-container {
+      width: 100%;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 0 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-logo {
+      height: 60px; /* Astra: Incrementado para mayor impacto visual */
+      filter: drop-shadow(0 0 25px var(--accent-glow));
+    }
+
+    .desktop-nav {
+      display: flex;
+      align-items: center;
+      gap: 2rem; /* Espacio entre navegación y perfil */
+    }
+
+    .main-nav-links {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+    }
+    .nav-link-pc {
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      opacity: 0.7;
+      text-decoration: none;
+      transition: opacity 0.2s;
+      display: flex;
+      align-items: center;
+    }
+    .nav-link-pc:hover {
+      opacity: 1;
+    }
+
+    .user-actions {
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  /* --- MUNDO MÓVIL: Diseño de App (Se integra con el lector) --- */
+  @media (max-width: 1023px) {
+    .site-header {
+      width: 100%;
+      position: absolute; /* Astra: Flota sobre el contenido */
+      top: 0;
+      left: 0;
+      height: 70px;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      transition: all 0.3s ease;
+    }
+
+    /* Astra: En modo lector, el header debe ser sólido y "empujar" el contenido */
+    :global(body[data-reader-active='true']) .site-header {
+      position: relative;
+      background: #020205;
+    }
+
+    .header-container {
+      display: flex;
+      justify-content: center;
+      padding-top: 30px; /* Astra: Bajamos el logo un poco más en móviles */
+    }
+
+    .header-logo {
+      height: 80px; /* Tamaño más equilibrado para el nuevo header */
+      filter: drop-shadow(0 0 15px var(--accent-glow));
+    }
+
+    .desktop-nav {
+      display: none !important;
+    }
+  }
+</style>

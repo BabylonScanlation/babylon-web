@@ -1,0 +1,279 @@
+---
+import { timeAgo } from '../lib/utils';
+
+interface Chapter {
+  chapterNumber: number;
+  title: string | null;
+  createdAt: string;
+  views: number;
+  status: string;
+}
+
+interface Props {
+  chapters: Chapter[];
+  seriesSlug: string;
+}
+
+const { chapters, seriesSlug } = Astro.props;
+
+const sortedChapters = [...chapters].sort((a, b) => b.chapterNumber - a.chapterNumber);
+---
+
+<script>
+  document.addEventListener('click', (e) => {
+    const target = (e.target as HTMLElement).closest('.app-chapter-link');
+    if (target) {
+      e.preventDefault();
+      document.dispatchEvent(new CustomEvent('open-app-modal'));
+    }
+  });
+</script>
+
+<div class="chapters-premium-list">
+  <div class="list-scroll-area">
+    {sortedChapters.length > 0 ? (
+      sortedChapters.map((chapter) => {
+        const isAppOnly = chapter.status === 'app_only';
+        return (
+          <div class="chapter-item-wrapper">
+            <a 
+              href={isAppOnly ? '#' : `/series/${seriesSlug}/${chapter.chapterNumber}`} 
+              class:list={['chapter-card-link', { 'app-chapter-link': isAppOnly }]}
+            >
+              <div class="card-left">
+                <div class="chapter-badge-num">
+                  <span class="label">CAP</span>
+                  <span class="number">{chapter.chapterNumber}</span>
+                </div>
+                <div class="chapter-info">
+                  <h4 class="chapter-title">
+                    {chapter.title ? chapter.title.trim() : `Capítulo ${chapter.chapterNumber}`}
+                  </h4>
+                  <div class="chapter-meta">
+                    <span class="meta-data date">
+                      <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                      {timeAgo(chapter.createdAt)}
+                    </span>
+                    <span class="meta-data views">
+                      <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                      {chapter.views.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-right">
+                {isAppOnly ? (
+                  <div class="app-status-badge">
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>APP ONLY</span>
+                  </div>
+                ) : (
+                  <div class="read-action">
+                    <span class="read-text">LEER</span>
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                  </div>
+                )}
+              </div>
+            </a>
+          </div>
+        )
+      })
+    ) : (
+      <div class="empty-chapters">
+        <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+        <p>Aún no hay capítulos disponibles.</p>
+      </div>
+    )}
+  </div>
+</div>
+
+<style>
+  .chapters-premium-list {
+    width: 100%;
+    margin-top: 1rem;
+    min-width: 0;
+  }
+
+  .list-scroll-area {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Chapter Card */
+  .chapter-item-wrapper {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .chapter-card-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #111;
+    border: 1px solid #1a1a1a;
+    border-radius: 16px;
+    padding: 1rem 1.5rem;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 0; /* Allow shrinking */
+  }
+
+  /* ... */
+
+  .card-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    min-width: 0; /* Allow shrinking */
+    flex: 1; /* Take available space */
+  }
+
+  .chapter-badge-num {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #222;
+    min-width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+
+  .chapter-card-link:hover .chapter-badge-num {
+    background: rgba(0, 191, 255, 0.1);
+    border-color: var(--accent-color);
+  }
+
+  .chapter-badge-num .label {
+    font-size: 0.6rem;
+    font-weight: 900;
+    color: #444;
+    letter-spacing: 0.1em;
+  }
+
+  .chapter-badge-num .number {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .chapter-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0; /* Allow shrinking for text overflow */
+    flex: 1;
+  }
+
+  .chapter-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #eee;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .chapter-meta {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .meta-data {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #555;
+  }
+
+  /* Card Right */
+  .card-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .read-action {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #444;
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    transition: all 0.3s ease;
+  }
+
+  .chapter-card-link:hover .read-action {
+    color: var(--accent-color);
+    transform: translateX(5px);
+  }
+
+  .app-status-badge {
+    background: rgba(252, 163, 17, 0.1);
+    color: #fca311;
+    border: 1px solid rgba(252, 163, 17, 0.2);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.05em;
+  }
+
+  .empty-chapters {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 0;
+    color: #333;
+    gap: 1rem;
+  }
+
+  /* Scrollbar */
+  .list-scroll-area::-webkit-scrollbar {
+    width: 4px;
+  }
+  .list-scroll-area::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .list-scroll-area::-webkit-scrollbar-thumb {
+    background: #222;
+    border-radius: 10px;
+  }
+  .list-scroll-area::-webkit-scrollbar-thumb:hover {
+    background: #333;
+  }
+
+  @media (max-width: 640px) {
+    .chapter-card-link { padding: 0.75rem; border-radius: 12px; gap: 0.5rem; }
+    .chapter-card-link:hover { transform: none; } /* Disable shift on mobile */
+    .card-left { gap: 0.75rem; }
+    .chapter-badge-num { min-width: 42px; width: 42px; height: 42px; }
+    .chapter-badge-num .number { font-size: 0.95rem; }
+    .chapter-badge-num .label { font-size: 0.5rem; }
+    .chapter-title { font-size: 0.85rem; }
+    .chapter-meta { gap: 0.5rem; flex-wrap: wrap; }
+    .card-right { gap: 0.5rem; }
+    .read-text { display: none; }
+    .meta-data.views { display: flex; font-size: 0.65rem; color: #444; }
+  }
+</style>

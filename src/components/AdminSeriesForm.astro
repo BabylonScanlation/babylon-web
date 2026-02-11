@@ -1,0 +1,762 @@
+---
+// src/components/AdminSeriesForm.astro
+import AdminDescriptionTextarea from './AdminDescriptionTextarea.astro';
+import Image from './Image.astro';
+
+interface Series {
+  id: number;
+  title: string;
+  description: string;
+  coverImageUrl: string;
+  slug: string;
+  status: string | null;
+  type: string | null;
+  genres: string | null;
+  author: string | null;
+  artist: string | null;
+  publishedBy: string | null;
+  alternativeNames: string | null;
+  serializedBy: string | null;
+  demographic: string | null;
+  isHidden: boolean;
+  isNsfw: boolean;
+  isAppSeries: boolean;
+  chapters?: any[];
+  chapterCount?: number;
+}
+
+interface Props {
+  series: Series;
+}
+
+const { series } = Astro.props;
+---
+
+<div class="series-edit-container">
+  <form
+    action="/api/update-series"
+    method="post"
+    enctype="multipart/form-data"
+    class="modern-admin-form"
+    id={`update-series-form-${series.id}`}
+    data-series-id={series.id}
+  >
+    <div id={`form-message-${series.id}`} class="floating-message"></div>
+    <input type="hidden" name="seriesId" value={series.id} />
+
+    <!-- SECCIÓN 1: Identidad Visual -->
+    <div class="form-section identity-section">
+      <div class="cover-uploader">
+        <span class="section-label">Portada Actual</span>
+        <div class="preview-card">
+          <Image
+            src={series.coverImageUrl}
+            alt={`Portada de ${series.title}`}
+            class="cover-image"
+            width={180}
+            height={240}
+          />
+          <div class="file-input-wrapper">
+            <label for={`cover-input-${series.id}`} class="custom-file-upload">
+              <input
+                type="file"
+                name="coverImage"
+                id={`cover-input-${series.id}`}
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/avif"
+                data-series-id={series.id}
+              />
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Cambiar Imagen
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="basic-info">
+        <div class="input-row-split">
+          <div class="input-group">
+            <label for={`title-${series.id}`}>Título de la Serie</label>
+            <input
+              type="text"
+              id={`title-${series.id}`}
+              name="title"
+              value={series.title}
+              placeholder="Título oficial"
+              required
+            />
+          </div>
+          <div class="input-group">
+            <label for={`slug-${series.id}`}>Slug (URL)</label>
+            <input
+              type="text"
+              id={`slug-${series.id}`}
+              name="slug"
+              value={series.slug}
+              placeholder="ej: nombre-de-la-serie"
+              required
+            />
+          </div>
+        </div>
+        <div class="input-group full-width">
+          <label for={`desc-${series.id}`}>Descripción / Sinopsis</label>
+          <AdminDescriptionTextarea
+            id={`desc-${series.id}`}
+            name="description"
+            rows={6}
+            required={true}
+            value={series.description}
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 2: Metadatos y Detalles -->
+    <div class="form-section-title">Detalles y Clasificación</div>
+    <div class="details-grid">
+      <div class="input-group">
+        <label for={`status-${series.id}`}>Estado</label>
+        <input type="text" id={`status-${series.id}`} name="status" value={series.status || ''} placeholder="Ej: En emisión" />
+      </div>
+      <div class="input-group">
+        <label for={`type-${series.id}`}>Tipo</label>
+        <input type="text" id={`type-${series.id}`} name="type" value={series.type || ''} placeholder="Ej: Manga, Manhwa" />
+      </div>
+      <div class="input-group">
+        <label for={`author-${series.id}`}>Autor</label>
+        <input type="text" id={`author-${series.id}`} name="author" value={series.author || ''} placeholder="Nombre del autor" />
+      </div>
+      <div class="input-group">
+        <label for={`artist-${series.id}`}>Artista</label>
+        <input type="text" id={`artist-${series.id}`} name="artist" value={series.artist || ''} placeholder="Nombre del artista" />
+      </div>
+      <div class="input-group">
+        <label for={`publishedBy-${series.id}`}>Editorial</label>
+        <input type="text" id={`publishedBy-${series.id}`} name="publishedBy" value={series.publishedBy || ''} placeholder="Ej: Shueisha" />
+      </div>
+      <div class="input-group">
+        <label for={`serializedBy-${series.id}`}>Revista / Sitio</label>
+        <input type="text" id={`serializedBy-${series.id}`} name="serializedBy" value={series.serializedBy || ''} placeholder="Ej: Shōnen Jump" />
+      </div>
+      <div class="input-group">
+        <label for={`genres-${series.id}`}>Géneros</label>
+        <input type="text" id={`genres-${series.id}`} name="genres" value={series.genres || ''} placeholder="Acción, Aventura..." />
+      </div>
+      <div class="input-group">
+        <label for={`demographic-${series.id}`}>Demografía</label>
+        <input type="text" id={`demographic-${series.id}`} name="demographic" value={series.demographic || ''} placeholder="Ej: Shonen, Seinen" />
+      </div>
+    </div>
+
+    <div class="input-group full-width">
+      <label for={`alternativeNames-${series.id}`}>Nombres Alternativos</label>
+      <input type="text" id={`alternativeNames-${series.id}`} name="alternativeNames" value={series.alternativeNames || ''} placeholder="Separados por comas" />
+    </div>
+
+    <!-- SECCIÓN 3: Acciones de Gestión -->
+    <div class="actions-footer">
+      <div class="footer-status-row">
+        <div class="status-switches">
+          <div class="switch-item">
+            <input type="hidden" id={`isHidden_input-${series.id}`} name="isHidden" value={series.isHidden ? 'on' : 'off'} />
+            <button
+              type="button"
+              class:list={['compact-toggle', series.isHidden ? 'state-on' : 'state-off']}
+              data-series-id={series.id}
+              id={`toggle-visibility-button-${series.id}`}
+            >
+              <span class="dot"></span>
+              Ocultar: {series.isHidden ? 'ON' : 'OFF'}
+            </button>
+          </div>
+
+          <div class="switch-item">
+            <input type="hidden" id={`isAppSeries_input-${series.id}`} name="isAppSeries" value={series.isAppSeries ? 'on' : 'off'} />
+            <button
+              type="button"
+              class:list={['compact-toggle', series.isAppSeries ? 'state-on' : 'state-off']}
+              data-series-id={series.id}
+              id={`toggle-app-series-button-${series.id}`}
+            >
+              <span class="dot"></span>
+              App: {series.isAppSeries ? 'ON' : 'OFF'}
+            </button>
+          </div>
+
+          <div class="switch-item">
+            <input type="hidden" id={`isNsfw_input-${series.id}`} name="isNsfw" value={series.isNsfw ? 'on' : 'off'} />
+            <button
+              type="button"
+              class:list={['compact-toggle', series.isNsfw ? 'state-on' : 'state-off']}
+              data-series-id={series.id}
+              id={`toggle-nsfw-button-${series.id}`}
+            >
+              <span class="dot"></span>
+              +18: {series.isNsfw ? 'ON' : 'OFF'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-actions-row">
+        <button type="submit" class="save-btn-modern" id={`update-series-button-${series.id}`}>
+          <div class="btn-content">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            <span>Guardar Cambios</span>
+          </div>
+          <div class="btn-shine"></div>
+        </button>
+
+        <button
+          type="submit"
+          form={`delete-series-form-${series.id}`}
+          class="delete-btn-minimal"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <span>Eliminar</span>
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <form
+    id={`delete-series-form-${series.id}`}
+    action="/api/delete-series"
+    method="post"
+    onsubmit="return confirm('¿Eliminar TODA la serie? Esta acción es irreversible.');"
+    style="display: none;"
+  >
+    <input type="hidden" name="seriesId" value={series.id} />
+  </form>
+</div>
+
+<style>
+  .series-edit-container {
+    color: #e0e0e0;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .modern-admin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .form-section {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem 0;
+  }
+
+  .form-section-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #666;
+    border-bottom: 1px solid #333;
+    padding-bottom: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  /* Identity Section */
+  .identity-section {
+    align-items: flex-start;
+  }
+
+  .cover-uploader {
+    flex-shrink: 0;
+    width: 180px;
+  }
+
+  .section-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #888;
+    margin-bottom: 0.5rem;
+  }
+
+  .preview-card {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 3/4;
+    background: #2a2a2a;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .cover-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.3s;
+  }
+
+  .file-input-wrapper {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.6);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .preview-card:hover .file-input-wrapper {
+    opacity: 1;
+  }
+
+  .custom-file-upload {
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: #fff;
+  }
+
+  .custom-file-upload input { display: none; }
+
+  .basic-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .input-row-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+  }
+
+  @media (max-width: 600px) {
+    .input-row-split {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Inputs & Groups */
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .input-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #aaa;
+  }
+
+  .full-width { grid-column: 1 / -1; }
+
+  input[type="text"],
+  :global(.admin-form-textarea) {
+    background: #252525;
+    border: 1px solid #3a3a3a;
+    color: #fff;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    width: 100%;
+  }
+
+  input[type="text"]:focus,
+  :global(.admin-form-textarea:focus) {
+    outline: none;
+    border-color: #4facfe;
+    background: #2a2a2a;
+    box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+  }
+
+  .details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.2rem;
+  }
+
+  /* --- IMPROVED FOOTER ACTIONS (STACKED MODEL) --- */
+  .actions-footer {
+    margin-top: 0rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem; /* Espaciado entre niveles de acciones */
+  }
+
+  .footer-status-row {
+    width: 100%;
+  }
+
+  /* Compact Status Switches - Ahora como barra de herramientas superior */
+  .status-switches {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Distribución equitativa */
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.3rem;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    height: auto;
+    min-height: 48px;
+    align-items: center;
+  }
+
+  .switch-item {
+    display: flex;
+    width: 100%;
+  }
+
+  .compact-toggle {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.4rem;
+    height: 38px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    cursor: pointer;
+    background: transparent;
+    color: #666;
+    transition: all 0.2s ease;
+  }
+
+  .compact-toggle .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.3;
+  }
+
+  .compact-toggle.state-on {
+    background: rgba(46, 204, 113, 0.1);
+    color: #2ecc71;
+    border-color: rgba(46, 204, 113, 0.2);
+  }
+  .compact-toggle.state-on .dot { opacity: 1; box-shadow: 0 0 8px #2ecc71; }
+
+  .compact-toggle.state-off:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #aaa;
+  }
+
+  .main-actions-row {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+    align-items: center;
+  }
+
+  /* Modern Save Button - Ahora flexible para compartir fila */
+  .save-btn-modern {
+    position: relative;
+    background: #fff;
+    color: #000;
+    border: none;
+    flex: 2; /* Toma más espacio que eliminar */
+    height: 52px;
+    border-radius: 16px;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .save-btn-modern:hover {
+    transform: translateY(-2px);
+    background: #4facfe;
+    color: #fff;
+    box-shadow: 0 8px 30px rgba(79, 172, 254, 0.3);
+  }
+
+  .delete-btn-minimal {
+    flex: 1; /* Más compacto que guardar */
+    background: rgba(255, 71, 87, 0.05);
+    color: #ff4757;
+    border: 1px solid rgba(255, 71, 87, 0.1);
+    padding: 0 1rem;
+    height: 52px;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    transition: all 0.2s;
+  }
+
+  .delete-btn-minimal:hover {
+    background: #ff4757;
+    color: #fff;
+    border-color: #ff4757;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 71, 87, 0.3);
+  }
+
+  @media (max-width: 600px) {
+    .status-switches {
+      grid-template-columns: 1fr; /* Stack vertical en móviles muy pequeños */
+    }
+  }
+
+  .delete-btn-minimal:hover {
+    color: #ff4757;
+    background: rgba(255, 71, 87, 0.05);
+    border-color: rgba(255, 71, 87, 0.1);
+  }
+
+  @media (max-width: 1024px) {
+    .actions-footer {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1.5rem;
+    }
+    .footer-primary-actions {
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+    .save-btn-modern { width: 100%; }
+    .status-switches { justify-content: center; width: 100%; }
+    .footer-danger-zone { display: flex; justify-content: center; }
+  }
+
+  .floating-message {
+    position: fixed;
+    top: 30px;
+    right: 30px;
+    z-index: 10000;
+    padding: 1rem 2rem;
+    border-radius: 16px;
+    font-weight: 800;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    display: none;
+    animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  .floating-message.success {
+    background: rgba(46, 204, 113, 0.9);
+    border-color: rgba(46, 204, 113, 0.3);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+
+  .floating-message.error {
+    background: rgba(231, 76, 60, 0.9);
+    border-color: rgba(231, 76, 60, 0.3);
+  }
+
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @media (max-width: 768px) {
+    .form-section { flex-direction: column; gap: 1rem; }
+    .cover-uploader { width: 100%; display: flex; flex-direction: column; align-items: center; }
+    .preview-card { width: 140px; }
+    .actions-footer { flex-direction: column; align-items: stretch; }
+    .main-actions { flex-direction: column; }
+    .save-btn { width: 100%; justify-content: center; }
+    .toggle-group { justify-content: center; }
+  }
+</style>
+
+<script>
+  // Orion: Sincronización en tiempo real con los badges de la cabecera
+  function syncParentUI(seriesId: string, data: any) {
+    const titleEl = document.querySelector(`[data-series-id-title="${seriesId}"]`);
+    const badgesRow = document.querySelector(`[data-series-id-badges="${seriesId}"]`);
+    
+    if (titleEl && data.title !== undefined) titleEl.textContent = data.title;
+    
+    if (badgesRow) {
+      if (data.isHidden !== undefined) {
+        const badge = badgesRow.querySelector('.badge-visibility');
+        if (badge) {
+          badge.textContent = data.isHidden ? 'Oculto' : 'Visible';
+          badge.className = `badge badge-visibility ${data.isHidden ? 'is-hidden' : 'is-visible'}`;
+        }
+      }
+      
+      if (data.isAppSeries !== undefined) {
+        const badge = badgesRow.querySelector('.badge-platform');
+        if (badge) {
+          badge.textContent = data.isAppSeries ? 'APP' : 'WEB';
+          badge.className = `badge badge-platform ${data.isAppSeries ? 'is-app' : 'is-web'}`;
+        }
+      }
+      
+      if (data.isNsfw !== undefined) {
+        const badge = badgesRow.querySelector('.badge-nsfw');
+        if (badge) {
+          badge.className = `badge badge-nsfw is-nsfw ${data.isNsfw ? '' : 'hidden-badge'}`;
+        }
+      }
+      
+      if (data.status !== undefined) {
+        const badge = badgesRow.querySelector('.badge-status');
+        if (badge) {
+          badge.textContent = data.status || '';
+          badge.className = `badge badge-status is-status ${data.status ? '' : 'hidden-badge'}`;
+        }
+      }
+    }
+  }
+
+  // Orion: Delegación de eventos única para mejorar performance (Fix Violations)
+  document.addEventListener('submit', async (event) => {
+    const form = event.target as HTMLFormElement;
+    if (!form.classList.contains('modern-admin-form')) return;
+
+    event.preventDefault();
+    const seriesId = form.dataset.seriesId;
+    if (!seriesId) return;
+
+    const button = document.getElementById(`update-series-button-${seriesId}`) as HTMLButtonElement;
+    if (button) button.disabled = true;
+
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch('/api/update-series', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error inesperado');
+      }
+
+      // Sincronizar UI del padre tras éxito
+      syncParentUI(seriesId, {
+        title: formData.get('title'),
+        status: formData.get('status'),
+        isHidden: formData.get('isHidden') === 'on',
+        isAppSeries: formData.get('isAppSeries') === 'on',
+        isNsfw: formData.get('isNsfw') === 'on'
+      });
+
+      displayFormMessage(seriesId, 'success', 'Serie actualizada con éxito.');
+    } catch (error: any) {
+      displayFormMessage(seriesId, 'error', `Error: ${error.message}`);
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
+
+  function displayFormMessage(seriesId: string | undefined, type: string, text: string) {
+    if (!seriesId) return;
+    const messageDiv = document.getElementById(`form-message-${seriesId}`);
+    if (messageDiv) {
+      requestAnimationFrame(() => {
+        messageDiv.textContent = text;
+        messageDiv.className = `floating-message ${type}`;
+        messageDiv.style.display = 'block';
+        setTimeout(() => {
+          requestAnimationFrame(() => { messageDiv.style.display = 'none'; });
+        }, 5000);
+      });
+    }
+  }
+
+  document.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest('.compact-toggle') as HTMLButtonElement;
+    if (!button) return;
+
+    const seriesId = button.dataset.seriesId;
+    if (!seriesId) return;
+
+    // Determinar qué tipo de toggle es y actualizar solo el estado LOCAL del formulario
+    if (button.id.startsWith('toggle-visibility-')) {
+      handleLocalToggle(seriesId, button, 'isHidden');
+    } else if (button.id.startsWith('toggle-app-series-')) {
+      handleLocalToggle(seriesId, button, 'isAppSeries');
+    } else if (button.id.startsWith('toggle-nsfw-')) {
+      handleLocalToggle(seriesId, button, 'isNsfw');
+    }
+  });
+
+  function handleLocalToggle(seriesId: string, button: HTMLButtonElement, inputName: string) {
+    const input = document.getElementById(`${inputName}_input-${seriesId}`) as HTMLInputElement;
+    if (!input) return;
+
+    const currentState = input.value === 'on';
+    const newState = !currentState;
+
+    // Orion: Solo actualizamos el valor del input y la apariencia del botón.
+    // NO llamamos a la API ni sincronizamos con el padre todavía.
+    input.value = newState ? 'on' : 'off';
+    updateToggleUI(button, newState, inputName);
+  }
+
+  function updateToggleUI(button: HTMLButtonElement, state: boolean, type: string) {
+    const dot = '<span class="dot"></span> ';
+    let text = '';
+    
+    if (type === 'isHidden') text = 'Ocultar';
+    else if (type === 'isAppSeries') text = 'App';
+    else if (type === 'isNsfw') text = '+18';
+
+    button.innerHTML = `${dot}${text}: ${state ? 'ON' : 'OFF'}`;
+    button.className = `compact-toggle ${state ? 'state-on' : 'state-off'}`;
+  }
+
+  document.addEventListener('change', (event) => {
+    const input = event.target as HTMLInputElement;
+    if (input.id?.startsWith('cover-input-')) {
+      handleCoverPreview(input);
+    }
+  });
+
+  function handleCoverPreview(input: HTMLInputElement) {
+    const seriesId = input.dataset.seriesId;
+    if (!seriesId || !input.files?.[0]) return;
+
+    const file = input.files[0];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif'];
+
+    if (!allowedTypes.includes(file.type)) {
+      import('../lib/toastStore').then(({ toast }) => {
+        toast.error(`Formato no soportado.`);
+      });
+      input.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const previewImg = input.closest('.preview-card')?.querySelector('.cover-image') as HTMLImageElement;
+      if (previewImg && e.target && typeof e.target.result === 'string') {
+        requestAnimationFrame(() => {
+          previewImg.src = e.target?.result as string;
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+</script>

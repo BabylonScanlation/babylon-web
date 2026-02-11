@@ -1,0 +1,417 @@
+---
+// src/components/AdminSeriesNewsForm.astro
+interface Props {
+  seriesId: number;
+  seriesTitle: string;
+  userName?: string;
+  seriesCover?: string;
+}
+
+const { seriesId, seriesTitle, userName = 'Staff', seriesCover } = Astro.props;
+---
+
+<div class="admin-news-wrapper">
+  <button id="toggle-news-form" class="toggle-btn">
+    <span class="toggle-label">
+      <svg
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        stroke="currentColor"
+        stroke-width="2.5"
+        fill="none"
+        ><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+        ></path><path
+          d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+        ></path></svg
+      >
+      Redactar Noticia
+    </span>
+    <svg
+      class="chevron"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      stroke="currentColor"
+      stroke-width="2.5"
+      fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg
+    >
+  </button>
+
+  <div id="news-form-container" class="form-container collapsed">
+    <form
+      id="series-news-form"
+      data-series-id={seriesId}
+      data-series-title={seriesTitle}
+      data-user-name={userName}
+      data-series-cover={seriesCover}
+      class="compact-form"
+    >
+      <div class="meta-row">
+        <input
+          type="text"
+          name="newsTitle"
+          id="newsTitle"
+          placeholder="Título de la noticia..."
+          required
+          class="mini-input title-field"
+        />
+
+        <div class="file-mini-wrapper">
+          <input
+            type="file"
+            name="image"
+            id="image"
+            accept="image/*"
+            class="hidden-input"
+          />
+          <label
+            for="image"
+            class="mini-file-btn"
+            title="Adjuntar imagen personalizada"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              stroke="currentColor"
+              stroke-width="2.5"
+              fill="none"
+              ><rect x="3" y="3" width="18" height="18" rx="2" ry="2"
+              ></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline
+                points="21 15 16 10 5 21"></polyline></svg
+            >
+            <span id="file-label">Imagen</span>
+          </label>
+        </div>
+      </div>
+
+      <textarea
+        name="content"
+        id="content"
+        placeholder={`¿Qué novedades hay para ${seriesTitle}?`}
+        required
+        class="compact-textarea"></textarea>
+
+      <div class="action-row">
+        <span class="posting-as"
+          >Publicando como: <strong>{userName}</strong></span
+        >
+        <div class="right-actions">
+          <span id="form-status" class="status-text"></span>
+          <button type="submit" class="btn-post-mini">
+            Publicar
+            <svg
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              stroke="currentColor"
+              stroke-width="2.5"
+              fill="none"
+              ><line x1="22" y1="2" x2="11" y2="13"></line><polygon
+                points="22 2 15 22 11 13 2 9 22 2"></polygon></svg
+            >
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  import { logError } from '../lib/logError';
+
+  const toggleBtn = document.getElementById('toggle-news-form');
+  const container = document.getElementById('news-form-container');
+  const form = document.getElementById('series-news-form');
+  const statusEl = document.getElementById('form-status');
+  const imageInput = document.getElementById('image') as HTMLInputElement;
+  const fileLabel = document.getElementById('file-label');
+
+  toggleBtn?.addEventListener('click', () => {
+    container?.classList.toggle('collapsed');
+    toggleBtn.classList.toggle('active');
+  });
+
+  imageInput?.addEventListener('change', () => {
+    if (fileLabel && imageInput.files?.[0]) {
+      fileLabel.textContent = '1 archivo';
+      fileLabel.style.color = 'var(--accent-color)';
+    }
+  });
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!(form instanceof HTMLFormElement)) return;
+
+    const formData = new FormData(form);
+    const title = formData.get('newsTitle')?.toString().trim();
+    const content = formData.get('content')?.toString().trim();
+    const image = formData.get('image');
+
+    const { seriesId, userName } = form.dataset;
+
+    if (!content || !seriesId || !title) return;
+
+    if (statusEl) {
+      statusEl.textContent = 'Publicando...';
+      statusEl.className = 'status-text loading';
+    }
+
+    try {
+      const res = await fetch('/api/admin/news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title, // Use the manual title
+          content,
+          seriesId,
+          authorName: userName,
+          status: 'published',
+        }),
+      });
+
+      if (!res.ok) throw new Error('Error API');
+      const data = await res.json();
+
+      // Handle Image: If user didn't upload one, we could theoretically auto-upload the cover,
+      // but usually the backend should handle default images or we just send the cover URL if needed.
+      // For now, let's just stick to the manual upload or no image.
+      if (image instanceof File && image.size > 0) {
+        if (statusEl) statusEl.textContent = 'Subiendo media...';
+        const imgData = new FormData();
+        imgData.append('image', image);
+        imgData.append('newsId', data.id);
+        await fetch('/api/admin/news/upload-image', {
+          method: 'POST',
+          body: imgData,
+        });
+      }
+
+      if (statusEl) {
+        statusEl.textContent = '¡Listo!';
+        statusEl.className = 'status-text success';
+        setTimeout(() => {
+          statusEl.textContent = '';
+          container?.classList.add('collapsed');
+          toggleBtn?.classList.remove('active');
+        }, 1500);
+      }
+
+      form.reset();
+      if (fileLabel) {
+        fileLabel.textContent = 'Imagen';
+        fileLabel.style.color = '';
+      }
+      
+      // Orion: Emitir evento con payload para actualización optimista
+      document.dispatchEvent(new CustomEvent('new-news-created', { 
+        detail: { 
+          news: data,
+          hasImage: image instanceof File && image.size > 0
+        } 
+      }));
+    } catch (err) {
+      logError(err, 'News Upload Error');
+      if (statusEl) {
+        statusEl.textContent = 'Error.';
+        statusEl.className = 'status-text error';
+      }
+    }
+  });
+</script>
+
+<style>
+  .admin-news-wrapper {
+    margin-bottom: 0rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    background: #0f0f0f;
+    overflow: hidden;
+  }
+
+  .toggle-btn {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: all 0.2s;
+    text-decoration: none !important; /* Astra: No underlines */
+  }
+
+  .toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+  }
+  .toggle-btn.active {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none !important;
+  }
+  .chevron {
+    transition: transform 0.3s;
+  }
+  .toggle-btn.active .chevron {
+    transform: rotate(180deg);
+  }
+
+  .form-container {
+    max-height: 500px;
+    transition:
+      max-height 0.4s cubic-bezier(0, 1, 0, 1),
+      opacity 0.3s ease;
+    opacity: 1;
+  }
+
+  .form-container.collapsed {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .compact-form {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .mini-input {
+    flex: 1;
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: #ccc;
+    font-size: 0.8rem;
+    text-decoration: none !important;
+  }
+  .mini-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+  }
+  .title-field {
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .file-mini-wrapper {
+    position: relative;
+  }
+  .hidden-input {
+    display: none;
+  }
+  .mini-file-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #1a1a1a;
+    border: 1px dashed #444;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: #777;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    text-decoration: none !important;
+  }
+  .mini-file-btn:hover {
+    border-color: #666;
+    color: #ccc;
+  }
+
+  .compact-textarea {
+    width: 100%;
+    min-height: 80px;
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px;
+    color: #fff;
+    font-size: 0.9rem;
+    resize: vertical;
+    box-sizing: border-box;
+    font-family: inherit;
+    text-decoration: none !important;
+  }
+  .compact-textarea:focus {
+    outline: none;
+    border-color: #555;
+  }
+
+  .action-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+  .right-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .posting-as {
+    font-size: 0.7rem;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .posting-as strong {
+    color: #888;
+  }
+
+  .status-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none !important;
+  }
+  .status-text.loading {
+    color: var(--accent-color);
+  }
+  .status-text.success {
+    color: #4cd964;
+  }
+  .status-text.error {
+    color: #ff3b30;
+  }
+
+  .btn-post-mini {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform 0.1s;
+    text-decoration: none !important;
+  }
+  .btn-post-mini:hover {
+    transform: scale(1.02);
+    background: #eee;
+  }
+</style>

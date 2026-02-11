@@ -1,0 +1,29 @@
+---
+import Layout from '../layouts/Layout.astro';
+import AgeGate from '../components/AgeGate.svelte';
+---
+
+<Layout title="Verificación de Seguridad - Babylon">
+  <div class="security-zone">
+    <AgeGate client:load isVerificationPage={true} />
+  </div>
+</Layout>
+
+<style>
+  .security-zone {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999999;
+  }
+  .loading-state {
+    color: #333;
+    font-size: 0.9rem;
+  }
+</style>

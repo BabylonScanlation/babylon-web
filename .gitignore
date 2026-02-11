@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.astro
+
+# Cloudflare local development state
+.wrangler/
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+.vscode/
+Thumbs.db
+db_snapshots/
+scripts/
+
+# Environment variables
+.env
+.env.local
+.dev.vars

@@ -1,0 +1,236 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { SITE_TITLE } from '../../consts';
+import UnifiedComments from '../../components/UnifiedComments.astro'; 
+import { getDB } from '../../lib/db';
+import { getCommentsForTarget } from '../../lib/data/comments';
+import { getNewsDetail } from '../../lib/data/news';
+import type { Comment } from '../../types';
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/404');
+
+const user = Astro.locals.user;
+const drizzleDb = getDB(Astro.locals.runtime.env);
+
+const newsItem = await getNewsDetail(drizzleDb, id);
+
+if (!newsItem) {
+  return Astro.redirect('/news');
+}
+
+// Cargar comentarios iniciales
+const initialComments = await getCommentsForTarget(drizzleDb, 'news', id, user?.uid) as Comment[];
+---
+
+<Layout title={`${newsItem.title} - Noticias - ${SITE_TITLE}`}>
+  <main class="news-detail-container">
+    <!-- Artículo Principal -->
+    <article class="news-article">
+      <div class="news-header">
+        <h1 class="news-title">{newsItem.title}</h1>
+        <div class="news-meta">
+          <span class="news-author">Por <span class="highlight">{newsItem.authorName || 'Redacción Babylon'}</span></span>
+          <span class="separator">•</span>
+          <span class="news-date">{new Date(newsItem.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        </div>
+      </div>
+
+      {newsItem.imageUrls && newsItem.imageUrls.length > 0 && (
+        <div class="news-image-container">
+          <img src={newsItem.imageUrls[0]} alt={newsItem.title} class="news-featured-image" />
+        </div>
+      )}
+
+      <div class="news-content">
+        {newsItem.content.split('\n').map((paragraph: string) => (
+          paragraph.trim() && <p>{paragraph}</p>
+        ))}
+      </div>
+
+      <div class="news-navigation">
+        <a href="/news" class="nav-btn-modern">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Volver a Noticias
+        </a>
+        {newsItem.seriesSlug && (
+          <a href={`/series/${newsItem.seriesSlug}`} class="nav-btn-modern accent">
+            Ir a la Serie
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+        )}
+      </div>
+    </article>
+
+    <!-- Zona de Comentarios Separada -->
+    <section class="discussion-zone">
+      <div class="comments-container-glass">
+        <UnifiedComments 
+          targetType="news" 
+          targetId={id!} 
+          comments={initialComments} 
+          user={user ?? null} 
+        />
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .news-detail-container {
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4rem; /* Gran separación entre artículo y comentarios */
+  }
+
+  /* --- ARTÍCULO --- */
+  .news-article {
+    /* Eliminamos el fondo "card" para que se sienta más editorial, o lo hacemos muy sutil */
+    background: transparent; 
+  }
+
+  .news-header {
+    margin-bottom: 2.5rem;
+    text-align: center; /* Título centrado estilo revista */
+  }
+
+  .news-title {
+    font-size: 3rem;
+    font-weight: 900;
+    color: #fff;
+    margin-bottom: 1rem;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    background: linear-gradient(180deg, #fff 0%, #ccc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .news-meta {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    color: #888;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  .news-meta .highlight { color: var(--accent-color); font-weight: 700; }
+  .news-meta .separator { color: #444; }
+
+  .news-image-container {
+    margin-bottom: 3rem;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .news-featured-image {
+    width: 100%;
+    height: auto;
+    max-height: 600px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .news-content {
+    font-size: 1.25rem; /* Texto más grande para lectura cómoda */
+    line-height: 1.8;
+    color: #d0d0d0;
+    margin-bottom: 4rem;
+    max-width: 75ch; /* Ancho óptimo de lectura */
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .news-content p { margin-bottom: 1.8rem; }
+
+  .news-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  /* --- ZONA DE COMENTARIOS --- */
+  .discussion-zone {
+    max-width: 800px; /* Ligeramente más estrecho que el contenedor principal */
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .discussion-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid rgba(255,255,255,0.05);
+  }
+
+  .comments-title {
+    font-size: 1.8rem;
+    color: #fff;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+  .comments-title .icon { font-size: 1.5rem; }
+
+  .comments-count-badge {
+    background: rgba(255,255,255,0.1);
+    padding: 0.4rem 1rem;
+    border-radius: 100px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #aaa;
+  }
+
+  /* Botones (reutilizados pero ajustados) */
+  .nav-btn-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.8rem 1.5rem;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 100px; /* Pill shape */
+    color: #eee;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .nav-btn-modern:hover {
+    border-color: #fff;
+    background: rgba(255,255,255,0.05);
+    transform: translateX(-4px);
+  }
+
+  .nav-btn-modern.accent {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+  }
+
+  .nav-btn-modern.accent:hover {
+    background: rgba(0, 191, 255, 0.1);
+    box-shadow: 0 0 20px rgba(0, 191, 255, 0.2);
+    transform: translateX(4px);
+  }
+
+  @media (max-width: 768px) {
+    .news-title { font-size: 2.2rem; }
+    .news-detail-container { padding: 1.5rem 1rem; gap: 3rem; }
+    .news-content { font-size: 1.1rem; }
+    .comments-container-glass { padding: 1rem; }
+  }
+</style>

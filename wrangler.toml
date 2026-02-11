@@ -1,0 +1,43 @@
+# wrangler.toml
+name = "babylon-scanlation"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-07-18"
+compatibility_flags = ["nodejs_compat"]
+
+# --- D1 (PRODUCCIÓN y LOCAL - Mismo Binding Name) ---
+[[d1_databases]]
+binding = "DB" # Nombre usado en el código (Astro.locals.runtime.env.DB)
+database_name = "babylon-scanlation-prod"
+database_id = "5c1ecb07-f1ea-4961-9014-0b8612fc0caf"
+preview_database_id = "5c1ecb07-f1ea-4961-9014-0b8612fc0caf" 
+migrations_dir = "./migrations"
+
+# --- R2 (PRODUCCIÓN y LOCAL - Mismo Binding Name) ---
+[[r2_buckets]]
+binding = "R2_CACHE" # Nombre usado en el código (Astro.locals.runtime.env.R2_CACHE)
+bucket_name = "babylon-scanlation-cache"
+preview_bucket_name = "babylon-scanlation-cache"
+
+[[kv_namespaces]]
+binding = "KV_VIEWS"
+id = "885962ed477541ca90029947d608dfc1"
+
+[[r2_buckets]]
+binding = "R2_ASSETS" # Nombre usado en el código (Astro.locals.runtime.env.R2_ASSETS)
+bucket_name = "babylon-scanlation-assets"
+preview_bucket_name = "babylon-scanlation-assets"
+
+# --- Smart Placement ---
+# Optimiza automáticamente la ubicación del Worker para estar cerca de D1/R2
+[placement]
+mode = "smart"
+
+# --- Configuración DEV para el puerto ---
+[dev]
+ip = "localhost"
+port = 8788
+local_protocol = "http"
+
+
+
+# No necesitas añadir [vars] ni otros bindings aquí; Wrangler ya lo hace.

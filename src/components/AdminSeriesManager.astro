@@ -1,0 +1,467 @@
+---
+// src/components/AdminSeriesManager.astro
+
+import AdminSeriesForm from './AdminSeriesForm.astro';
+import AdminChapterList from './AdminChapterList.astro';
+import AdminChapterUploader from './AdminChapterUploader.svelte';
+
+interface Chapter {
+  id: number;
+  seriesId: number;
+  chapterNumber: number;
+  title: string | null;
+  telegramFileId: string;
+  urlPortada: string | null;
+  status: string;
+  views: number | null;
+  createdAt: string | null;
+}
+interface Series {
+  id: number;
+  title: string;
+  description: string;
+  coverImageUrl: string;
+  slug: string;
+  chapters: Chapter[];
+  status: string | null;
+  type: string | null;
+  genres: string | null;
+  author: string | null;
+  artist: string | null;
+  publishedBy: string | null;
+  alternativeNames: string | null;
+  serializedBy: string | null;
+  demographic: string | null;
+  isHidden: boolean;
+  isNsfw: boolean;
+  isAppSeries: boolean;
+  chapterCount?: number;
+}
+
+interface Props {
+  series: Series;
+  r2PublicUrlAssets: string;
+}
+
+const { series, r2PublicUrlAssets } = Astro.props;
+
+// Orion: Construcción robusta de URL.
+// Si empieza por http, es absoluta.
+// En DEV, forzamos el proxy local para rutas relativas para ver lo que acabamos de subir.
+const isDev = import.meta.env.DEV;
+const assetsBase = isDev
+  ? '/api/assets/proxy'
+  : r2PublicUrlAssets || '/api/assets/proxy';
+
+const coverUrl = series.coverImageUrl?.startsWith('http')
+  ? series.coverImageUrl
+  : `${assetsBase}/${series.coverImageUrl}`
+      .replace(/\/+/g, '/')
+      .replace(':/', '://');
+---
+
+<div class="series-item-container">
+  <details class="series-card">
+    <summary class="series-header-interactive">
+      <!-- IMAGEN DE FONDO (ESTILO POSTER) -->
+      <div class="poster-background">
+        <img src={coverUrl} alt="" loading="lazy" />
+        <div class="poster-overlay"></div>
+      </div>
+
+      <!-- CONTENIDO DEL SUMMARY -->
+      <div class="header-content-refined">
+        <div class="header-left-refined">
+          <div class="mini-thumb">
+            <img src={coverUrl} alt={series.title} />
+          </div>
+          <div class="title-and-badges">
+            <h3 class="series-title" data-series-id-title={series.id}>{series.title}</h3>
+            <div class="badges-row" data-series-id-badges={series.id}>
+              <span
+                class={`badge badge-visibility ${series.isHidden ? 'is-hidden' : 'is-visible'}`}
+              >
+                {series.isHidden ? 'Oculto' : 'Visible'}
+              </span>
+              <span
+                class={`badge badge-platform ${series.isAppSeries ? 'is-app' : 'is-web'}`}
+              >
+                {series.isAppSeries ? 'APP' : 'WEB'}
+              </span>
+              <span class={`badge badge-nsfw is-nsfw ${series.isNsfw ? '' : 'hidden-badge'}`}>+18</span>
+              <span class="badge is-count">{series.chapterCount ?? 0} Caps</span>
+              <span class={`badge badge-status is-status ${series.status ? '' : 'hidden-badge'}`}>
+                {series.status || ''}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="header-right-refined">
+          <span class="manage-text">Gestionar</span>
+          <div class="chevron-circle">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg
+            >
+          </div>
+        </div>
+      </div>
+    </summary>
+
+    <div class="series-expanded-panel">
+      <div class="panel-layout">
+        <div class="panel-column">
+          <AdminSeriesForm series={series} />
+        </div>
+        <div class="panel-column">
+          <AdminChapterList series={series} r2PublicUrlAssets={r2PublicUrlAssets} />
+          <AdminChapterUploader client:load seriesId={series.id} seriesTitle={series.title} />
+        </div>
+      </div>
+    </div>
+  </details>
+</div>
+
+<style>
+  /* --- BASE CARD --- */
+  .series-item-container {
+    padding: 0; /* Eliminamos el padding vertical para compactar */
+    margin: 0;
+    display: flex;
+    width: 100%;
+    background: transparent;
+  }
+
+  .series-card {
+    background-color: #1a1a1a;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    position: relative;
+    width: 100%;
+  }
+
+  /* Efecto Hover estable */
+  .series-item-container:hover .series-card:not([open]) {
+    transform: translateY(-4px) scale(1.01); /* Movimiento reducido para máxima estabilidad */
+    border-color: rgba(79, 172, 254, 0.3);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    z-index: 10;
+  }
+
+  .series-card[open] {
+    border-color: rgba(79, 172, 254, 0.4);
+    background: #121212;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  /* --- HEADER INTERACTIVO (SUMMARY) --- */
+  .series-header-interactive {
+    list-style: none;
+    cursor: pointer;
+    position: relative;
+    padding: 0;
+    min-height: 220px; /* Aspecto de poster cuando está cerrado */
+    display: flex;
+    align-items: flex-end;
+    transition: all 0.4s ease;
+  }
+
+  .series-header-interactive::-webkit-details-marker {
+    display: none;
+  }
+
+  /* Ajuste del header cuando está abierto */
+  .series-card[open] .series-header-interactive {
+    min-height: 100px;
+    background: #1e1e1e;
+  }
+
+  /* Poster Background */
+  .poster-background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    transition: opacity 0.4s ease;
+  }
+
+  .poster-background img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+  }
+
+  .series-card:not([open]):hover .poster-background img {
+    transform: scale(1.1);
+  }
+
+  .series-card[open] .poster-background {
+    opacity: 0.15; /* Se vuelve sutil cuando se abre */
+    filter: blur(10px);
+  }
+
+  .poster-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top,
+      rgba(10, 10, 10, 1) 0%,
+      rgba(10, 10, 10, 0.6) 40%,
+      rgba(10, 10, 10, 0.2) 100%
+    );
+  }
+
+  /* Content inside header */
+  .header-content-refined {
+    position: relative;
+    z-index: 5; /* Por encima del fondo */
+    width: 100%;
+    padding: 1rem 0.8rem; /* Paddings reducidos al mínimo */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-start;
+    min-height: 220px;
+    transition: all 0.4s ease;
+  }
+
+  .series-card[open] .header-content-refined {
+    padding: 1.2rem 1.2rem;
+    min-height: 140px;
+    justify-content: center;
+  }
+
+  .header-left-refined {
+    display: flex;
+    flex-direction: column; /* Cambiamos a columna para liberar el ancho del título */
+    gap: 0.8rem;
+    width: 100%;
+  }
+
+  .series-card[open] .header-left-refined {
+    flex-direction: row; /* Solo en abierto permitimos thumbnail al lado si es necesario */
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .mini-thumb {
+    width: 60px;
+    height: 85px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .series-card[open] .mini-thumb {
+    display: block;
+  }
+
+  .mini-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .title-and-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%; /* Ocupa todo el ancho */
+    flex: 1;
+  }
+
+  .series-title {
+    margin: 0;
+    font-size: 1.5rem; /* Aumentamos tamaño */
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.9);
+    line-height: 1.1;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    width: 100%;
+    display: block;
+    letter-spacing: -0.02em;
+  }
+
+  .series-card[open] .series-title {
+    font-size: 1.8rem;
+    text-shadow: none;
+  }
+
+  /* Badges */
+  .badges-row {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .badge {
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(10px);
+  }
+
+  .badge.is-visible {
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+  }
+  .badge.is-hidden {
+    background: rgba(255, 255, 255, 0.1);
+    color: #888;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .badge.is-app {
+    background: rgba(255, 0, 85, 0.2);
+    color: #ff0055;
+    border: 1px solid rgba(255, 0, 85, 0.3);
+  }
+  .badge.is-web {
+    background: rgba(0, 191, 255, 0.15);
+    color: #00bfff;
+    border: 1px solid rgba(0, 191, 255, 0.25);
+  }
+  .badge.is-nsfw {
+    background: #ff4444;
+    color: #fff;
+    border: none;
+    font-weight: 900;
+  }
+  .badge.is-count {
+    background: rgba(79, 172, 254, 0.1);
+    color: #4facfe;
+    border: 1px solid rgba(79, 172, 254, 0.2);
+  }
+  .badge.is-status {
+    background: rgba(155, 89, 182, 0.2);
+    color: #9b59b6;
+    border: 1px solid rgba(155, 89, 182, 0.3);
+  }
+
+  .hidden-badge {
+    display: none !important;
+  }
+
+  /* Header Right - Posicionamiento de seguridad */
+  .header-right-refined {
+    position: absolute;
+    top: 0.8rem;
+    right: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    z-index: 10; /* Máxima prioridad */
+    background: rgba(0, 0, 0, 0.6);
+    padding: 0.3rem 0.6rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    pointer-events: auto;
+  }
+
+  .series-card[open] .header-right-refined {
+    top: 1.2rem;
+    right: 1.2rem;
+    background: rgba(79, 172, 254, 0.1);
+  }
+
+  .manage-text {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #4facfe;
+    text-transform: uppercase;
+    opacity: 0;
+    max-width: 0; /* No ocupa espacio horizontal */
+    overflow: hidden;
+    white-space: nowrap;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    visibility: hidden;
+  }
+
+  /* Solo mostrar texto en hover del contenedor CERRADO */
+  .series-item-container:hover .series-card:not([open]) .manage-text {
+    opacity: 1;
+    max-width: 100px; /* Se expande suavemente */
+    margin-right: 0.4rem;
+    visibility: visible;
+  }
+
+  .chevron-circle {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+  }
+
+  .series-card[open] .chevron-circle {
+    transform: rotate(180deg);
+    background: #4facfe;
+    color: #000;
+  }
+
+  /* --- EXPANDED PANEL --- */
+  .series-expanded-panel {
+    padding: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    animation: slideUp 0.4s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .panel-layout {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  .panel-column {
+    min-width: 0;
+  }
+
+  @media (max-width: 1024px) {
+    .panel-layout {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+    .series-header-interactive {
+      min-height: 180px;
+    }
+  }
+</style>

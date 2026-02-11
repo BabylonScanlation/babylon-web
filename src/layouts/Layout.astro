@@ -1,0 +1,210 @@
+---
+import '../styles/global.css';
+import '../styles/components.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import AuthModal from '../components/AuthModal.svelte';
+import ToastContainer from '../components/ToastContainer.svelte';
+import AppBanner from '../components/AppBanner.svelte';
+import AdblockWall from '../components/AdblockWall.astro';
+import AgeGate from '../components/AgeGate.svelte';
+import BottomNav from '../components/BottomNav.astro';
+
+const { title } = Astro.props;
+const isAdminPage = Astro.url.pathname.startsWith('/admin');
+const isVerifyPage = Astro.url.pathname === '/verify';
+
+const isVerified = Astro.cookies.get('site_verified')?.value === 'true';
+const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage;
+---
+
+<!doctype html>
+<html lang="es" class={shouldBlockContent ? 'age-gate-active' : ''}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#050505" />
+    <title>{title}</title>
+
+    <script is:inline>
+      // Orion: Silenciador de errores de Privacy Sandbox/Permissions-Policy
+      // Algunos navegadores o Cloudflare inyectan políticas que el motor no reconoce.
+      (function() {
+        const originalError = console.error;
+        console.error = function(...args) {
+          if (args[0] && typeof args[0] === 'string' && (
+              args[0].includes('browsing-topics') || 
+              args[0].includes('run-ad-auction') || 
+              args[0].includes('join-ad-interest-group')
+          )) return;
+          originalError.apply(console, args);
+        };
+      })();
+    </script>
+    
+    <style is:inline>
+      .site-main-content {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        flex: 1; /* Astra: Ocupa el espacio disponible para empujar el footer */
+      }
+
+      body.cosmos-theme {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      .age-gate-active body { visibility: hidden !important; background: #000 !important; overflow: hidden !important; }
+      .age-gate-active .age-gate-overlay { visibility: visible !important; }
+
+      /* Astra: Modo Lectura en Móvil - Limpieza de Cosmos */
+      @media (max-width: 1023px) {
+        body[data-reader-active="true"] .site-main-content {
+          padding-top: 0 !important;
+          margin-top: 0 !important;
+        }
+        body[data-reader-active="true"] .cosmos-bg {
+          display: none !important;
+        }
+        body[data-reader-active="true"] {
+          background-color: #000 !important;
+        }
+      }
+    </style>
+  </head>
+  <body class="cosmos-theme">
+    <div class="cosmos-bg">
+      <div class="stars-layer base"></div>
+      <div class="stars-layer mid"></div>
+      <div class="stars-layer dust"></div>
+      <div class="nebula-glow"></div>
+      <div class="shooting-stars">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+
+    {shouldBlockContent ? (
+      <AgeGate client:load isVerificationPage={false} />
+    ) : (
+      <>
+        {!isVerifyPage && <Header />}
+        <main class="site-main-content">
+          <slot />
+        </main>
+        <BottomNav />
+        {!isVerifyPage && <Footer />}
+        <AuthModal client:idle />
+        <ToastContainer client:idle />
+        <AppBanner client:idle />
+        {!isAdminPage && <AdblockWall />}
+      </>
+    )}
+    
+    <script>
+      // Astra: Motor de Física Estelar (Paralaje 2.0)
+      let cleanupCosmos: (() => void) | null = null;
+
+      const initCosmos = () => {
+        if (cleanupCosmos) cleanupCosmos();
+
+        const bg = document.querySelector('.cosmos-bg');
+        if (!bg) return;
+
+        const layers = {
+          base: document.querySelector('.stars-layer.base') as HTMLElement,
+          mid: document.querySelector('.stars-layer.mid') as HTMLElement,
+          dust: document.querySelector('.stars-layer.dust') as HTMLElement,
+          nebula: document.querySelector('.nebula-glow') as HTMLElement
+        };
+
+        if (!layers.base) return;
+
+        let mouseX = 0;
+        let mouseY = 0;
+        let scrollY = window.scrollY;
+        let targetX = 0;
+        let targetY = 0;
+        let animationFrameId: number;
+        
+        let winW = window.innerWidth;
+        let winH = window.innerHeight;
+
+        // Factores de profundidad (Paralaje)
+        const D_BASE = 0.02;   // Fondo lejano (casi quieto)
+        const D_MID = 0.06;    // Plano medio
+        const D_DUST = 0.12;   // Primer plano (más rápido = más cerca)
+        const D_NEBULA = 0.01; // Ambiente
+
+        const onMouseMove = (e: MouseEvent) => {
+          // Normalizamos el centro de la pantalla usando valores cacheados
+          mouseX = (e.clientX - winW / 2);
+          mouseY = (e.clientY - winH / 2);
+        };
+
+        const onScroll = () => {
+          // Orion: Lectura optimizada
+          scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        };
+
+        const onResize = () => {
+          winW = window.innerWidth;
+          winH = window.innerHeight;
+        };
+
+        document.addEventListener('mousemove', onMouseMove, { passive: true });
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onResize, { passive: true });
+
+        const animate = () => {
+          // Suavizado cinemático (Lerp)
+          targetX += (mouseX - targetX) * 0.04;
+          targetY += (mouseY - targetY) * 0.04;
+
+          // 1. Capa Base (Lejana, borrosa)
+          if (layers.base) {
+            layers.base.style.transform = `translate3d(${-targetX * D_BASE}px, ${-scrollY * D_BASE - targetY * D_BASE}px, 0)`;
+          }
+
+          // 2. Capa Media (Nítida, estrellas principales)
+          if (layers.mid) {
+            layers.mid.style.transform = `translate3d(${-targetX * D_MID}px, ${-scrollY * D_MID - targetY * D_MID}px, 0)`;
+          }
+
+          // 3. Polvo Cósmico (Cerca de la cámara, movimiento notable)
+          if (layers.dust) {
+            layers.dust.style.transform = `translate3d(${-targetX * D_DUST}px, ${-scrollY * D_DUST - targetY * D_DUST}px, 0)`;
+          }
+
+          // 4. Nebulosa (Rotación ambiental)
+          // La nebulosa ya rota por CSS, aquí solo añadimos un leve desplazamiento para que no parezca un sticker
+          if (layers.nebula) {
+             layers.nebula.style.transform = `translate3d(${-targetX * D_NEBULA}px, ${-targetY * D_NEBULA}px, 0) scale(1.2)`;
+          }
+
+          animationFrameId = requestAnimationFrame(animate);
+        };
+
+        animate();
+
+        cleanupCosmos = () => {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            document.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onResize);
+        };
+      };
+
+      document.addEventListener('astro:page-load', () => {
+        if ('requestIdleCallback' in window) {
+          window.requestIdleCallback(() => initCosmos(), { timeout: 1000 });
+        } else {
+          setTimeout(initCosmos, 200);
+        }
+      });
+    </script>
+  </body>
+</html>

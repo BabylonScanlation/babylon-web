@@ -1,0 +1,493 @@
+---
+// src/pages/series/[slug]/[chapter]/index.astro
+import Layout from '../../../../layouts/Layout.astro';
+import UnifiedComments from '../../../../components/UnifiedComments.astro';
+import ChapterReader from '../../../../components/ChapterReader.svelte';
+import AdContainer from '../../../../components/AdContainer.astro';
+import { logError } from '../../../../lib/logError';
+import { deobfuscate } from '../../../../lib/obfuscator';
+import { getDB } from '../../../../lib/db';
+import { getCommentsForTarget } from '../../../../lib/data/comments';
+import { getSeriesDetails } from '../../../../lib/data/series';
+import { getChapterPayload } from '../../../../lib/data/chapters';
+
+const { slug, chapter } = Astro.params;
+const user = Astro.locals.user;
+const watermark = `Babylon Scanlation`;
+
+if (!slug || !chapter) return Astro.redirect('/404');
+
+const drizzleDb = getDB(Astro.locals.runtime.env);
+const env = Astro.locals.runtime.env;
+
+// --- Variables de Estado ---
+let encryptedData: string | null = null;
+let error: string | null = null;
+let isAppOnly = false;
+let loadingMessage: string | null = null;
+let chapterId: number | null = null;
+let isProcessing = false;
+let allChapters: any[] = [];
+let seriesTitle: string | null = null;
+let comments: any[] = [];
+
+try { 
+  // 1. Obtener detalles de la serie directamente
+  const seriesData = await getSeriesDetails(drizzleDb, slug, user ? { uid: user.uid, isAdmin: !!user.isAdmin } : undefined);
+  if (seriesData) {
+    allChapters = seriesData.chapters || [];
+    seriesTitle = seriesData.title;
+  }
+
+  // 2. Obtener payload del capítulo directamente
+  const chapterNumber = parseFloat(chapter);
+  const chapterResult = await getChapterPayload(drizzleDb, env, slug, chapterNumber);
+
+  if (chapterResult) {
+    encryptedData = chapterResult.payload;
+    chapterId = chapterResult.chapterId;
+    isProcessing = chapterResult.processing;
+
+    if (isProcessing) {
+      loadingMessage = 'Cargando capítulo del servidor gratuito...';
+    } else if (chapterId) {
+      comments = await getCommentsForTarget(drizzleDb, 'chapter', chapterId, user?.uid);
+    }
+  } else {
+    error = 'El capítulo solicitado no fue encontrado.';
+  }
+
+} catch (e) {
+  logError(e, 'Error crítico cargando capítulo', { slug, chapter });
+  error = 'Error de conexión con el servidor.';
+}
+
+// Orion: Evitar que el Edge cachee la página del lector para que las métricas y comentarios sean frescos
+Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+// Lógica para los botones de capítulo siguiente/anterior
+const currentChapterNumber = parseFloat(chapter!);
+const currentChapterIndex = allChapters.findIndex(
+  (c) => c.chapterNumber === currentChapterNumber
+);
+
+let nextChapterUrl: string | null = null;
+if (currentChapterIndex > 0) {
+  const nextChapter = allChapters[currentChapterIndex - 1];
+  if (nextChapter) {
+    nextChapterUrl = `/series/${slug}/${nextChapter.chapterNumber}`;
+  }
+}
+
+let prevChapterUrl: string | null = null;
+if (
+  currentChapterIndex !== -1 &&
+  currentChapterIndex < allChapters.length - 1
+) {
+  const prevChapter = allChapters[currentChapterIndex + 1];
+  if (prevChapter) {
+    prevChapterUrl = `/series/${slug}/${prevChapter.chapterNumber}`;
+  }
+}
+
+// Lógica para navegación inteligente Web-to-Web en caso de error/app-only
+let nextWebChapterUrl: string | null = null;
+let prevWebChapterUrl: string | null = null;
+
+if (error && currentChapterIndex !== -1) {
+    // nextWebChapterUrl: Buscar hacia el futuro (capítulos más nuevos -> índices menores en array DESC)
+    for (let i = currentChapterIndex - 1; i >= 0; i--) {
+        const ch = allChapters[i];
+        if (ch && ch.status === 'live') {
+            nextWebChapterUrl = `/series/${slug}/${ch.chapterNumber}`;
+            break;
+        }
+    }
+    
+    // prevWebChapterUrl: Buscar hacia el pasado (capítulos más antiguos -> índices mayores en array DESC)
+    for (let i = currentChapterIndex + 1; i < allChapters.length; i++) {
+        const ch = allChapters[i];
+        if (ch && ch.status === 'live') {
+            prevWebChapterUrl = `/series/${slug}/${ch.chapterNumber}`;
+            break;
+        }
+    }
+}
+---
+
+<Layout title={`Leyendo ${seriesTitle ?? 'Serie'} - Cap. ${chapter}`}>
+  <div class="reader-top-nav-wrapper" id="reader-top-nav-wrapper">
+    <div class="reader-top-nav-glass">
+      <a
+        href={`/series/${slug}`}
+        class="nav-group back-group"
+        title={seriesTitle ?? ''}
+      >
+        <div class="icon-box">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </div>
+        <span class="series-title-text">{seriesTitle}</span>
+      </a>
+
+      <div class="nav-group chapter-controls">
+        <a
+          href={prevChapterUrl ?? '#'}
+          class:list={['nav-btn', { disabled: !prevChapterUrl }]}
+          title="Capítulo Anterior"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </a>
+        
+        <span class="chapter-info">
+          <span class="label">CAPÍTULO</span>
+          <span class="number">{chapter}</span>
+        </span>
+
+        <a
+          href={nextChapterUrl ?? '#'}
+          class:list={['nav-btn', { disabled: !nextChapterUrl }]}
+          title="Capítulo Siguiente"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <main class="reader-container" id="reader-container">
+    <div class="reader-top-ad">
+      <AdContainer type="banner">
+        <script is:inline async="async" data-cfasync="false" src="https://crowdsubsequentadmire.com/2cd2af2560f6df7e49d533c069a08932/invoke.js" onerror="window.isAdsterraBlocked = true;"></script>
+        <div id="container-2cd2af2560f6df7e49d533c069a08932"></div>
+      </AdContainer>
+    </div>
+
+    {error ? (
+        <div class="full-screen-error">
+            <div class="error-content-glass">
+                <div class={`status-icon-glow ${isAppOnly ? 'app-mode' : 'error-mode'}`}>
+                    {isAppOnly ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><path d="M12 18h.01"></path></svg>
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    )}
+                </div>
+                
+                <h1 class="error-title">{isAppOnly ? 'Exclusivo en la App' : 'Capítulo No Disponible'}</h1>
+                <p class="error-desc">{error}</p>
+                
+                <div class="action-grid">
+                    {prevWebChapterUrl && (
+                        <a href={prevWebChapterUrl} class="nav-chapter-btn prev" title="Capítulo Anterior (Web)">
+                            <span class="sub-label">Anterior Web</span>
+                            <svg class="icon-arrow" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                        </a>
+                    )}
+
+                    {isAppOnly ? (
+                        <a href="/app" class="primary-cta-btn">
+                            <span class="btn-icon">📱</span>
+                            <div class="btn-text-group">
+                                <span class="main-text">Descargar App</span>
+                                <span class="sub-text">Leer sin límites</span>
+                            </div>
+                        </a>
+                    ) : (
+                        <a href={`/series/${slug}`} class="primary-cta-btn">
+                            <span class="btn-icon">📚</span>
+                            <div class="btn-text-group">
+                                <span class="main-text">Volver a la Serie</span>
+                                <span class="sub-text">Explorar capítulos</span>
+                            </div>
+                        </a>
+                    )}
+
+                    {nextWebChapterUrl && (
+                        <a href={nextWebChapterUrl} class="nav-chapter-btn next" title="Capítulo Siguiente (Web)">
+                            <span class="sub-label">Siguiente Web</span>
+                            <svg class="icon-arrow" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </a>
+                    )}
+                </div>
+            </div>
+        </div>
+    ) : (
+        <div 
+          id="reader-data-bridge" 
+          data-slug={slug}
+          data-chapter={chapter}
+          data-encrypted={encryptedData}
+          data-chapter-id={chapterId}
+          data-processing={isProcessing ? 'true' : 'false'}
+          data-loading-msg={loadingMessage}
+          data-series-title={seriesTitle}
+          data-watermark={watermark}
+          style="display: none;"
+        ></div>
+        <ChapterReader client:load />
+    )}
+  </main>
+
+  <div class="reader-footer-ad">
+    <AdContainer type="banner">
+      <!-- Astra: Usamos una clave de zona diferente para evitar el conflicto de IDs repetidos -->
+      <script is:inline async="async" data-cfasync="false" src="https://crowdsubsequentadmire.com/9ebcd6279737192efe164467f2215532/invoke.js" onerror="window.isAdsterraBlocked = true;"></script>
+      <div id="container-9ebcd6279737192efe164467f2215532"></div>
+    </AdContainer>
+  </div>
+
+  {
+    chapterId && (
+      <div class="comments-wrapper" id="comments-wrapper">
+        <div class="comments-container-glass">
+          <UnifiedComments targetType="chapter" targetId={chapterId} comments={comments} user={user ?? null} />
+        </div>
+      </div>
+    )
+  }
+</Layout>
+
+<script>
+  // Astra: Mostrar Nav solo en la zona de comentarios y marcar el contexto
+  const commentsObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        document.body.setAttribute('data-show-nav', 'true');
+        document.body.setAttribute('data-in-comments', 'true');
+      } else {
+        document.body.removeAttribute('data-show-nav');
+        document.body.removeAttribute('data-in-comments');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  const commentsWrapper = document.getElementById('comments-wrapper');
+  if (commentsWrapper) {
+    commentsObserver.observe(commentsWrapper);
+  }
+
+  // Astra: Lógica de ocultación para el Header Principal
+  let lastScrollY = window.scrollY;
+  const siteHeader = document.querySelector('.site-header');
+
+  window.addEventListener('scroll', () => {
+    if (!siteHeader) return;
+    // Si el modal está abierto, no hacer nada
+    if (document.body.getAttribute('data-reader-modal') === "open") return;
+
+    const currentScrollY = window.scrollY;
+    if (currentScrollY > lastScrollY && currentScrollY > 80) {
+      siteHeader.classList.add('hidden');
+    } else {
+      siteHeader.classList.remove('hidden');
+    }
+    lastScrollY = currentScrollY;
+  }, { passive: true });
+</script>
+
+<style is:global>
+  /* Astra: Ocultar nav por defecto en el lector, pero mostrarla en comentarios */
+  .mobile-bottom-nav {
+    display: block !important;
+    transform: translateY(100%);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    pointer-events: none;
+  }
+
+  body[data-show-nav="true"] .mobile-bottom-nav {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Astra: Estilos para la ocultación del Header Principal */
+  .site-header {
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .site-header.hidden {
+    transform: translateY(-100%) !important;
+  }
+
+  /* Si el modal está abierto, la regla del Layout.astro (z-index 10000) mandará */
+</style>
+
+<style>
+  .reader-container {
+    width: 100%;
+    max-width: 100%;
+    min-height: 80vh;
+  }
+  .comments-wrapper {
+    margin: 2rem auto;
+    width: 100%;
+    max-width: 1200px;
+    padding: 0 1rem;
+  }
+
+  .reader-top-ad,
+  .reader-footer-ad {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .reader-top-ad {
+    margin-bottom: 1.5rem;
+  }
+
+  .reader-footer-ad {
+    margin-top: 2rem;
+  }
+
+  :global(header),
+  .reader-top-nav-wrapper {
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    touch-action: pan-y pinch-zoom;
+    /* will-change removed for memory optimization */
+  }
+  :global(header.hidden) {
+    transform: translateY(-100%);
+  }
+  .reader-top-nav-wrapper.hidden {
+    transform: translateY(calc(-100% - 80px));
+  }
+  
+  .reader-top-nav-wrapper {
+    position: sticky;
+    top: 0; /* Astra: Ahora se pega al techo absoluto */
+    z-index: 800;
+    width: 100%;
+    padding: 15px 1rem;
+    pointer-events: none; /* Let clicks pass through empty areas */
+  }
+
+  .reader-top-nav-glass {
+    pointer-events: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    background: rgba(18, 18, 18, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    
+    padding: 0.5rem 0.75rem;
+    border-radius: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    transition: all 0.3s ease;
+  }
+
+  .nav-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  /* Back Button Group */
+  .back-group {
+    text-decoration: none;
+    color: #fff;
+    transition: opacity 0.2s;
+    max-width: 60%;
+    overflow: hidden;
+  }
+  .back-group:hover {
+    opacity: 0.8;
+  }
+  
+  .icon-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    color: var(--accent-color);
+    flex-shrink: 0;
+  }
+
+  .series-title-text {
+    font-weight: 700;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Chapter Controls */
+  .chapter-controls {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: #ccc;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover:not(.disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+  .nav-btn.disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .chapter-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
+    line-height: 1;
+  }
+  
+  .chapter-info .label {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #555;
+    letter-spacing: 0.1em;
+  }
+  
+  .chapter-info .number {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  @media (max-width: 768px) {
+    .reader-top-nav-wrapper {
+      top: 0; /* Astra: Pegado al techo absoluto en móvil */
+      padding: 5px 10px;
+    }
+    .reader-top-nav-glass {
+      padding: 0.4rem;
+      border-radius: 12px;
+    }
+    .series-title-text {
+      font-size: 0.85rem;
+      max-width: 150px;
+    }
+    .chapter-info .label { display: none; }
+    .chapter-info .number { font-size: 0.9rem; }
+    .icon-box { width: 32px; height: 32px; }
+    .nav-btn { width: 28px; height: 28px; }
+  }
+</style>

@@ -1,0 +1,231 @@
+---
+import Layout from '../layouts/Layout.astro';
+import HeroCarousel from '../components/HeroCarousel.astro';
+import FeaturedGrid from '../components/FeaturedGrid.astro';
+import RecentUpdatesGrid from '../components/RecentUpdatesGrid.astro';
+import AdContainer from '../components/AdContainer.astro';
+import type { Series } from '../types';
+import { logError } from '../lib/logError';
+import { getDB } from '../lib/db';
+import {
+  getRecentSeries,
+  getPopularSeries,
+  getSeriesWithRecentChapters,
+  getAllSeries,
+  getSeriesByChapterCount
+} from '../lib/data/series';
+
+const { runtime, user } = Astro.locals;
+const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
+const allowNsfw = user?.isNsfw || false;
+
+let recentSeries: Series[] = [];
+let popularSeries: Series[] = [];
+let seriesByChapterCount: Series[] = [];
+let seriesWithRecentChapters: Series[] = [];
+let allSeriesAlphabetical: Series[] = [];
+let hasContent = false;
+
+try {
+  const db = getDB(runtime.env);
+
+  const filterValidSeries = (series: any[]) =>
+    series.filter((s) => s && s.title && s.coverImageUrl);
+
+  const [recent, popular, recentChapters, all, byChapters] = await Promise.all([
+    getRecentSeries(db, allowNsfw, 20),
+    getPopularSeries(db, allowNsfw, 20),
+    getSeriesWithRecentChapters(db, allowNsfw),
+    getAllSeries(db, allowNsfw),
+    getSeriesByChapterCount(db, allowNsfw)
+  ]);
+
+  recentSeries = filterValidSeries(recent);
+  popularSeries = filterValidSeries(popular);
+  seriesByChapterCount = filterValidSeries(byChapters);
+  seriesWithRecentChapters = filterValidSeries(recentChapters);
+
+  allSeriesAlphabetical = filterValidSeries(all);
+
+} catch (error) {
+  console.error('🔥 ERROR CRÍTICO EN HOME:', error);
+  logError(error, 'Error al obtener las listas de series (SSR Optimizado)');
+}
+
+// Orion: Combinación inteligente priorizando visualizaciones con deduplicación robusta
+const combinedSeriesMap = new Map<string, Series>();
+
+// Priorizamos popularSeries asegurándonos de que están ordenadas
+popularSeries
+  .sort((a, b) => (b.views || 0) - (a.views || 0))
+  .forEach(s => combinedSeriesMap.set(s.slug, s));
+
+// Añadimos recientes solo si no están ya (o si tienen más vistas por algún motivo)
+recentSeries.forEach(s => {
+  if (!combinedSeriesMap.has(s.slug) || (s.views || 0) > (combinedSeriesMap.get(s.slug)?.views || 0)) {
+    combinedSeriesMap.set(s.slug, s);
+  }
+});
+
+const featuredGridData = Array.from(combinedSeriesMap.values())
+  .sort((a, b) => {
+    const viewsA = Number(a.views || 0);
+    const viewsB = Number(b.views || 0);
+    return viewsB - viewsA;
+  })
+  .slice(0, 6);
+
+// Orion: Debug para verificar visualizaciones en el home
+// console.log('🔥 FEATURED DATA:', featuredGridData.map(s => ({ title: s.title, views: s.views, isNsfw: s.isNsfw })));
+
+hasContent =
+  recentSeries.length > 0 ||
+  featuredGridData.length > 0 ||
+  seriesWithRecentChapters.length > 0 ||
+  allSeriesAlphabetical.length > 0;
+---
+
+<Layout title="Babylon Scanlation">
+  {
+    hasContent ? (
+      <div class="main-content-wrapper">
+          {seriesByChapterCount.length > 0 && <HeroCarousel slides={seriesByChapterCount} />}
+
+        <div class="main-sections-container">
+
+          <AdContainer type="banner">
+            <script is:inline>
+              window.atOptions = {
+                'key' : '9ebcd6279737192efe164467f2215532',
+                'format' : 'iframe',
+                'height' : 90,
+                'width' : 728,
+                'params' : {}
+              };
+            </script>
+            <script is:inline data-cfasync="false" src="https://crowdsubsequentadmire.com/9ebcd6279737192efe164467f2215532/invoke.js" onerror="window.isMonetagBlocked = true;"></script>
+          </AdContainer>
+
+          {featuredGridData.length > 0 && (
+            <FeaturedGrid mangas={featuredGridData} />
+          )}
+
+          <AdContainer type="banner">
+            <script is:inline>
+              window.atOptions = {
+                'key' : '51a8e0f6fdc62fc7dbae3f6246465d2e',
+                'format' : 'iframe',
+                'height' : 60,
+                'width' : 468,
+                'params' : {}
+              };
+            </script>
+            <script is:inline data-cfasync="false" src="https://crowdsubsequentadmire.com/51a8e0f6fdc62fc7dbae3f6246465d2e/invoke.js" onerror="window.isMonetagBlocked = true;"></script>
+          </AdContainer>
+
+          <div class="discovery-zone">
+            {seriesWithRecentChapters.length > 0 && (
+              <RecentUpdatesGrid
+                mangas={seriesWithRecentChapters}
+                title="Últimos Capítulos Publicados"
+              />
+            )}
+          </div>
+
+          <AdContainer type="square">
+            <script is:inline>
+              window.atOptions = {
+                'key' : 'aaf9803b9d2c2c8744bcdb1c0a71876e',
+                'format' : 'iframe',
+                'height' : 250,
+                'width' : 300,
+                'params' : {}
+              };
+            </script>
+            <script is:inline data-cfasync="false" src="https://crowdsubsequentadmire.com/aaf9803b9d2c2c8744bcdb1c0a71876e/invoke.js" onerror="window.isMonetagBlocked = true;"></script>
+          </AdContainer>
+        </div>
+      </div>
+    ) : (
+      <div class="empty-state-container">
+        <img
+          src={`${r2PublicUrlAssets}/iconpage/babylon-logo-3.webp`}
+          alt="Babylon Scanlation Logo"
+          class="empty-state-logo"
+        />
+        <p class="empty-state-text">
+          Lo sentimos... aún no hay series disponibles.
+          <br />
+          Vuelva en otro momento.
+        </p>
+      </div>
+    )
+  }
+</Layout>
+
+<style>
+  .main-content-wrapper {
+    width: 100%;
+  }
+  .main-sections-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    /* Astra: Espaciado compacto y elegante */
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
+  .discovery-zone {
+    display: flex;
+    flex-direction: column;
+    gap: 0; /* Astra: Espacio eliminado entre slider y botón */
+  }
+
+  .empty-state-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    text-align: center;
+    padding: 1rem;
+  }
+
+  .empty-state-logo {
+    max-width: 500px;
+    width: 80%;
+    opacity: 0.8;
+    filter: drop-shadow(0 0 30px rgba(0, 191, 255, 0.2));
+    animation: pulse-logo 4s ease-in-out infinite;
+  }
+
+  @keyframes pulse-logo {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.05); opacity: 1; }
+  }
+
+  .empty-state-text {
+    color: #aaa;
+    font-size: 1.1rem;
+    max-width: 400px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .main-sections-container { gap: 1.5rem; }
+    .library-reveal-section { margin: 0; }
+    .premium-reveal-btn { padding: 1rem 2rem; font-size: 0.8rem; }
+    .reveal-line { display: none; }
+    .reveal-control-box { justify-content: center; }
+  }
+
+  :global(body.no-scroll) {
+    overflow: hidden !important;
+  }
+</style>

@@ -1,0 +1,510 @@
+---
+const currentYear = new Date().getFullYear();
+const { runtime } = Astro.locals;
+const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
+---
+
+<footer class="premium-footer">
+  <div class="footer-glow"></div>
+  
+  <div class="footer-container">
+    <div class="footer-grid">
+      <!-- Sección Marca -->
+      <div class="footer-brand">
+        <a href="/" class="footer-logo">
+          <img
+            src={`${r2PublicUrlAssets}/iconpage/babylon-logo-2.webp`}
+            alt="Babylon Logo"
+            class="logo-img"
+          />
+        </a>
+        <p class="brand-description">
+          Tu destino definitivo para el mejor contenido manga y manhwa. Calidad premium, velocidad incomparable y una comunidad vibrante.
+        </p>
+        <div class="social-pills">
+          <a href="https://www.discord.gg/TpYcuqY7EV" class="social-pill discord" aria-label="Discord">
+            <img src="https://cdn.simpleicons.org/discord/white" alt="" width="20" height="20" />
+          </a>
+          <a href="https://www.twitter.com/BabylonScan" class="social-pill x-twitter" aria-label="X (Twitter)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          </a>
+          <a href="https://www.facebook.com/people/De-Todo-Un-Poco-Scan/100089537409290/" class="social-pill facebook" aria-label="Facebook">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M22.675 0h-21.35C.585 0 0 .585 0 1.325v21.351C0 23.415.585 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.74 0 1.325-.585 1.325-1.325V1.325C24 .585 23.415 0 22.675 0z"/></svg>
+          </a>
+          <a href="#" class="social-pill patreon" aria-label="Patreon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M15.385 1.224c-3.99 0-7.227 3.238-7.227 7.228s3.237 7.228 7.227 7.228c3.99 0 7.227-3.238 7.227-7.228S19.375 1.224 15.385 1.224zM2.625 1.224H.11v21.552h2.515V1.224z"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Sección Enlaces -->
+      <div class="footer-links">
+        <h4 class="footer-title">Explorar</h4>
+        <ul>
+          <li><a href="/search">Biblioteca</a></li>
+          <li><a href="/news">Noticias</a></li>
+          <li><a href="/profile">Mi Cuenta</a></li>
+        </ul>
+      </div>
+
+      <!-- Sección Soporte -->
+      <div class="footer-links">
+        <h4 class="footer-title">Legal</h4>
+        <ul>
+          <li><a href="/terms">Términos de Uso</a></li>
+          <li><a href="/terms#privacy">Privacidad</a></li>
+        </ul>
+      </div>
+
+      <!-- Sección App -->
+      <div class="footer-cta">
+        <h4 class="footer-title">Babylon Mobile</h4>
+        <p>Lleva tus series favoritas a todas partes. Descarga nuestra aplicación oficial para Android y disfruta de la mejor experiencia.</p>
+        <div class="app-download-container">
+          <a href={`${r2PublicUrlAssets}/babylonweb-app/DtupScan.apk`} class="download-btn-premium" download>
+            <div class="btn-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M17.523 15.3414C17.523 14.8606 17.1332 14.4709 16.6524 14.4709C16.1716 14.4709 15.7819 14.8606 15.7819 15.3414C15.7819 15.8222 16.1716 16.2119 16.6524 16.2119C17.1332 16.2119 17.523 15.8222 17.523 15.3414ZM8.2181 16.2119C8.69888 16.2119 9.08862 15.8222 9.08862 15.3414C9.08862 14.8606 8.69888 14.4709 8.2181 14.4709C7.73733 14.4709 7.34758 14.8606 7.34758 15.3414C7.34758 15.8222 7.73733 16.2119 8.2181 16.2119ZM17.9835 11.5831L19.7913 8.45198C19.914 8.2394 19.8413 7.96733 19.6287 7.84462C19.4161 7.72191 19.1441 7.79463 19.0214 8.00721L17.1856 11.1861C15.711 10.5126 14.054 10.1245 12.3002 10.1245C10.5465 10.1245 8.88944 10.5126 7.41488 11.1861L5.57902 8.00721C5.45631 7.79463 5.18424 7.72191 4.97166 7.84462C4.75908 7.96733 4.68636 8.2394 4.80907 8.45198L6.61692 11.5831C3.68414 13.1813 1.7041 16.2346 1.64746 19.7755H22.953C22.8964 16.2346 20.9163 13.1813 17.9835 11.5831Z"/></svg>
+            </div>
+            <div class="btn-text-group">
+              <span class="btn-small-text">Descargar para</span>
+              <span class="btn-large-text">Android (APK)</span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="bottom-content">
+        <div class="bottom-left">
+          <p class="copyright">
+            &copy; {currentYear} <span class="accent-text">Babylon</span>. Hecho por fans, para fans.
+          </p>
+          <p class="credits">Hecho con ❤️ por <span class="author-name">Lucas Goldstein.</span></p>
+        </div>
+        
+        <div class="bottom-meta">
+          <div class="systems-status" id="health-monitor">
+            <div class="status-item" title="Cloudflare D1 Database" data-system="d1">
+              <span class="dot"></span>
+              <span>D1</span>
+            </div>
+            <div class="status-item" title="Cloudflare R2 Storage" data-system="r2">
+              <span class="dot"></span>
+              <span>R2 <small class="percent-label"></small></span>
+            </div>
+            <div class="status-item" title="Firebase Authentication" data-system="auth">
+              <span class="dot"></span>
+              <span>Auth</span>
+            </div>
+            <div class="status-item" title="Telegram Bot Sync" data-system="bot">
+              <span class="dot"></span>
+              <span>Bot</span>
+            </div>
+          </div>
+          <span class="version-pill">v2.1.2</span>
+        </div>
+
+<script>
+  async function updateHealth() {
+    try {
+      const res = await fetch('/api/system-health');
+      const data = await res.json();
+      if (!data.systems) return;
+
+      const container = document.getElementById('health-monitor');
+      if (!container) return;
+
+      // Actualizar R2
+      const r2Item = container.querySelector('[data-system="r2"]');
+      if (r2Item) {
+        const dot = r2Item.querySelector('.dot');
+        const label = r2Item.querySelector('.percent-label');
+        if (dot) dot.className = `dot level-${data.systems.r2.level}`;
+        if (label) label.textContent = `(${data.systems.r2.percent}%)`;
+      }
+
+      // Podríamos actualizar otros sistemas aquí si el API devuelve estados dinámicos
+    } catch {
+      console.warn('Health monitor offline');
+    }
+  }
+
+  // Ejecutar al cargar y cada 5 minutos
+  updateHealth();
+  setInterval(updateHealth, 300000);
+</script>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .premium-footer {
+    position: relative;
+    background: rgba(10, 10, 10, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 2.5rem 0 1rem;
+    margin-top: 4rem; /* Añadido espaciado superior */
+    overflow: hidden;
+    color: #bbb;
+  }
+
+  .footer-glow {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+    opacity: 0.3;
+  }
+
+  .footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    box-sizing: border-box;
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1.5fr;
+    gap: 4rem;
+    margin-bottom: 3rem;
+  }
+
+  /* Marca */
+  .footer-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .footer-logo {
+    display: block;
+    transition: transform 0.3s ease;
+  }
+
+  .footer-logo:hover {
+    transform: scale(1.05);
+  }
+
+  .logo-img {
+    height: 50px;
+    width: auto;
+    filter: drop-shadow(0 0 10px rgba(0, 191, 255, 0.2));
+  }
+
+  .brand-description {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: 320px;
+    color: #ddd;
+  }
+
+  .social-pills {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .social-pill {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .social-pill:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--accent-color);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .discord:hover { color: #5865f2; }
+  .x-twitter:hover { color: #fff; }
+  .facebook:hover { color: #1877f2; }
+  .patreon:hover { color: #f96854; }
+
+  /* Enlaces */
+  .footer-title {
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1.5rem;
+  }
+
+  .footer-links ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .footer-links a {
+    font-size: 0.95rem;
+    color: #aaa;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+
+  .footer-links a:hover {
+    color: #fff;
+    padding-left: 5px;
+  }
+
+  /* CTA & App Button */
+  .footer-cta p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    color: #ddd;
+  }
+
+  .app-download-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .download-btn-premium {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.8rem 1.5rem;
+    border-radius: 16px;
+    color: #fff;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: fit-content;
+  }
+
+  .download-btn-premium:hover {
+    background: rgba(164, 198, 57, 0.1); /* Android green tint */
+    border-color: #a4c639;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    color: #a4c639;
+  }
+
+  .btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-text-group {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .btn-small-text {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  .btn-large-text {
+    font-size: 1rem;
+    font-weight: 800;
+  }
+
+  /* Bottom */
+  .footer-bottom {
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .bottom-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .bottom-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .copyright {
+    font-size: 0.85rem;
+    margin: 0;
+  }
+
+  .credits {
+    font-size: 0.75rem;
+    color: #888;
+    font-weight: 600;
+  }
+
+  .author-name {
+    color: var(--accent-color);
+    transition: filter 0.3s;
+  }
+
+  .premium-footer:hover .author-name {
+    filter: brightness(1.2);
+  }
+
+  .accent-text {
+    color: #fff;
+    font-weight: 700;
+  }
+
+  .bottom-meta {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .systems-status {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #888;
+    transition: color 0.3s;
+  }
+
+  .status-item:hover {
+    color: #2ecc71;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    background: #2ecc71;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #2ecc71;
+    animation: pulse 2s infinite;
+    transition: all 0.3s ease;
+  }
+
+  /* R2 Health Levels */
+  .dot.level-low { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+  .dot.level-medium { background: #f39c12; box-shadow: 0 0 8px #f39c12; }
+  .dot.level-high { background: #e74c3c; box-shadow: 0 0 8px #e74c3c; }
+
+  .percent-label {
+    font-size: 0.6rem;
+    opacity: 0.5;
+    margin-left: 2px;
+    font-weight: 600;
+  }
+
+  .version-pill {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #888;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  @keyframes pulse {
+    0% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+    100% { opacity: 0.4; transform: scale(1); }
+  }
+
+  @media (min-width: 1024px) {
+    .premium-footer {
+      width: 100vw;
+      position: relative;
+      left: 50%;
+      right: 50%;
+      margin-left: -50vw;
+      margin-right: -50vw;
+      padding: 3rem 0 1.5rem; /* Reducido 50% */
+    }
+
+    .footer-container {
+      max-width: 1600px; /* Ancho extendido */
+      padding: 0 4rem;
+    }
+
+    .footer-grid {
+      grid-template-columns: 1.2fr 0.8fr 0.8fr 1.2fr; /* Ajuste de proporciones */
+      gap: 5rem;
+    }
+
+    /* Mejora de enlaces */
+    .footer-links a {
+      opacity: 0.6;
+      font-size: 0.9rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+    .footer-links a:hover {
+      opacity: 1;
+      padding-left: 8px; /* Animación más notable */
+      color: var(--accent-color);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .footer-grid {
+      grid-template-columns: 1fr 1fr; /* Two columns for links */
+      gap: 2rem;
+    }
+    
+    /* Brand and CTA take full width */
+    .footer-brand, 
+    .footer-cta {
+      grid-column: 1 / -1;
+      text-align: center;
+      align-items: center;
+    }
+
+    .app-download-container {
+      align-items: center;
+    }
+
+    /* Center brand items */
+    .social-pills { justify-content: center; }
+    .footer-logo { margin: 0 auto; }
+
+    .bottom-content {
+      flex-direction: column;
+      gap: 1.5rem;
+      text-align: center;
+    }
+    .bottom-meta {
+      justify-content: center;
+    }
+    .premium-footer {
+      padding: 1rem 0 2.5rem; /* Reducido 50% */
+      margin-top: 0; /* Removed margin entirely */
+    }
+  }
+</style>

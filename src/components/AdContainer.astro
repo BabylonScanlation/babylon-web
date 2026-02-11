@@ -1,0 +1,105 @@
+---
+// src/components/AdContainer.astro
+interface Props {
+  type: 'banner' | 'square' | 'native';
+  id?: string;
+  className?: string;
+}
+
+const { type, id, className = "" } = Astro.props;
+const { user } = Astro.locals;
+
+// Orion: Admin no ve anuncios
+if (user?.isAdmin) {
+  return null;
+}
+---
+
+<div class:list={["ad-container-root", type, className]} id={id}>
+  <div class="ad-inner-wrapper">
+    <div class="ad-content-slot">
+      <slot />
+    </div>
+    
+    <!-- Etiqueta técnica minimalista -->
+    <div class="ad-info-overlay">
+      <span>AD</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  .ad-container-root {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    line-height: 0;
+  }
+
+  .ad-inner-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: #080808;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    max-width: 100%;
+    min-width: 300px; /* Ancho mínimo para banners estándar */
+    min-height: 50px;  /* Altura mínima para que el script pueda inicializarse */
+    transition: all 0.3s ease;
+  }
+
+  .ad-inner-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 191, 255, 0.2), transparent);
+    z-index: 5;
+  }
+
+  .ad-content-slot {
+    padding: 0;
+    margin: 0;
+    display: block;
+    width: 100%;
+    /* Devolvemos la normalidad para que los scripts lean bien el DOM */
+    line-height: normal;
+    font-size: 1rem;
+  }
+
+  /* Astra: Centrado de los anuncios inyectados */
+  :global(.ad-content-slot > div),
+  :global(.ad-content-slot iframe),
+  :global(.ad-content-slot ins) {
+    margin: 0 auto !important;
+    display: block !important;
+    max-width: 100% !important;
+  }
+
+  .ad-info-overlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 2px 6px;
+    border-bottom-left-radius: 8px;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .ad-info-overlay span {
+    font-family: system-ui, sans-serif;
+    font-size: 7px;
+    font-weight: 900;
+    color: #444;
+    letter-spacing: 1px;
+  }
+</style>
