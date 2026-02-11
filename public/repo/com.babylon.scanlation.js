@@ -1,6 +1,6 @@
 // ==MiruExtension==
 // @name         Babylon Scanlation
-// @version      0.1.7
+// @version      0.1.8
 // @author       Linxurs
 // @lang         es
 // @license      MIT
@@ -138,10 +138,18 @@ class DefaultExtension extends MProvider {
             chapters: []
         };
     }
-    const chapters = (res.chapters || []).map(chapter => ({
-      name: "Capítulo " + (chapter.chapterNumber || "?") + (chapter.title ? ": " + chapter.title : ""),
-      link: res.slug ? `/api/series/${res.slug}/chapters/${chapter.chapterNumber}` : ""
-    }));
+
+    const chapters = [];
+    if (res.chapters && Array.isArray(res.chapters)) {
+        res.chapters.forEach(chapter => {
+            if (chapter) {
+                chapters.push({
+                    name: "Capítulo " + (chapter.chapterNumber !== undefined ? chapter.chapterNumber : "?") + (chapter.title ? ": " + chapter.title : ""),
+                    url: res.slug ? `/api/series/${res.slug}/chapters/${chapter.chapterNumber}` : ""
+                });
+            }
+        });
+    }
 
     let status = 0;
     if (res.status) {
@@ -173,7 +181,12 @@ class DefaultExtension extends MProvider {
     if (!url) return [];
     const res = await this.req(url);
     const pages = res.pages || [];
-    return await Promise.all(pages.map(async (page) => (await this.signUrl(page.imageUrl)) || ""));
+    // Important: Mangayomi expects a list of STRINGS (urls), not objects for JS extensions by default unless using specific map.
+    // Ensure we return clean strings.
+    return await Promise.all(pages.map(async (page) => {
+        const url = await this.signUrl(page.imageUrl);
+        return url || "";
+    }));
   }
 
   getFilterList() { return []; }
