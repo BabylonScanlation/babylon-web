@@ -2,11 +2,11 @@
   {
     "id": 413829,
     "name": "Babylon Scanlation",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "lang": "es",
     "baseUrl": "https://babylon-scanlation.pages.dev",
     "apiUrl": "",
-    "iconUrl": "https://babylon-scanlation.pages.dev/favicon.svg",
+    "iconUrl": "https://wsrv.nl/?url=https://babylon-scanlation.pages.dev/favicon.svg&output=png",
     "sourceCodeUrl": "https://babylon-scanlation.pages.dev/repo/com.babylon.scanlation.js",
     "typeSource": "single",
     "nsfw": false,
