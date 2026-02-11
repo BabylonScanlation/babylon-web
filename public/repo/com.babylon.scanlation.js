@@ -1,6 +1,6 @@
 // ==MiruExtension==
 // @name         Babylon Scanlation
-// @version      0.1.8
+// @version      0.1.9
 // @author       Linxurs
 // @lang         es
 // @license      MIT
@@ -40,7 +40,8 @@ class DefaultExtension extends MProvider {
         if (typeof body === 'string') {
             const trimmed = body.trim();
             if (trimmed.startsWith('{') || trimmed.startsWith('[')) return JSON.parse(trimmed);
-            return this.deobfuscate(trimmed);
+            const decrypted = this.deobfuscate(trimmed);
+            return decrypted || {};
         }
         return body || {};
     } catch (e) {
@@ -180,6 +181,7 @@ class DefaultExtension extends MProvider {
   async getPageList(url) {
     if (!url) return [];
     const res = await this.req(url);
+    if (!res) return [];
     const pages = res.pages || [];
     // Important: Mangayomi expects a list of STRINGS (urls), not objects for JS extensions by default unless using specific map.
     // Ensure we return clean strings.
