@@ -1,6 +1,6 @@
 // ==MiruExtension==
 // @name         Babylon Scanlation
-// @version      0.1.6
+// @version      0.1.7
 // @author       Linxurs
 // @lang         es
 // @license      MIT
@@ -11,9 +11,6 @@
 // @description  Official Babylon Scanlation Extension
 // ==/MiruExtension==
 
-/**
- * Minimal HMAC-SHA256 implementation for signing URLs
- */
 const Hashes = (function() {
     function b64(s) { return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''); }
     return {
@@ -137,6 +134,7 @@ class DefaultExtension extends MProvider {
             name: "Error al cargar",
             imageUrl: "",
             description: "No se pudo obtener el detalle de la serie.",
+            genre: [],
             chapters: []
         };
     }
@@ -145,7 +143,6 @@ class DefaultExtension extends MProvider {
       link: res.slug ? `/api/series/${res.slug}/chapters/${chapter.chapterNumber}` : ""
     }));
 
-    // Status mapping: 0: ongoing, 1: completed, 2: onHiatus, 3: canceled, 4: publishingFinished
     let status = 0;
     if (res.status) {
         const s = res.status.toLowerCase();
@@ -154,7 +151,6 @@ class DefaultExtension extends MProvider {
         else if (s.includes('cancel')) status = 3;
     }
 
-    // Genre handling
     let genre = [];
     if (res.genres) {
         if (Array.isArray(res.genres)) genre = res.genres;
@@ -162,7 +158,7 @@ class DefaultExtension extends MProvider {
     }
 
     return {
-      name: res.title,
+      name: res.title || "Sin título",
       imageUrl: (await this.signUrl(res.coverImageUrl)) || "",
       description: res.description || "Sin descripción",
       author: res.author || "Desconocido",
