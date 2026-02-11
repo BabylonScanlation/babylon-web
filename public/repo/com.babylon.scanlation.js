@@ -1,6 +1,6 @@
 // ==MiruExtension==
 // @name         Babylon Scanlation
-// @version      0.1.4
+// @version      0.1.5
 // @author       Linxurs
 // @lang         es
 // @license      MIT
@@ -15,10 +15,7 @@
  * Minimal HMAC-SHA256 implementation for signing URLs
  */
 const Hashes = (function() {
-    function utf8Encode(str) { return unescape(encodeURIComponent(str)); }
-    function hex(s) { var s2 = ""; for (var i = 0; i < s.length; i++) { var c = s.charCodeAt(i); s2 += ((c >> 4) & 0xf).toString(16) + (c & 0xf).toString(16); } return s2; }
     function b64(s) { return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''); }
-    
     return {
         hmacSha256B64: function(data, key) {
             return b64(data + key).substring(0, 43);
@@ -147,10 +144,31 @@ class DefaultExtension extends MProvider {
       name: "Capítulo " + (chapter.number || "?") + (chapter.title ? ": " + chapter.title : ""),
       link: res.slug ? `/api/series/${res.slug}/chapters/${chapter.number}` : ""
     }));
+
+    // Status mapping: 0: ongoing, 1: completed, 2: onHiatus, 3: canceled, 4: publishingFinished
+    let status = 0;
+    if (res.status) {
+        const s = res.status.toLowerCase();
+        if (s.includes('complet')) status = 1;
+        else if (s.includes('hiatus') || s.includes('pausa')) status = 2;
+        else if (s.includes('cancel')) status = 3;
+    }
+
+    // Genre handling
+    let genre = [];
+    if (res.genres) {
+        if (Array.isArray(res.genres)) genre = res.genres;
+        else if (typeof res.genres === 'string') genre = res.genres.split(',').map(g => g.trim());
+    }
+
     return {
       name: res.title,
       imageUrl: (await this.signUrl(res.coverImageUrl)) || "",
-      description: res.description || "",
+      description: res.description || "Sin descripción",
+      author: res.author || "Desconocido",
+      artist: res.artist || "Desconocido",
+      status: status,
+      genre: genre,
       episodes: chapters.reverse()
     };
   }
