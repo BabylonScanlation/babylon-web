@@ -1,6 +1,6 @@
 // ==MiruExtension==
 // @name         Babylon Scanlation
-// @version      0.1.5
+// @version      0.1.6
 // @author       Linxurs
 // @lang         es
 // @license      MIT
@@ -137,12 +137,12 @@ class DefaultExtension extends MProvider {
             name: "Error al cargar",
             imageUrl: "",
             description: "No se pudo obtener el detalle de la serie.",
-            episodes: []
+            chapters: []
         };
     }
     const chapters = (res.chapters || []).map(chapter => ({
-      name: "Capítulo " + (chapter.number || "?") + (chapter.title ? ": " + chapter.title : ""),
-      link: res.slug ? `/api/series/${res.slug}/chapters/${chapter.number}` : ""
+      name: "Capítulo " + (chapter.chapterNumber || "?") + (chapter.title ? ": " + chapter.title : ""),
+      link: res.slug ? `/api/series/${res.slug}/chapters/${chapter.chapterNumber}` : ""
     }));
 
     // Status mapping: 0: ongoing, 1: completed, 2: onHiatus, 3: canceled, 4: publishingFinished
@@ -169,7 +169,7 @@ class DefaultExtension extends MProvider {
       artist: res.artist || "Desconocido",
       status: status,
       genre: genre,
-      episodes: chapters.reverse()
+      chapters: chapters.reverse()
     };
   }
 
@@ -177,7 +177,7 @@ class DefaultExtension extends MProvider {
     if (!url) return [];
     const res = await this.req(url);
     const pages = res.pages || [];
-    return await Promise.all(pages.map(async (page) => (await this.signUrl(page.url)) || ""));
+    return await Promise.all(pages.map(async (page) => (await this.signUrl(page.imageUrl)) || ""));
   }
 
   getFilterList() { return []; }
