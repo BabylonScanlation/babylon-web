@@ -1,6 +1,6 @@
 // ==MiruExtension==
 // @name         Dumanwu
-// @version      1.2.0
+// @version      1.2.1
 // @author       Babylon
 // @lang         zh
 // @type         manga
@@ -92,9 +92,10 @@ class DefaultExtension extends MProvider {
     const imageUrl = body.match(/<div class="book-cover">[\s\S]*?src="([^"]+)"/)?.[1] || "";
     
     const chapters = [];
+    const chapBox = body.match(/<div class="chaplist-box">([\s\S]*?)<\/div>/)?.[1] || body;
     const chapterRegex = /<li><a href="([^"]+)">([^<]+)<\/a><\/li>/g;
     let match;
-    while ((match = chapterRegex.exec(body)) !== null) {
+    while ((match = chapterRegex.exec(chapBox)) !== null) {
         if (!match[1].includes("javascript")) {
             chapters.push({
                 name: match[2].replace(/<[^>]+>/g, '').trim(),
@@ -118,9 +119,10 @@ class DefaultExtension extends MProvider {
     const body = res.body;
     
     const images = [];
+    const imgBox = body.match(/<div class="chapter-img-box">([\s\S]*?)<\/div>/)?.[1] || "";
     const imgRegex = /data-src="([^"]+)"/g;
     let match;
-    while ((match = imgRegex.exec(body)) !== null) {
+    while ((match = imgRegex.exec(imgBox)) !== null) {
         if (match[1] && !match[1].includes("load.gif")) {
             images.push(match[1]);
         }
