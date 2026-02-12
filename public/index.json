@@ -13,5 +13,20 @@
     "itemType": 0,
     "sourceCodeLanguage": 1,
     "appMinVerReq": "0.1.0"
+  },
+  {
+    "id": 555666,
+    "name": "Dumanwu (JS)",
+    "version": "1.0.0",
+    "lang": "zh",
+    "baseUrl": "https://www.dumanwu1.com",
+    "apiUrl": "",
+    "iconUrl": "https://www.dumanwu1.com/static/images/favicon.ico",
+    "sourceCodeUrl": "https://babylon-scanlation.pages.dev/repo/dumanwu.js",
+    "typeSource": "single",
+    "nsfw": false,
+    "itemType": 0,
+    "sourceCodeLanguage": 1,
+    "appMinVerReq": "0.1.0"
   }
 ]
