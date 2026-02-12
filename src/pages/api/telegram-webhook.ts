@@ -116,23 +116,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .get();
 
       if (existingChapter) {
-        if (existingChapter.status === 'app_only') {
-          const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`;
+        // Orion: Si ya existe (ya sea app_only o live), permitimos actualizarlo.
+        // Esto soluciona el problema de "borrar y volver a subir" en Telegram para corregir errores.
+        const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`;
+        
+        await drizzleDb.update(chapters)
+          .set({
+            telegramFileId: fileId,
+            status: 'live',
+            urlPortada: chapterPlaceholderUrl,
+            createdAt: new Date().toISOString()
+          })
+          .where(eq(chapters.id, existingChapter.id))
+          .run();
           
-          await drizzleDb.update(chapters)
-            .set({
-              telegramFileId: fileId,
-              status: 'live',
-              urlPortada: chapterPlaceholderUrl,
-              createdAt: new Date().toISOString()
-            })
-            .where(eq(chapters.id, existingChapter.id))
-            .run();
-            
-          return new Response('OK - Updated app_only chapter');
-        } else {
-          return new Response('OK - Duplicate chapter number', { status: 200 });
-        }
+        return new Response('OK - Updated existing chapter');
       }
 
       // 3. Insertar nuevo capítulo

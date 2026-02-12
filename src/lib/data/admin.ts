@@ -83,6 +83,7 @@ export async function getAdminSeriesWithChapters(
     series: seriesResults.map(s => ({
       ...s,
       chapters: chaptersBySeriesId.get(s.id) || [],
+      chapterCount: chaptersBySeriesId.get(s.id)?.length || 0,
       seriesComments: []
     }))
   };

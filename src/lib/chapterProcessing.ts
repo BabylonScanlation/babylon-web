@@ -81,7 +81,11 @@ export async function processAndCacheChapter(
       try {
           if (!entry.getData) return null;
           const imageBuffer = await entry.getData(new Uint8ArrayWriter());
-          const r2Key = `${seriesSlug}/${chapterNumber}/${entry.filename}`;
+          
+          // ORION: Añadimos un hash de versión (timestamp) a la ruta para invalidar cachés de Cloudflare/Navegador
+          // Esto garantiza que si se resube un capítulo, el usuario vea la nueva versión inmediatamente.
+          const versionHash = Date.now().toString(36);
+          const r2Key = `${seriesSlug}/${chapterNumber}/${versionHash}/${entry.filename}`;
           
           let uploadSuccess = false;
           let lastError;
