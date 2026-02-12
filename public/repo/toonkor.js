@@ -1,11 +1,11 @@
 // ==MiruExtension==
 // @name         ToonKor
-// @version      1.0.0
+// @version      1.1.0
 // @author       Linxurs
 // @lang         ko
 // @type         manga
 // @webSite      https://tkor.dog
-// @description  ToonKor Extension - Base64 Image Decryption
+// @description  ToonKor Extension - Robust DOM Scraping
 // ==/MiruExtension==
 
 class DefaultExtension extends MProvider {
@@ -21,39 +21,51 @@ class DefaultExtension extends MProvider {
   async getPopular(page) {
     const client = new Client();
     const res = await client.get(`${this.baseUrl}/%EC%9B%B9%ED%88%B0`, this.getHeaders());
-    const body = res.body;
+    const doc = new Document(res.body);
 
     const list = [];
-    const regex = /<div class="section-item-inner">[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img src="([^"]+)"[\s\S]*?<h3>([^<]+)<\/h3>/g;
-    let match;
-    while ((match = regex.exec(body)) !== null) {
-        list.push({
-            name: match[3].trim(),
-            imageUrl: match[2].startsWith('http') ? match[2] : this.baseUrl + match[2],
-            link: match[1]
-        });
+    const elements = doc.select(".section-item-inner");
+    for (const el of elements) {
+        const linkEl = el.selectFirst("a");
+        const imgEl = el.selectFirst("img");
+        const titleEl = el.selectFirst("h3");
+        if (linkEl && titleEl) {
+            let imageUrl = imgEl ? imgEl.attr("src") : "";
+            if (imageUrl && !imageUrl.startsWith("http")) imageUrl = this.baseUrl + imageUrl;
+            list.push({
+                name: titleEl.text.trim(),
+                imageUrl: imageUrl,
+                link: linkEl.attr("href")
+            });
+        }
     }
 
     return {
       list: list,
-      hasNextPage: false // ToonKor lista casi todo en una página o usa scroll infinito difícil de predecir sin API
+      hasNextPage: false
     };
   }
 
   async getLatestUpdates(page) {
     const client = new Client();
     const res = await client.get(`${this.baseUrl}/%EC%9B%B9%ED%88%B0?fil=%EC%B5%9C%EC%8B%A0`, this.getHeaders());
-    const body = res.body;
+    const doc = new Document(res.body);
 
     const list = [];
-    const regex = /<div class="section-item-inner">[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img src="([^"]+)"[\s\S]*?<h3>([^<]+)<\/h3>/g;
-    let match;
-    while ((match = regex.exec(body)) !== null) {
-        list.push({
-            name: match[3].trim(),
-            imageUrl: match[2].startsWith('http') ? match[2] : this.baseUrl + match[2],
-            link: match[1]
-        });
+    const elements = doc.select(".section-item-inner");
+    for (const el of elements) {
+        const linkEl = el.selectFirst("a");
+        const imgEl = el.selectFirst("img");
+        const titleEl = el.selectFirst("h3");
+        if (linkEl && titleEl) {
+            let imageUrl = imgEl ? imgEl.attr("src") : "";
+            if (imageUrl && !imageUrl.startsWith("http")) imageUrl = this.baseUrl + imageUrl;
+            list.push({
+                name: titleEl.text.trim(),
+                imageUrl: imageUrl,
+                link: linkEl.attr("href")
+            });
+        }
     }
 
     return {
@@ -65,17 +77,23 @@ class DefaultExtension extends MProvider {
   async search(query, page, filters) {
     const client = new Client();
     const res = await client.get(`${this.baseUrl}/bbs/search.php?sfl=wr_subject%7C%7Cwr_content&stx=${encodeURIComponent(query)}`, this.getHeaders());
-    const body = res.body;
+    const doc = new Document(res.body);
 
     const list = [];
-    const regex = /<div class="section-item-inner">[\s\S]*?<a href="([^"]+)"[^>]*>[\s\S]*?<img src="([^"]+)"[\s\S]*?<h3>([^<]+)<\/h3>/g;
-    let match;
-    while ((match = regex.exec(body)) !== null) {
-        list.push({
-            name: match[3].trim(),
-            imageUrl: match[2].startsWith('http') ? match[2] : this.baseUrl + match[2],
-            link: match[1]
-        });
+    const elements = doc.select(".section-item-inner");
+    for (const el of elements) {
+        const linkEl = el.selectFirst("a");
+        const imgEl = el.selectFirst("img");
+        const titleEl = el.selectFirst("h3");
+        if (linkEl && titleEl) {
+            let imageUrl = imgEl ? imgEl.attr("src") : "";
+            if (imageUrl && !imageUrl.startsWith("http")) imageUrl = this.baseUrl + imageUrl;
+            list.push({
+                name: titleEl.text.trim(),
+                imageUrl: imageUrl,
+                link: linkEl.attr("href")
+            });
+        }
     }
 
     return {
@@ -87,23 +105,26 @@ class DefaultExtension extends MProvider {
   async getDetail(url) {
     const client = new Client();
     const res = await client.get(this.baseUrl + url, this.getHeaders());
-    const body = res.body;
+    const doc = new Document(res.body);
 
     const chapters = [];
-    const chapRegex = /<td class="content__title" data-role="([^"]+)">([^<]+)<\/td>/g;
-    let match;
-    while ((match = chapRegex.exec(body)) !== null) {
+    const elements = doc.select("td.content__title");
+    for (const el of elements) {
         chapters.push({
-            name: match[2].trim(),
-            url: match[1]
+            name: el.text.trim(),
+            url: el.attr("data-role")
         });
     }
 
+    const nameEl = doc.selectFirst("td.bt_title");
+    const imgEl = doc.selectFirst("td.bt_thumb img");
+    const descEl = doc.selectFirst("td.bt_over");
+
     return {
-      name: body.match(/<td class="bt_title">([^<]+)<\/td>/)?.[1]?.trim() || "",
-      imageUrl: body.match(/<td class="bt_thumb">[\s\S]*?src="([^"]+)"/)?.[1] || "",
-      description: body.match(/<td class="bt_over">([\s\S]+?)<\/td>/)?.[1]?.replace(/<[^>]+>/g, '').trim() || "",
-      author: body.match(/<td class="bt_label">[\s\S]*?<span class="bt_data">([^<]+)<\/span>/)?.[1] || "Unknown",
+      name: nameEl ? nameEl.text.trim() : "",
+      imageUrl: imgEl ? imgEl.attr("src") : "",
+      description: descEl ? descEl.text.trim() : "",
+      author: "Unknown",
       chapters: chapters
     };
   }
@@ -113,21 +134,16 @@ class DefaultExtension extends MProvider {
     const res = await client.get(this.baseUrl + url, this.getHeaders());
     const body = res.body;
 
-    // Extraer la cadena Base64 del script toon_img
     const encodedMatch = body.match(/toon_img\s*=\s*'([^']+)'/);
     if (!encodedMatch) return [];
 
-    const encoded = encodedMatch[1];
-    
-    // Decodificar Base64
-    const decoded = this.base64Decode(encoded);
-    
-    // Extraer URLs de imágenes del HTML decodificado
+    const decoded = this.base64Decode(encodedMatch[1]);
+    const doc = new Document(decoded);
     const pages = [];
-    const imgRegex = /src="([^"]+)"/g;
-    let match;
-    while ((match = imgRegex.exec(decoded)) !== null) {
-        let imgUrl = match[1];
+    const images = doc.select("img");
+    
+    for (const img of images) {
+        let imgUrl = img.attr("src");
         if (imgUrl && !imgUrl.startsWith('http')) {
             imgUrl = this.baseUrl + (imgUrl.startsWith('/') ? '' : '/') + imgUrl;
         }

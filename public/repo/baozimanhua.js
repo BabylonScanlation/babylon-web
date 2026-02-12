@@ -1,11 +1,11 @@
 // ==MiruExtension==
 // @name         BaoziManhua
-// @version      1.0.0
+// @version      1.1.0
 // @author       Linxurs
 // @lang         zh
 // @type         manga
 // @webSite      https://cn.baozimh.com
-// @description  BaoziManhua Extension - Multi-mirror support with AMP image extraction
+// @description  BaoziManhua Extension - Robust DOM Scraping
 // ==/MiruExtension==
 
 class DefaultExtension extends MProvider {
@@ -21,17 +21,20 @@ class DefaultExtension extends MProvider {
   async getPopular(page) {
     const client = new Client();
     const res = await client.get(`${this.baseUrl}/classify?page=${page}`, this.getHeaders());
-    const body = res.body;
+    const doc = new Document(res.body);
 
     const list = [];
-    const regex = /<a[^>]+href="([^"]+)"[^>]+title="([^"]+)"[^>]*>[\s\S]*?<amp-img[^>]+src="([^"]+)"/g;
-    let match;
-    while ((match = regex.exec(body)) !== null) {
-        list.push({
-            name: match[2].trim(),
-            imageUrl: match[3],
-            link: match[1]
-        });
+    const elements = doc.select("div.pure-u-1-3, div.pure-u-sm-1-6");
+    for (const el of elements) {
+        const linkEl = el.selectFirst("a");
+        const imgEl = el.selectFirst("amp-img");
+        if (linkEl && imgEl) {
+            list.push({
+                name: linkEl.attr("title").trim(),
+                imageUrl: imgEl.attr("src"),
+                link: linkEl.attr("href")
+            });
+        }
     }
 
     return {
@@ -43,17 +46,20 @@ class DefaultExtension extends MProvider {
   async getLatestUpdates(page) {
     const client = new Client();
     const res = await client.get(`${this.baseUrl}/list/new?page=${page}`, this.getHeaders());
-    const body = res.body;
+    const doc = new Document(res.body);
 
     const list = [];
-    const regex = /<a[^>]+href="([^"]+)"[^>]+title="([^"]+)"[^>]*>[\s\S]*?<amp-img[^>]+src="([^"]+)"/g;
-    let match;
-    while ((match = regex.exec(body)) !== null) {
-        list.push({
-            name: match[2].trim(),
-            imageUrl: match[3],
-            link: match[1]
-        });
+    const elements = doc.select("div.pure-u-1-3, div.pure-u-sm-1-6");
+    for (const el of elements) {
+        const linkEl = el.selectFirst("a");
+        const imgEl = el.selectFirst("amp-img");
+        if (linkEl && imgEl) {
+            list.push({
+                name: linkEl.attr("title").trim(),
+                imageUrl: imgEl.attr("src"),
+                link: linkEl.attr("href")
+            });
+        }
     }
 
     return {
@@ -64,20 +70,22 @@ class DefaultExtension extends MProvider {
 
   async search(query, page, filters) {
     const client = new Client();
-    // La búsqueda en Baozi a veces requiere redirección al dominio principal
-    const searchUrl = `${this.baseUrl}/search?q=${encodeURIComponent(query)}`;
-    const res = await client.get(searchUrl, this.getHeaders());
-    const body = res.body;
+    const url = `${this.baseUrl}/search?q=${encodeURIComponent(query)}`;
+    const res = await client.get(url, this.getHeaders());
+    const doc = new Document(res.body);
 
     const list = [];
-    const regex = /<a[^>]+href="([^"]+)"[^>]+title="([^"]+)"[^>]*>[\s\S]*?<amp-img[^>]+src="([^"]+)"/g;
-    let match;
-    while ((match = regex.exec(body)) !== null) {
-        list.push({
-            name: match[2].trim(),
-            imageUrl: match[3],
-            link: match[1]
-        });
+    const elements = doc.select("div.pure-u-1-3, div.pure-u-sm-1-6");
+    for (const el of elements) {
+        const linkEl = el.selectFirst("a");
+        const imgEl = el.selectFirst("amp-img");
+        if (linkEl && imgEl) {
+            list.push({
+                name: linkEl.attr("title").trim(),
+                imageUrl: imgEl.attr("src"),
+                link: linkEl.attr("href")
+            });
+        }
     }
 
     return {
@@ -89,34 +97,28 @@ class DefaultExtension extends MProvider {
   async getDetail(url) {
     const client = new Client();
     const res = await client.get(this.baseUrl + url, this.getHeaders());
-    const body = res.body;
+    const doc = new Document(res.body);
 
     const chapters = [];
-    const chapRegex = /<a[^>]+href="([^"]+)"[^>]*>[\s\S]*?<div[^>]*>([\s\S]+?)<\/div>/g;
-    
-    // Baozi tiene secciones para capítulos. Buscamos el bloque de capítulos.
-    const chapBlockMatch = body.match(/<div class="comics-chapters">([\s\S]+?)<\/div>\s*<\/div>/g);
-    if (chapBlockMatch) {
-        // En Baozi los capítulos suelen estar en orden cronológico, los invertimos para Mangayomi
-        const allChapters = [];
-        chapBlockMatch.forEach(block => {
-            let m;
-            while ((m = chapRegex.exec(block)) !== null) {
-                allChapters.push({
-                    name: m[2].replace(/<[^>]+>/g, '').trim(),
-                    url: m[1]
-                });
-            }
+    const elements = doc.select(".comics-chapters a");
+    for (const el of elements) {
+        chapters.push({
+            name: el.text.trim(),
+            url: el.attr("href")
         });
-        chapters.push(...allChapters.reverse());
     }
 
+    const nameEl = doc.selectFirst("h1.comics-detail__title");
+    const imgEl = doc.selectFirst("amp-img");
+    const descEl = doc.selectFirst("p.comics-detail__desc");
+    const authorEl = doc.selectFirst("h2.comics-detail__author");
+
     return {
-      name: body.match(/<h1[^>]+class="comics-detail__title"[^>]*>([^<]+)<\/h1>/)?.[1]?.trim() || "",
-      imageUrl: body.match(/<div class="pure-g">[\s\S]*?<amp-img[^>]+src="([^"]+)"/)?.[1] || "",
-      description: body.match(/<p class="comics-detail__desc">([^<]+)<\/p>/)?.[1]?.trim() || "",
-      author: body.match(/<h2 class="comics-detail__author">([^<]+)<\/h2>/)?.[1]?.trim() || "Unknown",
-      chapters: chapters
+      name: nameEl ? nameEl.text.trim() : "",
+      imageUrl: imgEl ? imgEl.attr("src") : "",
+      description: descEl ? descEl.text.trim() : "",
+      author: authorEl ? authorEl.text.trim() : "Unknown",
+      chapters: chapters.reverse()
     };
   }
 
@@ -125,25 +127,20 @@ class DefaultExtension extends MProvider {
     const pages = [];
     let currentUrl = this.baseUrl + url;
     
-    // Bucle para manejar capítulos de múltiples páginas (Next Page)
     while (currentUrl) {
         const res = await client.get(currentUrl, this.getHeaders());
-        const body = res.body;
+        const doc = new Document(res.body);
         
-        // Extraer imágenes AMP
-        const imgRegex = /<amp-img[^>]+src="([^"]+)"/g;
-        let match;
-        while ((match = imgRegex.exec(body)) !== null) {
-            let imgUrl = match[1];
-            // Fix para CDN de Baozi
+        const images = doc.select("amp-img");
+        for (const img of images) {
+            let imgUrl = img.attr("src");
             imgUrl = imgUrl.replace(".baozicdn.com", ".baozimh.com");
             if (!pages.includes(imgUrl)) pages.push(imgUrl);
         }
         
-        // Buscar botón de siguiente página dentro del capítulo
-        const nextMatch = body.match(/<a[^>]+id="next-chapter"[^>]+href="([^"]+)"[^>]*>([^<]+)<\/a>/);
-        if (nextMatch && (nextMatch[2].includes("下一页") || nextMatch[2].includes("下一頁"))) {
-            currentUrl = this.baseUrl + nextMatch[1];
+        const nextBtn = doc.selectFirst("#next-chapter");
+        if (nextBtn && (nextBtn.text.includes("下一页") || nextBtn.text.includes("下一頁"))) {
+            currentUrl = this.baseUrl + nextBtn.attr("href");
         } else {
             currentUrl = null;
         }

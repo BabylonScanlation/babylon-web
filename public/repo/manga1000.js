@@ -1,15 +1,15 @@
 // ==MiruExtension==
-// @name         Manhuagui
-// @version      1.1.0
+// @name         Manga1000
+// @version      1.0.0
 // @author       Linxurs
-// @lang         zh
+// @lang         ja
 // @type         manga
-// @webSite      https://www.manhuagui.com
-// @description  Manhuagui Extension - Robust DOM Scraping
+// @webSite      https://manga1000.top
+// @description  Manga1000 Extension - Native JS
 // ==/MiruExtension==
 
 class DefaultExtension extends MProvider {
-  baseUrl = "https://www.manhuagui.com";
+  baseUrl = "https://manga1000.top";
 
   getHeaders() {
     return {
@@ -20,73 +20,76 @@ class DefaultExtension extends MProvider {
 
   async getPopular(page) {
     const client = new Client();
-    const res = await client.get(`${this.baseUrl}/list/view_p${page}.html`, this.getHeaders());
+    const res = await client.get(`${this.baseUrl}/manga-list.html?page=${page}&sort=views`, this.getHeaders());
     const doc = new Document(res.body);
 
     const list = [];
-    const elements = doc.select("a.bcover");
+    const elements = doc.select(".manga-item");
     for (const el of elements) {
+        const linkEl = el.selectFirst("a");
         const imgEl = el.selectFirst("img");
-        if (imgEl) {
+        if (linkEl && imgEl) {
             list.push({
-                name: el.attr("title").trim(),
+                name: linkEl.attr("title") || "",
                 imageUrl: imgEl.attr("src"),
-                link: el.attr("href")
+                link: linkEl.attr("href")
             });
         }
     }
 
     return {
       list: list,
-      hasNextPage: list.length >= 40
+      hasNextPage: list.length > 0
     };
   }
 
   async getLatestUpdates(page) {
     const client = new Client();
-    const res = await client.get(`${this.baseUrl}/list/update_p${page}.html`, this.getHeaders());
+    const res = await client.get(`${this.baseUrl}/manga-list.html?page=${page}&sort=last_update`, this.getHeaders());
     const doc = new Document(res.body);
 
     const list = [];
-    const elements = doc.select("a.bcover");
+    const elements = doc.select(".manga-item");
     for (const el of elements) {
+        const linkEl = el.selectFirst("a");
         const imgEl = el.selectFirst("img");
-        if (imgEl) {
+        if (linkEl && imgEl) {
             list.push({
-                name: el.attr("title").trim(),
+                name: linkEl.attr("title") || "",
                 imageUrl: imgEl.attr("src"),
-                link: el.attr("href")
+                link: linkEl.attr("href")
             });
         }
     }
 
     return {
       list: list,
-      hasNextPage: list.length >= 40
+      hasNextPage: list.length > 0
     };
   }
 
   async search(query, page, filters) {
     const client = new Client();
-    const res = await client.get(`${this.baseUrl}/s/${encodeURIComponent(query)}_p${page}.html`, this.getHeaders());
+    const res = await client.get(`${this.baseUrl}/search?q=${encodeURIComponent(query)}&page=${page}`, this.getHeaders());
     const doc = new Document(res.body);
 
     const list = [];
-    const elements = doc.select(".book-cover a");
+    const elements = doc.select(".manga-item");
     for (const el of elements) {
+        const linkEl = el.selectFirst("a");
         const imgEl = el.selectFirst("img");
-        if (imgEl) {
+        if (linkEl && imgEl) {
             list.push({
-                name: el.attr("title").trim(),
+                name: linkEl.attr("title") || "",
                 imageUrl: imgEl.attr("src"),
-                link: el.attr("href")
+                link: linkEl.attr("href")
             });
         }
     }
 
     return {
       list: list,
-      hasNextPage: list.length >= 20
+      hasNextPage: list.length > 0
     };
   }
 
@@ -99,38 +102,38 @@ class DefaultExtension extends MProvider {
     const elements = doc.select(".chapter-list a");
     for (const el of elements) {
         chapters.push({
-            name: el.attr("title").trim(),
+            name: el.text.trim(),
             url: el.attr("href")
         });
     }
 
-    const nameEl = doc.selectFirst(".book-title h1");
-    const imgEl = doc.selectFirst(".hcover img");
-    const descEl = doc.selectFirst("#intro-all");
+    const nameEl = doc.selectFirst(".manga-title");
+    const imgEl = doc.selectFirst(".manga-cover img");
+    const descEl = doc.selectFirst(".manga-description");
 
     return {
       name: nameEl ? nameEl.text.trim() : "",
       imageUrl: imgEl ? imgEl.attr("src") : "",
       description: descEl ? descEl.text.trim() : "",
       author: "Unknown",
-      chapters: chapters.reverse()
+      chapters: chapters
     };
   }
 
   async getPageList(url) {
     const client = new Client();
     const res = await client.get(this.baseUrl + url, this.getHeaders());
-    const body = res.body;
-
-    try {
-        const jsonMatch = body.match(/SMH\.reader\(([\s\S]+?)\)\.preInit\(\)/);
-        if (jsonMatch) {
-            const config = JSON.parse(jsonMatch[1]);
-            const server = "https://i.hamreus.com";
-            return config.files.map(f => `${server}${config.path}${f}?e=${config.sl.e}&m=${config.sl.m}`);
+    const doc = new Document(res.body);
+    const pages = [];
+    
+    const images = doc.select(".reader-area img");
+    for (const img of images) {
+        const src = img.attr("src");
+        if (src && !src.includes("data:image")) {
+            pages.push(src);
         }
-    } catch(e) {}
+    }
 
-    return [];
+    return pages;
   }
 }

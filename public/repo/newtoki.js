@@ -1,15 +1,15 @@
 // ==MiruExtension==
 // @name         NewToki
-// @version      1.0.0
+// @version      1.1.0
 // @author       Linxurs
 // @lang         ko
 // @type         manga
 // @webSite      https://newtoki465.com
-// @description  NewToki Extension - Direct image scraping without ApkBridge
+// @description  NewToki Extension - Robust DOM Scraping
 // ==/MiruExtension==
 
 class DefaultExtension extends MProvider {
-  baseUrl = "https://newtoki465.com"; // Este dominio cambia frecuentemente
+  baseUrl = "https://newtoki465.com";
 
   getHeaders() {
     return {
@@ -22,17 +22,21 @@ class DefaultExtension extends MProvider {
     const client = new Client();
     const url = `${this.baseUrl}/webtoon${page > 1 ? '/p' + page : ''}`;
     const res = await client.get(url, this.getHeaders());
-    const body = res.body;
+    const doc = new Document(res.body);
 
     const list = [];
-    const regex = /<li class="list-item">[\s\S]+?<a href="([^"]+)">[\s\S]+?<img src="([^"]+)"[\s\S]+?<span class="title">([^<]+)<\/span>/g;
-    let match;
-    while ((match = regex.exec(body)) !== null) {
-        list.push({
-            name: match[3].trim(),
-            imageUrl: match[2],
-            link: match[1]
-        });
+    const elements = doc.select("li.list-item");
+    for (const el of elements) {
+        const linkEl = el.selectFirst("a");
+        const imgEl = el.selectFirst("img");
+        const titleEl = el.selectFirst(".title");
+        if (linkEl && titleEl) {
+            list.push({
+                name: titleEl.text.trim(),
+                imageUrl: imgEl ? imgEl.attr("src") : "",
+                link: linkEl.attr("href")
+            });
+        }
     }
 
     return {
@@ -45,17 +49,21 @@ class DefaultExtension extends MProvider {
     const client = new Client();
     const url = `${this.baseUrl}/page/update?hid=update&page=${page}`;
     const res = await client.get(url, this.getHeaders());
-    const body = res.body;
+    const doc = new Document(res.body);
 
     const list = [];
-    const regex = /<div class="media post-list">[\s\S]+?<a href="([^"]+)">[\s\S]+?<img src="([^"]+)"[\s\S]+?<div class="media-heading"><b>([^<]+)<\/b>/g;
-    let match;
-    while ((match = regex.exec(body)) !== null) {
-        list.push({
-            name: match[3].trim(),
-            imageUrl: match[2],
-            link: match[1]
-        });
+    const elements = doc.select(".post-list");
+    for (const el of elements) {
+        const linkEl = el.selectFirst("a");
+        const imgEl = el.selectFirst("img");
+        const titleEl = el.selectFirst(".media-heading b");
+        if (linkEl && titleEl) {
+            list.push({
+                name: titleEl.text.trim(),
+                imageUrl: imgEl ? imgEl.attr("src") : "",
+                link: linkEl.attr("href")
+            });
+        }
     }
 
     return {
@@ -66,20 +74,23 @@ class DefaultExtension extends MProvider {
 
   async search(query, page, filters) {
     const client = new Client();
-    // NewToki search uses a specific format, for now let's use the simplest search
     const url = `${this.baseUrl}/webtoon?stx=${encodeURIComponent(query)}&page=${page}`;
     const res = await client.get(url, this.getHeaders());
-    const body = res.body;
+    const doc = new Document(res.body);
 
     const list = [];
-    const regex = /<li class="list-item">[\s\S]+?<a href="([^"]+)">[\s\S]+?<img src="([^"]+)"[\s\S]+?<span class="title">([^<]+)<\/span>/g;
-    let match;
-    while ((match = regex.exec(body)) !== null) {
-        list.push({
-            name: match[3].trim(),
-            imageUrl: match[2],
-            link: match[1]
-        });
+    const elements = doc.select("li.list-item");
+    for (const el of elements) {
+        const linkEl = el.selectFirst("a");
+        const imgEl = el.selectFirst("img");
+        const titleEl = el.selectFirst(".title");
+        if (linkEl && titleEl) {
+            list.push({
+                name: titleEl.text.trim(),
+                imageUrl: imgEl ? imgEl.attr("src") : "",
+                link: linkEl.attr("href")
+            });
+        }
     }
 
     return {
@@ -91,22 +102,23 @@ class DefaultExtension extends MProvider {
   async getDetail(url) {
     const client = new Client();
     const res = await client.get(url, this.getHeaders());
-    const body = res.body;
+    const doc = new Document(res.body);
 
     const chapters = [];
-    const chapterRegex = /<a class="item-subject" href="([^"]+)">[\s\S]+?<\/a>[\s\S]+?<div class="wr-date">([^<]+)<\/div>/g;
-    let match;
-    while ((match = chapterRegex.exec(body)) !== null) {
+    const elements = doc.select("a.item-subject");
+    for (const el of elements) {
         chapters.push({
-            name: match[0].match(/>([^<]+)</)?.[1]?.trim() || "Capítulo",
-            url: match[1],
-            date: match[2]
+            name: el.text.trim(),
+            url: el.attr("href")
         });
     }
 
+    const nameEl = doc.selectFirst(".view-content b");
+    const imgEl = doc.selectFirst(".view-img img");
+
     return {
-      name: body.match(/<div class="view-content">[\s\S]*?<b>([^<]+)<\/b>/)?.[1] || "",
-      imageUrl: body.match(/<div class="view-img">[\s\S]*?src="([^"]+)"/)?.[1] || "",
+      name: nameEl ? nameEl.text.trim() : "",
+      imageUrl: imgEl ? imgEl.attr("src") : "",
       description: "NewToki Manhwa",
       author: "Unknown",
       chapters: chapters
@@ -118,48 +130,33 @@ class DefaultExtension extends MProvider {
     const res = await client.get(url, this.getHeaders());
     const body = res.body;
 
-    // Lógica de descifrado de html_data (Basado en Kotlin)
-    const htmlDataMatch = body.match(/html_data\+='([^']+)'/g);
-    if (!htmlDataMatch) return [];
+    const hexMatch = body.match(/html_data\+='([^']+)'/g);
+    if (!hexMatch) return [];
 
     let hexStr = "";
-    htmlDataMatch.forEach(m => {
+    hexMatch.forEach(m => {
         hexStr += m.match(/'([^']+)'/)[1];
     });
 
-    // Reconstruir el HTML desde hexadecimal
     let decodedHtml = "";
-    const hexParts = hexStr.split(".");
-    hexParts.forEach(part => {
-        if (part) {
-            decodedHtml += String.fromCharCode(parseInt(part, 16));
-        }
+    hexStr.split(".").forEach(part => {
+        if (part) decodedHtml += String.fromCharCode(parseInt(part, 16));
     });
 
-    // Extraer URLs de las imágenes
-    // NewToki usa atributos data-dinámicos, buscamos data-src o similares
-    const imgRegex = /img[^>]+src="([^"]+)"/g;
+    const doc = new Document(decodedHtml);
     const pages = [];
-    let imgMatch;
     
-    // A veces el src es el loading gif y la imagen real está en data-src, data-proxy, etc.
     const dataAttrMatch = body.match(/data_attribute:\s*'([^']+)'/);
     const dataAttr = dataAttrMatch ? dataAttrMatch[1] : null;
 
-    if (dataAttr) {
-        const dataRegex = new RegExp(`data-${dataAttr}="([^"]+)"`, 'g');
-        let dMatch;
-        while ((dMatch = dataRegex.exec(decodedHtml)) !== null) {
-            pages.push(dMatch[1]);
+    const images = doc.select("img");
+    for (const img of images) {
+        let src = dataAttr ? img.attr(`data-${dataAttr}`) : img.attr("src");
+        if (!src || src.includes("loading-image.gif")) {
+            src = img.attr("data-proxy") || img.attr("data-src") || img.attr("src");
         }
-    }
-
-    // Fallback si no encontramos el dataAttr
-    if (pages.length === 0) {
-        while ((imgMatch = imgRegex.exec(decodedHtml)) !== null) {
-            if (!imgMatch[1].includes("loading-image.gif")) {
-                pages.push(imgMatch[1]);
-            }
+        if (src && !src.includes("loading-image.gif")) {
+            pages.push(src);
         }
     }
 

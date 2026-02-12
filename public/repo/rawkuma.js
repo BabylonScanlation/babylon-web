@@ -1,11 +1,11 @@
 // ==MiruExtension==
 // @name         RawKuma
-// @version      1.0.0
+// @version      1.1.0
 // @author       Linxurs
 // @lang         ja
 // @type         manga
 // @webSite      https://rawkuma.net
-// @description  RawKuma Extension - WP-API based scraping
+// @description  RawKuma Extension - Robust DOM Scraping
 // ==/MiruExtension==
 
 class DefaultExtension extends MProvider {
@@ -23,8 +23,7 @@ class DefaultExtension extends MProvider {
     if (this.nonce) return this.nonce;
     const client = new Client();
     const res = await client.get(`${this.baseUrl}/wp-admin/admin-ajax.php?type=search_form&action=get_nonce`, this.getHeaders());
-    const body = res.body;
-    const match = body.match(/value="([^"]+)"/);
+    const match = res.body.match(/value="([^"]+)"/);
     if (match) {
         this.nonce = match[1];
         return this.nonce;
@@ -37,7 +36,6 @@ class DefaultExtension extends MProvider {
   }
 
   async getLatestUpdates(page) {
-    // Para RawKuma, el latest se puede obtener por la misma via de búsqueda cambiando el orden
     return await this.search("", page, [{ key: "orderby", value: "latest" }]);
   }
 
@@ -45,7 +43,6 @@ class DefaultExtension extends MProvider {
     const client = new Client();
     const nonce = await this.getNonce();
     
-    // NatsuId usa Multipart para la búsqueda avanzada
     const body = `action=advanced_search&nonce=${nonce}&page=${page}&query=${encodeURIComponent(query)}&order=desc&orderby=latest`;
     
     const res = await client.post(`${this.baseUrl}/wp-admin/admin-ajax.php?action=advanced_search`, {
@@ -53,20 +50,25 @@ class DefaultExtension extends MProvider {
         "Content-Type": "application/x-www-form-urlencoded"
     }, body);
 
+    const doc = new Document(res.body);
     const list = [];
-    const html = res.body;
-    // Extraer slugs de los enlaces
-    const regex = /<div[^>]*>[\s\S]*?<a href="https:\/\/rawkuma\.net\/manga\/([^/]+)\/"[^>]*>[\s\S]*?<img src="([^"]+)"/g;
-    let match;
-    while ((match = regex.exec(html)) !== null) {
-        list.push({
-            name: match[1].replace(/-/g, ' '), // Título aproximado desde el slug
-            imageUrl: match[2],
-            link: match[1]
-        });
+    const elements = doc.select("a[href*='/manga/']");
+    
+    for (const el of elements) {
+        const imgEl = el.selectFirst("img");
+        const href = el.attr("href");
+        if (imgEl && href) {
+            const slugMatch = href.match(/\/manga\/([^/]+)\//);
+            if (slugMatch) {
+                list.push({
+                    name: slugMatch[1].replace(/-/g, ' '),
+                    imageUrl: imgEl.attr("src"),
+                    link: slugMatch[1]
+                });
+            }
+        }
     }
 
-    // Si tenemos slugs, podemos pedir los detalles reales por WP-API para mejorar los títulos
     if (list.length > 0) {
         const slugs = list.map(i => `slug[]=${i.link}`).join('&');
         const detailsRes = await client.get(`${this.baseUrl}/wp-json/wp/v2/manga?${slugs}&_embed`, this.getHeaders());
@@ -91,24 +93,24 @@ class DefaultExtension extends MProvider {
 
   async getDetail(slug) {
     const client = new Client();
-    // Primero obtenemos el ID del manga mediante el slug
     const res = await client.get(`${this.baseUrl}/wp-json/wp/v2/manga?slug=${slug}&_embed`, this.getHeaders());
-    const data = JSON.parse(res.body)[0];
-    if (!data) return null;
+    const dataList = JSON.parse(res.body);
+    if (!dataList || dataList.length === 0) return null;
+    const data = dataList[0];
 
-    const id = data.id;
-    
-    // Obtener lista de capítulos vía AJAX
-    const chapRes = await client.get(`${this.baseUrl}/wp-admin/admin-ajax.php?manga_id=${id}&action=chapter_list`, this.getHeaders());
-    const chapHtml = chapRes.body;
+    const chapRes = await client.get(`${this.baseUrl}/wp-admin/admin-ajax.php?manga_id=${data.id}&action=chapter_list`, this.getHeaders());
+    const doc = new Document(chapRes.body);
     const chapters = [];
-    const chapRegex = /<a href="([^"]+)">[\s\S]*?<span>([^<]+)<\/span>/g;
-    let match;
-    while ((match = chapRegex.exec(chapHtml)) !== null) {
-        chapters.push({
-            name: match[2].trim(),
-            url: match[1]
-        });
+    const elements = doc.select("a");
+    
+    for (const el of elements) {
+        const span = el.selectFirst("span");
+        if (span) {
+            chapters.push({
+                name: span.text.trim(),
+                url: el.attr("href")
+            });
+        }
     }
 
     return {
@@ -123,19 +125,16 @@ class DefaultExtension extends MProvider {
   async getPageList(url) {
     const client = new Client();
     const res = await client.get(url, this.getHeaders());
-    const body = res.body;
-
+    const doc = new Document(res.body);
     const pages = [];
-    const imgRegex = /<img[^>]+src="([^"]+)"[^>]*>/g;
-    // En RawKuma las imágenes están dentro de un contenedor específico
-    const readerMatch = body.match(/<main[^>]*>([\s\S]+?)<\/main>/);
-    const htmlToSearch = readerMatch ? readerMatch[1] : body;
-
-    let match;
-    while ((match = imgRegex.exec(htmlToSearch)) !== null) {
-        const src = match[1];
-        if (src.includes("rawkuma.net") && (src.endsWith(".jpg") || src.endsWith(".png") || src.endsWith(".webp") || src.includes("wp-content"))) {
-            pages.push(src);
+    
+    const images = doc.select("main img, #readerarea img");
+    for (const img of images) {
+        const src = img.attr("src");
+        if (src && (src.includes("rawkuma.net") || src.includes("wp-content")) && !src.includes("avatar")) {
+            if (src.endsWith(".jpg") || src.endsWith(".png") || src.endsWith(".webp")) {
+                pages.push(src);
+            }
         }
     }
 
