@@ -472,6 +472,12 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
     }
   }
 
+  @media (max-width: 1023px) {
+    .premium-footer {
+      margin-top: 3rem !important;
+    }
+  }
+
   @media (max-width: 640px) {
     .footer-grid {
       grid-template-columns: 1fr 1fr; /* Two columns for links */
@@ -504,7 +510,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
     }
     .premium-footer {
       padding: 1rem 0 2.5rem; /* Reducido 50% */
-      margin-top: 0; /* Removed margin entirely */
+      margin-top: 3rem !important; /* Astra: Espaciado reforzado garantizado en móvil */
     }
   }
 </style>

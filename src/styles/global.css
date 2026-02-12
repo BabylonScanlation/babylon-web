@@ -31,7 +31,7 @@
 }
 
 body {
-  background-color: var(--background-color);
+  background-color: transparent; /* Astra: Permitimos que el fondo sea clickeable */
   color: var(--font-color);
   font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
@@ -46,11 +46,16 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: -1;
+  z-index: 0; /* Astra: Elevado para capturar clics en zonas vacías */
   overflow: hidden;
-  pointer-events: none;
+  pointer-events: auto; /* Astra: Habilitado para monetización */
   background: #020205; /* Base negra pura */
   perspective: 1000px;
+}
+
+.site-main-content {
+  position: relative;
+  z-index: 10; /* Astra: Aseguramos que el contenido esté sobre el fondo */
 }
 
 /* Capas Comunes */

@@ -219,6 +219,6 @@ const recentChapters = (series as any).recentChapters || [];
     .series-name-title { font-size: 0.95rem; }
     .chapter-pill { padding: 6px 10px; border-radius: 10px; }
     .chap-badge { font-size: 0.7rem; }
-    .time-text { display: none; } /* Hide time on small mobile cards to save space */
+    .time-text { display: block !important; color: #888; } /* Astra: Forzar visibilidad y mejorar contraste */
   }
 </style>
