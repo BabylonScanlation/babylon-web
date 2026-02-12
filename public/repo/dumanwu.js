@@ -1,12 +1,12 @@
 // ==MiruExtension==
 // @name         Dumanwu
 // @version      1.9.0
-// @author       Babylon
+// @author       Lucas Goldstein
 // @lang         zh
 // @type         manga
 // @webSite      https://dumanwu.com
 // @description  Extension para Dumanwu - Desencriptación híbrida (API + XOR Local) para evitar imágenes falsas.
-// ==/MiruExtension==
+// ==/MangayomiExtension==
 
 class DefaultExtension extends MProvider {
   baseUrl = "https://dumanwu.com";
@@ -55,7 +55,7 @@ class DefaultExtension extends MProvider {
     const res = await client.get(this.baseUrl + url, this.getHeaders());
     const body = res.body;
     const id = url.replace(/\//g, '');
-    
+
     let chapters = [];
     try {
         const moreRes = await client.post(this.baseUrl + "/morechapter", {
@@ -97,7 +97,7 @@ class DefaultExtension extends MProvider {
     const pageUrl = this.baseUrl + url;
     const res = await client.get(pageUrl, this.getHeaders());
     const body = res.body;
-    
+
     const idMatch = url.match(/\/([^\/]+)\/([^\/]+)\.html/);
     const timeMatch = body.match(/class="signkey"[\s\S]+?value="([^"]+)"/);
     const signMatch = body.match(/data-sign="([^"]+)"/);
@@ -116,7 +116,7 @@ class DefaultExtension extends MProvider {
             "User-Agent": ua,
             "Referer": pageUrl
         }, `id=${id}&vid=${vid}&signkey=${sign}&time=${time}&iua=${encodeURIComponent(ua)}&ref=`);
-        
+
         try {
             const imgData = JSON.parse(imgRes.body);
             if (imgData && imgData.data && imgData.data.length > 0) {
@@ -126,7 +126,7 @@ class DefaultExtension extends MProvider {
             }
         } catch(e) {}
     }
-    
+
     // Intento 2: Desencriptación XOR Local (Si la API nos da basura o falla)
     if (idReaderMatch) {
         const readerId = parseInt(idReaderMatch[1]);
@@ -149,17 +149,17 @@ class DefaultExtension extends MProvider {
   decryptLocal(data, index) {
     const keys = ["smkhy258", "smkd95fv", "md496952", "cdcsdwq", "vbfsa256", "cawf151c", "cd56cvda", "8kihnt9", "dso15tlo", "5ko6plhy"];
     const key = keys[index] || keys[0];
-    
+
     // XOR logic
     const keyBytes = [];
     for(let i=0; i<key.length; i++) keyBytes.push(key.charCodeAt(i));
-    
+
     const binaryData = this.atob(data);
     const decryptedBytes = [];
     for(let i=0; i<binaryData.length; i++) {
         decryptedBytes.push(binaryData.charCodeAt(i) ^ keyBytes[i % keyBytes.length]);
     }
-    
+
     try {
         const decryptedStr = String.fromCharCode(...decryptedBytes);
         // El resultado es otra cadena Base64 que contiene el JSON
