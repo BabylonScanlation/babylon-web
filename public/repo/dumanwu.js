@@ -1,74 +1,130 @@
-// ==MangayomiExtension==
+// ==MiruExtension==
 // @name         Dumanwu
-// @version      1.0.0
+// @version      1.2.0
 // @author       Babylon
 // @lang         zh
 // @type         manga
-// @baseUrl      https://www.dumanwu1.com
+// @webSite      https://dumanwu.com
 // @description  Extension para Dumanwu (JS Nativo)
-// ==/MangayomiExtension==
+// ==/MiruExtension==
 
-async function getPopular(page) {
-    const res = await client.get(`${source.baseUrl}/rank/1/${page}`);
-    const list = [];
-    const items = dom.select(res.body, "div.book-list li, div.item-list div.item");
+class DefaultExtension extends MProvider {
+  baseUrl = "https://dumanwu.com";
+
+  async getPopular(page) {
+    const client = new Client();
+    const res = await client.post(this.baseUrl + "/data/sort", {
+      "Content-Type": "application/x-www-form-urlencoded"
+    }, `s=1&p=${page}`);
     
-    for (const item of items) {
-        list.push({
-            name: dom.select(item, "h3, a.title").text().trim(),
-            imageUrl: dom.select(item, "img").attr("src"),
-            link: dom.select(item, "a").attr("href")
-        });
-    }
-    return { list, hasNextPage: list.length > 0 };
-}
-
-async function getLatestUpdates(page) {
-    return await getPopular(page); 
-}
-
-async function search(query, page, filters) {
-    const res = await client.get(`${source.baseUrl}/search?key=${encodeURIComponent(query)}`);
+    const data = typeof res.body === 'string' ? JSON.parse(res.body) : res.body;
     const list = [];
-    const items = dom.select(res.body, "div.book-list li");
-    for (const item of items) {
+    if (data && data.data) {
+      for (const item of data.data) {
         list.push({
-            name: dom.select(item, "h3").text().trim(),
-            imageUrl: dom.select(item, "img").attr("src"),
-            link: dom.select(item, "a").attr("href")
+          name: item.bookName || item.name,
+          imageUrl: item.imgurl,
+          link: `/${item.id}/`
         });
+      }
     }
-    return { list, hasNextPage: false };
-}
+    return {
+      list: list,
+      hasNextPage: list.length > 0
+    };
+  }
 
-async function getDetail(url) {
-    const res = await client.get(source.baseUrl + url);
+  async getLatestUpdates(page) {
+    const client = new Client();
+    const res = await client.post(this.baseUrl + "/data/sort", {
+      "Content-Type": "application/x-www-form-urlencoded"
+    }, `s=15&p=${page}`);
+    
+    const data = typeof res.body === 'string' ? JSON.parse(res.body) : res.body;
+    const list = [];
+    if (data && data.data) {
+      for (const item of data.data) {
+        list.push({
+          name: item.bookName || item.name,
+          imageUrl: item.imgurl,
+          link: `/${item.id}/`
+        });
+      }
+    }
+    return {
+      list: list,
+      hasNextPage: list.length > 0
+    };
+  }
+
+  async search(query, page, filters) {
+    const client = new Client();
+    const res = await client.post(this.baseUrl + "/s", {
+      "Content-Type": "application/x-www-form-urlencoded"
+    }, `k=${encodeURIComponent(query)}`);
+    
+    const data = typeof res.body === 'string' ? JSON.parse(res.body) : res.body;
+    const list = [];
+    if (data && data.data) {
+      for (const item of data.data) {
+        list.push({
+          name: item.name || item.bookName,
+          imageUrl: item.imgurl,
+          link: `/${item.id}/`
+        });
+      }
+    }
+    return {
+      list: list,
+      hasNextPage: false
+    };
+  }
+
+  async getDetail(url) {
+    const client = new Client();
+    const res = await client.get(this.baseUrl + url);
     const body = res.body;
     
+    // Usamos selectores simples para evitar dependencias
+    const name = body.match(/<h1 class="book-title">([^<]+)<\/h1>/)?.[1] || "";
+    const description = body.match(/<div class="book-intro">([^<]+)<\/div>/)?.[1] || "";
+    const author = body.match(/<p class="book-author">([^<]+)<\/p>/)?.[1] || "";
+    const imageUrl = body.match(/<div class="book-cover">[\s\S]*?src="([^"]+)"/)?.[1] || "";
+    
     const chapters = [];
-    const chElements = dom.select(body, "div.chapter-list li a");
-    for (const ch of chElements) {
-        chapters.push({
-            name: dom.select(ch, "span").text() || ch.text(),
-            url: ch.attr("href")
-        });
+    const chapterRegex = /<li><a href="([^"]+)">([^<]+)<\/a><\/li>/g;
+    let match;
+    while ((match = chapterRegex.exec(body)) !== null) {
+        if (!match[1].includes("javascript")) {
+            chapters.push({
+                name: match[2].replace(/<[^>]+>/g, '').trim(),
+                url: match[1]
+            });
+        }
     }
 
     return {
-        name: dom.select(body, "h1.book-title").text(),
-        description: dom.select(body, "div.book-intro").text(),
-        author: dom.select(body, "p.book-author").text(),
-        imageUrl: dom.select(body, "div.book-cover img").attr("src"),
-        chapters: chapters.reverse()
+      name: name,
+      imageUrl: imageUrl,
+      description: description,
+      author: author,
+      chapters: chapters.reverse()
     };
-}
+  }
 
-async function getPageList(url) {
-    const res = await client.get(source.baseUrl + url);
+  async getPageList(url) {
+    const client = new Client();
+    const res = await client.get(this.baseUrl + url);
+    const body = res.body;
+    
     const images = [];
-    const imgElements = dom.select(res.body, "div.comic-list img");
-    for (const img of imgElements) {
-        images.push(img.attr("src"));
+    const imgRegex = /data-src="([^"]+)"/g;
+    let match;
+    while ((match = imgRegex.exec(body)) !== null) {
+        if (match[1] && !match[1].includes("load.gif")) {
+            images.push(match[1]);
+        }
     }
     return images;
+  }
 }
