@@ -158,7 +158,6 @@
     const topNav = document.getElementById('reader-top-nav-wrapper');
     
     let ticking = false;
-    let cachedDocHeight = 0;
 
     const handleScroll = () => {
       if (!ticking) {
@@ -169,14 +168,9 @@
           }
 
           const currentScroll = window.scrollY;
-          
-          // Orion: Solo recalculamos la altura del documento cada cierto tiempo para evitar reflows
-          if (!cachedDocHeight || Math.abs(currentScroll - lastScrollY) > 500) {
-            cachedDocHeight = document.documentElement.scrollHeight;
-          }
-
+          const docHeight = document.documentElement.scrollHeight;
           const winHeight = window.innerHeight;
-          const scrollHeight = cachedDocHeight - winHeight;
+          const scrollHeight = docHeight - winHeight;
           
           scrollProgress = scrollHeight > 0 ? (currentScroll / scrollHeight) * 100 : 0;
 
