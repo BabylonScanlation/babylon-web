@@ -41,7 +41,7 @@ try {
 
   // 2. Obtener payload del capítulo directamente
   const chapterNumber = parseFloat(chapter);
-  const chapterResult = await getChapterPayload(drizzleDb, env, slug, chapterNumber);
+  const chapterResult = await getChapterPayload(drizzleDb, env, slug, chapterNumber, Astro.locals.runtime.ctx);
 
   if (chapterResult) {
     encryptedData = chapterResult.payload;
@@ -72,10 +72,13 @@ const currentChapterIndex = allChapters.findIndex(
 );
 
 let nextChapterUrl: string | null = null;
+let nextChapterProp: { slug: string, chapter: string } | null = null;
+
 if (currentChapterIndex > 0) {
   const nextChapter = allChapters[currentChapterIndex - 1];
   if (nextChapter) {
     nextChapterUrl = `/series/${slug}/${nextChapter.chapterNumber}`;
+    nextChapterProp = { slug: slug!, chapter: nextChapter.chapterNumber.toString() };
   }
 }
 
@@ -224,7 +227,7 @@ if (error && currentChapterIndex !== -1) {
           data-watermark={watermark}
           style="display: none;"
         ></div>
-        <ChapterReader client:load />
+        <ChapterReader client:load nextChapter={nextChapterProp} />
     )}
   </main>
 

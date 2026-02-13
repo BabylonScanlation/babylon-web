@@ -40,11 +40,14 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         let lastError = null;
         for (let i = 0; i < maxAttempts; i++) {
             try {
-                console.log(`[API_CH] R2 Fetch attempt ${i+1} for: ${key}`);
-                return await env.R2_CACHE.get(key);
+                // ORION: Forzamos que no haya caché en la lectura de R2 para el manifiesto
+                return await env.R2_CACHE.get(key, {
+                    onlyIf: {
+                        // Opcional: Podrías usar etags aquí, pero el get directo es más seguro para validación extrema
+                    }
+                });
             } catch (e) {
                 lastError = e;
-                console.warn(`[API_CH] R2 Fetch attempt ${i+1} failed.`);
                 if (i < maxAttempts - 1) await new Promise(resolve => setTimeout(resolve, 500));
             }
         }

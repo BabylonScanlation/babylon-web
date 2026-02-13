@@ -48,11 +48,25 @@ export async function processAndCacheChapter(
     console.log(`[PROCESO] Iniciando con concurrencia: ${concurrency} (${isDev ? 'Local' : 'Prod'}) para capítulo ID: ${chapterId}`);
 
     const fileInfoUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`;
-    const fileInfoResponse = await fetch(fileInfoUrl);
-    const rawFileInfo = (await fileInfoResponse.json()) as any;
     
-    if (!rawFileInfo.ok || !rawFileInfo.result || !rawFileInfo.result.file_path) {
-      throw new Error(rawFileInfo.description || 'No se pudo obtener la ruta del archivo de Telegram');
+    // ORION: Retry logic for Telegram API
+    let rawFileInfo;
+    for (let i = 0; i < 3; i++) {
+      try {
+        const response = await fetch(fileInfoUrl);
+        if (response.ok) {
+          rawFileInfo = await response.json();
+          break;
+        }
+        throw new Error(`Telegram API Error: ${response.status}`);
+      } catch (err) {
+        if (i === 2) throw err;
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+    
+    if (!rawFileInfo?.ok || !rawFileInfo?.result?.file_path) {
+      throw new Error(rawFileInfo?.description || 'No se pudo obtener la ruta del archivo de Telegram');
     }
 
     const fileUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${rawFileInfo.result.file_path}`;
@@ -67,52 +81,54 @@ export async function processAndCacheChapter(
       throw new Error('No se encontraron imágenes en el ZIP.');
     }
 
+    // ORION: INVALIDACIÓN EXTREMA - Generamos un hash de versión único para esta subida
+    // Usamos el ID del capítulo + timestamp para garantizar unicidad absoluta
+    const versionHash = Date.now().toString(36);
+    const manifestKey = `${seriesSlug}/${chapterNumber}/manifest.json`;
+
+    // 1. Borramos el manifiesto antiguo inmediatamente para evitar que alguien lea datos viejos mientras procesamos
+    try {
+        await env.R2_CACHE.delete(manifestKey);
+    } catch (e) { /* ignore if not exists */ }
+
     const pageUploadPromises = imageEntries.map((entry: any) => limit(async () => {
-      // ORION: Extraer el ÚLTIMO grupo de números del nombre (evita confundirse con el número de capítulo)
+      // ORION: Extraer el ÚLTIMO grupo de números del nombre
       const allNumbers = entry.filename.match(/(\d+)/g);
-      if (!allNumbers) {
-          console.warn(`[PROCESO] Ignorando archivo sin números: ${entry.filename}`);
-          return null;
-      }
+      if (!allNumbers) return null;
       
       const pageNumber = parseInt(allNumbers[allNumbers.length - 1], 10);
-      console.log(`[PROCESO] Archivo: ${entry.filename} -> Detectada Página: ${pageNumber}`);
       
       try {
           if (!entry.getData) return null;
           const imageBuffer = await entry.getData(new Uint8ArrayWriter());
           
-          // ORION: Añadimos un hash de versión (timestamp) a la ruta para invalidar cachés de Cloudflare/Navegador
-          // Esto garantiza que si se resube un capítulo, el usuario vea la nueva versión inmediatamente.
-          const versionHash = Date.now().toString(36);
+          // RUTA CON HASH DE VERSIÓN: serie/capitulo/hash/imagen.webp
           const r2Key = `${seriesSlug}/${chapterNumber}/${versionHash}/${entry.filename}`;
           
           let uploadSuccess = false;
-          let lastError;
-          
           for (let attempt = 1; attempt <= 3; attempt++) {
               try {
                   await env.R2_CACHE.put(r2Key, imageBuffer, {
                     httpMetadata: {
                       contentType: entry.filename.endsWith('.webp') ? 'image/webp' : 
                                    entry.filename.endsWith('.png') ? 'image/png' : 'image/jpeg',
-                      cacheControl: 'public, max-age=86400',
+                      // Cache control corto para permitir actualizaciones si fuera necesario
+                      cacheControl: 'public, max-age=3600, s-maxage=3600', 
                     },
+                    customMetadata: { version: versionHash }
                   });
                   uploadSuccess = true;
                   break; 
               } catch (e) {
-                  lastError = e;
-                  if (attempt < 3) await new Promise(r => setTimeout(r, isDev ? 1500 : 200)); 
+                  if (attempt < 3) await new Promise(r => setTimeout(r, 500)); 
               }
           }
 
-          if (!uploadSuccess) throw lastError;
+          if (!uploadSuccess) throw new Error(`Fallo subir a R2: ${r2Key}`);
 
-          successfullyUploadedKeys.push(r2Key);
           return { pageNumber, imageUrl: `/api/r2-cache/${r2Key}` };
       } catch (err) {
-          logError(err, '[UPLOAD] Fallo tras reintentos', { filename: entry.filename });
+          logError(err, '[UPLOAD] Fallo crítico en página', { filename: entry.filename });
           return null;
       }
     }));
@@ -121,24 +137,49 @@ export async function processAndCacheChapter(
     const uploadedPagesData = results.filter((p): p is { pageNumber: number, imageUrl: string } => p !== null);
 
     if (uploadedPagesData.length > 0) {
-      console.log(`[PROCESO] Ordenando ${uploadedPagesData.length} páginas...`);
-      const manifestKey = `${seriesSlug}/${chapterNumber}/manifest.json`;
       const pages = uploadedPagesData.sort((a, b) => a.pageNumber - b.pageNumber);
       
-      console.log('[PROCESO] Secuencia final generada:', pages.map(p => p.pageNumber).join(', '));
+      // 2. LIMPIEZA DE DB: Borramos páginas antiguas antes de insertar el nuevo manifiesto
+      // Esto evita que queden huérfanos o datos mezclados.
+      const { pages: pagesTable } = await import('../db/schema');
+      try {
+          await drizzleDb.delete(pagesTable).where(eq(pagesTable.chapterId, chapterId)).run();
+      } catch (dbErr) {
+          console.warn('[PROCESO] No se pudieron borrar páginas antiguas (D1 Busy?), continuando...');
+      }
 
-      await env.R2_CACHE.put(manifestKey, JSON.stringify({ version: "2.0", pages }), {
-        httpMetadata: { contentType: 'application/json', cacheControl: 'public, max-age=86400' },
+      // 3. SUBIDA DEL MANIFIESTO CON HASH
+      await env.R2_CACHE.put(manifestKey, JSON.stringify({ 
+          version: "2.1", 
+          vHash: versionHash, 
+          pages 
+      }), {
+        httpMetadata: { contentType: 'application/json', cacheControl: 'no-cache, no-store, must-revalidate' },
       });
-      successfullyUploadedKeys.push(manifestKey);
       
-      // MARCAR COMO LIVE AL TERMINAR
-      await drizzleDb.update(chapters)
-        .set({ status: 'live' })
-        .where(eq(chapters.id, chapterId))
-        .run();
-
-      console.log(`[PROCESO] ✅ Capítulo ${chapterId} completado y marcado como LIVE.`);
+      // MARCAR COMO LIVE (Con Retries)
+      let marked = false;
+      for (let i = 0; i < 5; i++) {
+          try {
+              await drizzleDb.update(chapters)
+                .set({ status: 'live' })
+                .where(eq(chapters.id, chapterId))
+                .run();
+              marked = true;
+              break;
+          } catch (dbErr) {
+              console.warn(`[PROCESO] Fallo al marcar LIVE (Intento ${i+1}):`, dbErr);
+              await new Promise(r => setTimeout(r, 500 * Math.pow(2, i)));
+          }
+      }
+      
+      if (!marked) {
+          console.error(`[PROCESO] CRÍTICO: El capítulo ${chapterId} se subió pero no se pudo marcar como LIVE en la DB.`);
+          // No lanzamos error aquí para evitar que el bloque catch inferior borre los archivos de R2
+          // Es mejor que quede "processing" pero con archivos, a que se borre todo.
+      } else {
+          console.log(`[PROCESO] ✅ Capítulo ${chapterId} completado y marcado como LIVE.`);
+      }
     }
 
     await zipReader.close();

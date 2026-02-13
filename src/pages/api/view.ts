@@ -26,17 +26,33 @@ export const POST: APIRoute = async ({ request, locals, clientAddress }) => {
       try {
         const ipAddress = await hashIpAddress(clientAddress || '0.0.0.0');
         const drizzleDb = getDB(locals.runtime.env);
+        const kv = locals.runtime.env.KV_VIEWS;
 
-        // Orion: Usamos transacciones de una sola línea para máxima velocidad en D1
-        await drizzleDb.run(sql`
-          INSERT INTO SeriesViews (series_id, ip_address, viewed_at)
-          VALUES (${seriesId}, ${ipAddress}, CURRENT_TIMESTAMP)
-          ON CONFLICT(series_id, ip_address) DO UPDATE SET viewed_at = CURRENT_TIMESTAMP
-          WHERE (julianday(CURRENT_TIMESTAMP) - julianday(viewed_at)) * 1440 > 30
-        `);
-        // Nota: Solo contamos una vista cada 30 min por IP para evitar spam y ahorrar CPU
+        // 1. DEDUPLICACIÓN CON KV (30 min)
+        if (kv) {
+          const viewKey = `view:series:${seriesId}:${ipAddress}`;
+          const hasViewed = await kv.get(viewKey);
+          if (hasViewed) return;
+          await kv.put(viewKey, '1', { expirationTtl: 1800 }); // 30 min
+        }
+
+        // 2. ACTUALIZACIÓN ATÓMICA
+        // Incrementamos contador en Series y registramos log en SeriesViews
+        await drizzleDb.batch([
+          drizzleDb.insert(seriesViews)
+            .values({ seriesId: seriesId!, ipAddress, viewedAt: sql`CURRENT_TIMESTAMP` })
+            .onConflictDoUpdate({
+              target: [seriesViews.seriesId, seriesViews.ipAddress],
+              set: { viewedAt: sql`CURRENT_TIMESTAMP` }
+            }),
+          drizzleDb.update(series)
+            .set({ views: sql`views + 1` })
+            .where(eq(series.id, seriesId!))
+        ]);
+
       } catch (innerError) {
         // Silencioso
+        // console.error(innerError);
       }
     };
 

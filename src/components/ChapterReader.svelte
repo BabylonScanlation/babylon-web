@@ -23,6 +23,7 @@
     seriesTitle?: string | null;
     watermark?: string;
     initialLoadingMessage?: string | null;
+    nextChapter?: { slug: string; chapter: string } | null;
   }
 
   let { 
@@ -34,7 +35,8 @@
     chapterId = null, 
     seriesTitle = '', 
     watermark = '',
-    initialLoadingMessage = null
+    initialLoadingMessage = null,
+    nextChapter = null
   } : Props = $props();
 
   let pagesData = $state<Page[]>([]);
@@ -51,6 +53,7 @@
   let controlsVisible = $state(true);
   let lastScrollY = 0;
   let isMobile = $state(false);
+  let hasPrefetched = false; // Prevent multiple prefetches
 
   // SSE & Progress
   let simulatedProgress = $state(0);
@@ -70,7 +73,23 @@
     if (pagesData.length > 0 && processing) {
         processing = false;
     }
+    
+    // Check for prefetch opportunity in single page mode
+    if (viewMode === 'single' && !hasPrefetched && nextChapter && pagesData.length > 0) {
+        if (currentPageIndex >= pagesData.length - 2) {
+            prefetchNextChapter();
+        }
+    }
   });
+
+  function prefetchNextChapter() {
+      if (!nextChapter || hasPrefetched) return;
+      hasPrefetched = true;
+      console.log(`[Reader] Prefetching next chapter: ${nextChapter.chapter}`);
+      // Trigger the API to ensure processing starts
+      fetch(`/api/series/${nextChapter.slug}/${nextChapter.chapter}`, { method: 'GET' })
+        .catch(err => console.warn('[Reader] Prefetch failed', err));
+  }
 
   $effect(() => {
     if (showConfig) {
@@ -154,6 +173,11 @@
           const scrollHeight = docHeight - winHeight;
           
           scrollProgress = scrollHeight > 0 ? (currentScroll / scrollHeight) * 100 : 0;
+
+          // Prefetch Trigger
+          if (scrollProgress > 80 && !hasPrefetched && nextChapter) {
+            prefetchNextChapter();
+          }
           
           if (currentScroll > 100 && currentScroll > lastScrollY + 15) {
             if (controlsVisible) {
@@ -472,6 +496,10 @@
                 <span class="pct">{Math.round(simulatedProgress)}%</span>
               </div>
             </div>
+            
+            <button class="cancel-load-btn" onclick={() => window.history.back()}>
+              Cancelar
+            </button>
           </div>
         </div>
       </div>
@@ -938,6 +966,24 @@
     .hud-glass { padding: 0.5rem 1rem; gap: 0.5rem; }
     .s-title { max-width: 100px; }
     .action-pill-btn { padding: 0.6rem 1rem; }
+  }
+
+  .cancel-load-btn {
+    margin-top: 1.5rem;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #888;
+    padding: 0.6rem 1.2rem;
+    border-radius: 100px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .cancel-load-btn:hover {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.05);
   }
 
   @media (max-width: 480px) {

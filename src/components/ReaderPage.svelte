@@ -154,12 +154,11 @@
   class:has-error={error && !useFallback}
 >
   {#if isLoading}
-    <div class="placeholder">
-        <div class="cosmos-loader">
-            <div class="orbit"></div>
-            <div class="core"></div>
+    <div class="skeleton-loader" transition:fade={{ duration: 200 }}>
+        <div class="shimmer"></div>
+        <div class="skeleton-logo">
+            <svg viewBox="0 0 24 24" width="32" height="32" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
         </div>
-        <!-- <span class="loading-text">CARGANDO...</span> -->
     </div>
   {/if}
   
@@ -475,5 +474,49 @@
   @keyframes fade-in {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Skeleton Loader */
+  .skeleton-loader {
+    position: absolute;
+    inset: 0;
+    background: #0f0f0f;
+    z-index: 10;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px; /* Optional rounded corners */
+  }
+
+  .shimmer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.04) 50%,
+      transparent 100%
+    );
+    transform: skewX(-20deg) translateX(-150%);
+    animation: shimmer-anim 1.5s infinite;
+  }
+
+  .skeleton-logo {
+    opacity: 0.2;
+    animation: pulse-logo 2s ease-in-out infinite;
+  }
+
+  @keyframes shimmer-anim {
+    0% { transform: skewX(-20deg) translateX(-150%); }
+    100% { transform: skewX(-20deg) translateX(150%); }
+  }
+
+  @keyframes pulse-logo {
+    0%, 100% { transform: scale(0.95); opacity: 0.1; }
+    50% { transform: scale(1.05); opacity: 0.3; }
   }
 </style>

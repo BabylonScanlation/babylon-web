@@ -85,27 +85,41 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
       // Orion: Consolidamos sesión y roles en un solo JOIN para ahorrar 1 round-trip a D1
       let result;
-      try {
-        result = await db
-          .select({
-            session: sessions,
-            user: users,
-            role: userRoles.role
-          })
-          .from(sessions)
-          .innerJoin(users, eq(sessions.userId, users.id))
-          .leftJoin(userRoles, eq(sessions.userId, userRoles.userId))
-          .where(
-            and(
-              eq(sessions.id, sessionId),
-              gt(sessions.expiresAt, Math.floor(Date.now() / 1000)),
-              eq(sessions.userAgent, currentUserAgent)
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (attempts < maxAttempts) {
+        try {
+          result = await db
+            .select({
+              session: sessions,
+              user: users,
+              role: userRoles.role
+            })
+            .from(sessions)
+            .innerJoin(users, eq(sessions.userId, users.id))
+            .leftJoin(userRoles, eq(sessions.userId, userRoles.userId))
+            .where(
+              and(
+                eq(sessions.id, sessionId),
+                gt(sessions.expiresAt, Math.floor(Date.now() / 1000)),
+                eq(sessions.userAgent, currentUserAgent)
+              )
             )
-          )
-          .get();
-      } catch (dbError) {
-        console.error('[Middleware] Error crítico en sesión (D1 Busy/Missing):', dbError instanceof Error ? dbError.message : dbError);
-        return next();
+            .get();
+          break; // Success
+        } catch (dbError) {
+          attempts++;
+          const isBusy = dbError instanceof Error && (dbError.message.includes('D1_BUSY') || dbError.message.includes('database is locked'));
+          
+          if (attempts >= maxAttempts || !isBusy) {
+            console.error(`[Middleware] Error crítico en sesión (Intento ${attempts}/${maxAttempts}):`, dbError instanceof Error ? dbError.message : dbError);
+            if (attempts >= maxAttempts) break; // Stop retrying
+          }
+          
+          // Wait before retrying (exponential backoff: 100ms, 200ms, 400ms)
+          await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, attempts - 1)));
+        }
       }
 
       if (result && result.session) {

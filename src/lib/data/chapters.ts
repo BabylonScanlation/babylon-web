@@ -9,7 +9,8 @@ export async function getChapterPayload(
   db: DrizzleD1Database<typeof schema>,
   env: any,
   slug: string,
-  chapterNumber: number
+  chapterNumber: number,
+  ctx?: ExecutionContext
 ) {
   const chapterData = await db.select()
     .from(chapters)
@@ -52,7 +53,9 @@ export async function getChapterPayload(
           const response = new Response(JSON.stringify(manifestContent), {
             headers: { 'Cache-Control': 'public, max-age=86400' }
           });
-          await cache.put(cacheUrl, response);
+          const cachePromise = cache.put(cacheUrl, response);
+          if (ctx) ctx.waitUntil(cachePromise);
+          else await cachePromise;
         }
       }
     } catch (e) {
