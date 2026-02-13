@@ -152,6 +152,7 @@
   bind:this={container} 
   class="page-container" 
   class:has-error={error && !useFallback}
+  style="--aspect-ratio: {aspectRatio};"
 >
   {#if isLoading}
     <div class="skeleton-loader" transition:fade={{ duration: 200 }}>
@@ -226,7 +227,8 @@
 <style>
   .page-container {
     width: 100%;
-    min-height: 100px; /* Reducido para evitar saltos pero permitir colapso */
+    aspect-ratio: var(--aspect-ratio, 0.707);
+    min-height: 200px;
     position: relative;
     background: transparent;
     margin-bottom: 0;
@@ -235,6 +237,7 @@
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    will-change: transform;
   }
 
   @media (max-width: 768px) {
