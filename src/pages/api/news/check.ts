@@ -4,8 +4,18 @@ import { news } from '../../../db/schema';
 import { eq, desc } from 'drizzle-orm';
 
 export const GET: APIRoute = async ({ locals }) => {
-  const drizzleDb = getDB(locals.runtime.env);
+  // Astra/Orion: Sistema de recuperación de DB ultra-robusto
+  const runtime = locals.runtime || {};
+  const env = runtime.env || (process.env as any);
+  
   try {
+    // Intentamos usar la DB ya instanciada por el middleware o crear una nueva
+    const drizzleDb = locals.db || getDB(env);
+    
+    if (!drizzleDb) {
+      throw new Error('No se pudo inicializar la base de datos');
+    }
+
     let latestNews;
     let attempts = 0;
     const maxAttempts = 3;
@@ -25,31 +35,41 @@ export const GET: APIRoute = async ({ locals }) => {
       } catch (dbErr) {
         attempts++;
         if (attempts >= maxAttempts) throw dbErr;
-        await new Promise(r => setTimeout(r, 100 * Math.pow(2, attempts - 1)));
+        // Espera incremental
+        await new Promise(r => setTimeout(r, 200 * attempts));
       }
     }
 
-    if (!latestNews) return new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } });
-
     // Convert Date objects to numeric timestamps safely
-    const formattedNews = latestNews.map(n => {
-      let ts = 0;
-      if (n.createdAt instanceof Date) {
-        ts = n.createdAt.getTime();
-      } else if (typeof n.createdAt === 'number') {
-        ts = n.createdAt;
-      } else {
-        ts = new Date(n.createdAt).getTime();
+    const formattedNews = (latestNews || []).map(n => {
+      try {
+        let ts = 0;
+        if (n.createdAt instanceof Date) {
+          ts = n.createdAt.getTime();
+        } else if (typeof n.createdAt === 'number') {
+          ts = n.createdAt;
+        } else if (typeof n.createdAt === 'string') {
+          ts = new Date(n.createdAt).getTime();
+        }
+        return { id: n.id, createdAt: isNaN(ts) ? Date.now() : ts };
+      } catch {
+        return { id: n.id, createdAt: Date.now() };
       }
-      return { id: n.id, createdAt: ts };
     });
 
     return new Response(JSON.stringify(formattedNews), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30'
+      },
     });
   } catch (error) {
-    console.error('[API_NEWS_CHECK] Error:', error);
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });
+    // Orion: Fail-safe extremo. Preferimos devolver vacío a un 500.
+    console.error('[API_NEWS_CHECK] Fallo crítico (Silenciado):', error instanceof Error ? error.message : error);
+    return new Response('[]', { 
+      status: 200, 
+      headers: { 'Content-Type': 'application/json' } 
+    });
   }
 };
