@@ -28,34 +28,6 @@ const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage;
     <meta name="theme-color" content="#050505" />
     <title>{title}</title>
 
-    {
-      !Astro.locals.user?.isAdmin && !hidePushAds && (
-        <>
-          <script src="https://quge5.com/88/tag.min.js" data-zone="197770" async data-cfasync="false"></script>
-        </>
-      )
-    }
-
-    <script is:inline define:vars={{ isAdmin: Astro.locals.user?.isAdmin, hidePushAds }}>
-      // Astra: Smartlink de fondo (Click-under de alta precisión)
-      if (!isAdmin && !hidePushAds) {
-        const adUrl = 'https://crowdsubsequentadmire.com/g37nqs8e19?key=8d32cc484e29e954ca09063f5b3842c0';
-        
-        const handleBackgroundClick = (e) => {
-          // Orion: Verificamos si el clic fue en un elemento interactivo
-          const isInteractive = e.target.closest('a, button, input, select, textarea, .ad-container-root, .chapter-card-premium, .chapter-pill, .nav-item, .social-pill');
-          
-          if (!isInteractive) {
-            // Astra: Si no es interactivo, es el "fondo" o espacio muerto
-            window.open(adUrl, '_blank');
-          }
-        };
-
-        // Escuchamos en window para capturar cualquier clic en el layout
-        window.addEventListener('click', handleBackgroundClick, { passive: true });
-      }
-    </script>
-
     <script is:inline>
       // Orion: Silenciador de errores de Privacy Sandbox/Permissions-Policy
       // Algunos navegadores o Cloudflare inyectan políticas que el motor no reconoce.
