@@ -43,7 +43,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const lowerUA = userAgent.toLowerCase();
   
   // Orion: Excepción para Googlebot y herramientas de Google (Imprescindible para SEO)
-  const isGoogle = lowerUA.includes('googlebot') || lowerUA.includes('google-site-verification') || lowerUA.includes('googleother');
+  const isGoogle = lowerUA.includes('googlebot') || 
+                   lowerUA.includes('google-site-verification') || 
+                   lowerUA.includes('googleother') ||
+                   lowerUA.includes('google-inspectiontool'); // Nueva herramienta de inspección
 
   if (country && blacklistedCountries.includes(country) && !isGoogle) {
     return new Response(getBlockedHTML(`Restricted Region (${country})`, country), {
@@ -56,11 +59,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
     });
   }
-
-  // --- ANTI-BOT & ANTI-IA SHIELD ---
-  // Bloqueo de IAs generativas (para evitar entrenamiento/scraping) y herramientas de automatización.
-  const userAgent = context.request.headers.get('user-agent') || '';
-  const lowerUA = userAgent.toLowerCase();
 
   const blockedBots = [
     // China / Asia
@@ -164,7 +162,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     currentPath.startsWith('/_astro') ||
     currentPath.startsWith('/favicon.svg');
 
-  if (!isVerified && !isPublicPath) {
+  if (!isVerified && !isPublicPath && !isGoogle) {
     return context.redirect('/verify');
   }
 
