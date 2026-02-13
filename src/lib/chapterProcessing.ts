@@ -92,10 +92,13 @@ export async function processAndCacheChapter(
     } catch (e) { /* ignore if not exists */ }
 
     const pageUploadPromises = imageEntries.map((entry: any) => limit(async () => {
-      // ORION: Extraer el ÚLTIMO grupo de números del nombre
-      const allNumbers = entry.filename.match(/(\d+)/g);
+      // ORION: Limpiamos el nombre de interferencias comunes como '11zon'
+      const cleanName = entry.filename.replace(/11zon/gi, '');
+      const allNumbers = cleanName.match(/(\d+)/g);
       if (!allNumbers) return null;
       
+      // Si hay varios números, intentamos evitar el número del capítulo si es posible
+      // Pero por ahora, el último número tras la limpieza suele ser el correcto (ej. 46-1 -> 1)
       const pageNumber = parseInt(allNumbers[allNumbers.length - 1], 10);
       
       try {

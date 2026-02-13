@@ -32,7 +32,8 @@ export async function getChapterPayload(
 
   // Orion: Intentamos recuperar del Edge Cache primero
   const cache = (typeof caches !== 'undefined') ? (caches as any).default : null;
-  const cacheUrl = `https://r2-cache.local/${manifestKey}`;
+  // Añadimos un prefijo de versión a la URL de caché para forzar la invalidación global de los manifiestos antiguos
+  const cacheUrl = `https://r2-cache.local/v2.1/${manifestKey}`;
   
   if (cache) {
     const cachedResponse = await cache.match(cacheUrl);
