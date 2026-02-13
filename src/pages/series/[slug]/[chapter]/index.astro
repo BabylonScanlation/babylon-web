@@ -158,6 +158,13 @@ if (error && currentChapterIndex !== -1) {
   </div>
 
   <main class="reader-container" id="reader-container">
+    <div class="reader-top-ad">
+      <AdContainer type="banner">
+        <script is:inline async="async" data-cfasync="false" src="https://crowdsubsequentadmire.com/2cd2af2560f6df7e49d533c069a08932/invoke.js" onerror="window.isAdsterraBlocked = true;"></script>
+        <div id="container-2cd2af2560f6df7e49d533c069a08932"></div>
+      </AdContainer>
+    </div>
+
     {error ? (
         <div class="full-screen-error">
             <div class="error-content-glass">
@@ -223,14 +230,6 @@ if (error && currentChapterIndex !== -1) {
         <ChapterReader client:load nextChapter={nextChapterProp} />
     )}
   </main>
-
-  <div class="reader-footer-ad">
-    <AdContainer type="banner">
-      <!-- Astra: Usamos una clave de zona diferente para evitar el conflicto de IDs repetidos -->
-      <script is:inline async="async" data-cfasync="false" src="https://crowdsubsequentadmire.com/9ebcd6279737192efe164467f2215532/invoke.js" onerror="window.isAdsterraBlocked = true;"></script>
-      <div id="container-9ebcd6279737192efe164467f2215532"></div>
-    </AdContainer>
-  </div>
 
   {
     chapterId && (
@@ -323,6 +322,7 @@ if (error && currentChapterIndex !== -1) {
   }
 
   .reader-top-ad,
+  .reader-bottom-ad,
   .reader-footer-ad {
     width: 100%;
     max-width: 1200px;
@@ -332,6 +332,10 @@ if (error && currentChapterIndex !== -1) {
 
   .reader-top-ad {
     margin-bottom: 1.5rem;
+  }
+
+  .reader-bottom-ad {
+    margin-top: 1.5rem;
   }
 
   .reader-footer-ad {
@@ -370,8 +374,8 @@ if (error && currentChapterIndex !== -1) {
     background: rgba(18, 18, 18, 0.6);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: none; /* Astra: Eliminado borde que causaba líneas blancas */
+    box-shadow: none; /* Astra: Eliminada sombra que podía parecer una línea */
     
     padding: 0.5rem 0.75rem;
     border-radius: 16px;

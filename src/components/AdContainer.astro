@@ -44,7 +44,7 @@ if (user?.isAdmin) {
     display: flex;
     flex-direction: column;
     background: #080808;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: none; /* Astra: Eliminado borde para evitar líneas */
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
@@ -52,17 +52,6 @@ if (user?.isAdmin) {
     min-width: 300px; /* Ancho mínimo para banners estándar */
     min-height: 50px;  /* Altura mínima para que el script pueda inicializarse */
     transition: all 0.3s ease;
-  }
-
-  .ad-inner-wrapper::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0, 191, 255, 0.2), transparent);
-    z-index: 5;
   }
 
   .ad-content-slot {

@@ -207,6 +207,17 @@
   function togglePassword() {
     showPassword = !showPassword;
   }
+
+  // Astra: Sincronizar estado del body con el modal para ocultar el header
+  $effect(() => {
+    if ($authModal.isOpen) {
+      document.body.setAttribute('data-reader-modal', 'open');
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.removeAttribute('data-reader-modal');
+      document.documentElement.style.overflow = '';
+    }
+  });
 </script>
 
 {#if $authModal.isOpen}
@@ -395,7 +406,7 @@
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.85);
+    background: #020205;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     display: flex;
@@ -668,14 +679,19 @@
   }
 
   @media (max-width: 480px) {
+    .modal-overlay {
+      padding-top: 100px; /* Margen de seguridad */
+      align-items: flex-start; /* Empezar desde arriba con aire */
+    }
     .auth-card {
       padding: 2.5rem 1.5rem;
-      border-radius: 0;
-      height: 100%;
+      border-radius: 24px 28px 0 0;
+      height: auto;
+      min-height: 80%;
       max-width: none;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
     }
   }
 </style>

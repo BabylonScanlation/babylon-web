@@ -609,7 +609,7 @@
     left: 0;
     height: 3px;
     background: var(--accent-color);
-    box-shadow: 0 0 10px var(--accent-color);
+    box-shadow: none; /* Astra: Eliminada sombra que parece línea */
     z-index: 2000;
     transition: width 0.2s ease;
   }
@@ -711,7 +711,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    box-shadow: none; /* Astra: Eliminada sombra que parece línea */
   }
 
   .hud-section { display: flex; align-items: center; gap: 1rem; }

@@ -115,9 +115,29 @@ const r2PublicUrlAssets =
     setTimeout(checkNewNews, 500);
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const header = document.querySelector('.site-header');
-    header?.addEventListener('click', (e) => {
+  document.addEventListener('astro:page-load', () => {
+    const header = document.querySelector('.site-header') as HTMLElement;
+    if (!header) return;
+
+    // Orion: Vigilante de modales (Garantía de limpieza visual)
+    const observer = new MutationObserver(() => {
+      const isModalOpen = document.body.getAttribute('data-reader-modal') === 'open' || 
+                          document.body.classList.contains('modal-open');
+      
+      if (isModalOpen) {
+        header.style.opacity = '0';
+        header.style.pointerEvents = 'none';
+        header.style.zIndex = '-1';
+      } else {
+        header.style.opacity = '';
+        header.style.pointerEvents = '';
+        header.style.zIndex = '';
+      }
+    });
+
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-reader-modal', 'class'] });
+    
+    header.addEventListener('click', (e) => {
       if (!(e.target instanceof Element)) return;
       const trigger = e.target.closest('[data-open-modal]');
       if (trigger) {
@@ -171,7 +191,7 @@ const r2PublicUrlAssets =
       position: absolute; /* Astra: Se queda anclado arriba de la página */
       top: 0;
       left: 0;
-      z-index: 2000;
+      z-index: 1;
       height: 90px; /* Astra: Incrementado para dar aire al logo de 60px */
       display: flex;
       align-items: center;
@@ -189,7 +209,7 @@ const r2PublicUrlAssets =
     }
 
     .header-logo {
-      height: 60px; /* Astra: Incrementado para mayor impacto visual */
+      height: 80px; /* Astra: Logo más grande y legible */
       filter: drop-shadow(0 0 25px var(--accent-glow));
     }
 
@@ -229,32 +249,32 @@ const r2PublicUrlAssets =
   @media (max-width: 1023px) {
     .site-header {
       width: 100%;
-      position: absolute; /* Astra: Flota sobre el contenido */
-      top: 0;
-      left: 0;
-      height: 70px;
-      background: transparent;
+      position: relative; /* Astra: Ahora ocupa espacio real y empuja el contenido */
+      height: auto;
+      min-height: 80px;
+      background: #020205; /* Fondo sólido para consistencia */
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 2000;
+      z-index: 100;
       transition: all 0.3s ease;
+      padding: 15px 0;
     }
 
-    /* Astra: En modo lector, el header debe ser sólido y "empujar" el contenido */
-    :global(body[data-reader-active='true']) .site-header {
-      position: relative;
-      background: #020205;
+    /* Astra: Ocultar header totalmente si hay un modal abierto para liberar espacio */
+    :global(body[data-reader-modal='open']) .site-header {
+      display: none !important;
+      z-index: -1 !important;
     }
 
     .header-container {
       display: flex;
       justify-content: center;
-      padding-top: 30px; /* Astra: Bajamos el logo un poco más en móviles */
+      padding: 0;
     }
 
     .header-logo {
-      height: 80px; /* Tamaño más equilibrado para el nuevo header */
+      height: 80px; /* Astra: Recuperamos el tamaño premium */
       filter: drop-shadow(0 0 15px var(--accent-glow));
     }
 

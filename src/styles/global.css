@@ -151,8 +151,8 @@ body {
   top: 50%;
   transform: translateY(-50%);
   width: 200px;
-  height: 1px;
-  background: linear-gradient(90deg, #fff, transparent);
+  height: 0; /* Astra: Eliminado grosor de la línea */
+  background: transparent;
 }
 
 .shooting-stars span:nth-child(1) { top: 0; left: 0; animation-delay: 0s; animation-duration: 8s; }
@@ -172,8 +172,8 @@ body {
 }
 @media (max-width: 1023px) {
   main.site-main-content {
-    padding-top: 100px; /* Astra: Espacio para el logo absoluto (antes 10px) */
-    padding-bottom: 0; /* Astra: Hueco inferior eliminado */
+    padding-top: 0; /* Astra: El header relativo ya da el espacio necesario */
+    padding-bottom: 0;
   }
   body[data-reader-active="true"] main.site-main-content { padding-top: 0 !important; margin-top: 0 !important; }
 }
