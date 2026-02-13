@@ -131,7 +131,7 @@ const r2PublicUrlAssets =
       } else {
         header.style.opacity = '';
         header.style.pointerEvents = '';
-        header.style.zIndex = '';
+        header.style.zIndex = '5000';
       }
     });
 
@@ -191,7 +191,7 @@ const r2PublicUrlAssets =
       position: absolute; /* Astra: Se queda anclado arriba de la página */
       top: 0;
       left: 0;
-      z-index: 1;
+      z-index: 5000; /* Astra: Elevado para ser interactivo, pero debajo de modales */
       height: 90px; /* Astra: Incrementado para dar aire al logo de 60px */
       display: flex;
       align-items: center;
@@ -252,11 +252,11 @@ const r2PublicUrlAssets =
       position: relative; /* Astra: Ahora ocupa espacio real y empuja el contenido */
       height: auto;
       min-height: 80px;
-      background: #020205; /* Fondo sólido para consistencia */
+      background: #020205;
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 100;
+      z-index: 5000;
       transition: all 0.3s ease;
       padding: 15px 0;
     }
