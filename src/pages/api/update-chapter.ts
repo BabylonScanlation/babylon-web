@@ -6,15 +6,31 @@ import type { APIContext } from 'astro';
 
 export const POST = createApiRoute(
   { auth: 'admin' },
-  async (context: APIContext) => { // Use context directly
-    const { locals, request } = context; // Destructure locals and request from context
-    const formData = await request.formData();
-    const chapterId = formData.get('chapterId')?.toString();
-    const title = formData.get('title')?.toString() || null;
+  async (context: APIContext) => { 
+    const { locals, request } = context;
+    
+    let chapterId: string | null = null;
+    let title: string | null = null;
+    const contentType = request.headers.get('Content-Type') || '';
 
-      if (!chapterId) {
-        return new Response(JSON.stringify({ error: 'No se proporcionó el ID del capítulo.' }), { status: 400 });
+    try {
+      if (contentType.includes('application/json')) {
+        const body = await request.json() as any;
+        chapterId = body.chapterId?.toString();
+        title = body.title?.toString() || null;
+      } else {
+        const formData = await request.formData();
+        chapterId = formData.get('chapterId')?.toString();
+        title = formData.get('title')?.toString() || null;
       }
+    } catch (e) {
+      return new Response(JSON.stringify({ error: 'Formato de solicitud no válido.' }), { status: 400 });
+    }
+
+    if (!chapterId) {
+      return new Response(JSON.stringify({ error: 'No se proporcionó el ID del capítulo.' }), { status: 400 });
+    }
+
     await locals.db!.update(chapters)
       .set({ title })
       .where(eq(chapters.id, parseInt(chapterId)))
