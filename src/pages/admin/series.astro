@@ -12,6 +12,7 @@ const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
 const limit = 12;
 const offsetParam = Astro.url.searchParams.get('offset');
 const offset = offsetParam ? parseInt(offsetParam) : 0;
+const searchQuery = Astro.url.searchParams.get('q') || '';
 
 let allSeries: any[] = [];
 let totalSeries = 0;
@@ -20,7 +21,7 @@ let error = Astro.url.searchParams.get('error');
 
 try {
   const db = getDB(Astro.locals.runtime.env);
-  const data = await getAdminSeriesWithChapters(db, limit, offset, false);
+  const data = await getAdminSeriesWithChapters(db, limit, offset, false, searchQuery);
   allSeries = data.series;
   totalSeries = data.total;
 } catch (e) {
@@ -52,6 +53,7 @@ try {
           id="series-search"
           placeholder="Buscar serie..."
           class="search-input"
+          value={searchQuery}
         />
       </div>
     </div>
@@ -120,25 +122,20 @@ try {
     const seriesList = document.getElementById('series-list');
     const detailsElements = document.querySelectorAll('details.series-card') as NodeListOf<HTMLDetailsElement>;
 
-    // 1. Buscador en tiempo real
-    if (searchInput && seriesList) {
-      searchInput.addEventListener('input', (e) => {
-        const searchTerm = (e.target as HTMLInputElement).value.toLowerCase();
-        const seriesItems = seriesList.querySelectorAll('.series-item-wrapper');
-
-        seriesItems.forEach((item) => {
-          const summary = item.querySelector('summary');
-          if (summary) {
-            const titleElement = summary.querySelector('.series-title') || summary;
-            const title = titleElement.textContent?.toLowerCase() || '';
-
-            if (title.includes(searchTerm)) {
-              (item as HTMLElement).style.display = '';
-            } else {
-              (item as HTMLElement).style.display = 'none';
-            }
+    // 1. Buscador con redirección (Server Side)
+    if (searchInput) {
+      searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          const searchTerm = searchInput.value.trim();
+          const url = new URL(window.location.href);
+          if (searchTerm) {
+            url.searchParams.set('q', searchTerm);
+          } else {
+            url.searchParams.delete('q');
           }
-        });
+          url.searchParams.set('offset', '0'); // Reiniciar a primera página
+          window.location.href = url.toString();
+        }
       });
     }
 
@@ -192,12 +189,16 @@ try {
 
     prevBtn?.addEventListener('click', () => {
       const newOffset = Math.max(0, currentOffset - limit);
-      window.location.href = `/admin/series?offset=${newOffset}`;
+      const url = new URL(window.location.href);
+      url.searchParams.set('offset', newOffset.toString());
+      window.location.href = url.toString();
     });
 
     nextBtn?.addEventListener('click', () => {
       const newOffset = currentOffset + limit;
-      window.location.href = `/admin/series?offset=${newOffset}`;
+      const url = new URL(window.location.href);
+      url.searchParams.set('offset', newOffset.toString());
+      window.location.href = url.toString();
     });
   </script>
 

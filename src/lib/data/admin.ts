@@ -1,5 +1,5 @@
 import { series, chapters, comments, seriesComments, userRoles } from '../../db/schema';
-import { eq, asc, desc, sql, inArray } from 'drizzle-orm';
+import { eq, asc, desc, sql, inArray, or } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 
@@ -19,14 +19,27 @@ export async function getAdminSeriesWithChapters(
   db: DrizzleD1Database<typeof schema>,
   limit: number = 12,
   offset: number = 0,
-  includeComments: boolean = false
+  includeComments: boolean = false,
+  searchQuery?: string
 ) {
+  let whereClause = undefined;
+  if (searchQuery && searchQuery.trim() !== '') {
+    whereClause = or(
+      sql`${series.title} LIKE ${`%${searchQuery}%`}`,
+      sql`${series.alternativeNames} LIKE ${`%${searchQuery}%`}`
+    );
+  }
+
   // 1. Obtener total
-  const totalResult = await db.select({ count: sql<number>`count(*)` }).from(series).get();
+  const totalResult = await db.select({ count: sql<number>`count(*)` })
+    .from(series)
+    .where(whereClause)
+    .get();
   const total = totalResult?.count || 0;
 
   // 2. Obtener series
   const seriesResults = await db.select().from(series)
+    .where(whereClause)
     .orderBy(asc(series.createdAt))
     .limit(limit)
     .offset(offset)
@@ -73,6 +86,7 @@ export async function getAdminSeriesWithChapters(
         series: seriesResults.map(s => ({
             ...s,
             chapters: chaptersBySeriesId.get(s.id) || [],
+            chapterCount: chaptersBySeriesId.get(s.id)?.length || 0,
             seriesComments: sComments.filter(sc => sc.seriesId === s.id)
         }))
     };
