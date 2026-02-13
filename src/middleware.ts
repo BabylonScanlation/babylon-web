@@ -38,7 +38,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
     </html>
   `;
 
-  if (country && blacklistedCountries.includes(country)) {
+  // --- ANTI-BOT & ANTI-IA SHIELD ---
+  const userAgent = context.request.headers.get('user-agent') || '';
+  const lowerUA = userAgent.toLowerCase();
+  
+  // Orion: Excepción para Googlebot y herramientas de Google (Imprescindible para SEO)
+  const isGoogle = lowerUA.includes('googlebot') || lowerUA.includes('google-site-verification') || lowerUA.includes('googleother');
+
+  if (country && blacklistedCountries.includes(country) && !isGoogle) {
     return new Response(getBlockedHTML(`Restricted Region (${country})`, country), {
       status: 403,
       headers: {
