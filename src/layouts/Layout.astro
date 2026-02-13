@@ -10,12 +10,23 @@ import AdblockWall from '../components/AdblockWall.astro';
 import AgeGate from '../components/AgeGate.svelte';
 import BottomNav from '../components/BottomNav.astro';
 
-const { title, hidePushAds = false } = Astro.props;
+const { 
+  title, 
+  hidePushAds = false, 
+  description = "Babylon Scanlation - Tu destino definitivo para leer manga, manhwa y manhua con la mejor calidad y velocidad.",
+  ogImage = "/og-image.webp", // Imagen por defecto
+  canonicalURL = Astro.url.href
+} = Astro.props;
+
 const isAdminPage = Astro.url.pathname.startsWith('/admin');
 const isVerifyPage = Astro.url.pathname === '/verify';
 
 const isVerified = Astro.cookies.get('site_verified')?.value === 'true';
 const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage;
+
+// Orion: URL Base para metadatos absolutos
+const siteUrl = Astro.url.origin;
+const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
 ---
 
 <!doctype html>
@@ -26,7 +37,26 @@ const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#050505" />
+    
+    <!-- Primary Meta Tags -->
     <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={fullOgImage} />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={Astro.url.href} />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={fullOgImage} />
 
     <script is:inline>
       // Orion: Silenciador de errores de Privacy Sandbox/Permissions-Policy

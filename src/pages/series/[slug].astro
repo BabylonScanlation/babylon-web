@@ -60,7 +60,38 @@ const reactions = [
 ];
 ---
 
-<Layout title={series?.title ?? 'Serie - Babylon'}>
+<Layout 
+  title={`${series?.title ?? 'Serie'} - Babylon Scanlation`}
+  description={series?.description?.substring(0, 160).replace(/\*/g, '') ?? ''}
+  ogImage={getImageUrl(series?.coverImageUrl, r2PublicUrlAssets, 'series')}
+>
+  <!-- SEO: Datos Estructurados JSON-LD -->
+  <script type="application/ld+json" is:inline set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Book",
+    "name": series?.title,
+    "description": series?.description?.replace(/\*/g, ''),
+    "image": getImageUrl(series?.coverImageUrl, r2PublicUrlAssets, 'series'),
+    "author": {
+      "@type": "Person",
+      "name": series?.author || "Desconocido"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Babylon Scanlation",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "/favicon.svg"
+      }
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": series?.stats.averageRating || 0,
+      "reviewCount": series?.stats.totalVotes || 1
+    }
+  })} />
+
+  <h1 class="sr-only">{series?.title}</h1>
   {
     series && (
       <main class="series-minimal-page" data-series-id={series.id}>
