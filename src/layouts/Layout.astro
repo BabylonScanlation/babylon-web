@@ -10,7 +10,7 @@ import AdblockWall from '../components/AdblockWall.astro';
 import AgeGate from '../components/AgeGate.svelte';
 import BottomNav from '../components/BottomNav.astro';
 
-const { title } = Astro.props;
+const { title, hidePushAds = false } = Astro.props;
 const isAdminPage = Astro.url.pathname.startsWith('/admin');
 const isVerifyPage = Astro.url.pathname === '/verify';
 
@@ -29,16 +29,16 @@ const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage;
     <title>{title}</title>
 
     {
-      !Astro.locals.user?.isAdmin && (
+      !Astro.locals.user?.isAdmin && !hidePushAds && (
         <>
           <script src="https://quge5.com/88/tag.min.js" data-zone="197770" async data-cfasync="false"></script>
         </>
       )
     }
 
-    <script is:inline define:vars={{ isAdmin: Astro.locals.user?.isAdmin }}>
+    <script is:inline define:vars={{ isAdmin: Astro.locals.user?.isAdmin, hidePushAds }}>
       // Astra: Smartlink de fondo (Click-under de alta precisión)
-      if (!isAdmin) {
+      if (!isAdmin && !hidePushAds) {
         const adUrl = 'https://crowdsubsequentadmire.com/g37nqs8e19?key=8d32cc484e29e954ca09063f5b3842c0';
         
         const handleBackgroundClick = (e) => {
