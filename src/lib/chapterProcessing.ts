@@ -41,8 +41,8 @@ export async function processAndCacheChapter(
   try {
     const isDev = process.env.NODE_ENV === 'development' || (typeof import.meta !== 'undefined' && import.meta.env?.DEV);
     
-    // ESTRATEGIA DE CONCURRENCIA: 1 en local para evitar ECONNRESET, 10 en prod para velocidad.
-    const concurrency = isDev ? 1 : 10;
+    // ESTRATEGIA DE CONCURRENCIA: 4 en local (balanceado), 10 en prod para velocidad máxima.
+    const concurrency = isDev ? 4 : 10;
     const limit = pLimit(concurrency);
     
     console.log(`[PROCESO] Iniciando con concurrencia: ${concurrency} (${isDev ? 'Local' : 'Prod'}) para capítulo ID: ${chapterId}`);

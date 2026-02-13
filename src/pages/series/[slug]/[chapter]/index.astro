@@ -49,7 +49,7 @@ try {
     isProcessing = chapterResult.processing;
 
     if (isProcessing) {
-      loadingMessage = 'Cargando capítulo del servidor gratuito...';
+      loadingMessage = 'Preparando capítulo para lectura...';
     } else if (chapterId) {
       comments = await getCommentsForTarget(drizzleDb, 'chapter', chapterId, user?.uid);
     }

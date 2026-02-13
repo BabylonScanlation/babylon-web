@@ -969,21 +969,26 @@
   }
 
   .cancel-load-btn {
-    margin-top: 1.5rem;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #888;
-    padding: 0.6rem 1.2rem;
+    margin-top: 2rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #aaa;
+    padding: 0.75rem 1.5rem;
     border-radius: 100px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
   
   .cancel-load-btn:hover {
     color: #fff;
-    border-color: rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--accent-color, #00bfff);
+    background: rgba(0, 191, 255, 0.05);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   }
 
   @media (max-width: 480px) {

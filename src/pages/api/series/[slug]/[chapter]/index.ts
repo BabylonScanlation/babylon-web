@@ -171,8 +171,17 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
             return;
           }
 
-          // Orion: Enviamos un latido (heartbeat) para mantener la conexión viva
-          await writer.write(encoder.encode(`event: processing\ndata: ${JSON.stringify({ payload: obfuscate({ message: 'Procesando imágenes en el Edge... (Intento ' + attempts + ')' }) })}\n\n`));
+          // Orion: Enviamos mensajes rotativos para mantener la atención del usuario sin frustrarlo con contadores
+          const messages = [
+            'Optimizando imágenes para tu conexión...',
+            'Asegurando calidad visual...',
+            'Sincronizando con el servidor...',
+            'Cargando páginas del capítulo...',
+            'Casi listo, preparando el lector...'
+          ];
+          const rotatingMessage = messages[attempts % messages.length];
+          
+          await writer.write(encoder.encode(`event: processing\ndata: ${JSON.stringify({ payload: obfuscate({ message: rotatingMessage }) })}\n\n`));
           
           // Esperamos 10 segundos antes del siguiente poll (menos estrés para R2)
           await new Promise(r => setTimeout(r, 10000));
