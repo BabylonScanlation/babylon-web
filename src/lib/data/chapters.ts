@@ -2,6 +2,7 @@ import { series, chapters } from '../../db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
+import type { ExecutionContext } from '@cloudflare/workers-types';
 import { signManifest } from '../crypto';
 import { obfuscate } from '../obfuscator';
 

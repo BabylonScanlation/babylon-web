@@ -68,6 +68,9 @@ export async function getNewsList(
         
       return basicNews.map(n => ({
         ...n,
+        seriesCover: undefined,
+        seriesTitle: undefined,
+        authorAvatar: undefined,
         images: [],
         imageUrls: []
       }));
@@ -130,6 +133,8 @@ export async function getNewsDetail(
       
       return {
         ...basicResult,
+        seriesSlug: undefined,
+        seriesTitle: undefined,
         images: [],
         imageUrls: []
       };

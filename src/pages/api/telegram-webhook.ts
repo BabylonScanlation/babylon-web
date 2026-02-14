@@ -7,14 +7,12 @@ import { eq, and } from 'drizzle-orm';
 
 interface TelegramUpdate {
   message?: {
-    messageThreadId?: number;
-    chat?: {
-      id: number;
-    };
+    message_thread_id?: number;
+    chat?: any;
     document?: {
-      mimeType: string;
-      fileName: string;
-      fileId: string;
+      mime_type: string;
+      file_name: string;
+      file_id: string;
     };
   };
 }
@@ -29,25 +27,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const rawUpdate = (await request.json()) as any;
-    const update: TelegramUpdate = {
-      message: rawUpdate.message ? {
-        messageThreadId: rawUpdate.message.message_thread_id,
-        chat: rawUpdate.message.chat,
-        document: rawUpdate.message.document ? {
-          mimeType: rawUpdate.message.document.mime_type,
-          fileName: rawUpdate.message.document.file_name,
-          fileId: rawUpdate.message.document.file_id,
-        } : undefined
-      } : undefined
-    };
+    const update = (await request.json()) as TelegramUpdate;
     
-    const topicId = update.message?.messageThreadId;
+    const topicId = update.message?.message_thread_id;
     const doc = update.message?.document;
 
-    if (doc?.mimeType === 'application/zip' && topicId) {
-      const fileName = doc.fileName;
-      const fileId = doc.fileId;
+    if (doc?.mime_type === 'application/zip' && topicId) {
+      const fileName = doc.file_name;
+      const fileId = doc.file_id;
 
       const chapterNumberMatch = fileName.match(/(\d+(\.\d+)?)/);
       if (!chapterNumberMatch) {

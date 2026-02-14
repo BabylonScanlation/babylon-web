@@ -106,33 +106,8 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
         </div>
 
 <script>
-  async function updateHealth() {
-    try {
-      const res = await fetch('/api/system-health');
-      const data = await res.json();
-      if (!data.systems) return;
-
-      const container = document.getElementById('health-monitor');
-      if (!container) return;
-
-      // Actualizar R2
-      const r2Item = container.querySelector('[data-system="r2"]');
-      if (r2Item) {
-        const dot = r2Item.querySelector('.dot');
-        const label = r2Item.querySelector('.percent-label');
-        if (dot) dot.className = `dot level-${data.systems.r2.level}`;
-        if (label) label.textContent = `(${data.systems.r2.percent}%)`;
-      }
-
-      // Podríamos actualizar otros sistemas aquí si el API devuelve estados dinámicos
-    } catch {
-      console.warn('Health monitor offline');
-    }
-  }
-
-  // Ejecutar al cargar y cada 5 minutos
-  updateHealth();
-  setInterval(updateHealth, 300000);
+  // Astra: Monitor de salud estático para ahorrar cuota de D1
+  // Se ha desactivado la actualización automática por redundancia
 </script>
       </div>
     </div>

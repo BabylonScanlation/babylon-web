@@ -126,7 +126,11 @@ const sortedChapters = [...chapters].sort((a, b) => b.chapterNumber - a.chapterN
     min-width: 0; /* Allow shrinking */
   }
 
-  /* ... */
+  .chapter-card-link:hover {
+    background: #16161a;
+    border-color: var(--accent-color);
+    transform: translateX(4px);
+  }
 
   .card-left {
     display: flex;

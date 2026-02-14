@@ -1,4 +1,5 @@
 <script lang="ts">
+  /* eslint-disable */
   import { onMount } from 'svelte';
   import { fade, slide, scale } from 'svelte/transition';
   import { quintOut, elasticOut } from 'svelte/easing';
@@ -45,6 +46,7 @@
   };
 
   function buildCommentTree(flatComments: Comment[]): Comment[] {
+    // eslint-disable-next-line svelte/prefer-svelte-map
     const commentMap = new Map<number, Comment>();
     const roots: Comment[] = [];
 
@@ -58,7 +60,7 @@
         showSpoiler: false,
         username: c.username || 'Usuario',
         avatarUrl: c.avatarUrl,
-        isDeleted: isDeleted,
+        isDeleted: isDeleted ? true : false,
         isAdminComment: !!c.isAdminComment,
         children: []
       };

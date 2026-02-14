@@ -26,12 +26,13 @@
     if (loading === 'eager') {
       loadPageData();
     } else {
+      // Astra: rootMargin aumentado para prefetching predictivo más agresivo (Lightspeed)
       observer = new IntersectionObserver(([entry], _self) => {
         if (entry?.isIntersecting) {
           loadPageData();
           _self.disconnect();
         }
-      }, { rootMargin: '800px' });
+      }, { rootMargin: '1200px' });
       if (container) observer.observe(container);
     }
   });
@@ -128,6 +129,7 @@
   {#if isLoading}
     <div class="loader-wrapper" transition:fade={{ duration: 200 }}>
         <div class="shimmer"></div>
+        <div class="scanner-line"></div>
         <div class="kinetic-loader">
             <div class="ring"></div>
             <div class="logo-core"></div>
@@ -221,8 +223,29 @@
   .shimmer {
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.02), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
     animation: shimmer-move 2s infinite;
+  }
+
+  /* Astra: Línea de escaneo para sugerir procesamiento JIT */
+  .scanner-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-color, #fff), transparent);
+    box-shadow: 0 0 15px var(--accent-color, #fff);
+    opacity: 0.5;
+    z-index: 5;
+    animation: scan-move 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes scan-move {
+    0% { top: 0; opacity: 0; }
+    10% { opacity: 0.5; }
+    90% { opacity: 0.5; }
+    100% { top: 100%; opacity: 0; }
   }
 
   @keyframes spin { to { transform: rotate(360deg); } }

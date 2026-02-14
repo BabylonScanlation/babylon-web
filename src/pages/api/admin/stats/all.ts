@@ -1,5 +1,5 @@
 import { createApiRoute } from '../../../../lib/api';
-import { chapterViews, anonymousUsers, series, seriesRatings, comments, seriesReactions, users } from '../../../../db/schema';
+import { chapterViews, anonymousUsers, series, comments, seriesReactions, users } from '../../../../db/schema';
 import { sql, eq, desc } from 'drizzle-orm';
 
 export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => {

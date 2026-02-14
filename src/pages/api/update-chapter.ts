@@ -16,14 +16,14 @@ export const POST = createApiRoute(
     try {
       if (contentType.includes('application/json')) {
         const body = await request.json() as any;
-        chapterId = body.chapterId?.toString();
+        chapterId = body.chapterId?.toString() || null;
         title = body.title?.toString() || null;
       } else {
         const formData = await request.formData();
-        chapterId = formData.get('chapterId')?.toString();
+        chapterId = formData.get('chapterId')?.toString() || null;
         title = formData.get('title')?.toString() || null;
       }
-    } catch (e) {
+    } catch {
       return new Response(JSON.stringify({ error: 'Formato de solicitud no válido.' }), { status: 400 });
     }
 

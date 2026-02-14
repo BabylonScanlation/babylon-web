@@ -27,7 +27,7 @@ export const POST = createApiRoute(
           chapterIds = [parseInt(chapterId)];
         }
       }
-    } catch (e) {
+    } catch {
       return new Response(JSON.stringify({ error: 'Formato de solicitud no válido.' }), { 
         status: 400, 
         headers: { 'Content-Type': 'application/json' } 

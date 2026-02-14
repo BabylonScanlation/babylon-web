@@ -111,7 +111,7 @@ hasContent =
           </AdContainer>
 
           {featuredGridData.length > 0 && (
-            <FeaturedGrid mangas={featuredGridData} />
+            <FeaturedGrid mangas={featuredGridData.map((m, i) => ({...m, loading: i < 2 ? 'eager' : 'lazy'}))} />
           )}
 
           <AdContainer type="banner">

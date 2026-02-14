@@ -48,7 +48,15 @@ const r2PublicUrlAssets =
       window.location.pathname === '/news' ||
       window.location.pathname === '/news/';
 
-    // console.log('[DEBUG NEWS] Checking...', { isNewsPage, pathname: window.location.pathname });
+    // Astra: Throttling de 15 minutos para proteger D1
+    const lastCheck = localStorage.getItem('babylon_last_news_check_timestamp');
+    const now = Date.now();
+    const shouldThrottle = lastCheck && (now - parseInt(lastCheck)) < (15 * 60 * 1000);
+
+    if (shouldThrottle && !isNewsPage) {
+      // console.log('[DEBUG NEWS] Throttled. Skipping check.');
+      return;
+    }
 
     if (isNewsPage) {
       try {
@@ -73,6 +81,10 @@ const r2PublicUrlAssets =
     try {
       const res = await fetch('/api/news/check');
       const latest = await res.json();
+      
+      // Astra: Guardar el momento del check exitoso
+      localStorage.setItem('babylon_last_news_check_timestamp', Date.now().toString());
+
       const lastSeenDateStr =
         localStorage.getItem('babylon_last_seen_news_date') || '0';
       const lastSeenDate = parseInt(lastSeenDateStr, 10);

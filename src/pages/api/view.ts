@@ -1,9 +1,8 @@
 // src/pages/api/view.ts
 import type { APIRoute } from 'astro';
-import { logError } from '../../lib/logError';
 import { getDB } from '../../lib/db';
-import { series, seriesViews } from '../../db/schema';
-import { sql, eq } from 'drizzle-orm';
+import { seriesViews } from '../../db/schema';
+import { sql } from 'drizzle-orm';
 import { hashIpAddress } from '@/lib/crypto';
 
 interface ViewRequestBody {
@@ -26,7 +25,6 @@ export const POST: APIRoute = async ({ request, locals, clientAddress }) => {
       try {
         const ipAddress = await hashIpAddress(clientAddress || '0.0.0.0');
         const drizzleDb = getDB(locals.runtime.env);
-        const kv = locals.runtime.env.KV_VIEWS;
 
         // 1. REGISTRO ÚNICO (Deduplicación por IP en DB)
         // El Trigger 'tr_increment_series_views' se encargará de sumar +1 en la tabla Series
@@ -40,13 +38,8 @@ export const POST: APIRoute = async ({ request, locals, clientAddress }) => {
           .onConflictDoNothing() // Orion: Cero coste extra si la IP ya existe
           .run();
 
-      } catch (innerError) {
+      } catch {
         // Silencioso para no afectar la UX
-      }
-
-      } catch (innerError) {
-        // Silencioso
-        // console.error(innerError);
       }
     };
 
@@ -59,7 +52,7 @@ export const POST: APIRoute = async ({ request, locals, clientAddress }) => {
     }
 
     return new Response('OK');
-  } catch (e: unknown) {
+  } catch {
     return new Response('OK');
   }
 };

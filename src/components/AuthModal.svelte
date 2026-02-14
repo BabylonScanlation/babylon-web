@@ -14,19 +14,19 @@
   } from 'firebase/auth';
   import { logError } from '../lib/logError';
 
-  let loginEmail = '';
-  let loginPassword = '';
-  let regEmail = '';
-  let regPassword = '';
-  let regConfirmPassword = '';
-  let linkPassword = '';
+  let loginEmail = $state('');
+  let loginPassword = $state('');
+  let regEmail = $state('');
+  let regPassword = $state('');
+  let regConfirmPassword = $state('');
+  let linkPassword = $state('');
 
-  let isLoading = false;
-  let loginErrorMessage = '';
-  let registerErrorMessage = '';
-  let linkErrorMessage = '';
+  let isLoading = $state(false);
+  let loginErrorMessage = $state('');
+  let registerErrorMessage = $state('');
+  let linkErrorMessage = $state('');
 
-  let showPassword = false;
+  let showPassword = $state(false);
   
   onMount(() => {
     const handleOpenModal = (event: Event) => {

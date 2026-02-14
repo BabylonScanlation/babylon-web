@@ -22,6 +22,8 @@ const {
         width={200}
         height={300}
         class="card-image"
+        style={`transition-name: cover-${url.split('/').pop()}`}
+        fetchpriority={loading === 'eager' ? 'high' : 'auto'}
       />
       <div class="gradient-overlay"></div>
       <div class="new-chapter-tag">NUEVO</div>
@@ -43,6 +45,7 @@ const {
         width={80}
         height={110}
         class="thumb-image"
+        style={`transition-name: cover-${url.split('/').pop()}`}
       />
     </div>
     <div class="mobile-details">

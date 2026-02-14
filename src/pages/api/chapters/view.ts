@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
 import { logError } from '@lib/logError';
 import { getDB } from '@lib/db';
-import { chapters, chapterViews } from '@/db/schema';
-import { eq, sql, and, gt } from 'drizzle-orm';
+import { chapterViews } from '@/db/schema';
+import { sql } from 'drizzle-orm';
 import { hashIpAddress } from '@/lib/crypto';
 
 interface ViewRequestBody {
@@ -24,14 +24,21 @@ export const POST: APIRoute = async ({ request, locals, clientAddress, cookies }
     const guestId = cookies.get('guestId')?.value || null;
     const userId = locals.user?.uid || null;
 
-    // ORION: Lógica de Vistas Útiles (Sincronización Real con ChapterViews)
+    // ORION: LIGHTSPEED VIEWS (Filtro KV)
+    // Evitamos tocar D1 si la vista ya fue contada en las últimas 24h
+    const kv = locals.runtime.env.KV_VIEWS;
+    const viewKey = `cv:${chapterId}:${ipAddress}`;
+    
+    if (kv) {
+        const alreadyViewed = await kv.get(viewKey);
+        if (alreadyViewed) return new Response('OK'); // Ya contado, salimos rápido
+    }
+
     const runBackgroundUpdate = async () => {
       try {
         const drizzleDb = getDB(locals.runtime.env);
         
         // 1. REGISTRO ÚNICO (Deduplicación por IP en DB)
-        // El Trigger 'tr_increment_chapter_views' se encargará de sumar +1 en la tabla Chapters
-        // solo cuando la inserción en ChapterViews sea exitosa.
         await drizzleDb.insert(chapterViews)
           .values({ 
             chapterId: chapterId!, 
@@ -42,8 +49,13 @@ export const POST: APIRoute = async ({ request, locals, clientAddress, cookies }
           })
           .onConflictDoNothing() 
           .run();
+          
+        // 2. MARCAR EN KV PARA EL SIGUIENTE TICK
+        if (kv) {
+            await kv.put(viewKey, '1', { expirationTtl: 86400 }); // 24 horas
+        }
             
-      } catch (innerError) {
+      } catch {
          // Silencioso para métricas
       }
     };

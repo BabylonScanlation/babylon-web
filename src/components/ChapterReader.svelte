@@ -6,11 +6,13 @@
 
   interface Page {
     url?: string;
+    imageUrl?: string;
     tiles?: string[];
     cols?: number;
     rows?: number;
     width?: number;
     height?: number;
+    pageNumber?: number;
   }
 
   interface Props {
@@ -216,7 +218,7 @@
 
                 if (incomingPages.length > 0) {
                     console.log(`[READER] Bridge pages received: ${incomingPages.length}`);
-                    pagesData = incomingPages.sort((a: any, b: any) => (a.pageNumber || 0) - (b.pageNumber || 0));
+                    pagesData = incomingPages.sort((a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0));
                     console.log('[READER] Bridge sequence:', pagesData.map(p => p.pageNumber).join(', '));
                 }
                 
@@ -366,7 +368,7 @@
           }
 
           if (incomingPages.length > 0) {
-              pagesData = incomingPages.sort((a: any, b: any) => (a.pageNumber || 0) - (b.pageNumber || 0));
+              pagesData = incomingPages.sort((a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0));
               console.log('[READER] SSE Sequence:', pagesData.map(p => p.pageNumber).join(', '));
           }
 

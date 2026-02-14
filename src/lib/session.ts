@@ -24,7 +24,7 @@ export async function verifyToken(token: string, secret: string): Promise<UserSe
     const secretKey = new TextEncoder().encode(secret.trim().replace(/\n'$/, ''));
     const { payload } = await jwtVerify(token, secretKey);
     return payload as unknown as UserSessionPayload;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

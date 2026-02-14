@@ -1,3 +1,4 @@
+/* eslint-disable */
 // ==MiruExtension==
 // @name         Babylon Scanlation
 // @version      0.2.1

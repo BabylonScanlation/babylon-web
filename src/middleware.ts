@@ -99,7 +99,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         emailVerified: false,
         isAdmin: payload.role === 'admin' || payload.uid === runtime.env.SUPER_ADMIN_UID,
         isNsfw: payload.isNsfw,
-      };
+      } as any;
     }
   }
 
@@ -155,13 +155,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
         context.locals.user = {
           uid,
           email: result.user.email,
-          username: result.user.username,
-          displayName: result.user.displayName,
-          photoURL: result.user.avatarUrl,
+          username: result.user.username || undefined,
+          displayName: result.user.displayName || undefined,
+          photoURL: result.user.avatarUrl || undefined,
           emailVerified: false,
           isAdmin: !!isAdmin,
           isNsfw: result.user.isNsfw ?? false,
-        };
+        } as any;
       } else {
         deleteSession(context as any);
       }
