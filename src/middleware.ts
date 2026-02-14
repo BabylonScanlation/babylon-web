@@ -84,6 +84,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const db = runtime?.env?.DB ? getDB(runtime.env) : undefined;
   context.locals.db = db;
   context.locals.user = undefined;
+  context.locals.isBot = isGoogle;
 
   const authCookie = context.cookies.get('user_auth')?.value;
   const sessionId = context.cookies.get('user_session')?.value;

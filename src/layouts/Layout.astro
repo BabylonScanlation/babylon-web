@@ -21,7 +21,8 @@ const isAdminPage = Astro.url.pathname.startsWith('/admin');
 const isVerifyPage = Astro.url.pathname === '/verify';
 
 const isVerified = Astro.cookies.get('site_verified')?.value === 'true';
-const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage;
+const isBot = Astro.locals.isBot;
+const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage && !isBot;
 
 // Orion: URL Base para metadatos absolutos
 const siteUrl = Astro.url.origin;
@@ -53,12 +54,20 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     <script type="application/ld+json" is:inline set:html={JSON.stringify({
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
-      "itemListElement": Astro.url.pathname.split('/').filter(Boolean).map((part, i, arr) => ({
-        "@type": "ListItem",
-        "position": i + 1,
-        "name": part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' '),
-        "item": `${siteUrl}/${arr.slice(0, i + 1).join('/')}`
-      }))
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Inicio",
+          "item": siteUrl
+        },
+        ...Astro.url.pathname.split('/').filter(Boolean).map((part, i, arr) => ({
+          "@type": "ListItem",
+          "position": i + 2,
+          "name": part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' '),
+          "item": `${siteUrl}/${arr.slice(0, i + 1).join('/')}`
+        }))
+      ]
     })} />
 
     <!-- Open Graph / Facebook -->
