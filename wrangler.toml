@@ -32,17 +32,6 @@ preview_bucket_name = "babylon-scanlation-assets"
 [placement]
 mode = "smart"
 
-# --- Cloudflare Queues (ORION: Resiliencia Lightspeed) ---
-[[queues.producers]]
-queue = "chapter-processing"
-binding = "CHAPTER_QUEUE"
-
-[[queues.consumers]]
-queue = "chapter-processing"
-max_batch_size = 1
-max_batch_timeout = 10
-max_retries = 3
-
 # --- Configuración DEV para el puerto ---
 [dev]
 ip = "localhost"

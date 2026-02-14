@@ -61,8 +61,8 @@ const reactions = [
 ---
 
 <Layout 
-  title={`${series?.title ?? 'Serie'} - Babylon Scanlation`}
-  description={series?.description?.substring(0, 160).replace(/\*/g, '') ?? ''}
+  title={`Leer ${series?.title ?? 'Serie'} Manga Online en Español - Babylon Scanlation`}
+  description={`Lee ${series?.title} online en español con la mejor calidad. ${series?.description?.substring(0, 140).replace(/\*/g, '') ?? ''}... ¡Solo en Babylon Scanlation!`}
   ogImage={getImageUrl(series?.coverImageUrl, r2PublicUrlAssets, 'series')}
 >
   <!-- SEO: Datos Estructurados JSON-LD -->

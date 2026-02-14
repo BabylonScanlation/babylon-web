@@ -117,7 +117,13 @@ if (error && currentChapterIndex !== -1) {
 }
 ---
 
-<Layout title={`Leyendo ${seriesTitle ?? 'Serie'} - Cap. ${chapter}`} hidePushAds={true}>
+<Layout 
+  title={`Leer ${seriesTitle ?? 'Serie'} Capítulo ${chapter} en Español Online - Babylon Scanlation`} 
+  description={`Lee el capítulo ${chapter} de ${seriesTitle} online en español. Disfruta de la mejor experiencia de lectura manga con carga rápida en Babylon Scanlation.`}
+  hidePushAds={true}
+>
+  {nextChapterUrl && <link rel="next" href={nextChapterUrl} slot="head" />}
+  {prevChapterUrl && <link rel="prev" href={prevChapterUrl} slot="head" />}
   <div class="reader-top-nav-wrapper" id="reader-top-nav-wrapper">
     <div class="reader-top-nav-glass">
       <a

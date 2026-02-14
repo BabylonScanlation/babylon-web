@@ -47,6 +47,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isGoogle = lowerUA.includes('googlebot') || 
                    lowerUA.includes('google-site-verification') || 
                    lowerUA.includes('googleother') ||
+                   lowerUA.includes('mediapartners-google') ||
+                   lowerUA.includes('adsbot-google') ||
                    lowerUA.includes('google-inspectiontool'); // Nueva herramienta de inspección
 
   if (country && blacklistedCountries.includes(country) && !isGoogle) {
@@ -194,6 +196,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const contentType = response.headers.get('content-type');
   if (contentType?.includes('text/html')) {
     response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Robots-Tag', 'index, follow, max-image-preview:large');
     
     // Si es una ruta de series o el index, permitimos cacheo suave en el edge
     if (currentPath.startsWith('/series/') || currentPath === '/' || currentPath.startsWith('/news/')) {

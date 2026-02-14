@@ -43,6 +43,23 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     <meta name="title" content={title} />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+    <!-- Googlebot Priority -->
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+
+    <!-- Breadcrumbs JSON-LD -->
+    <script type="application/ld+json" is:inline set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": Astro.url.pathname.split('/').filter(Boolean).map((part, i, arr) => ({
+        "@type": "ListItem",
+        "position": i + 1,
+        "name": part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' '),
+        "item": `${siteUrl}/${arr.slice(0, i + 1).join('/')}`
+      }))
+    })} />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
@@ -57,6 +74,8 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     <meta property="twitter:title" content={title} />
     <meta property="twitter:description" content={description} />
     <meta property="twitter:image" content={fullOgImage} />
+
+    <slot name="head" />
 
     <script is:inline>
       // Orion: Silenciador de errores de Privacy Sandbox/Permissions-Policy

@@ -5,4 +5,4 @@ Disallow: /admin/*
 Disallow: /api/*
 Disallow: /verify
 
-# Sitemap: https://babylon-scanlation.pages.dev/sitemap-index.xml
+Sitemap: https://babylon-scanlation.pages.dev/sitemap-index.xml
