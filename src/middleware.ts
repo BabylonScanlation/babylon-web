@@ -177,6 +177,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isPublicPath =
     currentPath === '/verify' ||
     currentPath === '/terms' ||
+    currentPath.startsWith('/sitemap') ||
     currentPath.startsWith('/api/') ||
     currentPath.startsWith('/js/') ||
     currentPath.startsWith('/_astro') ||

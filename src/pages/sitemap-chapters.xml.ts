@@ -25,13 +25,16 @@ export const GET: APIRoute = async ({ locals }) => {
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  ${recentChapters.map(c => `
+  ${recentChapters.map(c => {
+    const date = c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+    return `
   <url>
     <loc>${siteUrl}/series/${c.slug}/${c.chapterNumber}</loc>
-    <lastmod>${new Date(c.createdAt || Date.now()).toISOString().split('T')[0]}</lastmod>
+    <lastmod>${date}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
-  </url>`).join('')}
+  </url>`;
+  }).join('')}
 </urlset>`;
 
   return new Response(sitemap, {

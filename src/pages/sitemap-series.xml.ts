@@ -22,13 +22,16 @@ export const GET: APIRoute = async ({ locals }) => {
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
-  ${allSeries.map(s => `
+  ${allSeries.map(s => {
+    const date = s.updatedAt ? new Date(s.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+    return `
   <url>
     <loc>${siteUrl}/series/${s.slug}</loc>
-    <lastmod>${new Date(s.updatedAt || Date.now()).toISOString().split('T')[0]}</lastmod>
+    <lastmod>${date}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
-  </url>`).join('')}
+  </url>`;
+  }).join('')}
 </urlset>`;
 
   return new Response(sitemap, {

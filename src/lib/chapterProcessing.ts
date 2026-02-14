@@ -113,7 +113,7 @@ export async function processAndCacheChapter(
                   });
                   uploadSuccess = true;
                   break; 
-              } catch (e) {
+              } catch {
                   if (attempt < 3) await new Promise(r => setTimeout(r, 1000)); 
               }
           }
