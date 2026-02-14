@@ -6,6 +6,7 @@ import { getDB } from '@lib/db';
 import { generateRandomUsername, generateUUID } from '@lib/utils';
 import { userRoles, sessions, users } from '../../../db/schema';
 import { eq, sql } from 'drizzle-orm';
+import { setAuthCookie } from '@lib/session';
 
 const SessionRequestSchema = z.object({
   idToken: z.string().min(1),
@@ -120,6 +121,17 @@ export const POST: APIRoute = async ({ request, cookies, locals }) => {
 
     cookies.set('user_session', sessionId, cookieOptions);
     cookies.set('user_role', role, { ...cookieOptions, httpOnly: true });
+
+    // Orion: Generamos el JWT para el Middleware (Zero D1 Read)
+    const jwtSecret = env.JWT_SECRET || 'fallback-secret-change-me-in-production';
+    await setAuthCookie({ cookies, request } as any, {
+      uid,
+      email: email,
+      username: usernameToUse,
+      displayName: existingUser?.displayName || decodedToken.name || null,
+      role: role,
+      isNsfw: existingUser?.isNsfw ?? false,
+    }, jwtSecret);
 
     return new Response(JSON.stringify({ success: true, role }), { status: 200 });
   } catch (error: unknown) {

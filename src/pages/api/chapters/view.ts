@@ -28,24 +28,10 @@ export const POST: APIRoute = async ({ request, locals, clientAddress, cookies }
     const runBackgroundUpdate = async () => {
       try {
         const drizzleDb = getDB(locals.runtime.env);
-        const kv = locals.runtime.env.KV_VIEWS;
         
-        // 1. DEDUPLICACIÓN VÍA KV (Mucho más rápido que D1 SELECT)
-        // Si existe KV, usamos una clave con TTL de 24h para evitar spam.
-        if (kv) {
-          const viewKey = `view:ch:${chapterId}:${ipAddress}`;
-          const hasViewed = await kv.get(viewKey);
-          if (hasViewed) {
-             return; // Ya visto recientemente
-          }
-          await kv.put(viewKey, '1', { expirationTtl: 86400 }); // 24h TTL
-        }
-
-        // 2. REGISTRO Y ACTUALIZACIÓN ATÓMICA
-        // Insertamos el log de auditoría (ChapterViews) y actualizamos el contador (Chapters)
-        // Usamos transacciones batch si es posible, o secuencial.
-        // Nota: Eliminamos el 'count(*)' costoso. Confiamos en el incremento atómico.
-        
+        // 1. REGISTRO ÚNICO (Deduplicación por IP en DB)
+        // El Trigger 'tr_increment_chapter_views' se encargará de sumar +1 en la tabla Chapters
+        // solo cuando la inserción en ChapterViews sea exitosa.
         await drizzleDb.insert(chapterViews)
           .values({ 
             chapterId: chapterId!, 
@@ -54,17 +40,11 @@ export const POST: APIRoute = async ({ request, locals, clientAddress, cookies }
             userId: userId || null,
             viewedAt: sql`CURRENT_TIMESTAMP` 
           })
-          .onConflictDoNothing() // Si la DB rechaza por unicidad (fallback del KV), no pasa nada
-          .run();
-
-        await drizzleDb.update(chapters)
-          .set({ views: sql`views + 1` })
-          .where(eq(chapters.id, chapterId!))
+          .onConflictDoNothing() 
           .run();
             
-        // console.log(`[VIEW_FAST] Capítulo ${chapterId} +1 vista.`);
       } catch (innerError) {
-         logError(innerError, 'Error en sincronización de vistas', { chapterId });
+         // Silencioso para métricas
       }
     };
 

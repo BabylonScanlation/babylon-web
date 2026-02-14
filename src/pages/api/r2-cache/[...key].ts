@@ -2,12 +2,18 @@
 import type { APIRoute } from 'astro';
 import { logError } from '../../../lib/logError';
 import { verifySignature } from '../../../lib/crypto';
+import { getDB } from '../../../lib/db-client';
+import { series, chapters } from '../../../db/schema';
+import { eq, and } from 'drizzle-orm';
+import { ZipReader, HttpReader, Uint8ArrayWriter } from '@zip.js/zip.js';
 
 export const GET: APIRoute = async ({ params, locals, request }) => {
   const { key } = params;
-  const env = locals.runtime?.env || (process.env as any);
+  const runtime = locals.runtime;
+  const env = runtime?.env || (process.env as any);
   const R2_CACHE = env.R2_CACHE;
   const AUTH_SECRET = env.AUTH_SECRET;
+  const TELEGRAM_BOT_TOKEN = env.TELEGRAM_BOT_TOKEN;
   
   const url = new URL(request.url);
   const expires = url.searchParams.get('expires');
@@ -33,7 +39,6 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   // Búsqueda estricta del secreto y saneamiento agresivo
   let secret = AUTH_SECRET || import.meta.env.AUTH_SECRET || (process.env as any).AUTH_SECRET;
   if (typeof secret === 'string') {
-    // Saneamiento mejorado: elimina comillas (simples, dobles, curvas), saltos de línea y espacios
     secret = secret.replace(/['"“”]/g, '').replace(/\\n/g, '').trim();
   }
 
@@ -54,27 +59,107 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   );
 
   if (!isValid) {
-    // Audit log for security failures in development
-    console.warn(`[SEC_R2] Invalid HMAC for: ${key}`);
-    console.warn(`[SEC_R2] Expected Path: /api/r2-cache/${key}`);
-    console.warn(`[SEC_R2] Expires: ${expires}`);
-    console.warn(`[SEC_R2] Signature: ${signature}`);
     return new Response('Invalid or expired security token (HMAC mismatch)', { status: 403 });
   }
 
   try {
-    console.log(`[R2_PROXY] Signature OK. Fetching from R2: ${key}`);
-    // Support conditional requests
+    // 1. INTENTO DESDE R2 (Cache Hit)
     const etag = request.headers.get('If-None-Match');
-    const object = await R2_CACHE.get(key, {
+    let object = await R2_CACHE.get(key, {
       onlyIf: etag ? { etagMatches: etag } : undefined,
     });
 
+    // 2. LÓGICA DE RECUPERACIÓN (Cache Miss -> Fetch from Telegram)
     if (object === null) {
-      return new Response(`File not found: ${key}`, { status: 404 });
+      console.log(`[R2_PROXY] Cache MISS para: ${key}. Intentando recuperación desde Telegram...`);
+      
+      // Parsear la key: serie/capitulo/hash/nombre_archivo
+      const parts = key.split('/');
+      if (parts.length < 4) {
+        return new Response('Invalid file key structure for recovery', { status: 404 });
+      }
+
+      const seriesSlug = parts[0];
+      const chapterNumStr = parts[1];
+      const filename = parts.slice(3).join('/'); // El nombre del archivo puede tener subcarpetas
+
+      const db = getDB(env);
+      if (!db) throw new Error('DB connection failed during recovery');
+
+      // Buscar el telegram_file_id del capítulo
+      const chapterData = await db
+        .select({ fileId: chapters.telegramFileId })
+        .from(chapters)
+        .innerJoin(series, eq(chapters.seriesId, series.id))
+        .where(
+          and(
+            eq(series.slug, seriesSlug),
+            eq(chapters.chapterNumber, parseFloat(chapterNumStr))
+          )
+        )
+        .get();
+
+      if (!chapterData?.fileId || !TELEGRAM_BOT_TOKEN) {
+        return new Response('File not found in R2 and no recovery source available', { status: 404 });
+      }
+
+      // --- RECUPERACIÓN DESDE TELEGRAM ---
+      const fileInfoUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${chapterData.fileId}`;
+      const fileInfoResp = await fetch(fileInfoUrl);
+      const fileInfo = await fileInfoResp.json() as any;
+
+      if (!fileInfo?.ok || !fileInfo?.result?.file_path) {
+        return new Response('Recovery failed: Telegram file path not found', { status: 502 });
+      }
+
+      const telegramUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${fileInfo.result.file_path}`;
+      const zipReader = new ZipReader(new HttpReader(telegramUrl));
+      const entries = await zipReader.getEntries();
+      
+      // Buscar la entrada exacta (o una aproximación si el nombre cambió)
+      const entry = entries.find(e => e.filename.includes(filename) || filename.includes(e.filename));
+      
+      if (!entry || !entry.getData) {
+        await zipReader.close();
+        return new Response(`Recovery failed: File ${filename} not found in Telegram ZIP`, { status: 404 });
+      }
+
+      const imageBuffer = await entry.getData(new Uint8ArrayWriter());
+      await zipReader.close();
+
+      const contentType = filename.endsWith('.webp') ? 'image/webp' : 
+                          filename.endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+      // Guardar en R2 en segundo plano (Background caching)
+      if (runtime?.ctx?.waitUntil) {
+        runtime.ctx.waitUntil(
+          R2_CACHE.put(key, imageBuffer, {
+            httpMetadata: { 
+              contentType,
+              cacheControl: 'public, max-age=31536000, s-maxage=2592000, immutable'
+            }
+          }).catch(e => console.error(`[R2_PROXY] Falló guardado en caché: ${key}`, e))
+        );
+      } else {
+        // Fallback para entornos que no soportan waitUntil (como local sin proxy)
+        await R2_CACHE.put(key, imageBuffer, {
+          httpMetadata: { contentType }
+        });
+      }
+
+      // Entregar al usuario inmediatamente
+      return new Response(imageBuffer, {
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=31536000, s-maxage=2592000, immutable',
+          'Access-Control-Allow-Origin': '*',
+          'X-Cache-Status': 'RECOVERED_FROM_TELEGRAM',
+          'Content-Length': imageBuffer.length.toString()
+        }
+      });
     }
 
-    // Handle 304 Not Modified
+    // 3. RESPUESTA NORMAL DESDE R2 (Cache Hit o 304)
     if ('body' in object && !object.body) {
       return new Response(null, {
         status: 304,
@@ -86,36 +171,26 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     }
 
     const headers = new Headers();
-
-    // 1. Asignación manual de metadatos para evitar errores de serialización en local
     const meta = object.httpMetadata;
     if (meta?.contentType) headers.set('Content-Type', meta.contentType);
     if (meta?.cacheControl) headers.set('Cache-Control', meta.cacheControl);
-    if (meta?.contentEncoding) headers.set('Content-Encoding', meta.contentEncoding);
-    if (meta?.contentLanguage) headers.set('Content-Language', meta.contentLanguage);
-    if (meta?.contentDisposition) headers.set('Content-Disposition', meta.contentDisposition);
     
-    // Fallback de Content-Type basado en extensión si no existe en metadatos
     if (!headers.has('Content-Type')) {
       const contentType = key.endsWith('.webp') ? 'image/webp' : 
                           key.endsWith('.png') ? 'image/png' : 'image/jpeg';
       headers.set('Content-Type', contentType);
     }
 
-    // 2. Identificadores críticos y tamaño (Esencial para estabilidad del stream)
     headers.set('ETag', object.httpEtag);
     headers.set('Content-Length', object.size.toString());
     
-    // 3. Estrategia de Caché por defecto si R2 no tiene una definida
     if (!headers.has('Cache-Control')) {
       headers.set('Cache-Control', 'public, max-age=31536000, s-maxage=2592000, immutable');
     }
     
-    // 4. CORS y Cloudflare Optimization
     headers.set('Access-Control-Allow-Origin', '*'); 
-    headers.set('Cloudflare-CDN-Cache-Control', 'max-age=2592000');
+    headers.set('X-Cache-Status': 'HIT_R2');
 
-    // Retorno de stream directo (Zero-copy)
     return new Response(object.body, {
       headers,
     });

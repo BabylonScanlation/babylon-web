@@ -4,6 +4,7 @@ import { getDB } from './lib/db-client';
 import { userRoles, sessions, users } from './db/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import { logError } from './lib/logError';
+import { verifyToken, deleteSession } from './lib/session';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   // --- GEO-BLOCKING (Bloqueo por País) - PRIORIDAD 0 ---
@@ -82,9 +83,28 @@ export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.db = db;
   context.locals.user = undefined;
 
+  const authCookie = context.cookies.get('user_auth')?.value;
   const sessionId = context.cookies.get('user_session')?.value;
 
-  if (sessionId && db) {
+  // --- Orion: JWT Fast-Path (Zero D1 Reads) ---
+  if (authCookie && runtime?.env?.JWT_SECRET) {
+    const payload = await verifyToken(authCookie, runtime.env.JWT_SECRET);
+    if (payload) {
+      context.locals.user = {
+        uid: payload.uid,
+        email: payload.email,
+        username: payload.username || undefined,
+        displayName: payload.displayName || undefined,
+        photoURL: undefined, // El JWT no tiene avatar por ahora para ahorrar bytes
+        emailVerified: false,
+        isAdmin: payload.role === 'admin' || payload.uid === runtime.env.SUPER_ADMIN_UID,
+        isNsfw: payload.isNsfw,
+      };
+    }
+  }
+
+  // Si ya tenemos usuario por JWT, saltamos la consulta a D1
+  if (!context.locals.user && sessionId && db) {
     try {
       const currentUserAgent = context.request.headers.get('user-agent') || 'unknown';
 
@@ -143,13 +163,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
           isNsfw: result.user.isNsfw ?? false,
         };
       } else {
-        context.cookies.delete('user_session', { path: '/' });
-        context.cookies.delete('user_role', { path: '/' });
+        deleteSession(context as any);
       }
     } catch (error) {
       logError(error, 'Error verificando sesión');
-      context.cookies.delete('user_session', { path: '/' });
-      context.cookies.delete('user_role', { path: '/' });
+      deleteSession(context as any);
     }
   }
 

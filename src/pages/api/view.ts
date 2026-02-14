@@ -28,27 +28,21 @@ export const POST: APIRoute = async ({ request, locals, clientAddress }) => {
         const drizzleDb = getDB(locals.runtime.env);
         const kv = locals.runtime.env.KV_VIEWS;
 
-        // 1. DEDUPLICACIÓN CON KV (30 min)
-        if (kv) {
-          const viewKey = `view:series:${seriesId}:${ipAddress}`;
-          const hasViewed = await kv.get(viewKey);
-          if (hasViewed) return;
-          await kv.put(viewKey, '1', { expirationTtl: 1800 }); // 30 min
-        }
+        // 1. REGISTRO ÚNICO (Deduplicación por IP en DB)
+        // El Trigger 'tr_increment_series_views' se encargará de sumar +1 en la tabla Series
+        // solo cuando la inserción en SeriesViews sea exitosa.
+        await drizzleDb.insert(seriesViews)
+          .values({ 
+            seriesId: seriesId!, 
+            ipAddress, 
+            viewedAt: sql`CURRENT_TIMESTAMP` 
+          })
+          .onConflictDoNothing() // Orion: Cero coste extra si la IP ya existe
+          .run();
 
-        // 2. ACTUALIZACIÓN ATÓMICA
-        // Incrementamos contador en Series y registramos log en SeriesViews
-        await drizzleDb.batch([
-          drizzleDb.insert(seriesViews)
-            .values({ seriesId: seriesId!, ipAddress, viewedAt: sql`CURRENT_TIMESTAMP` })
-            .onConflictDoUpdate({
-              target: [seriesViews.seriesId, seriesViews.ipAddress],
-              set: { viewedAt: sql`CURRENT_TIMESTAMP` }
-            }),
-          drizzleDb.update(series)
-            .set({ views: sql`views + 1` })
-            .where(eq(series.id, seriesId!))
-        ]);
+      } catch (innerError) {
+        // Silencioso para no afectar la UX
+      }
 
       } catch (innerError) {
         // Silencioso

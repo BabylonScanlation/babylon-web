@@ -2,8 +2,10 @@ import type { APIRoute } from 'astro';
 import { getDB } from '@lib/db';
 import { sessions } from '../../../db/schema';
 import { eq } from 'drizzle-orm';
+import { deleteSession } from '@lib/session';
 
-export const POST: APIRoute = async ({ cookies, redirect, request, locals }) => {
+export const POST: APIRoute = async (context) => {
+  const { cookies, redirect, request, locals } = context;
   const sessionId = cookies.get('user_session')?.value;
   const db = getDB(locals.runtime.env);
 
@@ -15,14 +17,10 @@ export const POST: APIRoute = async ({ cookies, redirect, request, locals }) => 
     }
   }
 
-  cookies.delete('user_session', {
-    path: '/',
-  });
-    cookies.delete('user_role', {
-      path: '/',
-    });
+  deleteSession(context as any);
   
-    const accept = request.headers.get('accept');
+  const accept = request.headers.get('accept');
+
     if (accept?.includes('application/json')) {
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
