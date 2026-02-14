@@ -1,6 +1,6 @@
 import { getDB } from '../lib/db';
 import { series } from '../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { APIRoute } from 'astro';
 
 export const GET: APIRoute = async ({ locals }) => {
@@ -15,29 +15,26 @@ export const GET: APIRoute = async ({ locals }) => {
   .where(eq(series.isHidden, false))
   .all();
 
-  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>${siteUrl}/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
-  </url>
-  ${allSeries.map(s => {
-    const date = s.updatedAt ? new Date(s.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-    return `
+  </url>${allSeries.map(s => `
   <url>
     <loc>${siteUrl}/series/${s.slug}</loc>
-    <lastmod>${date}</lastmod>
+    <lastmod>${s.updatedAt ? new Date(s.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
-  </url>`;
-  }).join('')}
+  </url>`).join('')}
 </urlset>`;
 
-  return new Response(sitemap, {
+  return new Response(xml.trim(), {
     headers: {
-      'Content-Type': 'application/xml',
-      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=600'
+      'Content-Type': 'application/xml; charset=utf-8',
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': 'public, max-age=0, must-revalidate'
     }
   });
 };

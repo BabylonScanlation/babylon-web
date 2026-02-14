@@ -1,8 +1,12 @@
+Sitemap: https://babylon-scanlation.pages.dev/sitemap-index.xml
+
 User-agent: *
+Allow: /sitemap-index.xml
+Allow: /sitemap-series.xml
+Allow: /sitemap-chapters.xml
 Allow: /
+
 Disallow: /admin
 Disallow: /admin/*
 Disallow: /api/*
 Disallow: /verify
-
-Sitemap: https://babylon-scanlation.pages.dev/sitemap-index.xml
