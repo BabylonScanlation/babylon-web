@@ -6,36 +6,13 @@ import type { APIRoute } from 'astro';
 export const GET: APIRoute = async ({ locals, url }) => {
   const siteUrl = url.origin;
   const db = getDB(locals.runtime.env);
-  
-  const recentChapters = await db.select({
-    slug: series.slug,
-    chapterNumber: chapters.chapterNumber,
-    createdAt: chapters.createdAt
-  })
-  .from(chapters)
-  .innerJoin(series, eq(chapters.seriesId, series.id))
-  .where(and(
-    eq(series.isHidden, false),
-    inArray(chapters.status, ['live', 'app_only'])
-  ))
-  .orderBy(desc(chapters.createdAt))
-  .limit(1000)
-  .all();
-
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${recentChapters.map(c => `
-  <url>
-    <loc>${siteUrl}/series/${c.slug}/${c.chapterNumber}</loc>
-    <lastmod>${c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>`).join('')}
-</urlset>`.trim();
+  const recentChapters = await db.select({ slug: series.slug, chapterNumber: chapters.chapterNumber, createdAt: chapters.createdAt }).from(chapters).innerJoin(series, eq(chapters.seriesId, series.id)).where(and(eq(series.isHidden, false), inArray(chapters.status, ['live', 'app_only']))).orderBy(desc(chapters.createdAt)).limit(1000).all();
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${recentChapters.map(c => `<url><loc>${siteUrl}/series/${c.slug}/${c.chapterNumber}</loc><lastmod>${c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`).join('')}</urlset>`;
 
   return new Response(xml, {
     headers: {
       'Content-Type': 'text/xml; charset=utf-8',
-      'Cache-Control': 'public, s-maxage=0, must-revalidate'
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
     }
   });
 };

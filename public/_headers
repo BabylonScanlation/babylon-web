@@ -9,3 +9,8 @@
 
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
+
+/sitemap*.xml
+  Content-Type: text/xml; charset=utf-8
+  X-Content-Type-Options: none
+  Cache-Control: no-cache, no-store, must-revalidate
