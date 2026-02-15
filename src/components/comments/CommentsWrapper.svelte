@@ -105,6 +105,17 @@
   let isSavingEditId = $state<number | null>(null);
   let showAllComments = $state(false);
 
+  let expandedThreads = $state(new Set<number>());
+
+  function toggleThread(id: number) {
+      if (expandedThreads.has(id)) {
+          expandedThreads.delete(id);
+      } else {
+          expandedThreads.add(id);
+      }
+      expandedThreads = new Set(expandedThreads); // Trigger reactivity
+  }
+
   let cooldownRemaining = $state(0);
 
   // Orion: Recuperar cooldown persistente inmediatamente al cargar el script
@@ -161,6 +172,11 @@
                 vote: newVote
             })
         });
+
+        if (res.status === 401) {
+            userStore.sync();
+            throw new Error('Sesión expirada');
+        }
 
         if (!res.ok) throw new Error();
 
@@ -270,7 +286,17 @@
         body: JSON.stringify(body),
       });
 
-      if (!res.ok) throw new Error();
+      if (res.status === 401) {
+          toast.error('Sesión expirada. Por favor, inicia sesión de nuevo.');
+          userStore.sync(); // Intentar recuperar sesión
+          return;
+      }
+      
+      if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Error al publicar');
+      }
+
       const newC = await res.json();
 
       const processedNew: Comment = {
@@ -343,6 +369,13 @@
             method: targetType === 'news' ? 'PUT' : 'POST',
             body: JSON.stringify({ commentId: comment.id, commentText: comment.editedText })
         });
+        
+        if (res.status === 401) {
+            toast.error('Sesión expirada');
+            userStore.sync();
+            return;
+        }
+
         if(!res.ok) throw new Error();
         comment.commentText = comment.editedText;
         comment.isEditing = false;
@@ -372,6 +405,13 @@
               },
               body: JSON.stringify({ commentId })
           });
+
+          if (res.status === 401) {
+              toast.error('Sesión expirada');
+              userStore.sync();
+              return;
+          }
+
           if(!res.ok) throw new Error();
 
           const updateInTree = (nodes: Comment[]) => {
@@ -608,59 +648,53 @@
                                 </button>
                             </div>
 
-                            {#if user}
+                            {#if !node.isEditing && !node.isDeleted}
                                 <span class="action-divider"></span>
-                                {#if !node.isEditing}
-                                    {@const rawActions = [
-                                        level < 9 ? { 
-                                            type: 'reply', 
-                                            label: 'Responder', 
-                                            icon: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
-                                            handler: () => { toggleReply(node.id); } 
-                                        } : null,
-                                        (node.isOwner && !node.isDeleted) ? { 
-                                            type: 'edit', 
-                                            label: 'Editar', 
-                                            icon: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>',
-                                            handler: () => { node.isEditing = true; node.editedText = node.commentText; } 
-                                        } : null,
-                                        (node.isOwner && !node.isDeleted) ? { 
-                                            type: 'delete', 
-                                            label: 'Eliminar', 
-                                            icon: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>',
-                                            handler: () => { showDeleteConfirmId = node.id; }, 
-                                            isDanger: true 
-                                        } : null,
-                                        (user?.isAdmin) ? { 
-                                            type: 'pin', 
-                                            label: node.isPinned ? 'Desfijar' : 'Fijar', 
-                                            icon: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 9V4l1 0c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1l1 0v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"></path></svg>',
-                                            handler: () => { handleTogglePin(node); }, 
-                                            isPin: true 
-                                        } : null
-                                    ]}
-                                    {@const actions = rawActions.filter((a): a is NonNullable<typeof a> => !!a)}
-
-                                    {#if actions.length > 0}
-                                        <div class="action-buttons-group">
-                                            {#each actions as action, i (action.type)}
-                                                <button 
-                                                    class="action-btn" 
-                                                    class:reply={action.type === 'reply'} 
-                                                    class:danger={action.isDanger}
-                                                    class:pin={action.isPin}
-                                                    onclick={action.handler}
-                                                >
-                                                    <span class="btn-icon">{@html action.icon}</span>
-                                                    <span class="btn-label">{action.label}</span>
-                                                </button>
-                                                {#if i < actions.length - 1}
-                                                    <span class="bullet-sep">•</span>
-                                                {/if}
-                                            {/each}
-                                        </div>
+                                <div class="action-buttons-group">
+                                    {#if level < 9}
+                                        <button 
+                                            class="action-btn reply" 
+                                            onclick={() => { 
+                                                if (!user) return toast.error('Inicia sesión para responder');
+                                                toggleReply(node.id); 
+                                            }}
+                                        >
+                                            <span class="btn-icon">{@html '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>'}</span>
+                                            <span class="btn-label">Responder</span>
+                                        </button>
                                     {/if}
-                                {/if}
+
+                                    {#if node.isOwner}
+                                        {#if level < 9}<span class="bullet-sep">•</span>{/if}
+                                        <button 
+                                            class="action-btn" 
+                                            onclick={() => { node.isEditing = true; node.editedText = node.commentText; }}
+                                        >
+                                            <span class="btn-icon">{@html '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'}</span>
+                                            <span class="btn-label">Editar</span>
+                                        </button>
+
+                                        <span class="bullet-sep">•</span>
+                                        <button 
+                                            class="action-btn danger" 
+                                            onclick={() => { showDeleteConfirmId = node.id; }}
+                                        >
+                                            <span class="btn-icon">{@html '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>'}</span>
+                                            <span class="btn-label">Eliminar</span>
+                                        </button>
+                                    {/if}
+
+                                    {#if user?.isAdmin}
+                                        <span class="bullet-sep">•</span>
+                                        <button 
+                                            class="action-btn pin" 
+                                            onclick={() => handleTogglePin(node)}
+                                        >
+                                            <span class="btn-icon">{@html '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 9V4l1 0c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1l1 0v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"></path></svg>'}</span>
+                                            <span class="btn-label">{node.isPinned ? 'Desfijar' : 'Fijar'}</span>
+                                        </button>
+                                    {/if}
+                                </div>
                             {/if}
                         </div>
 
@@ -701,11 +735,35 @@
                 </div>
 
                 {#if node.children && node.children.length > 0}
-                    <div class="replies-tree">
-                        {#each node.children as child (child.id)}
-                            {@render commentNode(child, level + 1)}
-                        {/each}
-                    </div>
+                    {@const isExpanded = expandedThreads.has(node.id)}
+                    {@const autoExpand = level === 0 && node.children.length <= 2}
+                    
+                    {#if !isExpanded && !autoExpand}
+                        <div class="thread-expand-wrapper">
+                            <button class="btn-expand-thread" onclick={() => toggleThread(node.id)}>
+                                <span class="expand-icon">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 13l5 5 5-5M7 6l5 5 5-5"/></svg>
+                                </span>
+                                {node.children.length === 1 ? 'Ver 1 respuesta' : `Ver ${node.children.length} respuestas`}
+                            </button>
+                        </div>
+                    {:else}
+                        {#if !autoExpand}
+                            <div class="thread-expand-wrapper collapse">
+                                <button class="btn-expand-thread" onclick={() => toggleThread(node.id)}>
+                                    <span class="expand-icon rotate">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 13l5 5 5-5M7 6l5 5 5-5"/></svg>
+                                    </span>
+                                    Ocultar respuestas
+                                </button>
+                            </div>
+                        {/if}
+                        <div class="replies-tree" transition:slide>
+                            {#each node.children as child (child.id)}
+                                {@render commentNode(child, level + 1)}
+                            {/each}
+                        </div>
+                    {/if}
                 {/if}
             </div>
         {/snippet}
@@ -1047,6 +1105,47 @@
     
     .action-buttons-group .action-btn.danger:hover { color: var(--c-danger); background: rgba(239, 68, 68, 0.1); }
     .action-buttons-group .action-btn.pin:hover { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+
+    .thread-expand-wrapper {
+        margin-left: 44px;
+        margin-top: 2px;
+        margin-bottom: 8px;
+    }
+    
+    .thread-expand-wrapper.collapse {
+        margin-bottom: 4px;
+        opacity: 0.6;
+    }
+
+    .btn-expand-thread {
+        background: transparent;
+        border: none;
+        color: var(--c-accent);
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 4px 8px;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-expand-thread:hover {
+        background: rgba(59, 130, 246, 0.1);
+        transform: translateX(4px);
+    }
+
+    .expand-icon {
+        display: flex;
+        align-items: center;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .expand-icon.rotate {
+        transform: rotate(180deg);
+    }
 
     .reply-input-box {
         margin-top: 0.75rem;

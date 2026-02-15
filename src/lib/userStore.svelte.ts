@@ -41,6 +41,23 @@ class UserStore {
       const res = await fetch(`/api/auth/status?t=${Date.now()}`);
       if (res.ok) {
         const dbUser = await res.json();
+        
+        // Orion: Si el servidor dice que no hay sesión, pero tenemos usuario Firebase,
+        // intentamos re-crear la sesión automáticamente (Auto-Session Recovery)
+        if (!dbUser && this.user && auth.currentUser) {
+            console.log('[UserStore] Session expired or missing. Attempting auto-recovery...');
+            const idToken = await auth.currentUser.getIdToken();
+            const sessionRes = await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken }),
+            });
+            if (sessionRes.ok) {
+                console.log('[UserStore] Session recovered successfully.');
+                return this.sync(); // Re-sincronizar tras recuperar sesión
+            }
+        }
+
         if (dbUser && this.user) {
           // Reasignación total para disparar reactividad profunda
           this.user = {

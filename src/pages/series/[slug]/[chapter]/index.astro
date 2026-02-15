@@ -232,7 +232,18 @@ if (error && currentChapterIndex !== -1) {
           data-watermark={watermark}
           style="display: none;"
         ></div>
-        <ChapterReader client:load nextChapter={nextChapterProp} />
+        <ChapterReader 
+          client:load 
+          slug={slug}
+          chapter={chapter}
+          encryptedData={encryptedData}
+          chapterId={chapterId}
+          processing={isProcessing}
+          initialLoadingMessage={loadingMessage}
+          seriesTitle={seriesTitle}
+          watermark={watermark}
+          nextChapter={nextChapterProp} 
+        />
     )}
   </main>
 

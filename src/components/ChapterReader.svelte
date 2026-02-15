@@ -38,12 +38,13 @@
     seriesTitle = '', 
     watermark = '',
     initialLoadingMessage = null,
-    nextChapter = null
-  } : Props = $props();
+    nextChapter = null,
+    processing = false
+  } : Props & { processing?: boolean } = $props();
 
   let pagesData = $state<Page[]>([]);
-  let loadingMessage = $state<string | null>(null);
-  let processing = $state(false);
+  let loadingMessage = $state<string | null>(initialLoadingMessage);
+  let isProcessing = $state(processing);
   let error = $state<string | null>(null);
   
   let viewMode = $state<'cascade' | 'single'>('cascade');
@@ -72,8 +73,8 @@
     }
     
     // Si ya tenemos páginas, el procesamiento ha terminado (seguridad)
-    if (pagesData.length > 0 && processing) {
-        processing = false;
+    if (pagesData.length > 0 && isProcessing) {
+        isProcessing = false;
     }
     
     // Check for prefetch opportunity in single page mode
@@ -103,7 +104,7 @@
       document.body.removeAttribute('data-reader-modal');
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
-      if (processing) document.body.style.overflow = 'hidden';
+      if (isProcessing) document.body.style.overflow = 'hidden';
     }
     return () => {
       document.body.removeAttribute('data-reader-modal');
@@ -116,24 +117,21 @@
 
   onMount(() => {
     // console.log('[ChapterReader] onMount starting...');
-    // Lógica de recuperación de datos desde el Bridge (Bypass de Cloudflare)
+    // Lógica de recuperación de datos desde el Bridge (Bypass de Cloudflare / Respaldo)
     const bridge = document.getElementById('reader-data-bridge');
-    if (bridge) {
-        slug = bridge.getAttribute('data-slug') || '';
-        chapter = bridge.getAttribute('data-chapter') || '';
+    if (bridge && !encryptedData) {
+        slug = bridge.getAttribute('data-slug') || slug;
+        chapter = bridge.getAttribute('data-chapter') || chapter;
         encryptedData = bridge.getAttribute('data-encrypted');
         const rawId = bridge.getAttribute('data-chapter-id');
-        chapterId = rawId ? parseInt(rawId) : null;
+        if (rawId) chapterId = parseInt(rawId);
         
         const processingAttr = bridge.getAttribute('data-processing') === 'true';
-        processing = processingAttr;
+        isProcessing = processingAttr;
         
-        initialLoadingMessage = bridge.getAttribute('data-loading-msg');
-        loadingMessage = initialLoadingMessage;
-        
-        seriesTitle = bridge.getAttribute('data-series-title') || '';
-        watermark = bridge.getAttribute('data-watermark') || '';
-        // console.log(`[ChapterReader] Data from bridge: processing=${processing}, slug=${slug}`);
+        loadingMessage = bridge.getAttribute('data-loading-msg') || loadingMessage;
+        seriesTitle = bridge.getAttribute('data-series-title') || seriesTitle;
+        watermark = bridge.getAttribute('data-watermark') || watermark;
     }
 
     isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -209,7 +207,7 @@
     setTimeout(() => {
         if (encryptedData && pagesData.length === 0) {
           try {
-            console.log('[READER] Hydrating from Bridge...');
+            console.log('[READER] Hydrating data...');
             const decrypted = deobfuscate(encryptedData);
             if (decrypted) {
                 let incomingPages = [];
@@ -217,28 +215,31 @@
                 else if (decrypted.imageUrls) incomingPages = decrypted.imageUrls.map((url: string) => ({ url }));
 
                 if (incomingPages.length > 0) {
-                    console.log(`[READER] Bridge pages received: ${incomingPages.length}`);
+                    console.log(`[READER] Pages received: ${incomingPages.length}`);
                     pagesData = incomingPages.sort((a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0));
-                    console.log('[READER] Bridge sequence:', pagesData.map(p => p.pageNumber).join(', '));
+                    // console.log('[READER] Sequence:', pagesData.map(p => p.pageNumber).join(', '));
+                    if (isProcessing) isProcessing = false;
+                } else {
+                  console.warn('[READER] No pages found in decrypted payload');
                 }
-                
-                if (pagesData.length > 0 && !processing) processing = false;
+            } else {
+              console.error('[READER] Failed to decrypt payload');
             }
           } catch (e) { 
-            console.error('Error descifrando:', e);
+            console.error('[READER] Critical error during hydration:', e);
             error = 'Error de seguridad al cargar el contenido.'; 
           }
         }
         
-        if (processing) setupSSE();
+        if (isProcessing) setupSSE();
         
-        if (chapterId && !processing) {
+        if (chapterId && !isProcessing) {
           if (document.visibilityState === 'visible') registerView();
           else document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') registerView();
           }, { once: true });
         }
-    }, 100);
+    }, 50);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -372,7 +373,7 @@
               console.log('[READER] SSE Sequence:', pagesData.map(p => p.pageNumber).join(', '));
           }
 
-          processing = false;
+          isProcessing = false;
           // Orion: Registrar vista inmediatamente después de completar el procesamiento
           if (chapterId) registerView();
           
@@ -381,7 +382,7 @@
       } catch (err) {
         console.error('[ChapterReader] Error processing completed event:', err);
         error = 'Error al procesar la respuesta del servidor.';
-        processing = false;
+        isProcessing = false;
       }
     });
 
@@ -396,7 +397,7 @@
         } catch {
             error = 'Error desconocido en el servidor.';
         }
-        processing = false;
+        isProcessing = false;
         if (eventSource) eventSource.close();
     });
 
@@ -411,7 +412,7 @@
             setTimeout(() => setupSSE(true), 2000);
         } else {
             error = 'Se perdió la conexión con el servidor de procesamiento. Reintente recargando la página.';
-            processing = false;
+            isProcessing = false;
             if (eventSource) eventSource.close();
         }
     });
@@ -475,7 +476,7 @@
           </button>
         </div>
       </div>
-    {:else if processing}
+    {:else if isProcessing}
       <div class="loader-overlay" in:fade>
         <div class="glass-loader">
           <div class="loader-visual">
