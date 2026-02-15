@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { logError } from '../../../lib/logError';
 import { getDB } from '../../../lib/db';
-import { comments, users, commentVotes } from '../../../db/schema';
+import { comments, users, commentVotes, userRoles } from '../../../db/schema';
 import { eq, desc, inArray } from 'drizzle-orm';
 
 export const GET: APIRoute = async ({ params, locals }) => {
@@ -29,9 +29,11 @@ export const GET: APIRoute = async ({ params, locals }) => {
         username: users.username,
         email: users.email,
         avatarUrl: users.avatarUrl,
+        role: userRoles.role,
       })
       .from(comments)
       .leftJoin(users, eq(comments.userId, users.id))
+      .leftJoin(userRoles, eq(comments.userId, userRoles.userId))
       .where(eq(comments.chapterId, parseInt(chapterId)))
       .orderBy(desc(comments.isPinned), desc(comments.createdAt))
       .all();
@@ -68,6 +70,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
         createdAt: comment.createdAt,
         updatedAt: comment.updatedAt,
         isPinned: !!comment.isPinned,
+        isAdminComment: comment.role === 'admin',
         likes: stats.likes,
         dislikes: stats.dislikes,
         userVote: stats.userVote

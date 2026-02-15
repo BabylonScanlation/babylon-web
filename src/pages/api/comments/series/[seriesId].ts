@@ -6,6 +6,7 @@ import {
   seriesComments,
   users,
   seriesCommentVotes,
+  userRoles,
 } from '../../../../db/schema';
 import { eq, desc, inArray } from 'drizzle-orm';
 
@@ -37,9 +38,11 @@ export const GET: APIRoute = async ({ params, locals }) => {
         username: users.username,
         email: users.email, // Fetch email from users table for fallback
         avatarUrl: users.avatarUrl,
+        role: userRoles.role,
       })
       .from(seriesComments)
       .leftJoin(users, eq(seriesComments.userId, users.id))
+      .leftJoin(userRoles, eq(seriesComments.userId, userRoles.userId))
       .where(eq(seriesComments.seriesId, parseInt(seriesId)))
       .orderBy(desc(seriesComments.isPinned), desc(seriesComments.createdAt))
       .all();
@@ -99,6 +102,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
         createdAt: comment.createdAt,
         updatedAt: comment.updatedAt,
         isPinned: !!comment.isPinned,
+        isAdminComment: comment.role === 'admin',
         likes: stats.likes,
         dislikes: stats.dislikes,
         userVote: stats.userVote,

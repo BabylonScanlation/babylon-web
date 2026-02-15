@@ -67,7 +67,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         user.displayName ||
         user.email?.split('@')[0] ||
         'Usuario',
-      avatarUrl: user.photoURL,
+      avatarUrl: user.avatarUrl,
     };
 
     return new Response(JSON.stringify(newComment), { status: 201 });

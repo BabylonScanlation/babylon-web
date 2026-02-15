@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import ImageSelectorModal from './ImageSelectorModal.svelte';
   import { toast } from '../lib/toastStore';
+  import { userStore } from '../lib/userStore.svelte';
 
   let showModal = false;
   let modalType: 'avatar' | 'banner' = 'avatar';
@@ -31,11 +32,13 @@
 
       if (!res.ok) throw new Error('Error actualizando perfil');
 
-      // Update DOM
+      // Orion: Actualizar el store global para que el cambio se vea en comentarios, header, etc.
       if (type === 'avatar') {
+        userStore.user = { ...userStore.user, avatarUrl: url };
         const img = document.getElementById('avatar-preview') as HTMLImageElement;
         if (img) img.src = url;
       } else {
+        userStore.user = { ...userStore.user, bannerUrl: url };
         const banner = document.getElementById('banner-preview');
         if (banner) {
              banner.style.backgroundImage = `url('${url}')`;

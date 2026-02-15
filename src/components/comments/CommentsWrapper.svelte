@@ -5,6 +5,7 @@
   import { quintOut, elasticOut } from 'svelte/easing';
   import { toast } from '../../lib/toastStore';
   import { timeAgo } from '../../lib/utils';
+  import { userStore } from '../../lib/userStore.svelte';
   import type { User, Comment } from '../../types';
 
   interface Props {
@@ -14,7 +15,10 @@
     user?: User | null;
   }
 
-  let { targetType, targetId, initialComments = [], user = $bindable(null) }: Props = $props();
+  let { targetType, targetId, initialComments = [], user: initialUser = null }: Props = $props();
+
+  // Orion: Mezclamos datos de SSR con el store reactivo para máxima fluidez y frescura
+  let user = $derived(userStore.user ? { ...initialUser, ...userStore.user } : initialUser);
 
   const COMMENTS_VISIBLE_LIMIT = 5;
 
@@ -52,14 +56,17 @@
 
     flatComments.forEach(c => {
       const isDeleted = !!c.isDeleted;
+      const isOwner = !!(user && (user.email === c.userEmail || user.uid === c.userId));
+      
       const processed: Comment = {
         ...c,
-        isOwner: !!(user && (user.email === c.userEmail || user.uid === c.userId)),
+        isOwner,
         isEditing: false,
         editedText: isDeleted ? '' : c.commentText,
         showSpoiler: false,
         username: c.username || 'Usuario',
-        avatarUrl: c.avatarUrl,
+        // Orion: Si es el dueño, priorizamos el avatar del objeto user reactivo
+        avatarUrl: (isOwner && user) ? (user.avatarUrl || c.avatarUrl) : c.avatarUrl,
         isDeleted: isDeleted ? true : false,
         isAdminComment: !!c.isAdminComment,
         children: []
@@ -99,6 +106,27 @@
   let showAllComments = $state(false);
 
   let cooldownRemaining = $state(0);
+
+  // Orion: Recuperar cooldown persistente inmediatamente al cargar el script
+  if (typeof window !== 'undefined') {
+      const lastCommentTime = localStorage.getItem('babylon_last_comment_ts');
+      if (lastCommentTime) {
+          const elapsed = Math.floor((Date.now() - parseInt(lastCommentTime)) / 1000);
+          if (elapsed < 30) {
+              cooldownRemaining = 30 - elapsed;
+              const timer = setInterval(() => {
+                  cooldownRemaining--;
+                  if (cooldownRemaining <= 0) {
+                      clearInterval(timer);
+                      localStorage.removeItem('babylon_last_comment_ts');
+                  }
+              }, 1000);
+          } else {
+              localStorage.removeItem('babylon_last_comment_ts');
+          }
+      }
+  }
+
   let isFocused = $state(false);
   let votingIds = $state(new Set<number>());
 
@@ -148,15 +176,16 @@
     }
   }
 
-  onMount(() => {
+  onMount(async () => {
+      // Orion: Sincronizar store al montar para capturar cambios hechos en otras páginas (ej: Profile)
+      if (userStore.user) {
+          userStore.sync();
+      }
+
       const handleAuthSuccess = async () => {
           try {
-              const res = await fetch('/api/auth/status');
-              if (res.ok) {
-                  const newUser = await res.json();
-                  user = newUser;
-                  toast.success('Sesión sincronizada');
-              }
+              // Si el evento de login ocurre, forzamos un refresh del store si fuera necesario
+              // pero onAuthStateChanged en userStore ya debería capturarlo.
           } catch {
               console.error('Error syncing auth');
           }
@@ -177,12 +206,21 @@
   const isEdited = (comment: Comment) => {
       if (!comment.updatedAt || !comment.createdAt) return false;
       const normalize = (d: string) => {
-          if (!d.includes('T') && !d.endsWith('Z')) return d.replace(' ', 'T') + 'Z';
-          return d;
+          if (typeof d !== 'string') return new Date(d).getTime();
+          // Orion: Normalizar formato SQLite a ISO para que JS no se confunda
+          let clean = d;
+          if (!d.includes('T') && !d.endsWith('Z')) {
+              clean = d.replace(' ', 'T') + 'Z';
+          }
+          return new Date(clean).getTime();
       };
-      const created = new Date(normalize(comment.createdAt)).getTime();
-      const updated = new Date(normalize(comment.updatedAt)).getTime();
-      return updated > (created + 10000);
+      
+      const created = normalize(comment.createdAt);
+      const updated = normalize(comment.updatedAt);
+      
+      // Orion: Si la diferencia es mayor a 2 segundos, se considera editado
+      // Reducimos de 10s a 2s para mayor precisión en D1
+      return updated > (created + 2000);
   };
 
   const getAvatarColor = (identifier: string) => {
@@ -239,8 +277,9 @@
         ...newC,
         isOwner: true,
         isNew: true,
+        isAdminComment: !!user.isAdmin,
         username: user.username || user.displayName || 'Usuario',
-        avatarUrl: user.photoURL || user.avatarUrl || undefined,
+        avatarUrl: user.avatarUrl || undefined,
         children: []
       };
 
@@ -271,10 +310,16 @@
       
       sortNodes(comments);
 
+      // Orion: Guardar timestamp para cooldown persistente
+      localStorage.setItem('babylon_last_comment_ts', Date.now().toString());
+      
       cooldownRemaining = 30;
       const timer = setInterval(() => {
         cooldownRemaining--;
-        if (cooldownRemaining <= 0) clearInterval(timer);
+        if (cooldownRemaining <= 0) {
+            clearInterval(timer);
+            localStorage.removeItem('babylon_last_comment_ts');
+        }
       }, 1000);
       toast.success('¡Comentario publicado!');
     } catch {
@@ -333,18 +378,29 @@
               for (const node of nodes) {
                   if (node.id === commentId) {
                       node.isDeleted = true;
+                      // Orion: Preservamos los estados de identidad y novedad
+                      const wasNew = node.isNew;
+                      const wasOwner = node.isOwner;
+                      const wasAdmin = node.isAdminComment;
+
                       if (!user?.isAdmin) {
                         node.commentText = '[Comentario eliminado]';
                         node.username = 'Usuario';
                         node.avatarUrl = undefined;
-                        node.isOwner = false;
                       }
+                      
+                      // Reforzamos la permanencia de los badges
+                      node.isNew = wasNew;
+                      node.isOwner = wasOwner;
+                      node.isAdminComment = wasAdmin;
                       return;
                   }
                   if (node.children) updateInTree(node.children);
               }
           };
           updateInTree(comments);
+          // Orion: Forzamos re-asignación para disparar la reactividad de Svelte 5
+          comments = [...comments];
 
           window.dispatchEvent(new CustomEvent('comment-count-change', { 
             detail: { count: comments.length, targetId, targetType } 
@@ -410,8 +466,8 @@
     {#if user}
         <form class="compose-card" onsubmit={handleSubmit} class:focused={isFocused} transition:slide>
             <div class="avatar-area">
-                 {#if user.photoURL || user.avatarUrl}
-                    <img src={user.photoURL || user.avatarUrl} alt="Yo" class="avatar-img" />
+                 {#if user.avatarUrl}
+                    <img src={user.avatarUrl} alt="Yo" class="avatar-img" />
                  {:else}
                     <div class="avatar-placeholder" style="background: {getAvatarColor(user.uid || user.email || 'U')}">
                         {getInitials(user.username || user.displayName || user.email || 'U')}
@@ -466,8 +522,8 @@
                                 <div class="avatar-placeholder" style="background: #333">?</div>
                             {:else}
                                 <a href={`/u/${node.username}`} class="avatar-link">
-                                    {#if node.avatarUrl}
-                                        <img src={node.avatarUrl} alt={node.username} class="avatar-img" />
+                                    {#if node.avatarUrl && node.avatarUrl.length > 5}
+                                        <img src={node.avatarUrl} alt={node.username} class="avatar-img" loading="lazy" />
                                     {:else}
                                         <div class="avatar-placeholder" style="background: {getAvatarColor(node.userId || node.username || 'A')}">
                                             {getInitials(node.username || 'A')}
@@ -496,7 +552,7 @@
                                     <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" style="margin-right: 2px;"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"></path></svg>
                                     Staff
                                 </span>{/if}
-                                {#if node.isNew && !node.isDeleted}<span class="badge-new">Nuevo</span>{/if}
+                                {#if node.isNew}<span class="badge-new">Nuevo</span>{/if}
                                 {#if node.isPinned}<span class="badge-pinned">
                                     <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" style="margin-right: 2px;"><path d="M16 9V4l1 0c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1l1 0v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"></path></svg>
                                     Fijado
@@ -511,10 +567,12 @@
                             <div class="meta-right">
                                 <span class="time-ago">
                                     {formatCommentDateClient(node.createdAt)}
-                                    {#if isEdited(node)}
-                                        <span class="edited-text"> | (editado {timeAgo(node.updatedAt!)})</span>
-                                    {/if}
                                 </span>
+                                {#if isEdited(node) && !node.isDeleted}
+                                    <span class="edited-badge" title={`Original: ${formatCommentDateClient(node.createdAt)}`}>
+                                        (editado {timeAgo(node.updatedAt!)})
+                                    </span>
+                                {/if}
                             </div>
                         </div>
 
@@ -780,7 +838,7 @@
     }
 
     .avatar-img, .avatar-placeholder {
-        width: 36px; height: 32px;
+        width: 36px; height: 36px;
         border-radius: 50%; object-fit: cover;
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
@@ -884,7 +942,7 @@
         display: flex; align-items: center;
         border: 1px solid rgba(239, 68, 68, 0.2);
     }
-    .meta-right { font-size: 0.75rem; color: var(--c-text-tertiary); display: flex; gap: 0.4rem; }
+    .meta-right { font-size: 0.75rem; color: var(--c-text-tertiary); display: flex; align-items: center; gap: 0.4rem; }
 
     .comment-body {
         font-size: 0.9rem; line-height: 1.5; color: #d1d5db;
@@ -930,7 +988,17 @@
         flex-wrap: wrap; 
     }
 
-    .edited-text { color: var(--c-text-tertiary); font-size: 0.75rem; font-style: normal; }
+    .edited-badge { 
+        font-size: 0.65rem; 
+        color: var(--c-text-tertiary); 
+        opacity: 0.6;
+        font-style: italic;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 1px 6px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        user-select: none;
+    }
 
     .action-buttons-group .action-btn {
         background: transparent; 

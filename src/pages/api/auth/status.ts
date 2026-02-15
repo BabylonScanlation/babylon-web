@@ -1,14 +1,47 @@
 import type { APIRoute } from 'astro';
+import { getDB } from '../../../lib/db';
+import { users, userRoles } from '../../../db/schema';
+import { eq } from 'drizzle-orm';
 
 export const GET: APIRoute = async ({ locals }) => {
-  // Nos aseguramos de que siempre devuelva un objeto válido para evitar SyntaxError: JSON.parse
-  const userData = locals.user || null;
+  const user = locals.user;
   
-  return new Response(JSON.stringify(userData), {
-    headers: { 
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-store, max-age=0'
-    },
-    status: 200
-  });
+  if (!user || !user.uid) {
+    return new Response(JSON.stringify(null), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 200
+    });
+  }
+
+  try {
+    const db = getDB(locals.runtime.env);
+    // Orion: Buscamos el usuario y su rol en D1
+    const dbUser = await db.select().from(users).where(eq(users.id, user.uid)).get();
+    const roleData = await db.select().from(userRoles).where(eq(userRoles.userId, user.uid)).get();
+    
+    const isAdmin = roleData?.role === 'admin' || user.isAdmin;
+
+    const enrichedUser = {
+      ...user,
+      username: dbUser?.username || user.username,
+      displayName: dbUser?.displayName || user.displayName,
+      avatarUrl: dbUser?.avatarUrl,
+      isAdmin: !!isAdmin,
+      isNsfw: dbUser?.isNsfw || user.isNsfw
+    };
+
+    return new Response(JSON.stringify(enrichedUser), {
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0'
+      },
+      status: 200
+    });
+  } catch (error) {
+    console.error('[API Status] Error:', error);
+    return new Response(JSON.stringify(user), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 200
+    });
+  }
 };

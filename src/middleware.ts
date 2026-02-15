@@ -53,6 +53,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return next();
   }
 
+  // Orion: Lista negra de bots y scrapers (Protección de contenido e IA)
+  const blockedBots = [
+    'gptbot', 'chatgpt', 'openai', 'anthropic', 'claude', 'google-batch', 'bingbot',
+    'ccbot', 'bytespider', 'megaindex', 'dotbot', 'mj12bot', 'semrushbot', 'ahrefsbot',
+    'python-requests', 'node-fetch', 'axios', 'go-http-client', 'curl', 'wget',
+    'pandalytics', 'headlesschrome', 'selenium', 'puppeteer', 'playwright'
+  ];
+
   // Regla 1: Bloquear si coincide con la lista negra (EXCEPTO para la API de caché de imágenes y assets)
   if (!currentPath.startsWith('/api/r2-cache/') && !currentPath.startsWith('/api/assets/') && blockedBots.some(bot => lowerUA.includes(bot))) {
     return new Response(getBlockedHTML('Automated Traffic Detected', 'System'), { status: 403, headers: { 'Content-Type': 'text/html' } });
@@ -76,7 +84,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         email: payload.email,
         username: payload.username || undefined,
         displayName: payload.displayName || undefined,
-        photoURL: undefined, // El JWT no tiene avatar por ahora para ahorrar bytes
+        avatarUrl: undefined, // El JWT no tiene avatar por ahora para ahorrar bytes
         emailVerified: false,
         isAdmin: payload.role === 'admin' || payload.uid === runtime.env.SUPER_ADMIN_UID,
         isNsfw: payload.isNsfw,
@@ -138,7 +146,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
           email: result.user.email,
           username: result.user.username || undefined,
           displayName: result.user.displayName || undefined,
-          photoURL: result.user.avatarUrl || undefined,
+          avatarUrl: result.user.avatarUrl || undefined,
           emailVerified: false,
           isAdmin: !!isAdmin,
           isNsfw: result.user.isNsfw ?? false,

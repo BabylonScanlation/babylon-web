@@ -617,11 +617,12 @@
   }
 
   .reader-container {
-    margin: 0 auto;
+    margin: 0 auto !important;
     background: transparent; /* Astra: Transparencia total */
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    align-items: center; /* Astra: Centrado de imágenes hijas */
     position: relative;
     z-index: 1;
   }
@@ -630,6 +631,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: 100%; /* Astra: Asegurar que ocupe todo el ancho del container */
   }
 
   .page-frame {
@@ -690,6 +692,13 @@
   }
 
   /* Floating HUD */
+  :global(.floating-hud.visible) {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: translateX(-50%) translateY(0) !important;
+  }
+
   .floating-hud {
     position: fixed;
     bottom: 2rem;
@@ -699,9 +708,16 @@
     width: 90%;
     max-width: 650px;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    visibility: hidden;
+    opacity: 0;
   }
 
-  .floating-hud.hidden { transform: translateX(-50%) translateY(100px); opacity: 0; }
+  .floating-hud.hidden { 
+    transform: translateX(-50%) translateY(100px); 
+    opacity: 0; 
+    visibility: hidden;
+    pointer-events: none;
+  }
 
   .hud-glass {
     background: rgba(20, 20, 20, 0.7);
@@ -845,10 +861,12 @@
     background: rgba(255, 255, 255, 0.02);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 3rem;
+    padding: 3rem 2rem; 
     border-radius: 32px;
     text-align: center;
-    width: 320px;
+    width: 90%;
+    max-width: 320px;
+    height: auto;
   }
 
   .loader-visual {
@@ -876,10 +894,11 @@
 
   .loader-info {
     position: relative;
-    height: 140px; 
+    min-height: 160px; 
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    gap: 0.5rem;
   }
 
   .main-loading-text { 
@@ -971,7 +990,8 @@
   }
 
   .cancel-load-btn {
-    margin-top: 2rem;
+    margin-top: 2.5rem;
+    margin-bottom: 0.5rem;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.15);
     color: #aaa;
