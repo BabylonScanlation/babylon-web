@@ -1,19 +1,11 @@
-Sitemap: https://babylon-scanlation.pages.dev/sitemap-index.xml
+Sitemap: https://babylon-scanlation.pages.dev/sitemap-dynamic.xml
 
 User-agent: *
-Allow: /sitemap-index.xml
-Allow: /sitemap-0.xml
-Allow: /sitemap-dynamic.xml
 Allow: /
+Allow: /sitemap-dynamic.xml
 
-# APIs públicas
-Allow: /api/news/*
-Allow: /api/series/*
-Allow: /api/chapters/*
-Allow: /api/assets/*
-
-Disallow: /admin
-Disallow: /admin/*
-Disallow: /api/admin/*
-Disallow: /api/user/*
-Disallow: /verify
+# Bloquear solo lo privado
+Disallow: /admin/
+Disallow: /api/admin/
+Disallow: /api/user/
+Disallow: /verify/
