@@ -1,7 +1,7 @@
-Sitemap: https://babylon-scanlation.pages.dev/sitemap.xml?v=2
+Sitemap: https://babylon-scanlation.pages.dev/sitemap.xml
 
 User-agent: *
-Allow: /sitemap.xml*
+Allow: /sitemap.xml
 Allow: /
 
 Allow: /api/news/*
