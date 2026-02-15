@@ -31,7 +31,5 @@ export default defineConfig({
     }
   },
 
-  integrations: [svelte(), sitemap({
-    index: false
-  })],
+  integrations: [svelte()],
 });
