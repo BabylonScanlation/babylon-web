@@ -44,12 +44,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const lowerUA = userAgent.toLowerCase();
   
   // Orion: Excepción para Googlebot y herramientas de Google (Imprescindible para SEO)
-  const isGoogle = lowerUA.includes('googlebot') || 
-                   lowerUA.includes('google-site-verification') || 
-                   lowerUA.includes('googleother') ||
-                   lowerUA.includes('mediapartners-google') ||
-                   lowerUA.includes('adsbot-google') ||
-                   lowerUA.includes('google-inspectiontool'); // Nueva herramienta de inspección
+  const isGoogle = lowerUA.includes('google'); // Mucho más permisivo: bot, fetcher, ads, etc.
 
   if (country && blacklistedCountries.includes(country) && !isGoogle) {
     return new Response(getBlockedHTML(`Restricted Region (${country})`, country), {

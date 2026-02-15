@@ -5,6 +5,7 @@ import cloudflare from '@astrojs/cloudflare';
 import svelte from '@astrojs/svelte';
 
 export default defineConfig({
+  site: 'https://babylon-scanlation.pages.dev',
   output: 'server',
 
   adapter: cloudflare({
