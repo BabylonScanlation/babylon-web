@@ -70,6 +70,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const currentPath = context.url.pathname;
 
+  // Orion: Bypass total para sitemaps y archivos XML
+  if (currentPath.endsWith('.xml')) {
+    return next();
+  }
+
   // Regla 1: Bloquear si coincide con la lista negra (EXCEPTO para la API de caché de imágenes y assets)
   if (!currentPath.startsWith('/api/r2-cache/') && !currentPath.startsWith('/api/assets/') && blockedBots.some(bot => lowerUA.includes(bot))) {
     return new Response(getBlockedHTML('Automated Traffic Detected', 'System'), { status: 403, headers: { 'Content-Type': 'text/html' } });
