@@ -3,8 +3,8 @@ import { series, chapters } from '../db/schema';
 import { eq, and, inArray, desc } from 'drizzle-orm';
 import type { APIRoute } from 'astro';
 
-export const GET: APIRoute = async ({ locals }) => {
-  const siteUrl = 'https://babylon-scanlation.pages.dev';
+export const GET: APIRoute = async ({ locals, url }) => {
+  const siteUrl = url.origin;
   const db = getDB(locals.runtime.env);
   
   const recentChapters = await db.select({
@@ -30,13 +30,13 @@ export const GET: APIRoute = async ({ locals }) => {
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>`).join('')}
-</urlset>`;
+</urlset>`.trim();
 
-  return new Response(xml.trim(), {
+  return new Response(xml, {
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
       'X-Content-Type-Options': 'nosniff',
-      'Cache-Control': 'public, max-age=0, must-revalidate'
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
     }
   });
 };

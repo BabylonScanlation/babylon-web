@@ -51,7 +51,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
 
     <!-- Breadcrumbs JSON-LD -->
-    <script type="application/ld+json" is:inline set:html={JSON.stringify({
+    <script type="application/ld+json" is:inline set:html={`{
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       "itemListElement": [
@@ -59,16 +59,15 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           "@type": "ListItem",
           "position": 1,
           "name": "Inicio",
-          "item": siteUrl
-        },
-        ...Astro.url.pathname.split('/').filter(Boolean).map((part, i, arr) => ({
+          "item": "${siteUrl}"
+        }${Astro.url.pathname.split('/').filter(Boolean).length > 0 ? ',' + Astro.url.pathname.split('/').filter(Boolean).map((part, i, arr) => JSON.stringify({
           "@type": "ListItem",
           "position": i + 2,
           "name": part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' '),
           "item": `${siteUrl}/${arr.slice(0, i + 1).join('/')}`
-        }))
+        })).join(',') : ''}
       ]
-    })} />
+    }`} />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
