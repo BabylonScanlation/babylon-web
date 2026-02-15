@@ -6,7 +6,6 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-/sitemap.xml
+/google-sitemap.xml
   Content-Type: text/xml; charset=utf-8
-  Cache-Control: public, max-age=0, no-cache, no-store, must-revalidate
-  X-Content-Type-Options: none
+  Cache-Control: no-cache, no-store, must-revalidate

@@ -1,9 +1,11 @@
-Sitemap: https://babylon-scanlation.pages.dev/sitemap.xml
+Sitemap: https://babylon-scanlation.pages.dev/google-sitemap.xml
 
 User-agent: *
-Allow: /sitemap.xml
+Disallow: /sitemap.xml
+Allow: /google-sitemap.xml
 Allow: /
 
+# APIs públicas
 Allow: /api/news/*
 Allow: /api/series/*
 Allow: /api/chapters/*
