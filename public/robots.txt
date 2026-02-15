@@ -1,8 +1,7 @@
-Sitemap: https://babylon-scanlation.pages.dev/sitemap-index.xml
+Sitemap: https://babylon-scanlation.pages.dev/sitemap.xml
 
 User-agent: *
-Allow: /sitemap-index.xml
-Allow: /sitemap-0.xml
+Allow: /sitemap.xml
 Allow: /
 
 # Permitir APIs públicas
