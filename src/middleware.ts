@@ -44,34 +44,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const lowerUA = userAgent.toLowerCase();
   
   // Orion: Excepción para Googlebot y herramientas de Google (Imprescindible para SEO)
-  const isGoogle = lowerUA.includes('google'); // Mucho más permisivo: bot, fetcher, ads, etc.
-
-  if (country && blacklistedCountries.includes(country) && !isGoogle) {
-    return new Response(getBlockedHTML(`Restricted Region (${country})`, country), {
-      status: 403,
-      headers: {
-        'Content-Type': 'text/html',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
-  }
-
-  const blockedBots = [
-    // China / Asia
-    'deepseek', 'qwen', 'tongyi', 'alibaba', 'aliyun', 'bytespider', 'bytedance', 'baiduspider', 'yisouspider',
-    // US / Global AI
-    'gptbot', 'chatgpt', 'google-extended', 'googleother', 'claudebot', 'anthropic', 'ccbot', 'perplexity', 'amazonbot', 'facebookbot', 'diffbot', 'pinterestbot', 'applebot',
-    // Herramientas de Scraping Genéricas y Automatización
-    'python', 'curl', 'wget', 'go-http-client', 'scrapy', 'java', 'axios', 'aiohttp', 'libwww-perl',
-    'headless', 'playwright', 'puppeteer', 'selenium', 'webdriver', 'chrome-lighthouse'
-  ];
+  const isGoogle = lowerUA.includes('google') || lowerUA.includes('sitemaps'); 
 
   const currentPath = context.url.pathname;
 
-  // Orion: Bypass total para sitemaps y archivos XML
-  if (currentPath.endsWith('.xml')) {
+  // Orion: Bypass total para sitemaps y archivos XML - PRIORIDAD MÁXIMA
+  if (currentPath.endsWith('.xml') || currentPath.includes('sitemap')) {
     return next();
   }
 
