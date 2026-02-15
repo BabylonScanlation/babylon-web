@@ -34,9 +34,8 @@ export const GET: APIRoute = async ({ locals, url }) => {
 
   return new Response(xml, {
     headers: {
-      'Content-Type': 'application/xml; charset=utf-8',
-      'X-Content-Type-Options': 'nosniff',
-      'Cache-Control': 'no-cache, no-store, must-revalidate'
+      'Content-Type': 'text/xml; charset=utf-8',
+      'Cache-Control': 'public, s-maxage=0, must-revalidate'
     }
   });
 };

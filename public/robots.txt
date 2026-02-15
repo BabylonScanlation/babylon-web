@@ -1,12 +1,25 @@
 Sitemap: https://babylon-scanlation.pages.dev/sitemap-index.xml
 
 User-agent: *
-Allow: /sitemap-index.xml
-Allow: /sitemap-series.xml
-Allow: /sitemap-chapters.xml
-Allow: /
+# Permitir Sitemaps
+Allow: /sitemap*.xml
 
+# Permitir APIs públicas necesarias para el renderizado visual
+Allow: /api/news/*
+Allow: /api/series/*
+Allow: /api/chapters/*
+Allow: /api/assets/*
+Allow: /api/view
+Allow: /api/chapters/view
+
+# Permitir recursos estáticos
+Allow: /_astro/*
+Allow: /favicon.svg
+Allow: /js/*
+
+# Bloquear áreas sensibles
 Disallow: /admin
 Disallow: /admin/*
-Disallow: /api/*
+Disallow: /api/admin/*
+Disallow: /api/user/*
 Disallow: /verify
