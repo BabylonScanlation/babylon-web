@@ -31,5 +31,12 @@ export default defineConfig({
     }
   },
 
-  integrations: [svelte()],
+  integrations: [
+    svelte(), 
+    sitemap({
+      customPages: [
+        'https://babylon-scanlation.pages.dev/sitemap-dynamic.xml'
+      ]
+    })
+  ],
 });
