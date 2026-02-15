@@ -1,8 +1,7 @@
-// astro.config.mjs
 import { defineConfig } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
-
 import svelte from '@astrojs/svelte';
+import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
   site: 'https://babylon-scanlation.pages.dev',
@@ -32,5 +31,5 @@ export default defineConfig({
     }
   },
 
-  integrations: [svelte()],
+  integrations: [svelte(), sitemap()],
 });
