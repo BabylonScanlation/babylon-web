@@ -84,12 +84,24 @@ export const onRequest = defineMiddleware(async (context, next) => {
         email: payload.email,
         username: payload.username || undefined,
         displayName: payload.displayName || undefined,
-        avatarUrl: undefined, // El JWT no tiene avatar por ahora para ahorrar bytes
+        avatarUrl: undefined, 
         emailVerified: false,
         isAdmin: payload.role === 'admin' || payload.uid === runtime.env.SUPER_ADMIN_UID,
         isNsfw: payload.isNsfw,
       } as any;
     }
+  }
+
+  // --- Orion: Asset Optimization (Ultra Fast-Path) ---
+  // Si es un asset o una ruta de caché, NO consultamos D1 bajo ninguna circunstancia.
+  // Confiamos solo en el JWT o tratamos como invitado.
+  const isAssetPath = currentPath.startsWith('/api/r2-cache/') || 
+                     currentPath.startsWith('/api/assets/') || 
+                     currentPath.startsWith('/js/') ||
+                     currentPath.startsWith('/_astro');
+
+  if (isAssetPath || isGoogle) {
+    return next();
   }
 
   // Si ya tenemos usuario por JWT, saltamos la consulta a D1
