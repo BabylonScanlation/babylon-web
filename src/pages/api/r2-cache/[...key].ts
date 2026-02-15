@@ -55,7 +55,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   try {
     // 1. INTENTO DESDE R2 (Cache Hit)
     const etag = request.headers.get('If-None-Match');
-    let object = await R2_CACHE.get(key, {
+    const object = await R2_CACHE.get(key, {
       onlyIf: etag ? { etagMatches: etag } : undefined,
     });
 

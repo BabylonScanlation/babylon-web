@@ -3,7 +3,7 @@ import { series, chapters } from '../db/schema';
 import { eq, and, inArray, desc } from 'drizzle-orm';
 import type { APIRoute } from 'astro';
 
-export const GET: APIRoute = async ({ locals, url }) => {
+export const GET: APIRoute = async ({ locals }) => {
   const siteUrl = 'https://babylon-scanlation.pages.dev';
   const db = getDB(locals.runtime.env);
   
