@@ -1,4 +1,5 @@
 ---
+import { siteConfig } from '../site.config';
 const currentYear = new Date().getFullYear();
 const { runtime } = Astro.locals;
 const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
@@ -13,26 +14,23 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
       <div class="footer-brand">
         <a href="/" class="footer-logo">
           <img
-            src={`${r2PublicUrlAssets}/iconpage/babylon-logo-2.webp`}
-            alt="Babylon Logo"
+            src={siteConfig.assets.logoHeader.startsWith('/') ? `${r2PublicUrlAssets}${siteConfig.assets.logoHeader}` : siteConfig.assets.logoHeader}
+            alt={`${siteConfig.name} Logo`}
             class="logo-img"
           />
         </a>
         <p class="brand-description">
-          Tu destino definitivo para el mejor contenido manga y manhwa. Calidad premium, velocidad incomparable y una comunidad vibrante.
+          {siteConfig.description}
         </p>
         <div class="social-pills">
-          <a href="https://www.discord.gg/TpYcuqY7EV" class="social-pill discord" aria-label="Discord">
+          <a href={siteConfig.links.discord} class="social-pill discord" aria-label="Discord">
             <img src="https://cdn.simpleicons.org/discord/white" alt="" width="20" height="20" />
           </a>
-          <a href="https://www.twitter.com/BabylonScan" class="social-pill x-twitter" aria-label="X (Twitter)">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <a href={siteConfig.links.telegram} class="social-pill telegram" aria-label="Telegram">
+             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18.717-3.956 16.517-3.956 16.517s-.11.458-.55.458c-.33 0-.58-.18-.58-.18l-5.61-4.14-2.82 2.76s-.22.24-.46.24c-.22 0-.42-.18-.42-.18s-.06-.24-.02-.74l.95-6.52L2.04 12.38s-.36-.18-.36-.54c0-.33.36-.51.36-.51l16.14-6.22s.36-.12.57-.12c.24 0 .44.18.44.18s.11.18.06.51z"/></svg>
           </a>
-          <a href="https://www.facebook.com/people/De-Todo-Un-Poco-Scan/100089537409290/" class="social-pill facebook" aria-label="Facebook">
+          <a href="#" class="social-pill facebook" aria-label="Facebook">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M22.675 0h-21.35C.585 0 0 .585 0 1.325v21.351C0 23.415.585 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.74 0 1.325-.585 1.325-1.325V1.325C24 .585 23.415 0 22.675 0z"/></svg>
-          </a>
-          <a href="#" class="social-pill patreon" aria-label="Patreon">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M15.385 1.224c-3.99 0-7.227 3.238-7.227 7.228s3.237 7.228 7.227 7.228c3.99 0 7.227-3.238 7.227-7.228S19.375 1.224 15.385 1.224zM2.625 1.224H.11v21.552h2.515V1.224z"/></svg>
           </a>
         </div>
       </div>
@@ -58,10 +56,10 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
 
       <!-- Sección App -->
       <div class="footer-cta">
-        <h4 class="footer-title">Babylon Mobile</h4>
+        <h4 class="footer-title">{siteConfig.shortName} Mobile</h4>
         <p>Lleva tus series favoritas a todas partes. Descarga nuestra aplicación oficial para Android y disfruta de la mejor experiencia.</p>
         <div class="app-download-container">
-          <a href={`${r2PublicUrlAssets}/babylonweb-app/DtupScan.apk`} class="download-btn-premium" download>
+          <a href={siteConfig.app.androidUrl} class="download-btn-premium" download>
             <div class="btn-icon">
               <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M17.523 15.3414C17.523 14.8606 17.1332 14.4709 16.6524 14.4709C16.1716 14.4709 15.7819 14.8606 15.7819 15.3414C15.7819 15.8222 16.1716 16.2119 16.6524 16.2119C17.1332 16.2119 17.523 15.8222 17.523 15.3414ZM8.2181 16.2119C8.69888 16.2119 9.08862 15.8222 9.08862 15.3414C9.08862 14.8606 8.69888 14.4709 8.2181 14.4709C7.73733 14.4709 7.34758 14.8606 7.34758 15.3414C7.34758 15.8222 7.73733 16.2119 8.2181 16.2119ZM17.9835 11.5831L19.7913 8.45198C19.914 8.2394 19.8413 7.96733 19.6287 7.84462C19.4161 7.72191 19.1441 7.79463 19.0214 8.00721L17.1856 11.1861C15.711 10.5126 14.054 10.1245 12.3002 10.1245C10.5465 10.1245 8.88944 10.5126 7.41488 11.1861L5.57902 8.00721C5.45631 7.79463 5.18424 7.72191 4.97166 7.84462C4.75908 7.96733 4.68636 8.2394 4.80907 8.45198L6.61692 11.5831C3.68414 13.1813 1.7041 16.2346 1.64746 19.7755H22.953C22.8964 16.2346 20.9163 13.1813 17.9835 11.5831Z"/></svg>
             </div>
@@ -78,9 +76,9 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
       <div class="bottom-content">
         <div class="bottom-left">
           <p class="copyright">
-            &copy; {currentYear} <span class="accent-text">Babylon</span>. Hecho por fans, para fans.
+            &copy; {currentYear} <span class="accent-text">{siteConfig.shortName}</span>. Hecho por fans, para fans.
           </p>
-          <p class="credits">Hecho con ❤️ por <span class="author-name">Lucas Goldstein.</span></p>
+          <p class="credits">Hecho con ❤️ por <span class="author-name">{siteConfig.author}.</span></p>
         </div>
         
         <div class="bottom-meta">

@@ -1,6 +1,7 @@
 import { createApiRoute } from '../../../../lib/api';
 import { series } from '../../../../db/schema';
 import { logError } from '../../../../lib/logError';
+import { siteConfig } from '../../../../site.config';
 
 export const POST = createApiRoute({ auth: 'admin' }, async ({ request, locals }) => {
   const env = locals.runtime.env;
@@ -26,7 +27,8 @@ export const POST = createApiRoute({ auth: 'admin' }, async ({ request, locals }
     // Lógica de subida de imagen
     if (coverImageFile && coverImageFile instanceof File) {
       const fileExt = coverImageFile.name.split('.').pop() || 'jpg';
-      const fileName = `covers/${slug}-${Date.now()}.${fileExt}`;
+      const folder = siteConfig.folders.covers;
+      const fileName = `${folder}/${slug}-${Date.now()}.${fileExt}`;
       
       await env.R2_ASSETS.put(fileName, await coverImageFile.arrayBuffer(), {
         httpMetadata: { contentType: coverImageFile.type }
@@ -35,8 +37,8 @@ export const POST = createApiRoute({ auth: 'admin' }, async ({ request, locals }
       // Orion: Store relative path
       coverImageUrl = fileName;
     } else if (!coverImageUrl) {
-      // Si no hay archivo ni URL, usar placeholder (ruta relativa)
-      coverImageUrl = 'covers/placeholder-cover.jpg';
+      // Si no hay archivo ni URL, usar placeholder (ruta relativa quitando el primer /)
+      coverImageUrl = siteConfig.assets.placeholderCover.replace(/^\//, '');
     }
 
     const status = formData.get('status')?.toString() || null;

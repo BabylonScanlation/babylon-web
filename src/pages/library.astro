@@ -1,9 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import LibraryManager from '../components/LibraryManager.svelte';
+import { siteConfig } from '../site.config';
 ---
 
-<Layout title="Mi Biblioteca - Babylon">
+<Layout title={`Mi Biblioteca - ${siteConfig.shortName}`}>
   <main class="library-page-container">
     <div class="library-header">
       <h1>Mi Biblioteca</h1>

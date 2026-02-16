@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import Turnstile from './Turnstile.svelte';
+  import { siteConfig } from '../site.config';
 
   // --- Runes Svelte 5 ---
   let isVerified = $state(false);
@@ -80,12 +81,12 @@
     <div class="gate-card" in:fly={{ y: 30, duration: 600, delay: 100 }}>
       <div class="logo-area">
         <div class="logo-wrapper">
-          <img src="/favicon.svg" alt="Babylon Logo" width="80" height="80" />
+          <img src={siteConfig.assets.logo} alt={`${siteConfig.name} Logo`} width="80" height="80" />
         </div>
       </div>
       
       <div class="content-area">
-        <h1>Bienvenido a Babylon</h1>
+        <h1>Bienvenido a {siteConfig.shortName}</h1>
         <p class="subtitle">Confirma que eres mayor de edad y aceptas nuestros términos y condiciones para continuar.</p>
 
         <div class="checks-area">
@@ -244,8 +245,8 @@
   }
 
   .checkbox-container input:checked + .custom-checkbox {
-    background-color: var(--accent-color, #00bfff);
-    border-color: var(--accent-color, #00bfff);
+    background-color: var(--accent-color, var(--accent-color));
+    border-color: var(--accent-color, var(--accent-color));
     box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
   }
 
@@ -254,7 +255,7 @@
   }
 
   .label-text a {
-    color: var(--accent-color, #00bfff);
+    color: var(--accent-color, var(--accent-color));
     text-decoration: none;
     font-weight: 600;
   }
@@ -274,7 +275,7 @@
     margin-top: 1rem;
     font-size: 0.7rem;
     font-weight: 700;
-    color: #00bfff;
+    color: var(--accent-color);
     background: rgba(0, 191, 255, 0.1);
     padding: 4px 12px;
     border-radius: 100px;
@@ -283,7 +284,7 @@
 
   .enter-btn {
     position: relative;
-    background: linear-gradient(135deg, var(--accent-color, #00bfff) 0%, #0077ff 100%);
+    background: linear-gradient(135deg, var(--accent-color, var(--accent-color)) 0%, #0077ff 100%);
     color: #fff;
     border: none;
     padding: 1.1rem;

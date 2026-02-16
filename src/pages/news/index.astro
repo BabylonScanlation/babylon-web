@@ -19,6 +19,7 @@ const newsItems = await getNewsList(drizzleDb);
       {
         newsItems.length === 0 ? (
           <div class="empty-news">
+            <div class="news-image-placeholder">{SITE_TITLE} News</div>
             <p>No hay noticias publicadas aún.</p>
           </div>
         ) : (
@@ -42,7 +43,7 @@ const newsItems = await getNewsList(drizzleDb);
                       loading="lazy"
                     />
                   ) : (
-                    <div class="news-image-placeholder">Babylon News</div>
+                    <div class="news-image-placeholder">{SITE_TITLE} News</div>
                   )}
                   <div class="read-overlay">
                     <span>¿Leer noticia?</span>
@@ -112,19 +113,34 @@ const newsItems = await getNewsList(drizzleDb);
   .news-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 2rem; /* Espacio de revista */
-    padding: 0 2rem 0; /* Astra: Padding lateral restaurado, inferior eliminado */
+    gap: 2.5rem;
+    padding: 0 1.5rem 4rem;
     width: 100%;
-    max-width: 1600px; /* Astra: Restaurado ancho máximo para confort visual */
+    max-width: 1400px;
     margin: 0 auto;
+    justify-content: center; /* Astra: Centrado del grid */
   }
 
   /* NUEVO: Wrapper Estático */
   .news-card-wrapper {
     position: relative;
     z-index: 1;
-    /* Ocupa la celda del grid */
     height: 100%;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto; /* Astra: Forzar centrado individual */
+  }
+
+  @media (max-width: 768px) {
+    .news-grid {
+      grid-template-columns: 1fr; /* Una sola columna limpia */
+      padding: 0 1rem 3rem;
+      gap: 2rem;
+      justify-items: center; /* Astra: Centrado de columna única */
+    }
+    .news-card-wrapper {
+      max-width: 100%; /* Ocupar el ancho disponible centrado */
+    }
   }
 
   /* Modificado: Elemento Interno Visual */

@@ -6,6 +6,7 @@ import { getDB } from '../../lib/db';
 import { getCommentsForTarget } from '../../lib/data/comments';
 import { getNewsDetail } from '../../lib/data/news';
 import type { Comment } from '../../types';
+import { siteConfig } from '../../site.config';
 
 const { id } = Astro.params;
 if (!id) return Astro.redirect('/404');
@@ -23,14 +24,14 @@ if (!newsItem) {
 const initialComments = await getCommentsForTarget(drizzleDb, 'news', id, user?.uid) as Comment[];
 ---
 
-<Layout title={`${newsItem.title} - Noticias - ${SITE_TITLE}`}>
+<Layout title={`${newsItem.title} - Noticias - ${siteConfig.shortName}`}>
   <main class="news-detail-container">
     <!-- Artículo Principal -->
     <article class="news-article">
       <div class="news-header">
         <h1 class="news-title">{newsItem.title}</h1>
         <div class="news-meta">
-          <span class="news-author">Por <span class="highlight">{newsItem.authorName || 'Redacción Babylon'}</span></span>
+          <span class="news-author">Por <span class="highlight">{newsItem.authorName || `Redacción ${siteConfig.shortName}`}</span></span>
           <span class="separator">•</span>
           <span class="news-date">{new Date(newsItem.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
         </div>

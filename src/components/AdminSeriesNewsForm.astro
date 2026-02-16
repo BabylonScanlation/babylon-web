@@ -205,7 +205,7 @@ const { seriesId, seriesTitle, userName = 'Staff', seriesCover } = Astro.props;
       }
       
       // Orion: Emitir evento con payload para actualización optimista
-      document.dispatchEvent(new CustomEvent('new-news-created', { 
+      window.dispatchEvent(new CustomEvent('new-news-created', { 
         detail: { 
           news: data,
           hasImage: image instanceof File && image.size > 0

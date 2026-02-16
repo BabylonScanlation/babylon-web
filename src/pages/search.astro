@@ -6,6 +6,7 @@ import SearchFilters from '../components/SearchFilters.svelte';
 import { logError } from '../lib/logError';
 import { getDB } from '../lib/db';
 import { searchSeries } from '../lib/data/series';
+import { siteConfig } from '../site.config';
 
 const query = Astro.url.searchParams.get('q')?.trim() || '';
 const page = parseInt(Astro.url.searchParams.get('page') || '1');
@@ -34,7 +35,7 @@ try {
 }
 ---
 
-<Layout title={query ? `Búsqueda: ${query}` : 'Buscador - Babylon'}>
+<Layout title={query ? `Búsqueda: ${query}` : `Buscador - ${siteConfig.shortName}`}>
   <main class="search-page-container">
     <div class="ambient-glow"></div>
 
@@ -42,7 +43,7 @@ try {
       <div class="logo-area">
         <h1 class="page-title">
           <span class="gradient-peru">Explorar</span>
-          <span class="gradient-argentina">Babylon</span>
+          <span class="gradient-argentina">{siteConfig.shortName}</span>
         </h1>
         <p class="page-subtitle">
           Descubre tu próxima aventura en el catálogo más completo

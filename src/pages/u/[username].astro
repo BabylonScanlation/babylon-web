@@ -163,6 +163,8 @@ const avgRating =
     )?.avg || 0
   );
 
+import { siteConfig } from '../../site.config';
+
 // Presentation Data
 const avatar =
   targetUser.avatarUrl ||
@@ -171,7 +173,7 @@ const bannerUrl = targetUser.bannerUrl || null;
 const bio = targetUser.bio || 'Este usuario aún no ha escrito una biografía.';
 ---
 
-<Layout title={`Perfil de ${targetUser.username} - Babylon`}>
+<Layout title={`Perfil de ${targetUser.username} - ${siteConfig.shortName}`}>
   <div class="profile-page-wrapper">
     <header class="profile-hero">
       <div
@@ -268,7 +270,7 @@ const bio = targetUser.bio || 'Este usuario aún no ha escrito una biografía.';
               El contenido de este perfil ha sido restringido por el usuario.
             </p>
             <a href="/" class="back-home-btn">
-              Explorar Babylon
+              Explorar {siteConfig.shortName}
             </a>
           </div>
         ) : (

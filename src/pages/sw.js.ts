@@ -1,11 +1,15 @@
-const CACHE_NAME = 'babylon-v3';
+import type { APIRoute } from 'astro';
+import { siteConfig } from '../site.config';
+
+export const GET: APIRoute = async () => {
+  const swContent = `
+const CACHE_NAME = '${siteConfig.storage.cacheName}';
 const STATIC_ASSETS = [
   '/',
-  '/favicon.svg',
+  '${siteConfig.assets.favicon}',
   '/manifest.json'
 ];
 
-// Astra: Instalación limpia sin rutas de archivos que Astro hashea
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -31,27 +35,17 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  
-  // No interceptar llamadas a la API para no falsear datos ni saturar D1
-  if (request.url.includes('/api/')) {
-    return;
-  }
-
+  if (request.url.includes('/api/')) return;
   if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).catch(() => caches.match('/'))
-    );
+    event.respondWith(fetch(request).catch(() => caches.match('/')));
     return;
   }
-
-  if (request.destination === 'image' || request.destination === 'style' || request.destination === 'script') {
+  if (['image', 'style', 'script'].includes(request.destination)) {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {
         return cache.match(request).then((response) => {
           const fetchPromise = fetch(request).then((networkResponse) => {
-            if (networkResponse.ok) {
-              cache.put(request, networkResponse.clone());
-            }
+            if (networkResponse.ok) cache.put(request, networkResponse.clone());
             return networkResponse;
           });
           return response || fetchPromise;
@@ -60,3 +54,12 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+  `;
+
+  return new Response(swContent, {
+    headers: {
+      'Content-Type': 'application/javascript',
+      'Cache-Control': 'public, max-age=3600'
+    }
+  });
+};

@@ -14,6 +14,7 @@ import {
   getAllSeries,
   getSeriesByChapterCount
 } from '../lib/data/series';
+import { siteConfig } from '../site.config';
 
 const { runtime, user } = Astro.locals;
 const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
@@ -86,10 +87,10 @@ hasContent =
 ---
 
 <Layout 
-  title="Babylon Scanlation - Leer Manga, Manhwa y Manhua Online Gratis"
-  description="La mejor plataforma para leer Manga, Manhwa y Manhua online en español. Capítulos diarios, alta calidad visual y la mejor comunidad. ¡Lee gratis ahora!"
+  title={`${siteConfig.name} - Leer Manga, Manhwa y Manhua Online Gratis`}
+  description={`La mejor plataforma para leer Manga, Manhwa y Manhua online en español. Capítulos diarios, alta calidad visual y la mejor comunidad. ¡Lee gratis ahora en ${siteConfig.shortName}!`}
 >
-  <h1 class="sr-only">Babylon Scanlation - Tu plataforma premium para leer Manga, Manhwa y Manhua online gratis</h1>
+  <h1 class="sr-only">{siteConfig.name} - Tu plataforma premium para leer Manga, Manhwa y Manhua online gratis</h1>
   {
     hasContent ? (
       <div class="main-content-wrapper">
@@ -97,35 +98,13 @@ hasContent =
 
         <div class="main-sections-container">
 
-          <AdContainer type="banner">
-            <script is:inline>
-              window.atOptions = {
-                'key' : '9ebcd6279737192efe164467f2215532',
-                'format' : 'iframe',
-                'height' : 90,
-                'width' : 728,
-                'params' : {}
-              };
-            </script>
-            <script is:inline data-cfasync="false" src="https://crowdsubsequentadmire.com/9ebcd6279737192efe164467f2215532/invoke.js" onerror="window.isMonetagBlocked = true;"></script>
-          </AdContainer>
+          <AdContainer type="bannerLarge" />
 
           {featuredGridData.length > 0 && (
             <FeaturedGrid mangas={featuredGridData.map((m, i) => ({...m, loading: i < 2 ? 'eager' : 'lazy'}))} />
           )}
 
-          <AdContainer type="banner">
-            <script is:inline>
-              window.atOptions = {
-                'key' : '51a8e0f6fdc62fc7dbae3f6246465d2e',
-                'format' : 'iframe',
-                'height' : 60,
-                'width' : 468,
-                'params' : {}
-              };
-            </script>
-            <script is:inline data-cfasync="false" src="https://crowdsubsequentadmire.com/51a8e0f6fdc62fc7dbae3f6246465d2e/invoke.js" onerror="window.isMonetagBlocked = true;"></script>
-          </AdContainer>
+          <AdContainer type="bannerSmall" />
 
           <div class="discovery-zone">
             {seriesWithRecentChapters.length > 0 && (
@@ -136,25 +115,14 @@ hasContent =
             )}
           </div>
 
-          <AdContainer type="square">
-            <script is:inline>
-              window.atOptions = {
-                'key' : 'aaf9803b9d2c2c8744bcdb1c0a71876e',
-                'format' : 'iframe',
-                'height' : 250,
-                'width' : 300,
-                'params' : {}
-              };
-            </script>
-            <script is:inline data-cfasync="false" src="https://crowdsubsequentadmire.com/aaf9803b9d2c2c8744bcdb1c0a71876e/invoke.js" onerror="window.isMonetagBlocked = true;"></script>
-          </AdContainer>
+          <AdContainer type="square" />
         </div>
       </div>
     ) : (
       <div class="empty-state-container">
         <img
-          src={`${r2PublicUrlAssets}/iconpage/babylon-logo-3.webp`}
-          alt="Babylon Scanlation Logo"
+          src={siteConfig.assets.logoEmpty.startsWith('/') ? `${r2PublicUrlAssets}${siteConfig.assets.logoEmpty}` : siteConfig.assets.logoEmpty}
+          alt={`${siteConfig.name} Logo`}
           class="empty-state-logo"
         />
         <p class="empty-state-text">

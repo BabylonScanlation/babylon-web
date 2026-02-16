@@ -3,8 +3,10 @@ import cloudflare from '@astrojs/cloudflare';
 import svelte from '@astrojs/svelte';
 import sitemap from '@astrojs/sitemap';
 
+import { siteConfig } from './src/site.config';
+
 export default defineConfig({
-  site: 'https://babylon-scanlation.pages.dev',
+  site: siteConfig.url,
   output: 'server',
 
   adapter: cloudflare({
@@ -35,7 +37,7 @@ export default defineConfig({
     svelte(), 
     sitemap({
       customPages: [
-        'https://babylon-scanlation.pages.dev/sitemap-dynamic.xml'
+        `${siteConfig.url}/sitemap-dynamic.xml`
       ]
     })
   ],

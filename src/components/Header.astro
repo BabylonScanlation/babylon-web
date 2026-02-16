@@ -1,4 +1,5 @@
 ---
+import { siteConfig } from '../site.config';
 const { user, runtime } = Astro.locals;
 const r2PublicUrlAssets =
   runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
@@ -9,8 +10,8 @@ const r2PublicUrlAssets =
     <div class="logo-section">
       <a href="/" class="logo-link">
         <img
-          src={`${r2PublicUrlAssets}/iconpage/babylon-logo-2.webp`}
-          alt="Babylon Logo"
+          src={siteConfig.assets.logoHeader.startsWith('/') ? `${r2PublicUrlAssets}${siteConfig.assets.logoHeader}` : siteConfig.assets.logoHeader}
+          alt={`${siteConfig.name} Logo`}
           class="header-logo"
         />
       </a>
@@ -41,92 +42,6 @@ const r2PublicUrlAssets =
 </header>
 
 <script>
-  async function checkNewNews() {
-    const pcBadge = document.getElementById('news-badge-pc');
-    const mobileBadge = document.getElementById('news-badge-mobile');
-    const isNewsPage =
-      window.location.pathname === '/news' ||
-      window.location.pathname === '/news/';
-
-    // Astra: Throttling de 15 minutos para proteger D1
-    const lastCheck = localStorage.getItem('babylon_last_news_check_timestamp');
-    const now = Date.now();
-    const shouldThrottle = lastCheck && (now - parseInt(lastCheck)) < (15 * 60 * 1000);
-
-    if (shouldThrottle && !isNewsPage) {
-      // console.log('[DEBUG NEWS] Throttled. Skipping check.');
-      return;
-    }
-
-    if (isNewsPage) {
-      try {
-        const res = await fetch('/api/news/check');
-        const latest = await res.json();
-        if (latest && latest.length > 0) {
-          const latestDate = latest[0].createdAt;
-          localStorage.setItem(
-            'babylon_last_seen_news_date',
-            latestDate.toString()
-          );
-          // console.log('[DEBUG NEWS] Marked all as seen. Last date:', latestDate);
-        }
-      } catch {
-        // Silently ignore
-      }
-      if (pcBadge) pcBadge.classList.add('hidden');
-      if (mobileBadge) mobileBadge.classList.add('hidden');
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/news/check');
-      const latest = await res.json();
-      
-      // Astra: Guardar el momento del check exitoso
-      localStorage.setItem('babylon_last_news_check_timestamp', Date.now().toString());
-
-      const lastSeenDateStr =
-        localStorage.getItem('babylon_last_seen_news_date') || '0';
-      const lastSeenDate = parseInt(lastSeenDateStr, 10);
-
-      // Contar noticias nuevas (comparación numérica)
-      const newItems = latest.filter((n: any) => {
-        const newsDate =
-          typeof n.createdAt === 'string'
-            ? new Date(n.createdAt).getTime()
-            : n.createdAt;
-        return newsDate > lastSeenDate;
-      });
-
-      const unreadCount = newItems.length;
-      // console.log('[DEBUG NEWS] Unread count:', unreadCount, { lastSeenDate, latestDate: latest[0]?.createdAt });
-
-      if (unreadCount > 0) {
-        if (pcBadge) {
-          pcBadge.textContent = unreadCount > 9 ? '+9' : unreadCount.toString();
-          pcBadge.classList.remove('hidden');
-        }
-        if (mobileBadge) {
-          mobileBadge.textContent =
-            unreadCount > 9 ? '+9' : unreadCount.toString();
-          mobileBadge.classList.remove('hidden');
-        }
-      } else {
-        if (pcBadge) pcBadge.classList.add('hidden');
-        if (mobileBadge) mobileBadge.classList.add('hidden');
-      }
-    } catch {
-      // Silently ignore
-    }
-  }
-
-  // Ejecutar de forma diferida para no bloquear el inicio
-  if ('requestIdleCallback' in window) {
-    (window as any).requestIdleCallback(() => checkNewNews());
-  } else {
-    setTimeout(checkNewNews, 500);
-  }
-
   document.addEventListener('astro:page-load', () => {
     const header = document.querySelector('.site-header') as HTMLElement;
     if (!header) return;

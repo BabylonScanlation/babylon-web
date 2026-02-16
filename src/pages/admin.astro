@@ -1,6 +1,7 @@
 ---
 // src/pages/admin.astro
 import Layout from '../layouts/Layout.astro';
+import { siteConfig } from '../site.config';
 
 const { user, runtime } = Astro.locals;
 const isSuperAdmin = user?.uid === runtime.env.SUPER_ADMIN_UID;
@@ -57,13 +58,13 @@ if (isSuperAdmin) {
 }
 ---
 
-<Layout title="Panel de Administración">
+<Layout title={`Panel de Administración - ${siteConfig.shortName}`}>
   <main class="admin-dashboard-container">
     
     <header class="admin-header">
       <div class="welcome-section">
         <h1>Panel de Administración</h1>
-        <p class="subtitle">Bienvenido al centro de control de Babylon. Selecciona una zona para comenzar.</p>
+        <p class="subtitle">Bienvenido al centro de control de {siteConfig.shortName}. Selecciona una zona para comenzar.</p>
       </div>
     </header>
 

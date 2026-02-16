@@ -1,4 +1,4 @@
-Sitemap: https://babylon-scanlation.pages.dev/sitemap-dynamic.xml
+Sitemap: https://your-domain.com/sitemap-dynamic.xml
 
 User-agent: *
 Allow: /

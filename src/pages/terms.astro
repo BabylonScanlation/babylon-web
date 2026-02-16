@@ -1,8 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { siteConfig } from '../site.config';
 ---
 
-<Layout title="Términos y Condiciones - Babylon Scanlation">
+<Layout title={`Términos y Condiciones - ${siteConfig.shortName}`}>
   <div class="terms-outer-container">
     <div class="terms-glass-envelope">
       <header class="terms-header">
@@ -27,7 +28,7 @@ import Layout from '../layouts/Layout.astro';
           <div class="card-text">
             <h2>2. Restricción de Edad</h2>
             <p>
-              Babylon Scanlation puede contener material para adultos, incluyendo temas maduros, violencia y lenguaje explícito. El acceso a este sitio está estrictamente limitado a personas mayores de 18 años. Al aceptar estos términos, usted declara que cumple con este requisito.
+              {siteConfig.shortName} Scanlation puede contener material para adultos, incluyendo temas maduros, violencia y lenguaje explícito. El acceso a este sitio está estrictamente limitado a personas mayores de 18 años. Al aceptar estos términos, usted declara que cumple con este requisito.
             </p>
           </div>
         </section>
@@ -69,7 +70,7 @@ import Layout from '../layouts/Layout.astro';
           <div class="card-text">
             <h2>5. Limitación de Responsabilidad</h2>
             <p>
-              Babylon Scanlation no se hace responsable de las opiniones vertidas por los usuarios ni de cualquier daño derivado del uso de la plataforma. El acceso se proporciona "tal cual".
+              {siteConfig.shortName} Scanlation no se hace responsable de las opiniones vertidas por los usuarios ni de cualquier daño derivado del uso de la plataforma. El acceso se proporciona "tal cual".
             </p>
           </div>
         </section>
@@ -80,7 +81,7 @@ import Layout from '../layouts/Layout.astro';
             <h2>6. Privacidad y Anonimato</h2>
             <div class="manifesto-content">
               <p>
-                En <strong>Babylon</strong>, creemos que la privacidad es un derecho fundamental. Nuestra plataforma está diseñada bajo el principio del <strong>anonimato responsable</strong>.
+                En <strong>{siteConfig.shortName}</strong>, creemos que la privacidad es un derecho fundamental. Nuestra plataforma está diseñada bajo el principio del <strong>anonimato responsable</strong>.
               </p>
               <ul class="premium-list">
                 <li>
@@ -97,7 +98,7 @@ import Layout from '../layouts/Layout.astro';
                 </li>
               </ul>
               <p class="manifesto-quote">
-                "Navega libre, lee sin huellas. En Babylon, tú tienes el control."
+                "Navega libre, lee sin huellas. En {siteConfig.shortName}, tú tienes el control."
               </p>
             </div>
           </div>

@@ -49,7 +49,9 @@ export const GET: APIRoute = async ({ locals }) => {
         } else if (typeof n.createdAt === 'number') {
           ts = n.createdAt;
         } else if (typeof n.createdAt === 'string') {
-          ts = new Date(n.createdAt).getTime();
+          // Orion: Normalizar formato SQLite (YYYY-MM-DD HH:MM:SS) a ISO para navegadores
+          const isoDate = n.createdAt.includes('T') ? n.createdAt : n.createdAt.replace(' ', 'T') + 'Z';
+          ts = new Date(isoDate).getTime();
         }
         return { id: n.id, createdAt: isNaN(ts) ? Date.now() : ts };
       } catch {
@@ -61,7 +63,8 @@ export const GET: APIRoute = async ({ locals }) => {
       status: 200,
       headers: { 
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30'
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'cf-edge-cache': 'no-cache'
       },
     });
   } catch (error) {

@@ -1,10 +1,10 @@
 import { getDB } from '../lib/db';
 import { series, chapters } from '../db/schema';
 import { eq, and, inArray, desc } from 'drizzle-orm';
-import type { APIRoute } from 'astro';
+import { siteConfig } from '../site.config';
 
 export const GET: APIRoute = async ({ locals }) => {
-  const siteUrl = 'https://babylon-scanlation.pages.dev';
+  const siteUrl = siteConfig.url;
   const db = getDB(locals.runtime.env);
   
   const allSeries = await db.select({ slug: series.slug, updatedAt: series.createdAt }).from(series).where(eq(series.isHidden, false)).all();

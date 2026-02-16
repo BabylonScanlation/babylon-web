@@ -1,21 +1,30 @@
-/* eslint-disable */
+import type { APIRoute } from 'astro';
+import { siteConfig } from '../../site.config';
+
+export const GET: APIRoute = async ({ locals }) => {
+  const siteUrl = siteConfig.url;
+  const name = siteConfig.name;
+  const shortName = siteConfig.shortName;
+  const authSecret = locals.runtime.env.AUTH_SECRET || "YOUR_SECRET";
+
+  const content = `/* eslint-disable */
 // ==MiruExtension==
-// @name         Babylon Scanlation
+// @name         ${name}
 // @version      0.2.1
-// @author       Linxurs
+// @author       ${siteConfig.author}
 // @lang         es
 // @license      MIT
-// @icon         https://wsrv.nl/?url=https://babylon-scanlation.pages.dev/favicon.svg&output=png
-// @package      com.babylon.scanlation
+// @icon         https://wsrv.nl/?url=${siteUrl}${siteConfig.assets.favicon}&output=png
+// @package      com.${shortName.toLowerCase().replace(/[^a-z0-9]/g, '')}.scanlation
 // @type         manga
-// @webSite      https://babylon-scanlation.pages.dev
-// @description  Official Babylon Scanlation Extension
+// @webSite      ${siteUrl}
+// @description  Official ${name} Extension
 // ==/MiruExtension==
 
 class DefaultExtension extends MProvider {
-  baseUrl = "https://babylon-scanlation.pages.dev";
-  authSecret = "lsnoKZ7P1g8Uxjr2qG3TvOFeU5joWsG2mFLdV9DiSyOkTkXzGo";
-  nuclearSalt = "B4byl0n_V2_Nucl3ar_S3cur1ty_";
+  baseUrl = "${siteUrl}";
+  authSecret = "${authSecret}";
+  nuclearSalt = "${shortName.replace(/[^a-z0-9]/gi, '')}_V2_Nucl3ar_S3cur1ty_";
 
   getHeaders(url) {
     return {
@@ -59,7 +68,6 @@ class DefaultExtension extends MProvider {
     } catch (e) { return null; }
   }
 
-  // Robust UTF-8 safe Base64 decode
   base64Decode(str) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
     let bytes = [];
@@ -74,7 +82,6 @@ class DefaultExtension extends MProvider {
       if (enc4 !== 64) bytes.push(((enc3 & 3) << 6) | enc4);
     }
     
-    // Manual UTF-8 decoding to avoid "Ã" and other mojibake
     let out = "", i = 0;
     while (i < bytes.length) {
         let c = bytes[i++];
@@ -93,12 +100,12 @@ class DefaultExtension extends MProvider {
   get supportsLatest() { return true; }
 
   async getPopular(page) {
-    const res = await this.req(`/api/series/recent?page=${page}`);
+    const res = await this.req(\`/api/series/recent?page=\${page}\`);
     const list = Array.isArray(res) ? res : (res.results || []);
     return {
       list: list.map((item) => ({
         name: item.title || "Sin título",
-        link: item.slug ? `/api/series/${item.slug}` : "",
+        link: item.slug ? \`/api/series/\${item.slug}\` : "",
         imageUrl: item.coverImageUrl || "",
         description: "Cap. " + (item.lastChapter || "Nuevo")
       })),
@@ -109,12 +116,12 @@ class DefaultExtension extends MProvider {
   async getLatestUpdates(page) { return await this.getPopular(page); }
 
   async search(query, page, filters) {
-    const res = await this.req(`/api/search?q=${encodeURIComponent(query)}&page=${page}`);
+    const res = await this.req(\`/api/search?q=\${encodeURIComponent(query)}&page=\${page}\`);
     const results = res.results || [];
     return {
       list: results.map((item) => ({
         name: item.title || "Sin título",
-        link: item.slug ? `/api/series/${item.slug}` : "",
+        link: item.slug ? \`/api/series/\${item.slug}\` : "",
         imageUrl: item.coverImageUrl || "",
         description: "Cap. " + (item.lastChapter || "?")
       })),
@@ -124,85 +131,52 @@ class DefaultExtension extends MProvider {
 
   async getDetail(url) {
     const res = await this.req(url);
-    if (!res || !res.title) {
-        return {
-            name: "Error al cargar",
-            imageUrl: "",
-            description: "No se pudo obtener el detalle de la serie.",
-            genre: [],
-            chapters: []
-        };
-    }
-
+    if (!res || !res.title) return { name: "Error", imageUrl: "", description: "", genre: [], chapters: [] };
     const chapters = [];
-    if (res.chapters && Array.isArray(res.chapters)) {
-        res.chapters.forEach(chapter => {
-            if (chapter) {
-                chapters.push({
-                    name: "Capítulo " + (chapter.chapterNumber !== undefined ? chapter.chapterNumber : "?") + (chapter.title ? ": " + chapter.title : ""),
-                    url: res.slug ? `/api/series/${res.slug}/chapters/${chapter.chapterNumber}` : ""
-                });
-            }
+    if (res.chapters) {
+        res.chapters.forEach(ch => {
+            chapters.push({
+                name: "Capítulo " + (ch.chapterNumber ?? "?") + (ch.title ? ": " + ch.title : ""),
+                url: res.slug ? \`/api/series/\${res.slug}/chapters/\${ch.chapterNumber}\` : ""
+            });
         });
     }
-
     let status = 0;
     if (res.status) {
         const s = res.status.toLowerCase();
         if (s.includes('complet')) status = 1;
-        else if (s.includes('hiatus') || s.includes('pausa')) status = 2;
-        else if (s.includes('cancel')) status = 3;
+        else if (s.includes('hiatus')) status = 2;
     }
-
-    let genre = [];
-    if (res.genres) {
-        if (Array.isArray(res.genres)) genre = res.genres;
-        else if (typeof res.genres === 'string') genre = res.genres.split(',').map(g => g.trim());
-    }
-
     return {
-      name: res.title || "Sin título",
-      imageUrl: res.coverImageUrl || "",
-      description: res.description || "Sin descripción",
-      author: res.author || "Desconocido",
-      artist: res.artist || "Desconocido",
+      name: res.title,
+      imageUrl: res.coverImageUrl,
+      description: res.description,
+      author: res.author,
+      artist: res.artist,
       status: status,
-      genre: genre,
+      genre: res.genres ? res.genres.split(',').map(g => g.trim()) : [],
       chapters: chapters.reverse()
     };
   }
 
   async getPageList(url) {
-    if (!url) return [];
-    let res = null;
-    let attempts = 0;
-    
-    // Polling logic for chapters being processed
-    while (attempts < 15) {
-        res = await this.req(url);
-        if (res && res.pages && res.pages.length > 0) break;
-        if (res && res.status !== 'processing') break;
-        
-        attempts++;
-        // Use a small loop instead of setTimeout if needed, but await should work
-        await new Promise(r => {
-            const start = Date.now();
-            while(Date.now() - start < 3000) {} // Busy wait fallback for 3s if needed
-            r();
-        });
-    }
-    
+    let res = await this.req(url);
     if (!res || !res.pages) return [];
-    
-    return res.pages.map((page) => {
-        let imageUrl = page.imageUrl || page.url;
-        if (imageUrl && !imageUrl.startsWith('http')) {
-            imageUrl = this.baseUrl + (imageUrl.startsWith('/') ? '' : '/') + imageUrl;
-        }
-        return imageUrl || "";
+    return res.pages.map(p => {
+        let u = p.imageUrl || p.url;
+        return u.startsWith('http') ? u : this.baseUrl + (u.startsWith('/') ? '' : '/') + u;
     });
   }
 
   getFilterList() { return []; }
   getSourcePreferences() { return []; }
 }
+  `;
+
+  return new Response(content, {
+    headers: {
+      'Content-Type': 'application/javascript',
+      'Cache-Control': 'public, max-age=3600'
+    }
+  });
+};

@@ -26,6 +26,14 @@
     if (loading === 'eager') {
       loadPageData();
     } else {
+      // Astra: Carga inmediata para las 5 primeras páginas incluso si el observer falla
+      const pageNumMatch = alt.match(/\d+/);
+      const pageNum = pageNumMatch ? parseInt(pageNumMatch[0]) : 99;
+      if (pageNum <= 5) {
+        loadPageData();
+        return;
+      }
+
       // Astra: rootMargin aumentado para prefetching predictivo más agresivo (Lightspeed)
       observer = new IntersectionObserver(([entry], _self) => {
         if (entry?.isIntersecting) {

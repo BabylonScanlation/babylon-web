@@ -11,6 +11,7 @@ import { formatFullDate, timeAgo, getImageUrl } from '../../lib/utils';
 import { getDB } from '../../lib/db';
 import { getCommentsForTarget } from '../../lib/data/comments';
 import { getSeriesDetails } from '../../lib/data/series';
+import { siteConfig } from '../../site.config';
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/404');
@@ -61,8 +62,8 @@ const reactions = [
 ---
 
 <Layout 
-  title={`Leer ${series?.title ?? 'Serie'} Manga Online en Español - Babylon Scanlation`}
-  description={`Lee ${series?.title} online en español con la mejor calidad. ${series?.description?.substring(0, 140).replace(/\*/g, '') ?? ''}... ¡Solo en Babylon Scanlation!`}
+  title={`Leer ${series?.title ?? 'Serie'} Manga Online en Español - ${siteConfig.name}`}
+  description={`Lee ${series?.title} online en español con la mejor calidad. ${series?.description?.substring(0, 140).replace(/\*/g, '') ?? ''}... ¡Solo en ${siteConfig.name}!`}
   ogImage={getImageUrl(series?.coverImageUrl, r2PublicUrlAssets, 'series')}
 >
   <!-- SEO: Datos Estructurados JSON-LD -->
@@ -78,10 +79,10 @@ const reactions = [
     },
     "publisher": {
       "@type": "Organization",
-      "name": "Babylon Scanlation",
+      "name": siteConfig.name,
       "logo": {
         "@type": "ImageObject",
-        "url": "/favicon.svg"
+        "url": siteConfig.url + siteConfig.assets.logo
       }
     },
     "aggregateRating": {
@@ -122,7 +123,7 @@ const reactions = [
               {series.isAppSeries && (
                 <button id="download-app-btn" class="compact-app-btn" title="Descargar App">
                   <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                  App Babylon
+                  App {siteConfig.shortName}
                 </button>
               )}
             </div>
@@ -315,10 +316,7 @@ const reactions = [
             </div>
 
             <div class="series-bottom-ad-wrapper">
-              <AdContainer type="banner" className="series-mid-ad">
-                <script is:inline async="async" data-cfasync="false" src="https://crowdsubsequentadmire.com/2cd2af2560f6df7e49d533c069a08932/invoke.js" onerror="window.isAdsterraBlocked = true;"></script>
-                <div id="container-2cd2af2560f6df7e49d533c069a08932"></div>
-              </AdContainer>
+              <AdContainer type="banner" className="series-mid-ad" />
             </div>
           </div>
         </div>
@@ -326,11 +324,11 @@ const reactions = [
         <!-- Download Modal Minimal -->
         <div id="download-modal" class="modal-overlay-minimal" style="display: none;">
           <div class="modal-card-minimal">
-            <h3>App Babylon</h3>
+            <h3>App {siteConfig.shortName}</h3>
             <p>Descarga el APK oficial para Android.</p>
             <div class="modal-actions">
               <button id="cancel-download-btn">Cancelar</button>
-              <a href={`${r2PublicUrlAssets}/babylonweb-app/DtupScan.apk`} download class="btn-confirm">Descargar</a>
+              <a href={siteConfig.app.androidUrl} download class="btn-confirm">Descargar</a>
             </div>
           </div>
         </div>

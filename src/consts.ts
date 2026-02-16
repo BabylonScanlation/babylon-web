@@ -1,2 +1,2 @@
-// src/consts.ts
-export const SITE_TITLE = 'Babylon Scanlation';
+import { siteConfig } from './site.config';
+export const SITE_TITLE = siteConfig.name;

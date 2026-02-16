@@ -6,6 +6,7 @@
   import { toast } from '../../lib/toastStore';
   import { timeAgo } from '../../lib/utils';
   import { userStore } from '../../lib/userStore.svelte';
+  import { siteConfig } from '../../site.config';
   import type { User, Comment } from '../../types';
 
   interface Props {
@@ -89,11 +90,18 @@
 
   let comments = $state<Comment[]>([]);
 
+  // Astra: Sincronización robusta con Astro View Transitions
   $effect(() => {
-    const safeComments = initialComments && Array.isArray(initialComments) ? initialComments : [];
-    const tree = buildCommentTree(safeComments);
-    sortNodes(tree);
-    comments = tree;
+    // Forzamos la dependencia de initialComments y targetId
+    const data = initialComments;
+    const id = targetId;
+    
+    if (id) {
+        const safeComments = data && Array.isArray(data) ? data : [];
+        const tree = buildCommentTree(safeComments);
+        sortNodes(tree);
+        comments = tree;
+    }
   });
 
   let commentText = $state('');
@@ -120,7 +128,7 @@
 
   // Orion: Recuperar cooldown persistente inmediatamente al cargar el script
   if (typeof window !== 'undefined') {
-      const lastCommentTime = localStorage.getItem('babylon_last_comment_ts');
+      const lastCommentTime = localStorage.getItem(`${siteConfig.storage.prefix}last_comment_ts`);
       if (lastCommentTime) {
           const elapsed = Math.floor((Date.now() - parseInt(lastCommentTime)) / 1000);
           if (elapsed < 30) {
@@ -129,11 +137,11 @@
                   cooldownRemaining--;
                   if (cooldownRemaining <= 0) {
                       clearInterval(timer);
-                      localStorage.removeItem('babylon_last_comment_ts');
+                      localStorage.removeItem(`${siteConfig.storage.prefix}last_comment_ts`);
                   }
               }, 1000);
           } else {
-              localStorage.removeItem('babylon_last_comment_ts');
+              localStorage.removeItem(`${siteConfig.storage.prefix}last_comment_ts`);
           }
       }
   }
@@ -193,9 +201,16 @@
   }
 
   onMount(async () => {
-      // Orion: Sincronizar store al montar para capturar cambios hechos en otras páginas (ej: Profile)
+      // Orion: Sincronizar store al montar
       if (userStore.user) {
           userStore.sync();
+      }
+
+      // Astra: Asegurar sincronización inicial en navegación
+      if (initialComments && comments.length === 0) {
+          const tree = buildCommentTree(initialComments);
+          sortNodes(tree);
+          comments = tree;
       }
 
       const handleAuthSuccess = async () => {
@@ -337,14 +352,14 @@
       sortNodes(comments);
 
       // Orion: Guardar timestamp para cooldown persistente
-      localStorage.setItem('babylon_last_comment_ts', Date.now().toString());
+      localStorage.setItem(`${siteConfig.storage.prefix}last_comment_ts`, Date.now().toString());
       
       cooldownRemaining = 30;
       const timer = setInterval(() => {
         cooldownRemaining--;
         if (cooldownRemaining <= 0) {
             clearInterval(timer);
-            localStorage.removeItem('babylon_last_comment_ts');
+            localStorage.removeItem(`${siteConfig.storage.prefix}last_comment_ts`);
         }
       }, 1000);
       toast.success('¡Comentario publicado!');
@@ -1227,14 +1242,21 @@
 
         .card-actions {
             flex-direction: row;
-            flex-wrap: wrap; /* Astra: Evitar el scroll horizontal saltando de línea */
+            flex-wrap: nowrap; /* Astra: Forzar fila única en móvil */
             justify-content: flex-start;
             align-items: center;
-            gap: 0.5rem; /* Astra: Gap más compacto para que quepa más en una fila */
+            gap: 0.6rem; 
             margin-top: 0.6rem;
             width: 100%;
-            overflow-x: visible; /* Eliminamos el scroll */
+            overflow-x: auto; /* Astra: Permitir scroll horizontal si hay muchos botones */
+            overflow-y: hidden;
             padding: 0.2rem 0;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+        }
+        
+        .card-actions::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
         }
         
         .action-divider { display: none; }
@@ -1243,7 +1265,7 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
             gap: 0;
-            flex-shrink: 0;
+            flex-shrink: 0; /* Astra: Impedir que los votos se encojan */
         }
 
         .action-buttons-group { 
@@ -1251,7 +1273,8 @@
             display: flex;
             align-items: center;
             gap: 0.4rem; 
-            flex-wrap: wrap; /* Permitir que los botones también fluyan */
+            flex-wrap: nowrap; /* Astra: Forzar fila única también aquí */
+            flex-shrink: 0;
         }
 
         .action-buttons-group .action-btn { 

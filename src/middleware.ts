@@ -5,12 +5,21 @@ import { userRoles, sessions, users } from './db/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import { logError } from './lib/logError';
 import { verifyToken, deleteSession } from './lib/session';
+import { siteConfig } from './site.config';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   // --- GEO-BLOCKING (Bloqueo por País) - PRIORIDAD 0 ---
   // JP, KR, CN: Riesgo Copyright. US: Riesgo IAs/DMCA.
-  const blacklistedCountries = ['JP', 'KR', 'CN', 'US'];
+  const blacklistedCountries = siteConfig.security.blacklistedCountries;
   const country = context.request.headers.get('cf-ipcountry');
+
+  // Regla 0: Geobloqueo por país
+  if (country && blacklistedCountries.includes(country) && !isGoogle) {
+    return new Response(getBlockedHTML('Geographic Restriction', country), { 
+      status: 403, 
+      headers: { 'Content-Type': 'text/html' } 
+    });
+  }
 
   // Plantilla HTML de Bloqueo (Estilo Cyberpunk/Nuclear)
   const getBlockedHTML = (reason: string, ip: string | null) => `
@@ -18,7 +27,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     <html lang="en">
     <head>
       <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Access Denied</title>
+      <title>Access Denied - ${siteConfig.name}</title>
       <style>
         body { background: #050505; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; overflow: hidden; }
         .container { text-align: center; padding: 2rem; max-width: 500px; border: 1px solid #333; background: #111; border-radius: 8px; box-shadow: 0 0 50px rgba(255, 0, 0, 0.1); }
@@ -48,18 +57,18 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const currentPath = context.url.pathname;
 
-  // Orion: Bypass total para sitemaps y archivos XML - PRIORIDAD MÁXIMA
-  if (currentPath.endsWith('.xml') || currentPath.includes('sitemap')) {
+  // Orion: Bypass total para sitemaps, archivos XML y recursos PWA - PRIORIDAD MÁXIMA
+  if (
+    currentPath.endsWith('.xml') || 
+    currentPath.includes('sitemap') || 
+    currentPath === '/manifest.json' || 
+    currentPath === '/sw.js'
+  ) {
     return next();
   }
 
   // Orion: Lista negra de bots y scrapers (Protección de contenido e IA)
-  const blockedBots = [
-    'gptbot', 'chatgpt', 'openai', 'anthropic', 'claude', 'google-batch', 'bingbot',
-    'ccbot', 'bytespider', 'megaindex', 'dotbot', 'mj12bot', 'semrushbot', 'ahrefsbot',
-    'python-requests', 'node-fetch', 'axios', 'go-http-client', 'curl', 'wget',
-    'pandalytics', 'headlesschrome', 'selenium', 'puppeteer', 'playwright'
-  ];
+  const blockedBots = siteConfig.security.blockedBots;
 
   // Regla 1: Bloquear si coincide con la lista negra (EXCEPTO para la API de caché de imágenes y assets)
   if (!currentPath.startsWith('/api/r2-cache/') && !currentPath.startsWith('/api/assets/') && blockedBots.some(bot => lowerUA.includes(bot))) {
@@ -176,6 +185,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isPublicPath =
     currentPath === '/verify' ||
     currentPath === '/terms' ||
+    currentPath === '/manifest.json' ||
+    currentPath === '/sw.js' ||
     currentPath.startsWith('/sitemap') ||
     currentPath.startsWith('/api/') ||
     currentPath.startsWith('/js/') ||
@@ -198,12 +209,20 @@ export const onRequest = defineMiddleware(async (context, next) => {
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('X-Robots-Tag', 'index, follow, max-image-preview:large');
     
-    // Si es una ruta de series o el index, permitimos cacheo suave en el edge
-    if (currentPath.startsWith('/series/') || currentPath === '/' || currentPath.startsWith('/news/')) {
-      response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=30');
-    } else {
+    // Orion: Si hay un usuario logueado, desactivamos el cacheo en el Edge totalmente
+    // para evitar que vean datos stale (viejos) como comentarios que acaban de poner.
+    if (context.locals.user) {
       response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, no-transform');
       response.headers.set('cf-edge-cache', 'no-cache');
+    } else {
+      // Para invitados, permitimos un cacheo muy breve en rutas de contenido
+      if (currentPath.startsWith('/series/') || currentPath === '/' || currentPath.startsWith('/news/')) {
+        // Reducimos a 10 segundos para mayor frescura sin sacrificar protección contra picos de tráfico
+        response.headers.set('Cache-Control', 'public, s-maxage=10, stale-while-revalidate=5');
+      } else {
+        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, no-transform');
+        response.headers.set('cf-edge-cache', 'no-cache');
+      }
     }
   }
 

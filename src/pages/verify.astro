@@ -1,9 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import AgeGate from '../components/AgeGate.svelte';
+import { siteConfig } from '../site.config';
 ---
 
-<Layout title="Verificación de Seguridad - Babylon">
+<Layout title={`Verificación de Seguridad - ${siteConfig.shortName}`}>
   <div class="security-zone">
     <AgeGate client:load isVerificationPage={true} />
   </div>

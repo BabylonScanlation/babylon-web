@@ -36,7 +36,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (currentUser?.avatarUrl) {
         try {
             // Extraer la key del URL anterior si pertenece a nuestro R2
-            // Ejemplo URL: https://assets.babylon.com/avatars/uid-123.jpg
+            // Ejemplo URL: https://assets.yourdomain.com/avatars/uid-123.jpg
             const urlObj = new URL(currentUser.avatarUrl);
             const key = urlObj.pathname.substring(1); // quitar el primer '/'
             

@@ -43,10 +43,17 @@
   } : Props & { processing?: boolean } = $props();
 
   let pagesData = $state<Page[]>([]);
-  let loadingMessage = $state<string | null>(initialLoadingMessage);
-  let isProcessing = $state(processing);
+  let loadingMessage = $state<string | null>(null);
+  let isProcessing = $state(false);
   let error = $state<string | null>(null);
-  
+  let isComplete = $state(false);
+
+  // Astra: Sincronización inicial silenciosa
+  onMount(() => {
+    loadingMessage = initialLoadingMessage;
+    isProcessing = processing;
+  });
+
   let viewMode = $state<'cascade' | 'single'>('cascade');
   let readerWidth = $state(40);
   let currentPageIndex = $state(0);
@@ -62,8 +69,20 @@
   let simulatedProgress = $state(0);
   let eventSource: EventSource | null = null;
   let progressInterval: number | undefined;
-  let isComplete = false;
   let retryCount = 0;
+
+  // Astra: Reinicio de estado en navegación (Astro View Transitions)
+  $effect(() => {
+    if (slug || chapter) {
+      pagesData = [];
+      isComplete = false;
+      hasPrefetched = false;
+      simulatedProgress = 0;
+      retryCount = 0;
+      error = null;
+      if (eventSource) eventSource.close();
+    }
+  });
 
   $effect(() => {
     // Sincronización inicial desde props solo si el estado local está vacío
@@ -357,28 +376,23 @@
         simulatedProgress = 100;
         loadingMessage = '¡Capítulo listo!';
 
-        setTimeout(() => {
-          let incomingPages = [];
-          if (data.pages) {
-             console.log(`[ChapterReader] SSE Pages received: ${data.pages.length}`);
-             incomingPages = data.pages;
-          }
-          else if (data.imageUrls) {
-             console.log(`[ChapterReader] SSE Image URLs received: ${data.imageUrls.length}`);
-             incomingPages = data.imageUrls.map((url: string) => ({ url }));
-          }
+        let incomingPages = [];
+        if (data.pages) {
+            console.log(`[ChapterReader] SSE Pages received: ${data.pages.length}`);
+            incomingPages = data.pages;
+        }
+        else if (data.imageUrls) {
+            console.log(`[ChapterReader] SSE Image URLs received: ${data.imageUrls.length}`);
+            incomingPages = data.imageUrls.map((url: string) => ({ url }));
+        }
 
-          if (incomingPages.length > 0) {
-              pagesData = incomingPages.sort((a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0));
-              console.log('[READER] SSE Sequence:', pagesData.map(p => p.pageNumber).join(', '));
-          }
+        if (incomingPages.length > 0) {
+            pagesData = incomingPages.sort((a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0));
+        }
 
-          isProcessing = false;
-          // Orion: Registrar vista inmediatamente después de completar el procesamiento
-          if (chapterId) registerView();
-          
-          if (eventSource) eventSource.close();
-        }, 800);
+        isProcessing = false;
+        if (chapterId) registerView();
+        if (eventSource) eventSource.close();
       } catch (err) {
         console.error('[ChapterReader] Error processing completed event:', err);
         error = 'Error al procesar la respuesta del servidor.';
@@ -480,7 +494,7 @@
       <div class="loader-overlay" in:fade>
         <div class="glass-loader">
           <div class="loader-visual">
-            <img src="/favicon.svg" alt="Babylon" class="loader-logo" />
+            <img src="/favicon.svg" alt={seriesTitle || 'Logo'} class="loader-logo" />
             <div class="loader-ring"></div>
           </div>
           <div class="loader-info">

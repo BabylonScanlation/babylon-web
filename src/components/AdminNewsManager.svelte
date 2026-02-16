@@ -44,7 +44,7 @@
   // Form state
   let formTitle = '';
   let formContent = '';
-  let formStatus: 'draft' | 'published' = 'draft';
+  let formStatus: 'draft' | 'published' = 'published';
   let isSubmitting = false;
   let formImage: File | null = null;
   let imagePreview: string | null = null;
@@ -173,6 +173,11 @@
         initialNews = initialNews.map(n => n.id === savedNews.id ? { ...savedNews, seriesId: selectedSeriesId } : n);
       } else {
         initialNews = [{ ...savedNews, seriesId: selectedSeriesId, createdAt: savedNews.createdAt || new Date().toISOString() }, ...initialNews];
+        
+        // Orion: Notificar al Header que hay una noticia nueva para limpiar el throttle
+        window.dispatchEvent(new CustomEvent('new-news-created', { 
+          detail: { news: savedNews } 
+        }));
       }
       
       resetForm();

@@ -1,7 +1,9 @@
 ---
 // src/components/AdContainer.astro
+import { siteConfig } from '../site.config';
+
 interface Props {
-  type: 'banner' | 'square' | 'native';
+  type: 'banner' | 'bannerLarge' | 'bannerSmall' | 'square' | 'native';
   id?: string;
   className?: string;
 }
@@ -9,24 +11,48 @@ interface Props {
 const { type, id, className = "" } = Astro.props;
 const { user } = Astro.locals;
 
-// Orion: Admin no ve anuncios
-if (user?.isAdmin) {
-  return null;
-}
+// Orion: Determinar el ID del anuncio según el tipo
+const adKey = siteConfig.ads.adsterra[type as keyof typeof siteConfig.ads.adsterra] || siteConfig.ads.adsterra.banner;
+
+// Dimensiones estándar para Adsterra
+const dimensions = {
+  banner: { w: 728, h: 90 },
+  bannerLarge: { w: 728, h: 90 },
+  bannerSmall: { w: 468, h: 60 },
+  square: { w: 300, h: 250 },
+  native: { w: 0, h: 0 }
+};
+
+const dim = dimensions[type as keyof typeof dimensions] || dimensions.banner;
+
+// Orion: Mostrar anuncios si están habilitados globalmente
+const shouldShowAds = siteConfig.ads.enabled;
 ---
 
-<div class:list={["ad-container-root", type, className]} id={id}>
-  <div class="ad-inner-wrapper">
-    <div class="ad-content-slot">
-      <slot />
-    </div>
-    
-    <!-- Etiqueta técnica minimalista -->
-    <div class="ad-info-overlay">
-      <span>AD</span>
+{shouldShowAds && (
+  <div class:list={["ad-container-root", type, className]} id={id}>
+    <div class="ad-inner-wrapper">
+      <div class="ad-content-slot">
+        {/* Adsterra Logic Centralized */}
+        <script is:inline set:html={`
+          window.atOptions = {
+            'key' : '${adKey}',
+            'format' : 'iframe',
+            'height' : ${dim.h},
+            'width' : ${dim.w},
+            'params' : {}
+          };
+        `} />
+        <script is:inline data-cfasync="false" src={`https://crowdsubsequentadmire.com/${adKey}/invoke.js`} onerror="window.isAdsterraBlocked = true;"></script>
+        <div id={`container-${adKey}`}></div>
+      </div>
+      
+      <div class="ad-info-overlay">
+        <span>AD</span>
+      </div>
     </div>
   </div>
-</div>
+)}
 
 <style>
   .ad-container-root {

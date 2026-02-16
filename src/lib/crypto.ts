@@ -1,9 +1,7 @@
 export async function hashIpAddress(ip: string): Promise<string> {
   const encoder = new TextEncoder();
-  // Use a hardcoded salt fallback if env var is missing. 
-  // In a real CF Worker, secrets should be passed via env, but this helper is isolated.
-  // We use a fixed salt for consistency across restarts.
-  const salt = 'babylon-salt-v1-secure-enough-for-views'; 
+  // Orion: Usamos un salt dinámico de env vars para mayor seguridad y genericidad
+  const salt = import.meta.env.INTERNAL_CRYPTO_SALT || 'default-cms-salt-v1'; 
   const data = encoder.encode(ip + salt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));

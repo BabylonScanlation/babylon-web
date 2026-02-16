@@ -1,12 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fade, slide } from 'svelte/transition';
+  import { siteConfig } from '../site.config';
 
   let isVisible = $state(false);
   let showConfirmation = $state(false);
   let hasClosed = $state(false);
 
-  const appUrl = 'https://pub-2e7d3fdb6a36489c808eaae6d2263bc7.r2.dev/babylonweb-app/DtupScan.apk';
+  const appUrl = siteConfig.app.androidUrl;
 
   onMount(() => {
     const closedStatus = localStorage.getItem('app-banner-closed');
@@ -55,11 +56,11 @@
       </button>
       
       <div class="app-icon">
-        <img src="/favicon.svg" alt="Babylon Logo" />
+        <img src={siteConfig.assets.logo} alt={`${siteConfig.name} Logo`} />
       </div>
       
       <div class="app-text">
-        <p class="app-title">Babylon App</p>
+        <p class="app-title">{siteConfig.shortName} App</p>
         <p class="app-subtitle">Una mejor experiencia de lectura</p>
       </div>
       
@@ -91,7 +92,7 @@
       role="button"
       tabindex="0"
     >
-      <h3>¿Descargar Babylon App?</h3>
+      <h3>¿Descargar {siteConfig.shortName} App?</h3>
       <p>Estás a punto de descargar el archivo instalador (.APK) para Android.</p>
       
       <div class="modal-actions">
@@ -185,7 +186,7 @@
   }
 
   .install-btn {
-    background-color: #00bfff;
+    background-color: var(--accent-color);
     color: #fff;
     border: none;
     border-radius: 20px;
@@ -256,7 +257,7 @@
   }
 
   .btn-confirm {
-    background-color: #00bfff;
+    background-color: var(--accent-color);
     color: #fff;
   }
 

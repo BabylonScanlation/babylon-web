@@ -10,9 +10,11 @@ import { getCommentsForTarget } from '../../../../lib/data/comments';
 import { getSeriesDetails } from '../../../../lib/data/series';
 import { getChapterPayload } from '../../../../lib/data/chapters';
 
+import { siteConfig } from '../../../../site.config';
+
 const { slug, chapter } = Astro.params;
 const user = Astro.locals.user;
-const watermark = `Babylon Scanlation`;
+const watermark = siteConfig.reader.watermark;
 
 if (!slug || !chapter) return Astro.redirect('/404');
 
@@ -49,7 +51,9 @@ try {
 
     if (isProcessing) {
       loadingMessage = 'Preparando capítulo para lectura...';
-    } else if (chapterId) {
+    }
+    
+    if (chapterId) {
       comments = await getCommentsForTarget(drizzleDb, 'chapter', chapterId, user?.uid);
     }
   } else {
@@ -118,8 +122,8 @@ if (error && currentChapterIndex !== -1) {
 ---
 
 <Layout 
-  title={`Leer ${seriesTitle ?? 'Serie'} Capítulo ${chapter} en Español Online - Babylon Scanlation`} 
-  description={`Lee el capítulo ${chapter} de ${seriesTitle} online en español. Disfruta de la mejor experiencia de lectura manga con carga rápida en Babylon Scanlation.`}
+  title={`Leer ${seriesTitle ?? 'Serie'} Capítulo ${chapter} en Español Online - ${siteConfig.name}`} 
+  description={`Lee el capítulo ${chapter} de ${seriesTitle} online en español. Disfruta de la mejor experiencia de lectura manga con carga rápida en ${siteConfig.name}.`}
   hidePushAds={true}
 >
   {nextChapterUrl && <link rel="next" href={nextChapterUrl} slot="head" />}
@@ -164,10 +168,7 @@ if (error && currentChapterIndex !== -1) {
 
   <main class="reader-container" id="reader-container">
     <div class="reader-top-ad">
-      <AdContainer type="banner">
-        <script is:inline async="async" data-cfasync="false" src="https://crowdsubsequentadmire.com/2cd2af2560f6df7e49d533c069a08932/invoke.js" onerror="window.isAdsterraBlocked = true;"></script>
-        <div id="container-2cd2af2560f6df7e49d533c069a08932"></div>
-      </AdContainer>
+      <AdContainer type="banner" />
     </div>
 
     {error ? (

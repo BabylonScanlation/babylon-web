@@ -51,9 +51,10 @@ const joinedDate = userProfile?.createdAt
       year: 'numeric',
     })
   : 'Recientemente';
+import { siteConfig } from '../site.config';
 ---
 
-<Layout title={`Perfil de ${username} - Babylon`}>
+<Layout title={`Perfil de ${username} - ${siteConfig.shortName}`}>
   <div class="profile-page-wrapper">
     <ProfileMediaHandler client:idle />
 
@@ -263,7 +264,7 @@ const joinedDate = userProfile?.createdAt
         <section id="general" class="content-panel active">
           <div class="panel-header">
             <h2>Editar Perfil</h2>
-            <p>Personaliza tu identidad en la comunidad Babylon.</p>
+            <p>Personaliza tu identidad en la comunidad {siteConfig.shortName}.</p>
           </div>
 
           <div class="glass-card">

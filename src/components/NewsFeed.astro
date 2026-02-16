@@ -3,6 +3,7 @@
 import type { User } from '../types';
 import { getDB, getAllNews, getNewsImages, type NewsItem, type NewsImageItem } from '../lib/db';
 import { logError } from '../lib/logError';
+import { siteConfig } from '../site.config';
 
 interface Props {
   seriesId?: number | null;
@@ -64,7 +65,7 @@ function formatDate(timestamp: number | string | Date) {
                   ) : (
                     <div class="author-avatar">{(newsItem.authorName || 'A').charAt(0).toUpperCase()}</div>
                   )}
-                  <span class="author-name">{newsItem.authorName || 'Staff Babylon'}</span>
+                  <span class="author-name">{newsItem.authorName || `Staff ${siteConfig.shortName}`}</span>
                 </div>
                 <div class="header-meta">
                   <span class="post-timestamp">{formatDate(newsItem.createdAt)}</span>
@@ -118,92 +119,87 @@ function formatDate(timestamp: number | string | Date) {
   </div>
 </section>
 
+<script>
+  import { siteConfig } from '../site.config';
+
+  function initNewsFeed() {
+    // Orion: Limpiar listener previo si existe para evitar duplicidad
+    if (window.newsFeedListener) {
+      document.removeEventListener('new-news-created', window.newsFeedListener);
+    }
+
+    const listener = (event: any) => {
+      const container = document.getElementById('news-feed-container');
+      if (!container) return;
+
+      const { news, hasImage } = event.detail;
+      
+      // Remover estado vacío si existe
+      const emptyState = container.querySelector('.empty-news-state');
+      if (emptyState) emptyState.remove();
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'premium-news-post-wrapper';
+
+      const div = document.createElement('div');
+      div.className = 'premium-news-post'; 
+      div.dataset.newsId = news.id;
+      
+      const dateStr = new Date().toLocaleDateString('es-ES', {
+          year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+
+      div.innerHTML = `
+        <div class="post-glass-frame">
+          <div class="post-header-area">
+            <div class="author-pill">
+              ${news.authorAvatar ? 
+                `<img src="${news.authorAvatar}" alt="${news.authorName}" class="author-avatar-img" />` : 
+                `<div class="author-avatar">${(news.authorName || 'A').charAt(0).toUpperCase()}</div>`
+              }
+              <span class="author-name">${news.authorName || `Staff ${siteConfig.shortName}`}</span>
+            </div>
+            <div class="header-meta">
+              <span class="post-timestamp">${dateStr}</span>
+              <div class="news-admin-actions">
+                  <button class="action-btn status-btn" onclick="handleToggleStatus('${news.id}', 'published')">
+                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                  </button>
+              </div>
+            </div>
+          </div>
+          <div class="post-content-area">
+            <p>${news.content}</p>
+          </div>
+          ${hasImage ? `<div class="news-gallery"><div class="image-wrapper" style="border:1px dashed rgba(255,255,255,0.2); display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);color:#aaa;font-size:0.85rem; aspect-ratio:16/9; border-radius:16px;">Procesando imagen...</div></div>` : ''}
+        </div>
+      `;
+      
+      wrapper.appendChild(div);
+      
+      // Animación de entrada
+      wrapper.style.opacity = '0';
+      wrapper.style.transform = 'translateY(-20px)';
+      container.prepend(wrapper);
+      
+      requestAnimationFrame(() => {
+          wrapper.style.transition = 'all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1)';
+          wrapper.style.opacity = '1';
+          wrapper.style.transform = 'translateY(0)';
+      });
+    };
+
+    window.newsFeedListener = listener;
+    document.addEventListener('new-news-created', listener);
+  }
+
+  // Ejecutar en carga inicial y tras cada transición
+  initNewsFeed();
+  document.addEventListener('astro:page-load', initNewsFeed);
+</script>
+
 <script is:inline>
-  // Astra: Recargar la página cuando se publica una nueva noticia para actualizar el feed SSR
-  document.addEventListener('new-news-created', (event) => {
-    // Si queremos evitar el reload, aquí inyectamos el HTML.
-    // Como el componente es complejo (tiene permisos de admin, iconos, etc.), 
-    // y el HTML se genera en servidor, replicarlo en JS cliente es propenso a errores de diseño.
-    // Sin embargo, para cumplir con el requisito de "no recargar si es posible",
-    // intentaremos inyectar una versión simplificada o hacer un fetch parcial si tuvieramos API de fragmentos.
-    // Dado que NO tenemos API de fragmentos HTML, la opción más segura y "Edge" es recargar para obtener el SSR actualizado.
-    // PERO, el usuario pidió explícitamente NO recargar. Así que inyectaremos el DOM.
-    
-    const container = document.getElementById('news-feed-container');
-    const { news, hasImage } = event.detail;
-    
-    // Remover estado vacío si existe
-    const emptyState = container.querySelector('.empty-news-state');
-    if (emptyState) emptyState.remove();
-
-    // Crear wrapper
-    const wrapper = document.createElement('div');
-    wrapper.className = 'premium-news-post-wrapper';
-
-    // Crear elemento con las clases EXACTAS del componente SSR
-    const div = document.createElement('div');
-    // IMPORTANTE: Aquí asignamos la clase que lleva los estilos de borde y fondo
-    div.className = 'premium-news-post'; 
-    div.dataset.newsId = news.id;
-    
-    // Formatear fecha
-    const dateStr = new Date().toLocaleDateString('es-ES', {
-        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
-
-    // Construir HTML interno (el contenido dentro del marco)
-    div.innerHTML = `
-      <div class="post-glass-frame">
-        <div class="post-header-area">
-          <div class="author-pill">
-            ${news.authorAvatar ? 
-              `<img src="${news.authorAvatar}" alt="${news.authorName}" class="author-avatar-img" />` : 
-              `<div class="author-avatar">${(news.authorName || 'A').charAt(0).toUpperCase()}</div>`
-            }
-            <span class="author-name">${news.authorName || 'Staff Babylon'}</span>
-          </div>
-          <div class="header-meta">
-            <span class="post-timestamp">${dateStr}</span>
-            <div class="news-admin-actions">
-                <button class="action-btn status-btn" title="Mover a borrador" onclick="handleToggleStatus('${news.id}', 'published')">
-                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                </button>
-                <button class="action-btn edit-btn" title="Editar publicación" onclick="handleEdit('${news.id}')">
-                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                </button>
-                <button class="action-btn delete-btn" title="Eliminar" onclick="handleDelete('${news.id}')">
-                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
-            </div>
-          </div>
-        </div>
-        <div class="post-content-area" id="content-${news.id}">
-          <p>${news.content}</p>
-        </div>
-        ${hasImage ? `<div class="news-gallery"><div class="image-wrapper" style="border:1px dashed rgba(255,255,255,0.2); display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);color:#aaa;font-size:0.85rem; aspect-ratio:16/9; border-radius:16px;">
-            <div style="text-align:center;">
-                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" style="margin-bottom:0.5rem;display:block;margin:0 auto 0.5rem;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                Procesando imagen...
-            </div>
-        </div></div>` : ''}
-      </div>
-    `;
-    
-    wrapper.appendChild(div);
-
-    // Animación de entrada
-    wrapper.style.opacity = '0';
-    wrapper.style.transform = 'translateY(-20px)';
-    container.prepend(wrapper);
-    
-    requestAnimationFrame(() => {
-        wrapper.style.transition = 'all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1)';
-        wrapper.style.opacity = '1';
-        wrapper.style.transform = 'translateY(0)';
-    });
-  });
-
-  // Astra: Lógica de cliente mínima para administración (solo si es necesario)
+  // Astra: Lógica de cliente mínima para administración
   window.handleDelete = async function(id) {
     if(!confirm('¿Eliminar esta noticia?')) return;
 

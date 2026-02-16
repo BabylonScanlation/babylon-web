@@ -4,6 +4,7 @@ import { logError } from '../../lib/logError';
 import { getDB } from '../../lib/db';
 import { series, chapters } from '../../db/schema';
 import { eq, and } from 'drizzle-orm';
+import { siteConfig } from '../../site.config';
 
 interface TelegramUpdate {
   message?: {
@@ -54,7 +55,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (!seriesResult) {
         const newSeriesTitle = `Serie ${topicId}`;
         const newSeriesSlug = `serie-${topicId}`;
-        const placeholderUrl = `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-cover.jpg`;
+        const placeholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderCover}`;
         
         try {
           seriesResult = await drizzleDb.insert(series).values({
@@ -105,7 +106,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (existingChapter) {
         // Orion: Si ya existe (ya sea app_only o live), permitimos actualizarlo.
         // Esto soluciona el problema de "borrar y volver a subir" en Telegram para corregir errores.
-        const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`;
+        const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderChapter}`;
         
         await drizzleDb.update(chapters)
           .set({
@@ -135,7 +136,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           
         if (chapterIdResult?.id) {
           const newChapterId = chapterIdResult.id;
-          const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`;
+          const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderChapter}`;
 
           await drizzleDb.update(chapters)
             .set({ urlPortada: chapterPlaceholderUrl })
