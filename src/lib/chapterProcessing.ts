@@ -1,10 +1,10 @@
-import { ZipReader, HttpReader, Uint8ArrayWriter, type Entry } from '@zip.js/zip.js';
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
-import pLimit from 'p-limit';
-import { logError } from './logError';
-import { getDB } from './db';
-import { chapters } from '../db/schema';
+import { type Entry, HttpReader, Uint8ArrayWriter, ZipReader } from '@zip.js/zip.js';
 import { eq } from 'drizzle-orm';
+import pLimit from 'p-limit';
+import { chapters } from '../db/schema';
+import { getDB } from './db';
+import { logError } from './logError';
 
 interface RuntimeEnv {
   DB: D1Database;
@@ -24,14 +24,18 @@ export async function processAndCacheChapter(
   chapterNumber: number,
   chapterId: number
 ) {
+  const slug = String(seriesSlugParam || '');
+  if (!slug) throw new Error('Series slug is required');
+  
   const drizzleDb = getDB(env);
-  const seriesSlug = String(seriesSlugParam);
 
   try {
-    const isDev = process.env.NODE_ENV === 'development' || (typeof import.meta !== 'undefined' && import.meta.env?.DEV);
+    const isDev =
+      process.env.NODE_ENV === 'development' ||
+      (typeof import.meta !== 'undefined' && import.meta.env?.DEV);
     const concurrency = isDev ? 4 : 10;
     const limit = pLimit(concurrency);
-    
+
     console.log(`[PROCESO] Iniciando Lightspeed para capítulo ID: ${chapterId}`);
 
     const fileInfoUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`;
@@ -45,12 +49,14 @@ export async function processAndCacheChapter(
         }
       } catch (err) {
         if (i === 2) throw err;
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, 1000));
       }
     }
-    
+
     if (!rawFileInfo?.ok || !rawFileInfo?.result?.file_path) {
-      throw new Error(rawFileInfo?.description || 'No se pudo obtener la ruta del archivo de Telegram');
+      throw new Error(
+        rawFileInfo?.description || 'No se pudo obtener la ruta del archivo de Telegram'
+      );
     }
 
     const filePath = rawFileInfo.result.file_path;
@@ -59,7 +65,7 @@ export async function processAndCacheChapter(
     const fileUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${filePath}`;
     const zipReader = new ZipReader(new HttpReader(fileUrl));
     const entries: Entry[] = await zipReader.getEntries();
-    
+
     const imageEntries = entries.filter(
       (entry) => !entry.directory && /\.(jpe?g|png|webp)$/i.test(entry.filename)
     );
@@ -67,75 +73,82 @@ export async function processAndCacheChapter(
     if (imageEntries.length === 0) throw new Error('No se encontraron imágenes en el ZIP.');
 
     const versionHash = Date.now().toString(36);
-    const manifestKey = `${seriesSlug}/${String(chapterNumber)}/manifest.json`;
+    const manifestKey = `${slug}/${String(chapterNumber)}/manifest.json`;
 
     // --- FASE A: VIRTUAL MANIFEST ---
-    const currentSlug = seriesSlug;
     const virtualPages = imageEntries
-        .map((entry: Entry) => {
-            const entryFilename = entry.filename;
-            if (!entryFilename) return null;
-            
-            const cleanName = entryFilename.replace(/11zon/gi, '');
-            const allNumbers = cleanName.match(/(\d+)/g);
-            if (!allNumbers) return null;
-            
-            const pageNumber = parseInt(allNumbers[allNumbers.length - 1], 10);
-            const r2Key = `${currentSlug}/${chapterNumber}/${versionHash}/${entryFilename}`;
-            return { pageNumber, imageUrl: `/api/r2-cache/${r2Key}` } as any;
-        })
-        .filter((p): p is { pageNumber: number, imageUrl: string } => p !== null)
-        .sort((a, b) => a.pageNumber - b.pageNumber);
+      .map((entry: Entry) => {
+        const name = entry.filename;
+        if (!name) return null;
+
+        const allNumbers = name.match(/(\d+)/g);
+        if (!allNumbers) return null;
+
+        const pageNumber = parseInt(allNumbers[allNumbers.length - 1], 10);
+        const r2Key = `${slug}/${chapterNumber}/${versionHash}/${name}`;
+        return { pageNumber, imageUrl: `/api/r2-cache/${r2Key}` };
+      })
+      .filter((p): p is { pageNumber: number; imageUrl: string } => p !== null)
+      .sort((a, b) => a.pageNumber - b.pageNumber);
 
     if (virtualPages.length > 0) {
-        await env.R2_CACHE.put(manifestKey, JSON.stringify({ 
-            version: "2.1-virtual", 
-            vHash: versionHash, 
-            pages: virtualPages 
-        }), {
-            httpMetadata: { contentType: 'application/json', cacheControl: 'no-cache, no-store, must-revalidate' },
-        });
-        console.log(`[LIGHTSPEED] ⚡ Virtual Manifest subido para capítulo ${chapterId}`);
+      await env.R2_CACHE.put(
+        manifestKey,
+        JSON.stringify({
+          version: '2.1-virtual',
+          vHash: versionHash,
+          pages: virtualPages,
+        }),
+        {
+          httpMetadata: {
+            contentType: 'application/json',
+            cacheControl: 'no-cache, no-store, must-revalidate',
+          },
+        }
+      );
+      console.log(`[LIGHTSPEED] ⚡ Virtual Manifest subido para capítulo ${chapterId}`);
     }
 
     // --- FASE B: BACKGROUND FILL ---
-    const pageUploadPromises = imageEntries.map((entry: Entry) => limit(async () => {
-      const entryFilename = entry.filename;
-      if (!entryFilename) return null;
+    const pageUploadPromises = imageEntries.map((entry: Entry) =>
+      limit(async () => {
+        const name = entry.filename;
+        if (!name) return null;
 
-      const cleanName = entryFilename.replace(/11zon/gi, '');
-      const allNumbers = cleanName.match(/(\d+)/g);
-      if (!allNumbers) return null;
-      
-      try {
+        const fileName = name;
+        try {
           const entryWithData = entry as any;
           if (!entryWithData.getData) return null;
-          const r2Key = `${seriesSlug}/${String(chapterNumber)}/${versionHash}/${entryFilename}`;
+          const r2Key = `${slug}/${String(chapterNumber)}/${versionHash}/${fileName}`;
           const imageBuffer = await entryWithData.getData(new Uint8ArrayWriter());
-          
+
           let uploadSuccess = false;
           for (let attempt = 1; attempt <= 3; attempt++) {
-              try {
-                  await env.R2_CACHE.put(r2Key, imageBuffer, {
-                    httpMetadata: {
-                      contentType: entry.filename.toLowerCase().endsWith('.webp') ? 'image/webp' : 
-                                   entry.filename.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
-                      cacheControl: 'public, max-age=31536000, s-maxage=2592000, immutable', 
-                    },
-                    customMetadata: { version: versionHash }
-                  });
-                  uploadSuccess = true;
-                  break; 
-              } catch {
-                  if (attempt < 3) await new Promise(r => setTimeout(r, 1000)); 
-              }
+            try {
+              await env.R2_CACHE.put(r2Key, imageBuffer, {
+                httpMetadata: {
+                  contentType: fileName.toLowerCase().endsWith('.webp')
+                    ? 'image/webp'
+                    : fileName.toLowerCase().endsWith('.png')
+                      ? 'image/png'
+                      : 'image/jpeg',
+                  cacheControl: 'public, max-age=31536000, s-maxage=2592000, immutable',
+                },
+                customMetadata: { version: versionHash },
+              });
+              uploadSuccess = true;
+              break;
+            } catch {
+              if (attempt < 3) await new Promise((r) => setTimeout(r, 1000));
+            }
           }
           return uploadSuccess ? true : null;
-      } catch (err) {
-          logError(err, '[UPLOAD] Fallo en página', { filename: String(entry.filename) });
+        } catch (err) {
+          logError(err, '[UPLOAD] Fallo en página', { filename: fileName });
           return null;
-      }
-    }));
+        }
+      })
+    );
 
     await Promise.all(pageUploadPromises);
     console.log(`[PROCESO] ✅ Subida de imágenes completada para ${chapterId}`);
@@ -143,20 +156,31 @@ export async function processAndCacheChapter(
     // Limpieza y marcar como LIVE
     const { pages: pagesTable } = await import('../db/schema');
     try {
-        await drizzleDb.delete(pagesTable).where(eq(pagesTable.chapterId, chapterId)).run();
-    } catch (dbErr) { 
-        console.warn(`[PROCESO] No se pudieron limpiar páginas antiguas en DB para ${chapterId}`, dbErr);
+      await drizzleDb.delete(pagesTable).where(eq(pagesTable.chapterId, chapterId)).run();
+    } catch (dbErr) {
+      console.warn(
+        `[PROCESO] No se pudieron limpiar páginas antiguas en DB para ${chapterId}`,
+        dbErr
+      );
     }
 
-    await drizzleDb.update(chapters).set({ status: 'live' }).where(eq(chapters.id, chapterId)).run();
+    await drizzleDb
+      .update(chapters)
+      .set({ status: 'live' })
+      .where(eq(chapters.id, chapterId))
+      .run();
 
     await zipReader.close();
   } catch (error) {
-    logError(error, '[PROCESO] Error crítico', { seriesSlug, chapterNumber, chapterId });
+    logError(error, '[PROCESO] Error crítico', { seriesSlug: slug, chapterNumber, chapterId });
     try {
-        await drizzleDb.update(chapters).set({ status: 'live' }).where(eq(chapters.id, chapterId)).run();
+      await drizzleDb
+        .update(chapters)
+        .set({ status: 'live' })
+        .where(eq(chapters.id, chapterId))
+        .run();
     } catch (dbErr) {
-        console.error(`[PROCESO] Fallo fatal al intentar revertir status para ${chapterId}`, dbErr);
+      console.error(`[PROCESO] Fallo fatal al intentar revertir status para ${chapterId}`, dbErr);
     }
   }
 }

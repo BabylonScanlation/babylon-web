@@ -1,0 +1,9 @@
+# === REGISTRO DE SECRETOS UNIFICADOS ===
+# Los secretos han sido movidos a sus respectivos archivos de configuración estándar:
+#
+# 1. .dev.vars    -> (SECRETO) Usado por Wrangler para desarrollo local (Edge runtime).
+# 2. .env         -> (PÚBLICO/BUILD) Usado por Astro/Vite durante la compilación.
+# 3. .env.local   -> (SECRETO/HERRAMIENTAS) Usado por drizzle-kit y scripts locales (Node context).
+#
+# NO MODIFICAR ESTOS ARCHIVOS DIRECTAMENTE SI NO ES NECESARIO.
+# LAS CLAVES REALES ESTÁN AHORA EN LOS ARCHIVOS MENCIONADOS ARRIBA.

@@ -1,40 +1,68 @@
 import { eq, and, isNull, desc } from 'drizzle-orm';
+import { z } from 'zod';
 import * as schema from '../db/schema';
 import { getDB } from './db-client';
 import { generateUUID } from './utils';
 
 export { getDB };
 
-export interface NewsItem {
-  id: string;
-  title: string;
-  content: string;
-  createdAt: Date;
-  updatedAt: Date;
-  publishedBy: string;
-  status: 'draft' | 'published';
-  seriesId: number | null;
-  authorName: string | null;
-}
+// --- Zod Schemas ---
 
-export interface NewsImageItem {
-  id: string;
-  newsId: string;
-  r2Key: string;
-  altText: string | null;
-  displayOrder: number;
-}
+export const NewsSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(3, "El título debe tener al menos 3 caracteres"),
+  content: z.string().min(10, "El contenido es demasiado corto"),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  publishedBy: z.string(),
+  status: z.enum(['draft', 'published']).default('draft'),
+  seriesId: z.number().nullable(),
+  authorName: z.string().nullable(),
+});
+
+export const NewsImageSchema = z.object({
+  id: z.string().uuid(),
+  newsId: z.string().uuid(),
+  r2Key: z.string().min(1),
+  altText: z.string().nullable(),
+  displayOrder: z.number().int().min(0),
+});
+
+// --- Types from Zod ---
+export type NewsItem = z.infer<typeof NewsSchema>;
+export type NewsImageItem = z.infer<typeof NewsImageSchema>;
+
+// Helper types for creation/update
+export type CreateNewsInput = Omit<NewsItem, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateNewsImageInput = Omit<NewsImageItem, 'id'>;
+
+export type NewsWithDetails = NewsItem & { 
+  seriesCover?: string | null; 
+  seriesTitle?: string | null; 
+  authorAvatar?: string | null;
+};
+
+// --- Database Operations ---
 
 export async function createNews(
   drizzleDb: ReturnType<typeof getDB>,
-  newsData: Omit<NewsItem, 'id' | 'createdAt' | 'updatedAt'>
+  newsData: CreateNewsInput
 ): Promise<NewsItem> {
   const id = generateUUID();
   const now = new Date();
-  const newsItem: NewsItem = { ...newsData, id, createdAt: now, updatedAt: now };
+  
+  const newsItem = {
+    ...newsData,
+    id,
+    createdAt: now,
+    updatedAt: now,
+    seriesId: newsData.seriesId ?? null,
+    authorName: newsData.authorName ?? null,
+  };
 
-  await drizzleDb.insert(schema.news).values(newsItem);
-  return newsItem;
+  const validated = NewsSchema.parse(newsItem);
+  await drizzleDb.insert(schema.news).values(validated);
+  return validated;
 }
 
 export async function getNewsById(
@@ -62,18 +90,29 @@ export async function getNewsById(
 
   if (!result) return null;
 
-  return {
+  const parsedNews = NewsSchema.safeParse({
     ...result,
-    seriesSlug: result.seriesSlug || undefined,
-    seriesTitle: result.seriesTitle || undefined,
-  } as any;
+    createdAt: result.createdAt ? new Date(result.createdAt) : new Date(),
+    updatedAt: result.updatedAt ? new Date(result.updatedAt) : new Date(),
+  });
+
+  if (!parsedNews.success) {
+    console.error(`[DB Integrity Error] News ID ${id} has invalid data:`, parsedNews.error);
+    return null;
+  }
+
+  return {
+    ...parsedNews.data,
+    seriesSlug: result.seriesSlug ?? undefined,
+    seriesTitle: result.seriesTitle ?? undefined,
+  } as NewsItem & { seriesSlug?: string; seriesTitle?: string };
 }
 
 export async function getAllNews(
   drizzleDb: ReturnType<typeof getDB>,
   status?: 'draft' | 'published',
   seriesId?: number | null
-): Promise<(NewsItem & { seriesCover?: string | null | undefined; seriesTitle?: string | null | undefined; authorAvatar?: string | null | undefined })[]> {
+): Promise<NewsWithDetails[]> {
   const conditions = [];
 
   if (status) {
@@ -105,47 +144,48 @@ export async function getAllNews(
       .orderBy(desc(schema.news.createdAt))
       .all();
 
-    return (results || []).map(r => ({
-      ...r,
-      seriesCover: r.seriesCover || undefined,
-      seriesTitle: r.seriesTitle || undefined,
-      authorAvatar: r.authorAvatar || undefined,
-    }));
-  } catch (err: any) {
-    console.error('Database Error in getAllNews (with joins):', err.message);
-    
-    // Fallback: Basic news
-    try {
-      const basicResults = await drizzleDb.select()
-        .from(schema.news)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(schema.news.createdAt))
-        .all();
-        
-      return (basicResults || []).map(n => ({
-        ...n,
-        seriesCover: undefined,
-        seriesTitle: undefined,
-        authorAvatar: undefined,
-      }));
-    } catch (fallbackErr: any) {
-      console.error('Critical Database Error in getAllNews (basic fallback):', fallbackErr.message);
-      return [];
-    }
+    const validatedItems = results.map(r => {
+        const validation = NewsSchema.safeParse({
+            ...r,
+            createdAt: r.createdAt ? new Date(r.createdAt) : new Date(),
+            updatedAt: r.updatedAt ? new Date(r.updatedAt) : new Date(),
+        });
+
+        if (!validation.success) {
+            console.warn(`[DB Skip] Skipping invalid news item ${r.id}:`, validation.error);
+            return null;
+        }
+
+        const item: NewsWithDetails = {
+            ...validation.data,
+            seriesCover: r.seriesCover ?? null,
+            seriesTitle: r.seriesTitle ?? null,
+            authorAvatar: r.authorAvatar ?? null,
+        };
+        return item;
+    });
+
+    return validatedItems.filter((item): item is NewsWithDetails => item !== null);
+
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Database Error in getAllNews:', message);
+    return [];
   }
 }
 
 export async function updateNews(
   drizzleDb: ReturnType<typeof getDB>,
   id: string,
-  updates: any
+  updates: Partial<NewsItem>
 ): Promise<NewsItem | null> {
+  const validatedUpdates = NewsSchema.partial().parse(updates);
+  
   const now = new Date();
-  const updateData: {[key: string]: any} = { ...updates, updatedAt: now };
-
-  if (typeof updateData.seriesId === 'string') {
-    updateData.seriesId = updateData.seriesId === '' ? null : parseInt(updateData.seriesId, 10);
-  }
+  const updateData = { 
+      ...validatedUpdates, 
+      updatedAt: now 
+  };
 
   await drizzleDb.update(schema.news)
     .set(updateData)
@@ -161,12 +201,14 @@ export async function deleteNews(drizzleDb: ReturnType<typeof getDB>, id: string
 
 export async function addNewsImage(
   drizzleDb: ReturnType<typeof getDB>,
-  image: Omit<NewsImageItem, 'id'>
+  image: CreateNewsImageInput
 ): Promise<NewsImageItem> {
   const id = generateUUID();
-  const newsImageItem: NewsImageItem = { ...image, id };
-  await drizzleDb.insert(schema.newsImage).values(newsImageItem);
-  return newsImageItem;
+  const newsImageItem = { ...image, id };
+  const validated = NewsImageSchema.parse(newsImageItem);
+  
+  await drizzleDb.insert(schema.newsImage).values(validated);
+  return validated;
 }
 
 export async function getNewsImages(
@@ -178,7 +220,11 @@ export async function getNewsImages(
     .where(eq(schema.newsImage.newsId, newsId))
     .orderBy(schema.newsImage.displayOrder)
     .all();
-  return results || [];
+    
+  return results.map(img => {
+      const validation = NewsImageSchema.safeParse(img);
+      return validation.success ? validation.data : null;
+  }).filter((img): img is NewsImageItem => img !== null);
 }
 
 export async function deleteNewsImage(

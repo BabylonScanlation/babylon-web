@@ -185,11 +185,11 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         <main class="site-main-content">
           <slot />
         </main>
-        <BottomNav unreadNewsCount={unreadCountServer} />
+        {!isVerifyPage && <BottomNav unreadNewsCount={unreadCountServer} />}
         {!isVerifyPage && <Footer />}
         <AuthModal client:load />
         <ToastContainer client:idle />
-        <AppBanner client:idle />
+        {!isVerifyPage && <AppBanner client:idle />}
         {!isAdminPage && <AdblockWall />}
       </>
     )}

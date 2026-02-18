@@ -1,5 +1,7 @@
 ---
 import { siteConfig } from '../site.config';
+import NewsCounter from './NewsCounter.svelte';
+
 const { user, runtime } = Astro.locals;
 const { unreadNewsCount = 0 } = Astro.props;
 const r2PublicUrlAssets =
@@ -24,9 +26,7 @@ const r2PublicUrlAssets =
         <a href="/search" class="nav-link-pc"><span>EXPLORAR</span></a>
         <a href="/news" class="nav-link-pc news-link">
           <span>NOTICIAS</span>
-          <span data-news-badge class={`news-badge-dot ${unreadNewsCount > 0 ? '' : 'hidden'}`}>
-            {unreadNewsCount > 9 ? '+9' : unreadNewsCount}
-          </span>
+          <NewsCounter client:load initialCount={unreadNewsCount} />
         </a>
         <a href="/library" class="nav-link-pc"><span>BIBLIOTECA</span></a>
       </div>
