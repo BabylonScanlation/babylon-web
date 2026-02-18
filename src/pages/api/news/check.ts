@@ -41,7 +41,7 @@ export const GET: APIRoute = async ({ locals }) => {
     }
 
     // Convert Date objects to numeric timestamps safely
-    const formattedNews = (latestNews || []).map(n => {
+    const formattedNews = (latestNews || []).map((n: any) => {
       try {
         let ts = 0;
         if (n.createdAt instanceof Date) {

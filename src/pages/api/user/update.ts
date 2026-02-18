@@ -41,7 +41,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const updateData: any = {
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
     };
     if (username !== undefined) updateData.username = username;
     if (bio !== undefined) updateData.bio = bio;
@@ -61,7 +61,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         isNsfw: isNsfw ?? false,
         avatarUrl: avatarUrl,
         bannerUrl: bannerUrl,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
     }).onConflictDoUpdate({
         target: users.id,
         set: updateData

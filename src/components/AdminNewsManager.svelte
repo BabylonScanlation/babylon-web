@@ -174,7 +174,7 @@
       } else {
         initialNews = [{ ...savedNews, seriesId: selectedSeriesId, createdAt: savedNews.createdAt || new Date().toISOString() }, ...initialNews];
         
-        // Orion: Notificar al Header que hay una noticia nueva para limpiar el throttle
+        // Orion: Notificar al Servicio de Noticias centralizado
         window.dispatchEvent(new CustomEvent('new-news-created', { 
           detail: { news: savedNews } 
         }));

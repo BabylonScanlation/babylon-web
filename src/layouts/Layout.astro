@@ -10,6 +10,8 @@ import AdblockWall from '../components/AdblockWall.astro';
 import AgeGate from '../components/AgeGate.svelte';
 import BottomNav from '../components/BottomNav.astro';
 import { siteConfig } from '../site.config';
+import { news } from '../db/schema';
+import { eq, desc, sql } from 'drizzle-orm';
 
 const { 
   title: pageTitle, 
@@ -18,13 +20,56 @@ const {
   canonicalURL = Astro.url.href
 } = Astro.props;
 
+const { db, user } = Astro.locals;
+
+// Orion: Sistema de Noticias (Respetando la Base de Datos)
+let lastSeenId = Astro.cookies.get('last_news_id')?.value;
+
+// Si el usuario está logueado, extraemos su preferencia de la DB (inyectada por el middleware)
+if (user && (user as any).preferences) {
+  try {
+    const prefs = JSON.parse((user as any).preferences);
+    if (prefs.lastSeenNewsId) {
+      lastSeenId = prefs.lastSeenNewsId;
+    }
+  } catch {}
+}
+
+let unreadCountServer = 0;
+if (db) {
+  try {
+    if (!lastSeenId) {
+      // Usuario nuevo (sin rastro en DB ni Cookie)
+      const countResult = await db.select({ count: sql<number>`count(*)` })
+        .from(news)
+        .where(eq(news.status, 'published'))
+        .get();
+      unreadCountServer = countResult?.count || 0;
+    } else {
+      const latestNews = await db.select({ id: news.id })
+        .from(news)
+        .where(eq(news.status, 'published'))
+        .orderBy(desc(news.createdAt))
+        .limit(40)
+        .all();
+
+      if (latestNews && latestNews.length > 0) {
+        const lastSeenIndex = latestNews.findIndex(n => n.id.toString() === lastSeenId);
+        unreadCountServer = lastSeenIndex === -1 ? 0 : lastSeenIndex;
+      }
+    }
+  } catch (e) {
+    console.error('[SSR News Error]:', e);
+  }
+}
+
 const title = pageTitle ? `${pageTitle} | ${siteConfig.shortName}` : siteConfig.name;
 
 const isAdminPage = Astro.url.pathname.startsWith('/admin');
 const isVerifyPage = Astro.url.pathname === '/verify';
 
 const isVerified = Astro.cookies.get('site_verified')?.value === 'true';
-const isBot = Astro.locals.isBot;
+const isBot = (Astro.locals as any).isBot;
 const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage && !isBot;
 
 // Orion: URL Base para metadatos absolutos
@@ -90,7 +135,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     <slot name="head" />
 
     <script is:inline>
-      // Orion: Silenciador de errores de Privacy Sandbox/Permissions-Policy
+      // Astra: Silenciador de errores de Privacy Sandbox/Permissions-Policy
       (function() {
         const originalError = console.error;
         console.error = function(...args) {
@@ -113,44 +158,13 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       }
     `}>
     </style>
-    
-    <style is:inline>
-      .site-main-content {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        flex: 1; /* Astra: Ocupa el espacio disponible para empujar el footer */
-      }
-
-      body.cosmos-theme {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-        background-color: var(--bg-color);
-      }
-
-      .age-gate-active body { visibility: hidden !important; background: #000 !important; overflow: hidden !important; }
-      .age-gate-active .age-gate-overlay { visibility: visible !important; }
-
-      /* Astra: Modo Lectura en Móvil - Limpieza de Cosmos */
-      @media (max-width: 1023px) {
-        .site-main-content {
-          padding-bottom: 5rem; /* Astra: Espacio de seguridad para el footer y BottomNav */
-        }
-        body[data-reader-active="true"] .site-main-content {
-          padding-top: 0 !important;
-          margin-top: 0 !important;
-        }
-        body[data-reader-active="true"] .cosmos-bg {
-          display: none !important;
-        }
-        body[data-reader-active="true"] {
-          background-color: #000 !important;
-        }
-      }
-    </style>
   </head>
-  <body class="cosmos-theme">
+  <body 
+    class="cosmos-theme" 
+    data-unread-count={unreadCountServer} 
+    data-user-id={user?.uid || 'guest'}
+    data-cosmos-physics={siteConfig.theme.cosmos.physicsEnabled ? 'true' : 'false'}
+  >
     {siteConfig.theme.cosmos.enabled && (
       <div class="cosmos-bg">
         <div class="stars-layer base"></div>
@@ -167,95 +181,28 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       <AgeGate client:load isVerificationPage={false} />
     ) : (
       <>
-        {!isVerifyPage && <Header />}
+        {!isVerifyPage && <Header unreadNewsCount={unreadCountServer} />}
         <main class="site-main-content">
           <slot />
         </main>
-        <BottomNav />
+        <BottomNav unreadNewsCount={unreadCountServer} />
         {!isVerifyPage && <Footer />}
-        <AuthModal client:idle />
+        <AuthModal client:load />
         <ToastContainer client:idle />
         <AppBanner client:idle />
         {!isAdminPage && <AdblockWall />}
       </>
     )}
     
-    <script is:inline define:vars={{ storagePrefix: siteConfig.storage.prefix }}>
-      // Orion: Sistema de Notificaciones de Noticias (Estado Persistente)
-      window.checkNewNews = async function(force = false) {
-        const pcBadge = document.getElementById('news-badge-pc');
-        const mobileBadge = document.getElementById('news-badge-mobile');
-        const currentPath = window.location.pathname;
-        const isNewsPage = currentPath === '/news' || currentPath === '/news/';
-
-        const updateUI = (count) => {
-          [pcBadge, mobileBadge].forEach(el => {
-            if (!el) return;
-            if (count > 0 && !isNewsPage) {
-              el.textContent = count > 9 ? '+9' : count.toString();
-              el.classList.remove('hidden');
-            } else {
-              el.classList.add('hidden');
-            }
-          });
-        };
-
-        // 1. Mostrar estado previo inmediatamente (Evita desaparición al refrescar)
-        const cachedCount = parseInt(localStorage.getItem(`${storagePrefix}unread_news_count`) || '0');
-        updateUI(cachedCount);
-
-        // 2. Si estamos en noticias, marcar como leído y salir
-        if (isNewsPage) {
-          localStorage.setItem(`${storagePrefix}unread_news_count`, '0');
-          updateUI(0);
-          
-          try {
-            const res = await fetch('/api/news/check');
-            const latest = await res.json();
-            if (latest && latest.length > 0) {
-              localStorage.setItem(`${storagePrefix}last_seen_news_date`, latest[0].createdAt.toString());
-            }
-          } catch {}
-          return;
-        }
-
-        // 3. Throttling de 30s para la API
-        const lastCheck = localStorage.getItem(`${storagePrefix}last_news_check_ts`);
-        const now = Date.now();
-        if (!force && lastCheck && (now - parseInt(lastCheck)) < 30000) return;
-
-        // 4. Consultar nuevas noticias
-        try {
-          const res = await fetch('/api/news/check?t=' + now);
-          if (!res.ok) return;
-          const latest = await res.json();
-          localStorage.setItem(`${storagePrefix}last_news_check_ts`, now.toString());
-
-          if (!latest || latest.length === 0) return;
-
-          const lastSeenDate = parseInt(localStorage.getItem(`${storagePrefix}last_seen_news_date`) || '0');
-          const unreadNews = latest.filter(n => parseInt(n.createdAt) > lastSeenDate);
-          const count = unreadNews.length;
-
-          localStorage.setItem(`${storagePrefix}unread_news_count`, count.toString());
-          updateUI(count);
-        } catch (e) {}
-      }
-
-      if (!window.hasNewsListener) {
-        window.addEventListener('new-news-created', () => {
-          setTimeout(() => window.checkNewNews(true), 1000);
-        });
-        window.hasNewsListener = true;
-      }
-
-      document.addEventListener('astro:page-load', () => window.checkNewNews());
-      document.addEventListener('astro:after-swap', () => window.checkNewNews());
+    <script>
+      import { NewsService } from '../lib/news-service';
+      // Orion: Inicializar el servicio (él mismo leerá el data-latest-news del body)
+      NewsService.getInstance();
     </script>
     
     <script>
       // Astra: Motor de Física Estelar (Paralaje 2.0)
-      let cleanupCosmos: (() => void) | null = null;
+      let cleanupCosmos: any = null;
 
       const initCosmos = () => {
         if (cleanupCosmos) cleanupCosmos();
@@ -339,7 +286,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
 
         animate();
 
-        cleanupCosmos = () => {
+        return () => {
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             document.removeEventListener('mousemove', onMouseMove);
             window.removeEventListener('scroll', onScroll);
@@ -348,16 +295,40 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       };
 
       document.addEventListener('astro:page-load', () => {
-        // Astra: Solo inicializar si la física está habilitada en la config
-        const physicsEnabled = siteConfig.theme.cosmos.physicsEnabled;
+        // Astra: Detener cualquier animación previa para evitar fugas de memoria/CPU
+        if (typeof (window as any).cleanupCosmos === 'function') {
+          (window as any).cleanupCosmos();
+        }
+
+        // Astra: Solo inicializar si la física está habilitada en el data-attribute del body
+        const physicsEnabled = document.body.getAttribute('data-cosmos-physics') === 'true';
         if (!physicsEnabled) return;
 
         if ('requestIdleCallback' in window) {
-          (window as any).requestIdleCallback(() => initCosmos(), { timeout: 1000 });
+          (window as any).requestIdleCallback(() => {
+            const cleanup = initCosmos();
+            (window as any).cleanupCosmos = cleanup;
+          }, { timeout: 1000 });
         } else {
-          setTimeout(initCosmos, 200);
+          setTimeout(() => {
+            const cleanup = initCosmos();
+            (window as any).cleanupCosmos = cleanup;
+          }, 200);
         }
       });
-    </script>
-  </body>
-</html>
+
+            </script>
+
+            <script is:inline>
+
+              // Astra: Limpiar imports no usados en el servidor
+
+              console.debug('Babylon Layout Initialized');
+
+            </script>
+
+          </body>
+
+        </html>
+
+        

@@ -1,5 +1,5 @@
 {
-  "name": "babylon-cms",
+  "name": "scanlation-cms-edge",
   "type": "module",
   "version": "1.0.0",
   "description": "Professional Edge-First Scanlation CMS built with Astro and Cloudflare.",

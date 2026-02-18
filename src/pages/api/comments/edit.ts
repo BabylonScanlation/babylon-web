@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     await db.update(comments)
       .set({ 
         commentText: commentText,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
       })
       .where(eq(comments.id, commentId))
       .run();

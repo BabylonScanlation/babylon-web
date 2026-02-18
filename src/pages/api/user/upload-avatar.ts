@@ -72,12 +72,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
         id: user.uid,
         email: user.email || 'no-email',
         avatarUrl: publicUrl,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
     }).onConflictDoUpdate({
         target: users.id,
         set: {
             avatarUrl: publicUrl,
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date()
         }
     }).run();
 

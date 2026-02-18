@@ -44,7 +44,7 @@
 
   let pagesData = $state<Page[]>([]);
   let loadingMessage = $state<string | null>(null);
-  let isProcessing = $state(false);
+  let isProcessing = $state(Boolean(processing));
   let error = $state<string | null>(null);
   let isComplete = $state(false);
 
@@ -461,6 +461,10 @@
     localStorage.setItem('viewMode', viewMode);
     showConfig = false;
   }
+
+  // Orion: Detectar si el capítulo es solo para la app (Protección de contenido)
+  const isInAppOnly = $derived(encryptedData === 'inapp' || loadingMessage === 'inapp');
+  import { siteConfig } from '../site.config';
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -476,7 +480,27 @@
   <div class="top-progress-bar" style="width: {scrollProgress}%"></div>
 
   <div class="reader-container" style="width: {isMobile ? 100 : readerWidth}%">
-    {#if error}
+    {#if isInAppOnly}
+      <div class="loader-overlay" in:fade>
+         <div class="glass-inapp">
+            <div class="inapp-icon">
+              <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+            </div>
+            <h3>Contenido Exclusivo</h3>
+            <p class="inapp-desc">Este capítulo solo está disponible a través de nuestra aplicación oficial para una mejor experiencia.</p>
+            
+            <div class="inapp-actions">
+              <a href={siteConfig.app.androidUrl} class="btn-download-app" download>
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Descargar App
+              </a>
+              <button class="btn-back-inapp" onclick={() => window.history.back()}>
+                Volver
+              </button>
+            </div>
+         </div>
+      </div>
+    {:else if error}
       <div class="loader-overlay" in:fade>
         <div class="glass-error">
           <div class="error-icon-anim">
@@ -839,6 +863,106 @@
 
   .glass-error h3 { font-size: 1.25rem; font-weight: 800; color: #fff; margin: 0 0 0.5rem 0; }
   .error-desc { color: #aaa; margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.5; }
+
+  /* In-App Exclusive Style */
+  .glass-inapp {
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(0, 191, 255, 0.2);
+    padding: 3.5rem 2rem;
+    border-radius: 40px;
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 191, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: slideUpIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideUpIn {
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .inapp-icon {
+    width: 90px;
+    height: 90px;
+    background: linear-gradient(135deg, rgba(0, 191, 255, 0.2) 0%, rgba(0, 119, 255, 0.1) 100%);
+    color: var(--accent-color);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(0, 191, 255, 0.3);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+  }
+
+  .glass-inapp h3 {
+    font-size: 1.75rem;
+    font-weight: 900;
+    margin: 0 0 1rem 0;
+    letter-spacing: -0.02em;
+    background: linear-gradient(to bottom, #fff, #999);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .inapp-desc {
+    color: #888;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+    max-width: 280px;
+  }
+
+  .inapp-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .btn-download-app {
+    background: linear-gradient(135deg, var(--accent-color) 0%, #0077ff 100%);
+    color: #000;
+    text-decoration: none;
+    padding: 1.25rem;
+    border-radius: 20px;
+    font-weight: 900;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    box-shadow: 0 15px 30px rgba(0, 191, 255, 0.3);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .btn-download-app:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 191, 255, 0.4);
+    filter: brightness(1.1);
+  }
+
+  .btn-back-inapp {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #666;
+    padding: 1rem;
+    border-radius: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-back-inapp:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
 
   .btn-retry {
     background: #fff;

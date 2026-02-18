@@ -65,7 +65,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
             coverImageUrl: placeholderUrl,
             telegramTopicId: topicId,
             isHidden: true,
-            createdAt: new Date().toISOString(),
+            createdAt: new Date(),
           }).returning({ id: series.id, title: series.title }).get();
         } catch (e: any) {
           if (e.message?.includes('UNIQUE constraint failed')) {
@@ -113,7 +113,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
             telegramFileId: fileId,
             status: 'live',
             urlPortada: chapterPlaceholderUrl,
-            createdAt: new Date().toISOString()
+            createdAt: new Date()
           })
           .where(eq(chapters.id, existingChapter.id))
           .run();
@@ -129,7 +129,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           telegramFileId: fileId,
           status: 'live',
           urlPortada: null,
-          createdAt: new Date().toISOString(), // Fijar fecha explícita para evitar problemas de default/formato
+          createdAt: new Date(), // Fijar fecha explícita para evitar problemas de default/formato
         })
           .returning({ id: chapters.id })
           .get();

@@ -89,7 +89,7 @@ export const POST = createApiRoute({ auth: 'admin' }, async ({ request, locals }
           telegramFileId: fileId,
           status: 'processing', // Orion: Empezamos en processing porque disparamos el worker ahora
           urlPortada: `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`,
-          createdAt: new Date().toISOString(),
+          createdAt: new Date(),
         }).returning({ id: chapters.id });
         registeredChapterId = insertResult[0]?.id;
       } else {
@@ -97,7 +97,7 @@ export const POST = createApiRoute({ auth: 'admin' }, async ({ request, locals }
           .set({ 
             telegramFileId: fileId,
             status: 'processing',
-            createdAt: new Date().toISOString() 
+            createdAt: new Date() 
           })
           .where(eq(chapters.id, existing.id));
         registeredChapterId = existing.id;

@@ -63,13 +63,15 @@
         ...c,
         isOwner,
         isEditing: false,
-        editedText: isDeleted ? '' : c.commentText,
-        showSpoiler: false,
+        editedText: c.isDeleted ? '' : c.commentText,
+        showSpoiler: Boolean(c.showSpoiler),
         username: c.username || 'Usuario',
         // Orion: Si es el dueño, priorizamos el avatar del objeto user reactivo
-        avatarUrl: (isOwner && user) ? (user.avatarUrl || c.avatarUrl) : c.avatarUrl,
-        isDeleted: isDeleted ? true : false,
-        isAdminComment: !!c.isAdminComment,
+        avatarUrl: ((isOwner && user) ? (user.avatarUrl || c.avatarUrl) : c.avatarUrl) || '',
+        isDeleted: Boolean(c.isDeleted),
+        isAdminComment: Boolean(c.isAdminComment),
+        isPinned: Boolean(c.isPinned),
+        isSpoiler: Boolean(c.isSpoiler),
         children: []
       };
       commentMap.set(c.id, processed);
@@ -200,7 +202,7 @@
     }
   }
 
-  onMount(async () => {
+  onMount(() => {
       // Orion: Sincronizar store al montar
       if (userStore.user) {
           userStore.sync();
@@ -213,13 +215,8 @@
           comments = tree;
       }
 
-      const handleAuthSuccess = async () => {
-          try {
-              // Si el evento de login ocurre, forzamos un refresh del store si fuera necesario
-              // pero onAuthStateChanged en userStore ya debería capturarlo.
-          } catch {
-              console.error('Error syncing auth');
-          }
+      const handleAuthSuccess = () => {
+          // Si el evento de login ocurre, forzamos un refresh del store si fuera necesario
       };
       document.addEventListener('auth-success', handleAuthSuccess);
       return () => document.removeEventListener('auth-success', handleAuthSuccess);
@@ -228,7 +225,7 @@
   let charCounter = $derived(`${commentText.length}/1000`);
   let visibleComments = $derived((comments && Array.isArray(comments)) ? (showAllComments ? comments : comments.slice(0, COMMENTS_VISIBLE_LIMIT)) : []);
 
-  const formatCommentDateClient = (dateString: string) => {
+  const formatCommentDateClient = (dateString: string | number) => {
     if (!dateString) return '';
     const label = timeAgo(dateString);
     return label.charAt(0).toUpperCase() + label.slice(1);
@@ -236,8 +233,8 @@
 
   const isEdited = (comment: Comment) => {
       if (!comment.updatedAt || !comment.createdAt) return false;
-      const normalize = (d: string) => {
-          if (typeof d !== 'string') return new Date(d).getTime();
+      const normalize = (d: string | number) => {
+          if (typeof d === 'number') return d;
           // Orion: Normalizar formato SQLite a ISO para que JS no se confunda
           let clean = d;
           if (!d.includes('T') && !d.endsWith('Z')) {
@@ -250,7 +247,6 @@
       const updated = normalize(comment.updatedAt);
       
       // Orion: Si la diferencia es mayor a 2 segundos, se considera editado
-      // Reducimos de 10s a 2s para mayor precisión en D1
       return updated > (created + 2000);
   };
 

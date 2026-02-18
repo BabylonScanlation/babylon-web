@@ -121,104 +121,120 @@ const { seriesId, seriesTitle, userName = 'Staff', seriesCover } = Astro.props;
 <script>
   import { logError } from '../lib/logError';
 
-  const toggleBtn = document.getElementById('toggle-news-form');
-  const container = document.getElementById('news-form-container');
-  const form = document.getElementById('series-news-form');
-  const statusEl = document.getElementById('form-status');
-  const imageInput = document.getElementById('image') as HTMLInputElement;
-  const fileLabel = document.getElementById('file-label');
+  // Astra: Inicialización única para evitar duplicidad de eventos en View Transitions
+  function initNewsForm() {
+    const form = document.getElementById('series-news-form');
+    if (!form || (form as any).hasInit) return;
 
-  toggleBtn?.addEventListener('click', () => {
-    container?.classList.toggle('collapsed');
-    toggleBtn.classList.toggle('active');
-  });
+    const toggleBtn = document.getElementById('toggle-news-form');
+    const container = document.getElementById('news-form-container');
+    const statusEl = document.getElementById('form-status');
+    const imageInput = document.getElementById('image') as HTMLInputElement;
+    const fileLabel = document.getElementById('file-label');
 
-  imageInput?.addEventListener('change', () => {
-    if (fileLabel && imageInput.files?.[0]) {
-      fileLabel.textContent = '1 archivo';
-      fileLabel.style.color = 'var(--accent-color)';
-    }
-  });
+    toggleBtn?.addEventListener('click', () => {
+      container?.classList.toggle('collapsed');
+      toggleBtn.classList.toggle('active');
+    });
 
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!(form instanceof HTMLFormElement)) return;
+    imageInput?.addEventListener('change', () => {
+      if (fileLabel && imageInput.files?.[0]) {
+        fileLabel.textContent = '1 archivo';
+        fileLabel.style.color = 'var(--accent-color)';
+      }
+    });
 
-    const formData = new FormData(form);
-    const title = formData.get('newsTitle')?.toString().trim();
-    const content = formData.get('content')?.toString().trim();
-    const image = formData.get('image');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!(form instanceof HTMLFormElement)) return;
 
-    const { seriesId, userName } = form.dataset;
+      const formData = new FormData(form);
+      const title = formData.get('newsTitle')?.toString().trim();
+      const content = formData.get('content')?.toString().trim();
+      const image = formData.get('image');
 
-    if (!content || !seriesId || !title) return;
+      const { seriesId, userName } = form.dataset;
 
-    if (statusEl) {
-      statusEl.textContent = 'Publicando...';
-      statusEl.className = 'status-text loading';
-    }
+      if (!content || !seriesId || !title) return;
 
-    try {
-      const res = await fetch('/api/admin/news', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: title, // Use the manual title
-          content,
-          seriesId,
-          authorName: userName,
-          status: 'published',
-        }),
-      });
+      if (statusEl) {
+        statusEl.textContent = 'Publicando...';
+        statusEl.className = 'status-text loading';
+      }
 
-      if (!res.ok) throw new Error('Error API');
-      const data = await res.json();
-
-      // Handle Image: If user didn't upload one, we could theoretically auto-upload the cover,
-      // but usually the backend should handle default images or we just send the cover URL if needed.
-      // For now, let's just stick to the manual upload or no image.
-      if (image instanceof File && image.size > 0) {
-        if (statusEl) statusEl.textContent = 'Subiendo media...';
-        const imgData = new FormData();
-        imgData.append('image', image);
-        imgData.append('newsId', data.id);
-        await fetch('/api/admin/news/upload-image', {
+      try {
+        const res = await fetch('/api/admin/news', {
           method: 'POST',
-          body: imgData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: title,
+            content,
+            seriesId,
+            authorName: userName,
+            status: 'published',
+          }),
         });
-      }
 
-      if (statusEl) {
-        statusEl.textContent = '¡Listo!';
-        statusEl.className = 'status-text success';
-        setTimeout(() => {
-          statusEl.textContent = '';
-          container?.classList.add('collapsed');
-          toggleBtn?.classList.remove('active');
-        }, 1500);
-      }
+        if (!res.ok) throw new Error('Error API');
+        const data = await res.json();
 
-      form.reset();
-      if (fileLabel) {
-        fileLabel.textContent = 'Imagen';
-        fileLabel.style.color = '';
+        if (image instanceof File && image.size > 0) {
+          if (statusEl) statusEl.textContent = 'Subiendo media...';
+          const imgData = new FormData();
+          imgData.append('image', image);
+          imgData.append('newsId', data.id);
+          await fetch('/api/admin/news/upload-image', {
+            method: 'POST',
+            body: imgData,
+          });
+        }
+
+        if (statusEl) {
+          statusEl.textContent = '¡Listo!';
+          statusEl.className = 'status-text success';
+          setTimeout(() => {
+            statusEl.textContent = '';
+            container?.classList.add('collapsed');
+            toggleBtn?.classList.remove('active');
+          }, 1500);
+        }
+
+        form.reset();
+        if (fileLabel) {
+          fileLabel.textContent = 'Imagen';
+          fileLabel.style.color = '';
+        }
+        
+        // Orion: Emitir evento para actualización optimista y forzar chequeo de contador
+        const createdAt = data.createdAt || Date.now();
+        
+        import('../site.config').then(({ siteConfig }) => {
+          const storagePrefix = siteConfig.storage.prefix;
+          localStorage.setItem(`${storagePrefix}last_seen_news_date`, (Date.now() - 5000).toString());
+          
+          window.dispatchEvent(new CustomEvent('new-news-created', { 
+            detail: { news: { ...data, createdAt }, hasImage: image instanceof File && image.size > 0, seriesId } 
+          }));
+          
+          if (typeof (window as any).checkNewNews === 'function') {
+            (window as any).checkNewNews(true);
+          }
+        });
+      } catch (err) {
+        logError(err, 'Fallo al publicar noticia desde formulario admin');
+        if (statusEl) {
+          statusEl.textContent = 'Error.';
+          statusEl.className = 'status-text error';
+        }
       }
-      
-      // Orion: Emitir evento con payload para actualización optimista
-      window.dispatchEvent(new CustomEvent('new-news-created', { 
-        detail: { 
-          news: data,
-          hasImage: image instanceof File && image.size > 0
-        } 
-      }));
-    } catch (err) {
-      logError(err, 'News Upload Error');
-      if (statusEl) {
-        statusEl.textContent = 'Error.';
-        statusEl.className = 'status-text error';
-      }
-    }
-  });
+    });
+
+    (form as any).hasInit = true;
+  }
+
+  // Ejecutar en cada carga de página
+  initNewsForm();
+  document.addEventListener('astro:page-load', initNewsForm);
 </script>
 
 <style>

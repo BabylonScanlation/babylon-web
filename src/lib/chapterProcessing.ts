@@ -20,11 +20,12 @@ interface RuntimeEnv {
 export async function processAndCacheChapter(
   env: RuntimeEnv,
   fileId: string,
-  seriesSlug: string,
+  seriesSlugParam: string,
   chapterNumber: number,
   chapterId: number
 ) {
   const drizzleDb = getDB(env);
+  const seriesSlug = String(seriesSlugParam);
 
   try {
     const isDev = process.env.NODE_ENV === 'development' || (typeof import.meta !== 'undefined' && import.meta.env?.DEV);
@@ -52,7 +53,10 @@ export async function processAndCacheChapter(
       throw new Error(rawFileInfo?.description || 'No se pudo obtener la ruta del archivo de Telegram');
     }
 
-    const fileUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${rawFileInfo.result.file_path}`;
+    const filePath = rawFileInfo.result.file_path;
+    if (!filePath) throw new Error('Telegram file path missing');
+
+    const fileUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${filePath}`;
     const zipReader = new ZipReader(new HttpReader(fileUrl));
     const entries: Entry[] = await zipReader.getEntries();
     
@@ -63,17 +67,22 @@ export async function processAndCacheChapter(
     if (imageEntries.length === 0) throw new Error('No se encontraron imágenes en el ZIP.');
 
     const versionHash = Date.now().toString(36);
-    const manifestKey = `${seriesSlug}/${chapterNumber}/manifest.json`;
+    const manifestKey = `${seriesSlug}/${String(chapterNumber)}/manifest.json`;
 
     // --- FASE A: VIRTUAL MANIFEST ---
+    const currentSlug = seriesSlug;
     const virtualPages = imageEntries
-        .map((entry) => {
-            const cleanName = entry.filename.replace(/11zon/gi, '');
+        .map((entry: Entry) => {
+            const entryFilename = entry.filename;
+            if (!entryFilename) return null;
+            
+            const cleanName = entryFilename.replace(/11zon/gi, '');
             const allNumbers = cleanName.match(/(\d+)/g);
             if (!allNumbers) return null;
+            
             const pageNumber = parseInt(allNumbers[allNumbers.length - 1], 10);
-            const r2Key = `${seriesSlug}/${chapterNumber}/${versionHash}/${entry.filename || 'unknown'}`;
-            return { pageNumber, imageUrl: `/api/r2-cache/${r2Key}` };
+            const r2Key = `${currentSlug}/${chapterNumber}/${versionHash}/${entryFilename}`;
+            return { pageNumber, imageUrl: `/api/r2-cache/${r2Key}` } as any;
         })
         .filter((p): p is { pageNumber: number, imageUrl: string } => p !== null)
         .sort((a, b) => a.pageNumber - b.pageNumber);
@@ -91,14 +100,18 @@ export async function processAndCacheChapter(
 
     // --- FASE B: BACKGROUND FILL ---
     const pageUploadPromises = imageEntries.map((entry: Entry) => limit(async () => {
-      const cleanName = entry.filename.replace(/11zon/gi, '');
+      const entryFilename = entry.filename;
+      if (!entryFilename) return null;
+
+      const cleanName = entryFilename.replace(/11zon/gi, '');
       const allNumbers = cleanName.match(/(\d+)/g);
       if (!allNumbers) return null;
       
       try {
-          if (!entry.getData) return null;
-          const r2Key = `${seriesSlug}/${chapterNumber}/${versionHash}/${entry.filename}`;
-          const imageBuffer = await entry.getData(new Uint8ArrayWriter());
+          const entryWithData = entry as any;
+          if (!entryWithData.getData) return null;
+          const r2Key = `${seriesSlug}/${String(chapterNumber)}/${versionHash}/${entryFilename}`;
+          const imageBuffer = await entryWithData.getData(new Uint8ArrayWriter());
           
           let uploadSuccess = false;
           for (let attempt = 1; attempt <= 3; attempt++) {

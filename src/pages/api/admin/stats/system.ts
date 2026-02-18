@@ -10,17 +10,21 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
 
   try {
     // 1. New Users (Last N days)
+    const msToSubtract = days * 24 * 60 * 60 * 1000;
+    const startTime = Date.now() - msToSubtract;
+
     const rawUsers = await db.select({
       createdAt: anonymousUsers.createdAt
     })
     .from(anonymousUsers)
-    .where(sql`${anonymousUsers.createdAt} >= datetime('now', '-' || ${days} || ' days')`)
+    .where(sql`${anonymousUsers.createdAt} >= ${startTime}`)
     .all();
 
     const usersByDate: Record<string, number> = {};
     rawUsers.forEach(u => {
       if (!u.createdAt) return;
-      const dateStr = u.createdAt.substring(0, 10); 
+      // Convert timestamp to YYYY-MM-DD
+      const dateStr = new Date(u.createdAt).toISOString().substring(0, 10); 
       usersByDate[dateStr] = (usersByDate[dateStr] || 0) + 1;
     });
 

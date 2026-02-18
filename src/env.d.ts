@@ -14,6 +14,7 @@ declare global {
         DB: D1Database;
         R2_ASSETS: R2Bucket;
         R2_CACHE: R2Bucket;
+        KV_VIEWS: KVNamespace;
         ADMIN_PASSWORD?: string;
         TELEGRAM_BOT_TOKEN?: string;
         TELEGRAM_WEBHOOK_SECRET?: string;
@@ -23,9 +24,12 @@ declare global {
         FIREBASE_CLIENT_EMAIL?: string;
         FIREBASE_PRIVATE_KEY?: string;
         SUPER_ADMIN_UID?: string;
+        JWT_SECRET?: string;
+        AUTH_SECRET?: string;
       }>;
       db: DrizzleD1Database<typeof schema> | undefined; // Corrected type
       user: User | undefined;
+      isBot: boolean;
     }
   }
 
@@ -38,5 +42,10 @@ declare global {
     isAdsterraBlocked?: boolean;
     isMonetagBlocked?: boolean;
     canRunAds?: boolean;
+    newsFeedListener?: any;
+    handleDelete?: (id: string) => Promise<void>;
+    handleEdit?: (id: string) => void;
+    saveEdit?: (id: string) => Promise<void>;
+    handleToggleStatus?: (id: string, currentStatus: string) => Promise<void>;
   }
 }

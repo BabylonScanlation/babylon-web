@@ -49,11 +49,11 @@ const navItems = [
           class:list={['nav-item', { active: isActive }]}
           data-open-modal={item.action}
           id={item.id === 'profile' ? 'mobile-profile-link' : undefined}
-          onclick={item.action ? "event.preventDefault(); document.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }))" : undefined}
+          onclick={item.action ? "event.preventDefault(); window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }))" : undefined}
         >
           <div class="icon-wrapper">
             <Fragment set:html={item.icon} />
-            {item.id === 'news' && <span id="news-badge-mobile" class="news-badge-dot hidden">0</span>}
+            {item.id === 'news' && <span data-news-badge class="news-badge-dot hidden">0</span>}
           </div>
           <span class="nav-label">{item.label}</span>
           {isActive && <div class="active-indicator" />}

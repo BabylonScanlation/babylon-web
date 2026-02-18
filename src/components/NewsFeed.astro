@@ -52,7 +52,7 @@ function formatDate(timestamp: number | string | Date) {
 ---
 
 <section class="news-feed-section">
-  <div id="news-feed-container">
+  <div id="news-feed-container" data-current-series-id={seriesId}>
     {hasNews ? (
       newsWithImages.map((newsItem) => (
         <div class="premium-news-post-wrapper">
@@ -125,15 +125,21 @@ function formatDate(timestamp: number | string | Date) {
   function initNewsFeed() {
     // Orion: Limpiar listener previo si existe para evitar duplicidad
     if (window.newsFeedListener) {
-      document.removeEventListener('new-news-created', window.newsFeedListener);
+      window.removeEventListener('new-news-created', window.newsFeedListener);
     }
 
     const listener = (event: any) => {
       const container = document.getElementById('news-feed-container');
       if (!container) return;
 
-      const { news, hasImage } = event.detail;
+      const { news, hasImage, seriesId: newsSeriesId } = event.detail;
       
+      // Orion: Solo añadir si es el feed general (no seriesId) o si coincide la serie
+      const currentSeriesId = container.dataset.currentSeriesId;
+      if (currentSeriesId && newsSeriesId && currentSeriesId !== newsSeriesId.toString()) {
+        return;
+      }
+
       // Remover estado vacío si existe
       const emptyState = container.querySelector('.empty-news-state');
       if (emptyState) emptyState.remove();
@@ -190,7 +196,7 @@ function formatDate(timestamp: number | string | Date) {
     };
 
     window.newsFeedListener = listener;
-    document.addEventListener('new-news-created', listener);
+    window.addEventListener('new-news-created', listener);
   }
 
   // Ejecutar en carga inicial y tras cada transición
@@ -210,7 +216,7 @@ function formatDate(timestamp: number | string | Date) {
     try {
       const res = await fetch(`/api/admin/news/${id}`, { method: 'DELETE' });
       if(res.ok || res.status === 404) {
-        // Reload on success (200/204) OR if it was already gone (404 handled gracefully just in case)
+        // Recargar para limpiar el estado del DOM de forma robusta
         window.location.reload();
       } else {
         alert('Error al eliminar');

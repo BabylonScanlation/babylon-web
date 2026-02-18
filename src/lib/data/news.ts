@@ -81,6 +81,20 @@ export async function getNewsList(
   }
 }
 
+export async function getLatestNewsId(db: DrizzleD1Database<typeof schema>) {
+  try {
+    const result = await db.select({ id: news.id, createdAt: news.createdAt })
+      .from(news)
+      .where(eq(news.status, 'published'))
+      .orderBy(desc(news.createdAt))
+      .limit(1)
+      .get();
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 export async function getNewsDetail(
   db: DrizzleD1Database<typeof schema>,
   id: string

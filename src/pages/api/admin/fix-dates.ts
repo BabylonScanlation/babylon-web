@@ -10,14 +10,14 @@ export const GET = createApiRoute(
     try {
       // 1. Fix Chapters with NULL createdAt
       const chaptersResult = await db.update(chapters)
-        .set({ createdAt: new Date().toISOString() })
+        .set({ createdAt: new Date() })
         .where(isNull(chapters.createdAt))
         .returning({ id: chapters.id })
         .all();
 
       // 2. Fix Series with NULL createdAt
       const seriesResult = await db.update(series)
-        .set({ createdAt: new Date().toISOString() })
+        .set({ createdAt: new Date() })
         .where(isNull(series.createdAt))
         .returning({ id: series.id })
         .all();

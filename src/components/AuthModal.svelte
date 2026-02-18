@@ -35,7 +35,7 @@
       authModal.open(view || 'login', message);
     };
 
-    document.addEventListener('open-auth-modal', handleOpenModal);
+    window.addEventListener('open-auth-modal', handleOpenModal);
     
     // Global helper for non-Svelte components
     (window as Window & typeof globalThis & { openAuthModal: (view?: 'login' | 'register') => void }).openAuthModal = (view: 'login' | 'register' = 'login') => {
@@ -43,7 +43,7 @@
     };
 
     return () => {
-      document.removeEventListener('open-auth-modal', handleOpenModal);
+      window.removeEventListener('open-auth-modal', handleOpenModal);
     };
   });
 

@@ -99,7 +99,7 @@ export const POST = createApiRoute({ auth: 'admin' }, async ({ request, locals }
       isAppSeries,
       isHidden,
       isNsfw,
-      createdAt: new Date().toISOString()
+      createdAt: new Date()
     });
 
     return new Response(JSON.stringify({ success: true, topicId }), { status: 201 });

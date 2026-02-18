@@ -243,26 +243,43 @@
   .modal-actions {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-  }
-
-  .modal-actions button {
+    gap: 12px;
     width: 100%;
-    padding: 12px;
-    border-radius: 12px;
-    font-weight: bold;
-    font-size: 1rem;
-    cursor: pointer;
-    border: none;
   }
 
   .btn-confirm {
-    background-color: var(--accent-color);
-    color: #fff;
+    background: linear-gradient(135deg, var(--accent-color) 0%, #0077ff 100%);
+    color: #000;
+    padding: 1rem;
+    border-radius: 16px;
+    font-weight: 900;
+    font-size: 1rem;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(0, 191, 255, 0.2);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .btn-confirm:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.1);
+    box-shadow: 0 15px 30px rgba(0, 191, 255, 0.3);
   }
 
   .btn-cancel {
-    background-color: transparent;
-    color: #888;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #666;
+    padding: 0.8rem;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
   }
 </style>

@@ -36,7 +36,7 @@ class UserStore {
     });
   }
 
-  async sync() {
+  async sync(): Promise<void> {
     try {
       const res = await fetch(`/api/auth/status?t=${Date.now()}`);
       if (res.ok) {

@@ -1,7 +1,13 @@
 export async function hashIpAddress(ip: string): Promise<string> {
   const encoder = new TextEncoder();
-  // Orion: Usamos un salt dinámico de env vars para mayor seguridad y genericidad
-  const salt = import.meta.env.INTERNAL_CRYPTO_SALT || 'default-cms-salt-v1'; 
+  
+  // Obtener el salt de las variables de entorno (Prioridad Máxima)
+  const salt = import.meta.env.INTERNAL_CRYPTO_SALT || 'development-only-salt';
+
+  if (salt === 'development-only-salt' && import.meta.env.PROD) {
+    console.warn('[Security] Utilizando salt de desarrollo en producción. ¡Configura INTERNAL_CRYPTO_SALT!');
+  } 
+  
   const data = encoder.encode(ip + salt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));

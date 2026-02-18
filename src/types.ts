@@ -36,17 +36,18 @@ export interface User {
   isAdmin?: boolean;
   emailVerified?: boolean;
   isNsfw?: boolean;
+  preferences?: string;
 }
 
 export interface Comment {
   id: number;
   userId?: string;
   userEmail: string | null;
-  username?: string | undefined;
-  avatarUrl?: string | undefined;
+  username?: string;
+  avatarUrl?: string;
   commentText: string;
-  createdAt: string;
-  updatedAt?: string;
+  createdAt: string | number;
+  updatedAt?: string | number;
   isOwner?: boolean;
   isEditing?: boolean;
   editedText?: string;
@@ -55,10 +56,10 @@ export interface Comment {
   isSpoiler?: boolean;
   parentId?: number | null;
   children?: Comment[];
-  isDeleted?: boolean | null;
+  isDeleted?: boolean;
   likes?: number;
   dislikes?: number;
   userVote?: number; // 1, -1, 0
-  isPinned?: boolean | null;
+  isPinned?: boolean;
   isAdminComment?: boolean;
 }

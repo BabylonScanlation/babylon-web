@@ -60,7 +60,7 @@ export const POST = createApiRoute({ auth: 'public' }, async ({ request, locals,
         lastIpAddress: ip,
         userAgent: userAgent,
         country: country, // Update country on return
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
       };
       
       if (fingerprint) {
@@ -85,7 +85,7 @@ export const POST = createApiRoute({ auth: 'public' }, async ({ request, locals,
             lastIpAddress: ip, 
             userAgent: userAgent, 
             country: country, // Update country fallback
-            updatedAt: new Date().toISOString() 
+            updatedAt: new Date() 
           })
           .where(eq(anonymousUsers.guestId, guestId));
       } catch (inner) {

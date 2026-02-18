@@ -1,9 +1,10 @@
+import type { APIRoute } from 'astro';
 import { getDB } from '../lib/db';
 import { series, chapters } from '../db/schema';
 import { eq, and, inArray, desc } from 'drizzle-orm';
 import { siteConfig } from '../site.config';
 
-export const GET: APIRoute = async ({ locals }) => {
+export const GET: APIRoute = async ({ locals }: any) => {
   const siteUrl = siteConfig.url;
   const db = getDB(locals.runtime.env);
   

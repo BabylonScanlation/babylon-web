@@ -18,7 +18,7 @@ export const series = sqliteTable('Series', {
   telegramTopicId: integer('telegram_topic_id', { mode: 'number' })
     .notNull()
     .unique(),
-  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   views: integer('views').default(0),
   status: text('status'),
   type: text('type'),
@@ -51,7 +51,7 @@ export const chapters = sqliteTable(
     status: text('status').notNull().default('processing'),
     urlPortada: text('url_portada'),
     views: integer('views').default(0),
-    createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   },
   (table) => [
     index('idx_chapters_series_id').on(table.seriesId),
@@ -84,8 +84,8 @@ export const anonymousUsers = sqliteTable(
     fingerprintHash: text('fingerprint_hash'),
     userAgent: text('user_agent'),
     country: text('country'),
-    createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   },
   (table) => [uniqueIndex('idx_anon_fingerprint').on(table.fingerprintHash)]
 );
@@ -97,7 +97,7 @@ export const seriesViews = sqliteTable(
       .notNull()
       .references(() => series.id, { onDelete: 'cascade' }),
     ipAddress: text('ip_address').notNull(),
-    viewedAt: text('viewed_at').default(sql`CURRENT_TIMESTAMP`),
+    viewedAt: integer('viewed_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   },
   (table) => [
     primaryKey({ columns: [table.seriesId, table.ipAddress] }),
@@ -118,8 +118,8 @@ export const users = sqliteTable('Users', {
   preferences: text('preferences'),
   isPrivate: integer('is_private', { mode: 'boolean' }).default(false),
   isNsfw: integer('is_nsfw', { mode: 'boolean' }).default(false),
-  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
 });
 
 export const userRoles = sqliteTable('UserRoles', {
@@ -133,8 +133,8 @@ export const news = sqliteTable(
     id: text('id').primaryKey(),
     title: text('title').notNull(),
     content: text('content').notNull(),
-    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
-    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().default(sql`(strftime('%s', 'now') * 1000)`),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull().default(sql`(strftime('%s', 'now') * 1000)`),
     publishedBy: text('published_by').notNull(),
     seriesId: integer('series_id', { mode: 'number' }),
     authorName: text('author_name'),
@@ -171,8 +171,8 @@ export const comments = sqliteTable(
     parentId: integer('parent_id', { mode: 'number' }),
     isPinned: integer('is_pinned', { mode: 'boolean' }).default(false),
     isDeleted: integer('is_deleted', { mode: 'boolean' }).default(false),
-    createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   },
   (table) => [index('idx_comments_chapter_id').on(table.chapterId)]
 );
@@ -189,8 +189,8 @@ export const seriesComments = sqliteTable(
     parentId: integer('parent_id', { mode: 'number' }),
     isPinned: integer('is_pinned', { mode: 'boolean' }).default(false),
     isDeleted: integer('is_deleted', { mode: 'boolean' }).default(false),
-    createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   },
   (table) => [index('idx_series_comments_series_id').on(table.seriesId)]
 );
@@ -207,8 +207,8 @@ export const newsComments = sqliteTable(
     parentId: integer('parent_id', { mode: 'number' }),
     isPinned: integer('is_pinned', { mode: 'boolean' }).default(false),
     isDeleted: integer('is_deleted', { mode: 'boolean' }).default(false),
-    createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   },
   (table) => [index('idx_news_comments_news_id').on(table.newsId)]
 );
@@ -221,7 +221,7 @@ export const seriesRatings = sqliteTable(
       .references(() => series.id, { onDelete: 'cascade' }),
     userId: text('user_id').notNull(),
     rating: integer('rating', { mode: 'number' }).notNull(),
-    createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   },
   (table) => [primaryKey({ columns: [table.seriesId, table.userId] })]
 );
@@ -234,7 +234,7 @@ export const seriesReactions = sqliteTable(
       .references(() => series.id, { onDelete: 'cascade' }),
     userId: text('user_id').notNull(),
     reactionEmoji: text('reaction_emoji').notNull(),
-    createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   },
   (table) => [primaryKey({ columns: [table.seriesId, table.userId] })]
 );
@@ -248,7 +248,7 @@ export const chapterViews = sqliteTable(
     ipAddress: text('ip_address').notNull(),
     guestId: text('guest_id'),
     userId: text('user_id'),
-    viewedAt: text('viewed_at').default(sql`CURRENT_TIMESTAMP`),
+    viewedAt: integer('viewed_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   },
   (table) => [
     primaryKey({ columns: [table.chapterId, table.ipAddress] }),
@@ -283,7 +283,7 @@ export const favorites = sqliteTable(
     seriesId: integer('series_id', { mode: 'number' }).references(() => series.id, { onDelete: 'cascade' }),
     chapterId: integer('chapter_id', { mode: 'number' }).references(() => chapters.id, { onDelete: 'cascade' }),
     type: text('type', { enum: ['series', 'chapter'] }).notNull().default('series'),
-    createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   },
   (table) => [
     index('idx_favorites_user_id').on(table.userId),
@@ -300,7 +300,7 @@ export const commentVotes = sqliteTable(
     userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     commentId: integer('comment_id').notNull().references(() => comments.id, { onDelete: 'cascade' }),
     vote: integer('value').notNull(),
-    createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   },
   (table) => [
     primaryKey({ columns: [table.userId, table.commentId] }),
@@ -314,7 +314,7 @@ export const seriesCommentVotes = sqliteTable(
     userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     commentId: integer('comment_id').notNull().references(() => seriesComments.id, { onDelete: 'cascade' }),
     vote: integer('value').notNull(),
-    createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   },
   (table) => [
     primaryKey({ columns: [table.userId, table.commentId] }),
@@ -328,7 +328,7 @@ export const newsCommentVotes = sqliteTable(
     userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     commentId: integer('comment_id').notNull().references(() => newsComments.id, { onDelete: 'cascade' }),
     vote: integer('value').notNull(),
-    createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(sql`(strftime('%s', 'now') * 1000)`),
   },
   (table) => [
     primaryKey({ columns: [table.userId, table.commentId] }),

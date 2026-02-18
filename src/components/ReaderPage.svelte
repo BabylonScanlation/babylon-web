@@ -23,18 +23,17 @@
   let worker: Worker | null = null;
 
   onMount(() => {
+    window.addEventListener('pageLoaded', handleGlobalPageLoad);
+
     if (loading === 'eager') {
       loadPageData();
     } else {
-      // Astra: Carga inmediata para las 5 primeras páginas incluso si el observer falla
-      const pageNumMatch = alt.match(/\d+/);
-      const pageNum = pageNumMatch ? parseInt(pageNumMatch[0]) : 99;
+      const pageNum = getPageNum();
       if (pageNum <= 5) {
         loadPageData();
         return;
       }
 
-      // Astra: rootMargin aumentado para prefetching predictivo más agresivo (Lightspeed)
       observer = new IntersectionObserver(([entry], _self) => {
         if (entry?.isIntersecting) {
           loadPageData();
@@ -46,6 +45,7 @@
   });
 
   onDestroy(() => {
+    window.removeEventListener('pageLoaded', handleGlobalPageLoad);
     if (observer) observer.disconnect();
     if (worker) {
         worker.terminate();
@@ -53,9 +53,29 @@
     }
   });
 
+  function getPageNum() {
+    const match = alt.match(/\d+/);
+    return match ? parseInt(match[0]) : 0;
+  }
+
+  function handleGlobalPageLoad(e: any) {
+    const loadedNum = e.detail.pageNum;
+    const myNum = getPageNum();
+    
+    // Si se cargó la página anterior, yo (que soy la siguiente) empiezo ya.
+    // O si estoy en el rango de las próximas 2 páginas para pre-fetching agresivo.
+    if (loadedNum === myNum - 1 || (myNum > loadedNum && myNum <= loadedNum + 2)) {
+      if (isLoading) loadPageData();
+    }
+  }
+
   async function loadPageData(retries = 2) {
+    if (!isLoading && !error) return;
+
     try {
         await processWithWorker();
+        // Astra: Notificamos éxito para pre-cargar la siguiente página
+        window.dispatchEvent(new CustomEvent('pageLoaded', { detail: { pageNum: getPageNum() } }));
     } catch (e) {
       console.warn(`[ReaderPage] Worker error for ${alt}:`, e);
       if (retries > 0) {

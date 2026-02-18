@@ -3,12 +3,57 @@ import Layout from '../../layouts/Layout.astro';
 import { SITE_TITLE } from '../../consts';
 import { getDB } from '../../lib/db';
 import { getNewsList } from '../../lib/data/news';
+import { users } from '../../db/schema';
+import { eq } from 'drizzle-orm';
 
 const drizzleDb = getDB(Astro.locals.runtime.env);
-const newsItems = await getNewsList(drizzleDb);
+const newsItems = (await getNewsList(drizzleDb)) || [];
+const { user } = Astro.locals;
+
+// Orion: Marcar como leído (Standard Unificado + DB Sync)
+if (newsItems.length > 0 && newsItems[0]) {
+  const latestId = newsItems[0].id.toString();
+  
+  // 1. Sincronizar Cookie (para invitados y respuesta inmediata)
+  Astro.cookies.set('last_news_id', latestId, {
+    path: '/',
+    expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    sameSite: 'lax',
+    httpOnly: false
+  });
+
+  // 2. Sincronizar Base de Datos (para usuarios registrados)
+  if (user?.uid) {
+    try {
+      const currentPrefs = typeof user.preferences === 'string' ? JSON.parse(user.preferences) : {};
+      const newPrefs = JSON.stringify({ ...currentPrefs, lastSeenNewsId: latestId });
+      
+      await drizzleDb.update(users)
+        .set({ preferences: newPrefs })
+        .where(eq(users.id, user.uid))
+        .execute();
+    } catch (e) {
+      console.error('[NewsDBUpdate] Error:', e);
+    }
+  }
+}
 ---
 
 <Layout title={`Noticias - ${SITE_TITLE}`}>
+  <script is:inline>
+    // LIMPIEZA DE GUERRA (Borrar cookies de versiones anteriores)
+    const badCookies = [
+      'babylon_unread_news_count', 'babylon_unread_news_count_v2',
+      'babylon_last_seen_news_id', 'babylon_last_seen_news_id_v2',
+      'babylon_news_read_id', 'babylon_last_read_id', 'babylon_news_id'
+    ];
+    badCookies.forEach(c => {
+      document.cookie = c + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      localStorage.removeItem(c);
+    });
+    // Sincronizar el contador local a 0 inmediatamente
+    localStorage.setItem('babylon_news_count', '0');
+  </script>
   <main class="news-index-container">
     <div class="news-header-section">
       <h1 class="news-page-title">Últimas Noticias</h1>

@@ -4,152 +4,123 @@ import { verifySignature } from '../../../lib/crypto';
 import { getDB } from '../../../lib/db-client';
 import { series, chapters } from '../../../db/schema';
 import { eq, and } from 'drizzle-orm';
-import { ZipReader, HttpReader, Uint8ArrayWriter, type Entry } from '@zip.js/zip.js';
+import { ZipReader, HttpReader, Uint8ArrayWriter } from '@zip.js/zip.js';
 
-// ORION: Isolate-level cache para evitar re-leer el directorio central de Telegram repetidamente
-interface ZipCacheEntry {
-  entries: Entry[];
-  filePath: string;
-  timestamp: number;
-}
-const ZIP_CACHE = new Map<string, ZipCacheEntry>();
-const CACHE_TTL = 1000 * 60 * 10; // 10 minutos de vida para el índice del ZIP
+// ORION: Cache en memoria del Worker para evitar ráfagas de peticiones al mismo ZIP
+const ZIP_CACHE = new Map<string, { filePath: string; timestamp: number }>();
+const CACHE_TTL = 1000 * 60 * 30; // 30 minutos
 
 export const GET: APIRoute = async ({ params, locals, request }) => {
   const { key } = params;
-  const runtime = locals.runtime;
-  const env = runtime?.env || (process.env as any);
+  if (!key) return new Response('Key required', { status: 400 });
+
+  const env = locals.runtime.env;
   const R2_CACHE = env.R2_CACHE;
-  const AUTH_SECRET = env.AUTH_SECRET;
-  const TELEGRAM_BOT_TOKEN = env.TELEGRAM_BOT_TOKEN;
   
   const url = new URL(request.url);
   const expires = url.searchParams.get('expires');
   const signature = url.searchParams.get('signature');
 
-  if (!key) return new Response('File key is required', { status: 400 });
+  // 1. SEGURIDAD (Capa 0)
+  const secret = (env.AUTH_SECRET || '').trim().replace(/['"“”]/g, '').replace(/\\n/g, '');
+  if (!secret || !expires || !signature) return new Response('Unauthorized', { status: 403 });
 
-  // --- CORS PREFLIGHT ---
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-        'Access-Control-Max-Age': '86400',
-      },
-    });
-  }
-
-  // Saneamiento de secreto
-  let secret = AUTH_SECRET || import.meta.env.AUTH_SECRET || (process.env as any).AUTH_SECRET;
-  if (typeof secret === 'string') secret = secret.replace(/['"“”]/g, '').replace(/\\n/g, '').trim();
-  if (!secret) return new Response('Security configuration missing', { status: 500 });
-
-  // Verificación de firma
-  if (!expires || !signature) return new Response('Security parameters missing', { status: 403 });
   const isValid = await verifySignature(`/api/r2-cache/${key}`, expires, signature, secret);
-  if (!isValid) return new Response('Invalid security token', { status: 403 });
+  if (!isValid) return new Response('Invalid Signature', { status: 403 });
 
   try {
-    // 1. INTENTO DESDE R2 (Cache Hit)
+    // 2. INTENTO DESDE R2 (Capa 1)
     const etag = request.headers.get('If-None-Match');
     const object = await R2_CACHE.get(key, {
       onlyIf: etag ? { etagMatches: etag } : undefined,
     });
 
-    // 2. LÓGICA DE RECUPERACIÓN (JIT CACHE - LIGHTSPEED)
-    if (object === null) {
-      const parts = key.split('/');
-      if (parts.length < 4) return new Response('Invalid key structure', { status: 404 });
+    if (object && 'body' in object && !object.body) {
+      return new Response(null, { status: 304 });
+    }
 
-      const seriesSlug = parts[0];
-      const chapterNumStr = parts[1];
-      const filename = parts.slice(3).join('/'); 
-      const zipCacheKey = `${seriesSlug}/${chapterNumStr}`;
-
-      let entries: Entry[], filePath: string;
-      const cached = ZIP_CACHE.get(zipCacheKey);
-      
-      if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
-        entries = cached.entries;
-        filePath = cached.filePath;
-      } else {
-        const db = getDB(env);
-        const chapterData = await db
-          .select({ fileId: chapters.telegramFileId })
-          .from(chapters)
-          .innerJoin(series, eq(chapters.seriesId, series.id))
-          .where(and(eq(series.slug, seriesSlug), eq(chapters.chapterNumber, parseFloat(chapterNumStr))))
-          .get();
-
-        if (!chapterData?.fileId || !TELEGRAM_BOT_TOKEN) return new Response('Source not available', { status: 404 });
-
-        const fileInfoUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${chapterData.fileId}`;
-        const fileInfo = await (await fetch(fileInfoUrl)).json() as any;
-        if (!fileInfo?.ok) throw new Error('Telegram file path failed');
-        filePath = fileInfo.result.file_path;
-
-        const telegramUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
-        const zipReader = new ZipReader(new HttpReader(telegramUrl));
-        entries = await zipReader.getEntries();
-        ZIP_CACHE.set(zipCacheKey, { entries, filePath, timestamp: Date.now() });
-      }
-      
-      const entry = entries.find(e => e.filename.includes(filename) || filename.includes(e.filename));
-      if (!entry) return new Response(`File ${filename} not found in ZIP`, { status: 404 });
-
-      // Extraer datos usando el filePath cacheado
-      const telegramUrlForEntry = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${filePath}`;
-      const tempZipReader = new ZipReader(new HttpReader(telegramUrlForEntry));
-      const entryToExtract = (await tempZipReader.getEntries()).find(e => e.filename === entry.filename);
-      
-      if (!entryToExtract?.getData) {
-          await tempZipReader.close();
-          return new Response('Extraction failed', { status: 500 });
-      }
-
-      const imageBuffer = await entryToExtract.getData(new Uint8ArrayWriter());
-      await tempZipReader.close();
-
-      const contentType = filename.toLowerCase().endsWith('.webp') ? 'image/webp' : 
-                          filename.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-
-      // Background caching
-      if (runtime?.ctx?.waitUntil) {
-        runtime.ctx.waitUntil(
-          R2_CACHE.put(key, imageBuffer, {
-            httpMetadata: { 
-              contentType,
-              cacheControl: 'public, max-age=31536000, s-maxage=2592000, immutable'
-            }
-          })
-        );
-      }
-
-      return new Response(imageBuffer, {
+    if (object) {
+      return new Response(object.body, {
         headers: {
-          'Content-Type': contentType,
+          'Content-Type': object.httpMetadata?.contentType || 'image/jpeg',
           'Cache-Control': 'public, max-age=31536000, s-maxage=2592000, immutable',
-          'X-Cache-Status': 'JIT_RECOVERED',
-          'Access-Control-Allow-Origin': '*'
+          'ETag': object.httpEtag,
+          'Access-Control-Allow-Origin': '*',
+          'X-Cache-Status': 'HIT_R2'
         }
       });
     }
 
-    // 3. RESPUESTA NORMAL (R2 HIT)
-    const headers = new Headers();
-    if (object.httpMetadata?.contentType) headers.set('Content-Type', object.httpMetadata.contentType);
-    headers.set('Cache-Control', 'public, max-age=31536000, s-maxage=2592000, immutable');
-    headers.set('ETag', object.httpEtag);
-    headers.set('Access-Control-Allow-Origin', '*'); 
-    headers.set('X-Cache-Status', 'HIT_R2');
+    // 3. JIT RECOVERY DESDE TELEGRAM (Capa 2)
+    const parts = key.split('/');
+    if (parts.length < 4) return new Response('Not Found', { status: 404 });
 
-    return new Response(object.body, { headers });
+    const seriesSlug = parts[0] || '';
+    const chapterNumStr = parts[1] || '0';
+    const filename = parts.slice(3).join('/');
+    const cacheKey = `${seriesSlug}/${chapterNumStr}`;
 
-  } catch (error) {
-    logError(error, 'Proxy JIT failed', { key: key || 'unknown' });
-    return new Response('Internal Error', { status: 500 });
+    let filePath = ZIP_CACHE.get(cacheKey)?.filePath;
+    
+    if (!filePath || (Date.now() - (ZIP_CACHE.get(cacheKey)?.timestamp || 0)) > CACHE_TTL) {
+      const db = getDB(env);
+      const chapter = await db.select({ fileId: chapters.telegramFileId })
+        .from(chapters)
+        .innerJoin(series, eq(chapters.seriesId, series.id))
+        .where(and(eq(series.slug, seriesSlug), eq(chapters.chapterNumber, parseFloat(chapterNumStr))))
+        .get();
+
+      if (!chapter?.fileId) return new Response('Chapter source missing', { status: 404 });
+
+      const tgInfo = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${chapter.fileId}`);
+      const tgData = await tgInfo.json() as any;
+      if (!tgData.ok) throw new Error('TG Path Error');
+      filePath = tgData.result.file_path;
+      ZIP_CACHE.set(cacheKey, { filePath: filePath!, timestamp: Date.now() });
+    }
+
+    const tgUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${filePath}`;
+    const zipReader = new ZipReader(new HttpReader(tgUrl as any));
+    const entries = await zipReader.getEntries();
+    const entry = entries.find(e => {
+      const entryName = e.filename || '';
+      return entryName.toLowerCase().includes(filename.toLowerCase()) || 
+             filename.toLowerCase().includes(entryName.toLowerCase());
+    }) as any;
+
+    if (!entry || !entry.getData) {
+      await zipReader.close();
+      return new Response('Page not found in ZIP', { status: 404 });
+    }
+
+    const buffer = await entry.getData(new Uint8ArrayWriter());
+    await zipReader.close();
+
+    const contentType = filename.toLowerCase().endsWith('.webp') ? 'image/webp' : 
+                        filename.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+    if (locals.runtime.ctx?.waitUntil) {
+      locals.runtime.ctx.waitUntil(
+        R2_CACHE.put(key, buffer, {
+          httpMetadata: { 
+            contentType,
+            cacheControl: 'public, max-age=31536000, s-maxage=2592000, immutable'
+          }
+        })
+      );
+    }
+
+    return new Response(buffer, {
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=31536000, s-maxage=2592000, immutable',
+        'X-Cache-Status': 'JIT_MISS',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+
+  } catch (err) {
+    logError(err, '[R2 Proxy] Critical failure', { key });
+    return new Response('Error loading image', { status: 500 });
   }
 };

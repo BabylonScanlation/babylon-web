@@ -1,6 +1,7 @@
 ---
 import { siteConfig } from '../site.config';
 const { user, runtime } = Astro.locals;
+const { unreadNewsCount = 0 } = Astro.props;
 const r2PublicUrlAssets =
   runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 ---
@@ -23,7 +24,9 @@ const r2PublicUrlAssets =
         <a href="/search" class="nav-link-pc"><span>EXPLORAR</span></a>
         <a href="/news" class="nav-link-pc news-link">
           <span>NOTICIAS</span>
-          <span id="news-badge-pc" class="news-badge-dot hidden">0</span>
+          <span data-news-badge class={`news-badge-dot ${unreadNewsCount > 0 ? '' : 'hidden'}`}>
+            {unreadNewsCount > 9 ? '+9' : unreadNewsCount}
+          </span>
         </a>
         <a href="/library" class="nav-link-pc"><span>BIBLIOTECA</span></a>
       </div>
@@ -33,6 +36,7 @@ const r2PublicUrlAssets =
           href={user ? '/profile' : '#'}
           class="nav-link-pc profile-link"
           data-open-modal={!user ? 'login' : undefined}
+          onclick={!user ? "event.preventDefault(); window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }))" : undefined}
         >
           <span>PERFIL</span>
         </a>
@@ -42,12 +46,24 @@ const r2PublicUrlAssets =
 </header>
 
 <script>
+  let headerObserver: MutationObserver | null = null;
+
   document.addEventListener('astro:page-load', () => {
     const header = document.querySelector('.site-header') as HTMLElement;
     if (!header) return;
 
+    // Orion: Limpiar observador previo si existe para evitar duplicados en el body
+    if (headerObserver) {
+      headerObserver.disconnect();
+    }
+
+    // Asegurar visibilidad inicial al navegar
+    header.style.opacity = '';
+    header.style.pointerEvents = '';
+    header.style.zIndex = '5000';
+
     // Orion: Vigilante de modales (Garantía de limpieza visual)
-    const observer = new MutationObserver(() => {
+    headerObserver = new MutationObserver(() => {
       const isModalOpen = document.body.getAttribute('data-reader-modal') === 'open' || 
                           document.body.classList.contains('modal-open');
       
@@ -62,24 +78,8 @@ const r2PublicUrlAssets =
       }
     });
 
-    observer.observe(document.body, { attributes: true, attributeFilter: ['data-reader-modal', 'class'] });
-    
-    header.addEventListener('click', (e) => {
-      if (!(e.target instanceof Element)) return;
-      const trigger = e.target.closest('[data-open-modal]');
-      if (trigger) {
-        const view = trigger.getAttribute('data-open-modal');
-        document.dispatchEvent(
-          new CustomEvent('open-auth-modal', {
-            detail: { view: view || 'login' },
-          })
-        );
-      }
-    });
+    headerObserver.observe(document.body, { attributes: true, attributeFilter: ['data-reader-modal', 'class'] });
   });
-
-  document.addEventListener('astro:page-load', checkNewNews);
-  document.addEventListener('astro:after-swap', checkNewNews);
 </script>
 
 <style>
@@ -136,7 +136,7 @@ const r2PublicUrlAssets =
     }
 
     .header-logo {
-      height: 80px; /* Astra: Logo más grande y legible */
+      height: 60px; /* Astra: Reducido para dar más aire y elegancia */
       filter: drop-shadow(0 0 25px var(--accent-glow));
     }
 
