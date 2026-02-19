@@ -1,7 +1,6 @@
 ---
 import '../styles/global.css';
 import '../styles/components.css';
-import { desc, eq, sql } from 'drizzle-orm';
 import AdblockWall from '../components/AdblockWall.astro';
 import AgeGate from '../components/AgeGate.svelte';
 import AppBanner from '../components/AppBanner.svelte';
@@ -9,8 +8,8 @@ import AuthModal from '../components/AuthModal.svelte';
 import BottomNav from '../components/BottomNav.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
+import Skeletons from '../components/Skeletons.astro';
 import ToastContainer from '../components/ToastContainer.svelte';
-import { news } from '../db/schema';
 import { siteConfig } from '../site.config';
 
 const {
@@ -20,50 +19,7 @@ const {
   canonicalURL = Astro.url.href,
 } = Astro.props;
 
-const { db, user } = Astro.locals;
-
-// Orion: Sistema de Noticias (Respetando la Base de Datos)
-let lastSeenId = Astro.cookies.get('last_news_id')?.value;
-
-// Si el usuario está logueado, extraemos su preferencia de la DB (inyectada por el middleware)
-if (user && (user as any).preferences) {
-  try {
-    const prefs = JSON.parse((user as any).preferences);
-    if (prefs.lastSeenNewsId) {
-      lastSeenId = prefs.lastSeenNewsId;
-    }
-  } catch {}
-}
-
-let unreadCountServer = 0;
-if (db) {
-  try {
-    if (!lastSeenId) {
-      // Usuario nuevo (sin rastro en DB ni Cookie)
-      const countResult = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(news)
-        .where(eq(news.status, 'published'))
-        .get();
-      unreadCountServer = countResult?.count || 0;
-    } else {
-      const latestNews = await db
-        .select({ id: news.id })
-        .from(news)
-        .where(eq(news.status, 'published'))
-        .orderBy(desc(news.createdAt))
-        .limit(40)
-        .all();
-
-      if (latestNews && latestNews.length > 0) {
-        const lastSeenIndex = latestNews.findIndex((n) => n.id.toString() === lastSeenId);
-        unreadCountServer = lastSeenIndex === -1 ? 0 : lastSeenIndex;
-      }
-    }
-  } catch (e) {
-    console.error('[SSR News Error]:', e);
-  }
-}
+const { user } = Astro.locals;
 
 const title = pageTitle ? `${pageTitle} | ${siteConfig.shortName}` : siteConfig.name;
 
@@ -163,7 +119,6 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
   </head>
   <body 
     class="cosmos-theme" 
-    data-unread-count={unreadCountServer} 
     data-user-id={user?.uid || 'guest'}
     data-cosmos-physics={siteConfig.theme.cosmos.physicsEnabled ? 'true' : 'false'}
   >
@@ -183,11 +138,19 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       <AgeGate client:load isVerificationPage={false} />
     ) : (
       <>
-        {!isVerifyPage && <Header unreadNewsCount={unreadCountServer} />}
+        {!isVerifyPage && (
+          <Header server:defer>
+            <Skeletons slot="fallback" type="header" />
+          </Header>
+        )}
         <main class="site-main-content">
           <slot />
         </main>
-        {!isVerifyPage && <BottomNav unreadNewsCount={unreadCountServer} />}
+        {!isVerifyPage && (
+          <BottomNav server:defer>
+            <Skeletons slot="fallback" type="bottom-nav" />
+          </BottomNav>
+        )}
         {!isVerifyPage && <Footer />}
         <AuthModal client:load />
         <ToastContainer client:idle />
@@ -204,7 +167,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     
     <script>
       // Astra: Motor de Física Estelar (Paralaje 2.0)
-      let cleanupCosmos: any = null;
+      const cleanupCosmos: any = null;
 
       const initCosmos = () => {
         if (cleanupCosmos) cleanupCosmos();

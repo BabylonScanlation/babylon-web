@@ -1,5 +1,6 @@
 <script lang="ts">
-import { toast } from '../lib/toastStore';
+import { actions } from 'astro:actions';
+import { toast } from '../lib/toastStore.svelte';
 
 let { seriesId, seriesTitle } = $props<{
   seriesId: number;
@@ -47,16 +48,12 @@ async function uploadChapters() {
     formData.append('file', file);
 
     try {
-      const res = await fetch('/api/admin/chapters/upload-to-telegram', {
-        method: 'POST',
-        body: formData,
-      });
+      const { error } = await actions.chapters.upload(formData);
 
-      if (res.ok) {
+      if (!error) {
         successCount++;
       } else {
-        const result = await res.json();
-        console.error(`Error subiendo ${file.name}:`, result);
+        console.error(`Error subiendo ${file.name}:`, error);
         errorCount++;
       }
     } catch (e) {

@@ -13,7 +13,12 @@ import 'swiper/css/scrollbar';
 
 // This component is a generic wrapper for Swiper.js
 
-export let options: SwiperOptions = {};
+interface Props {
+  options?: SwiperOptions;
+  children?: import('svelte').Snippet;
+}
+
+let { options = {}, children }: Props = $props();
 
 let swiperContainer: HTMLElement;
 let swiperInstance: Swiper | null = null;
@@ -53,8 +58,10 @@ onDestroy(() => {
 <!-- The HTML structure that Swiper expects -->
 <div class="swiper" bind:this={swiperContainer}>
   <div class="swiper-wrapper">
-    <!-- Slides will be passed into this slot from the parent Astro component -->
-    <slot />
+    <!-- Slides will be passed into this snippet from the parent component -->
+    {#if children}
+      {@render children()}
+    {/if}
   </div>
 
   <!-- Optional: Add elements for pagination, navigation, etc. -->

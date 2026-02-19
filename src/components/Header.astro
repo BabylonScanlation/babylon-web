@@ -1,9 +1,50 @@
 ---
+import { desc, eq, sql } from 'drizzle-orm';
+import { news } from '../db/schema';
 import { siteConfig } from '../site.config';
 import NewsCounter from './NewsCounter.svelte';
 
-const { user, runtime } = Astro.locals;
-const { unreadNewsCount = 0 } = Astro.props;
+const { user, db, runtime } = Astro.locals;
+
+// Orion: Sistema de Noticias encapsulado para Server Island
+let lastSeenId = Astro.cookies.get('last_news_id')?.value;
+
+if (user && (user as any).preferences) {
+  try {
+    const prefs = JSON.parse((user as any).preferences);
+    if (prefs.lastSeenNewsId) lastSeenId = prefs.lastSeenNewsId;
+  } catch {}
+}
+
+let unreadNewsCount = 0;
+if (db) {
+  try {
+    if (!lastSeenId) {
+      const countResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(news)
+        .where(eq(news.status, 'published'))
+        .get();
+      unreadNewsCount = countResult?.count || 0;
+    } else {
+      const latestNews = await db
+        .select({ id: news.id })
+        .from(news)
+        .where(eq(news.status, 'published'))
+        .orderBy(desc(news.createdAt))
+        .limit(40)
+        .all();
+
+      if (latestNews && latestNews.length > 0) {
+        const lastSeenIndex = latestNews.findIndex((n) => n.id.toString() === lastSeenId);
+        unreadNewsCount = lastSeenIndex === -1 ? 0 : lastSeenIndex;
+      }
+    }
+  } catch (e) {
+    console.error('[Header News Error]:', e);
+  }
+}
+
 const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 ---
 

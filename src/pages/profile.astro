@@ -222,29 +222,27 @@ import { siteConfig } from '../site.config';
 
           <div class="nav-divider"></div>
 
-          <form method="POST" action="/api/auth/logout" class="logout-form">
-            <button type="submit" class="nav-item logout-btn">
-              <div class="icon-box danger">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="20"
-                  height="20"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  fill="none"
-                  ><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
-                  ></path><polyline points="16 17 21 12 16 7"></polyline><line
-                    x1="21"
-                    y1="12"
-                    x2="9"
-                    y2="12"></line></svg
-                >
-              </div>
-              <div class="nav-label">
-                <span>Cerrar Sesión</span>
-              </div>
-            </button>
-          </form>
+          <button id="logout-trigger" class="nav-item logout-btn">
+            <div class="icon-box danger">
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                stroke="currentColor"
+                stroke-width="2"
+                fill="none"
+                ><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+                ></path><polyline points="16 17 21 12 16 7"></polyline><line
+                  x1="21"
+                  y1="12"
+                  x2="9"
+                  y2="12"></line></svg
+              >
+            </div>
+            <div class="nav-label">
+              <span>Cerrar Sesión</span>
+            </div>
+          </button>
         </nav>
       </aside>
 
@@ -1208,7 +1206,8 @@ import { siteConfig } from '../site.config';
 </style>
 
 <script>
-  import { toast } from '../lib/toastStore';
+  import { actions } from 'astro:actions';
+  import { toast } from '../lib/toastStore.svelte';
   import { auth } from '../lib/firebase/client';
   import { sendPasswordResetEmail, onAuthStateChanged } from 'firebase/auth';
 
@@ -1267,18 +1266,14 @@ import { siteConfig } from '../site.config';
       btn.innerHTML = '<span class="loading-spinner"></span> Guardando...';
 
       const formData = new FormData(form);
-      const data = Object.fromEntries(formData);
+      const payload = Object.fromEntries(formData);
 
-      const res = await fetch('/api/user/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      const { error } = await actions.user.updateProfile(payload);
 
-      if (!res.ok) throw new Error('Error al guardar');
+      if (error) throw new Error(error.message || 'Error al guardar');
       toast.success('¡Perfil actualizado correctamente!');
-    } catch (error) {
-      toast.error((error as Error).message);
+    } catch (error: any) {
+      toast.error(error.message);
     } finally {
       btn.disabled = false;
       btn.innerHTML = originalText;
@@ -1308,12 +1303,8 @@ import { siteConfig } from '../site.config';
     toggle?.addEventListener('change', async (e) => {
       const isChecked = (e.target as HTMLInputElement).checked;
       try {
-        const res = await fetch('/api/user/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ [payloadKey]: isChecked }),
-        });
-        if (!res.ok) throw new Error();
+        const { error } = await actions.user.updateProfile({ [payloadKey]: isChecked });
+        if (error) throw new Error(error.message);
         toast.success(isChecked ? successMsg[0] : successMsg[1]);
       } catch {
         toast.error('Error al actualizar preferencia');
@@ -1330,4 +1321,16 @@ import { siteConfig } from '../site.config';
     'Contenido +18 visible 🔥',
     'Contenido +18 oculto 🛡️',
   ]);
+
+  // Logout Logic
+  const logoutBtn = document.getElementById('logout-trigger');
+  logoutBtn?.addEventListener('click', async () => {
+    try {
+      const { error } = await actions.auth.logout();
+      if (!error) window.location.href = '/';
+      else throw new Error(error.message);
+    } catch (e) {
+      toast.error('Error al cerrar sesión');
+    }
+  });
 </script>

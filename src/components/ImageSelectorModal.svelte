@@ -1,17 +1,21 @@
 <script lang="ts">
-import { createEventDispatcher, onMount } from 'svelte';
+import { onMount } from 'svelte';
 import { fade, scale } from 'svelte/transition';
-import { toast } from '../lib/toastStore';
+import { toast } from '../lib/toastStore.svelte';
 
-export let isOpen = false;
-export let type: 'avatar' | 'banner' = 'avatar';
+interface Props {
+  isOpen?: boolean;
+  type?: 'avatar' | 'banner';
+  onClose: () => void;
+  onSelect: (detail: { type: 'avatar' | 'banner'; url: string }) => void;
+}
 
-const dispatch = createEventDispatcher();
+let { isOpen = false, type = 'avatar', onClose, onSelect }: Props = $props();
 
-let avatars: string[] = [];
-let banners: string[] = [];
-let loading = true;
-let error = '';
+let avatars = $state<string[]>([]);
+let banners = $state<string[]>([]);
+let loading = $state(true);
+let error = $state('');
 
 onMount(async () => {
   try {
@@ -28,26 +32,22 @@ onMount(async () => {
   }
 });
 
-function close() {
-  dispatch('close');
-}
-
 function selectImage(url: string) {
-  dispatch('select', { type, url });
-  close();
+  onSelect({ type, url });
+  onClose();
 }
 
-$: images = type === 'avatar' ? avatars : banners;
-$: title = type === 'avatar' ? 'Elige tu Avatar' : 'Elige tu Portada';
+const images = $derived(type === 'avatar' ? avatars : banners);
+const title = $derived(type === 'avatar' ? 'Elige tu Avatar' : 'Elige tu Portada');
 </script>
 
 {#if isOpen}
-  <div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={close} on:keydown={(e) => e.key === 'Escape' && close()} role="button" tabindex="0">
+  <div class="modal-backdrop" transition:fade={{ duration: 200 }} onclick={onClose} onkeydown={(e) => e.key === 'Escape' && onClose()} role="button" tabindex="0">
     <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <div class="modal-content" tabindex="-1" transition:scale={{ duration: 300, start: 0.95 }} on:click|stopPropagation role="dialog" aria-modal="true">
+    <div class="modal-content" tabindex="-1" transition:scale={{ duration: 300, start: 0.95 }} onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
       <header class="modal-header">
         <h3>{title}</h3>
-        <button class="btn-close" on:click={close}>&times;</button>
+        <button class="btn-close" onclick={onClose}>&times;</button>
       </header>
 
       <div class="modal-body">
@@ -70,12 +70,12 @@ $: title = type === 'avatar' ? 'Elige tu Avatar' : 'Elige tu Portada';
               Mostrando {images.length} imágenes
             </p>
             {#each images as img (img)}
-              <button class="image-option" on:click={() => selectImage(img)}>
+              <button class="image-option" onclick={() => selectImage(img)}>
                 <img 
                   src={img} 
                   alt="Opción" 
                   loading="lazy" 
-                  on:error={(e) => {
+                  onerror={(e) => {
                     const target = e.currentTarget as HTMLImageElement;
                     if (target) target.src = 'https://ui-avatars.com/api/?name=Err&background=red';
                   }}

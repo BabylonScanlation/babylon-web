@@ -34,9 +34,6 @@ const { series } = Astro.props;
 
 <div class="series-edit-container">
   <form
-    action="/api/update-series"
-    method="post"
-    enctype="multipart/form-data"
     class="modern-admin-form"
     id={`update-series-form-${series.id}`}
     data-series-id={series.id}
@@ -220,9 +217,6 @@ const { series } = Astro.props;
 
   <form
     id={`delete-series-form-${series.id}`}
-    action="/api/delete-series"
-    method="post"
-    onsubmit="return confirm('¿Eliminar TODA la serie? Esta acción es irreversible.');"
     style="display: none;"
   >
     <input type="hidden" name="seriesId" value={series.id} />
@@ -586,6 +580,8 @@ const { series } = Astro.props;
 </style>
 
 <script>
+  import { actions } from 'astro:actions';
+
   // Orion: Sincronización en tiempo real con los badges de la cabecera
   function syncParentUI(seriesId: string, data: any) {
     const titleEl = document.querySelector(`[data-series-id-title="${seriesId}"]`);
@@ -627,9 +623,31 @@ const { series } = Astro.props;
     }
   }
 
-  // Orion: Delegación de eventos única para mejorar performance (Fix Violations)
+  // Orion: Delegación de eventos única para mejorar performance
   document.addEventListener('submit', async (event) => {
     const form = event.target as HTMLFormElement;
+    
+    // Manejo de Borrado
+    if (form.id?.startsWith('delete-series-form-')) {
+      event.preventDefault();
+      if (!confirm('¿Eliminar TODA la serie? Esta acción es irreversible.')) return;
+      
+      const seriesId = form.querySelector<HTMLInputElement>('input[name="seriesId"]')?.value;
+      if (!seriesId) return;
+
+      try {
+        const { error } = await actions.series.delete({ seriesId: parseInt(seriesId) });
+        if (!error) {
+          window.location.href = '/admin/series?success=Serie eliminada con éxito';
+        } else {
+          alert('Error al eliminar: ' + error.message);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return;
+    }
+
     if (!form.classList.contains('modern-admin-form')) return;
 
     event.preventDefault();
@@ -642,15 +660,9 @@ const { series } = Astro.props;
     const formData = new FormData(form);
 
     try {
-      const response = await fetch('/api/update-series', {
-        method: 'POST',
-        body: formData,
-      });
+      const { data, error } = await actions.series.update(formData);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error inesperado');
-      }
+      if (error) throw new Error(error.message || 'Error inesperado');
 
       // Sincronizar UI del padre tras éxito
       syncParentUI(seriesId, {
@@ -708,8 +720,6 @@ const { series } = Astro.props;
     const currentState = input.value === 'on';
     const newState = !currentState;
 
-    // Orion: Solo actualizamos el valor del input y la apariencia del botón.
-    // NO llamamos a la API ni sincronizamos con el padre todavía.
     input.value = newState ? 'on' : 'off';
     updateToggleUI(button, newState, inputName);
   }
@@ -741,7 +751,7 @@ const { series } = Astro.props;
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif'];
 
     if (!allowedTypes.includes(file.type)) {
-      import('../lib/toastStore').then(({ toast }) => {
+      import('../lib/toastStore.svelte').then(({ toast }) => {
         toast.error(`Formato no soportado.`);
       });
       input.value = '';

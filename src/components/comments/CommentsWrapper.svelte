@@ -1,9 +1,10 @@
 <script lang="ts">
 /* eslint-disable */
+import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
 import { elasticOut, quintOut } from 'svelte/easing';
 import { fade, scale, slide } from 'svelte/transition';
-import { toast } from '../../lib/toastStore';
+import { toast } from '../../lib/toastStore.svelte';
 import { userStore } from '../../lib/userStore.svelte';
 import { timeAgo } from '../../lib/utils';
 import { siteConfig } from '../../site.config';
@@ -51,13 +52,12 @@ const sortNodes = (nodes: Comment[] | undefined) => {
 };
 
 function buildCommentTree(flatComments: Comment[]): Comment[] {
-  // eslint-disable-next-line svelte/prefer-svelte-map
   const commentMap = new Map<number, Comment>();
   const roots: Comment[] = [];
 
+  // 1. Fase de Procesamiento Inicial
   flatComments.forEach((c) => {
     const isOwner = !!(user && (user.email === c.userEmail || user.uid === c.userId));
-
     const processed: Comment = {
       ...c,
       isOwner,
@@ -65,7 +65,6 @@ function buildCommentTree(flatComments: Comment[]): Comment[] {
       editedText: c.isDeleted ? '' : c.commentText,
       showSpoiler: Boolean(c.showSpoiler),
       username: c.username || 'Usuario',
-      // Orion: Si es el dueño, priorizamos el avatar del objeto user reactivo
       avatarUrl: (isOwner && user ? user.avatarUrl || c.avatarUrl : c.avatarUrl) || '',
       isDeleted: Boolean(c.isDeleted),
       isAdminComment: Boolean(c.isAdminComment),
@@ -76,10 +75,31 @@ function buildCommentTree(flatComments: Comment[]): Comment[] {
     commentMap.set(c.id, processed);
   });
 
+  // 2. Construcción del Árbol con Detección de Ciclos Exhaustiva
   flatComments.forEach((c) => {
     const processed = commentMap.get(c.id)!;
+
     if (c.parentId && commentMap.has(c.parentId)) {
-      commentMap.get(c.parentId)!.children!.push(processed);
+      // Orion: Verificar si el padre es un ancestro (evita ciclos de cualquier longitud)
+      let isCycle = false;
+      let currentParentId: number | null = c.parentId;
+      const visited = new Set<number>([c.id]);
+
+      while (currentParentId !== null) {
+        if (visited.has(currentParentId)) {
+          isCycle = true;
+          break;
+        }
+        visited.add(currentParentId);
+        const nextParent = commentMap.get(currentParentId);
+        currentParentId = nextParent?.parentId || null;
+      }
+
+      if (!isCycle) {
+        commentMap.get(c.parentId)!.children!.push(processed);
+      } else {
+        roots.push(processed); // Si hay ciclo, lo tratamos como raíz para no perder el dato pero romper el bucle
+      }
     } else {
       roots.push(processed);
     }
@@ -91,17 +111,14 @@ function buildCommentTree(flatComments: Comment[]): Comment[] {
 
 let comments = $state<Comment[]>([]);
 
-// Astra: Sincronización robusta con Astro View Transitions
-$effect(() => {
-  // Forzamos la dependencia de initialComments y targetId
-  const data = initialComments;
-  const id = targetId;
+// Astra: Sincronización robusta. Usamos una variable local para evitar bucles.
+let lastProcessedId = $state<string | number | null>(null);
 
-  if (id) {
-    const safeComments = data && Array.isArray(data) ? data : [];
-    const tree = buildCommentTree(safeComments);
-    sortNodes(tree);
-    comments = tree;
+$effect(() => {
+  if (targetId && targetId !== lastProcessedId) {
+    const safeComments = initialComments && Array.isArray(initialComments) ? initialComments : [];
+    comments = buildCommentTree(safeComments);
+    lastProcessedId = targetId;
   }
 });
 
@@ -172,32 +189,32 @@ async function handleVote(comment: Comment, voteValue: number) {
   if (newVote === -1) comment.dislikes = (comment.dislikes || 0) + 1;
 
   try {
-    const res = await fetch('/api/comments/vote', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        targetType,
-        commentId: comment.id,
-        vote: newVote,
-      }),
+    const { error } = await actions.comments.vote({
+      targetType,
+      commentId: comment.id,
+      voteType: newVote === 1 ? 'up' : 'down',
     });
 
-    if (res.status === 401) {
-      userStore.sync();
-      throw new Error('Sesión expirada');
+    if (error) {
+      if (error.code === 'UNAUTHORIZED') {
+        userStore.sync();
+        throw new Error('Sesión expirada');
+      }
+      throw new Error(error.message);
     }
 
-    if (!res.ok) throw new Error();
+    // Orion: Forzamos la reactividad en Svelte 5 reasignando el array
+    comments = [...comments];
 
     setTimeout(() => {
       votingIds.delete(comment.id);
     }, 500);
-  } catch {
+  } catch (e: any) {
     comment.userVote = previousVote;
     comment.likes = previousLikes;
     comment.dislikes = previousDislikes;
     votingIds.delete(comment.id);
-    toast.error('Error al votar');
+    toast.error(e.message || 'Error al votar');
   }
 }
 
@@ -230,26 +247,45 @@ let visibleComments = $derived(
     : []
 );
 
-const formatCommentDateClient = (dateString: string | number) => {
-  if (!dateString) return '';
-  const label = timeAgo(dateString);
-  return label.charAt(0).toUpperCase() + label.slice(1);
+const formatCommentDateClient = (dateVal: any) => {
+  if (!dateVal) return '---';
+  try {
+    // Orion: Convertir a número si es string numérico, o usar el valor directo
+    const input =
+      typeof dateVal === 'string' && /^\d+$/.test(dateVal) ? parseInt(dateVal, 10) : dateVal;
+    const label = timeAgo(input);
+    if (!label) return 'Hace un momento';
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  } catch (e) {
+    console.warn('Error formatting date:', e);
+    return '---';
+  }
 };
 
 const isEdited = (comment: Comment) => {
   if (!comment.updatedAt || !comment.createdAt) return false;
+
   const normalize = (d: string | number) => {
     if (typeof d === 'number') return d;
-    // Orion: Normalizar formato SQLite a ISO para que JS no se confunda
-    let clean = d;
-    if (!d.includes('T') && !d.endsWith('Z')) {
-      clean = d.replace(' ', 'T') + 'Z';
+    // Orion: Si es 0 o similar, retornamos 0 para evitar Invalid Date
+    if (!d) return 0;
+
+    try {
+      let clean = d;
+      if (!d.includes('T') && !d.endsWith('Z')) {
+        clean = d.replace(' ', 'T') + 'Z';
+      }
+      const t = new Date(clean).getTime();
+      return isNaN(t) ? 0 : t;
+    } catch {
+      return 0;
     }
-    return new Date(clean).getTime();
   };
 
   const created = normalize(comment.createdAt);
   const updated = normalize(comment.updatedAt);
+
+  if (created === 0 || updated === 0) return false;
 
   // Orion: Si la diferencia es mayor a 2 segundos, se considera editado
   return updated > created + 2000;
@@ -284,41 +320,25 @@ async function handleSubmit(e: Event, parentId: number | null = null) {
   isSubmittingComment = true;
 
   try {
-    const url =
-      targetType === 'series'
-        ? '/api/comments/series/add'
-        : targetType === 'news'
-          ? '/api/comments/news/add'
-          : '/api/comments/add';
-
-    const body =
-      targetType === 'series'
-        ? { seriesId: targetId, commentText: text, parentId }
-        : targetType === 'news'
-          ? { newsId: targetId, commentText: text, parentId }
-          : { chapterId: targetId, commentText: text, parentId };
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+    const { data, error } = await actions.comments.add({
+      targetType,
+      targetId: Number(targetId),
+      parentId,
+      text,
     });
 
-    if (res.status === 401) {
-      toast.error('Sesión expirada. Por favor, inicia sesión de nuevo.');
-      userStore.sync(); // Intentar recuperar sesión
-      return;
+    if (error) {
+      if (error.code === 'UNAUTHORIZED') {
+        toast.error('Sesión expirada. Por favor, inicia sesión de nuevo.');
+        userStore.sync();
+        return;
+      }
+      throw new Error(error.message);
     }
-
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || 'Error al publicar');
-    }
-
-    const newC = await res.json();
 
     const processedNew: Comment = {
-      ...newC,
+      ...data,
+      commentText: data.text,
       isOwner: true,
       isNew: true,
       isAdminComment: !!user.isAdmin,
@@ -368,8 +388,8 @@ async function handleSubmit(e: Event, parentId: number | null = null) {
       }
     }, 1000);
     toast.success('¡Comentario publicado!');
-  } catch {
-    toast.error('Error al publicar');
+  } catch (err: any) {
+    toast.error(err.message || 'Error al publicar');
   } finally {
     isSubmittingComment = false;
   }
@@ -379,28 +399,27 @@ async function handleSave(comment: Comment) {
   if (!comment.editedText) return;
   isSavingEditId = comment.id;
   try {
-    const url =
-      targetType === 'series'
-        ? '/api/comments/series/edit'
-        : targetType === 'news'
-          ? '/api/comments/news/manage'
-          : '/api/comments/edit';
-
-    const res = await fetch(url, {
-      method: targetType === 'news' ? 'PUT' : 'POST',
-      body: JSON.stringify({ commentId: comment.id, commentText: comment.editedText }),
+    const { error } = await actions.comments.edit({
+      targetType,
+      commentId: comment.id,
+      text: comment.editedText,
     });
 
-    if (res.status === 401) {
-      toast.error('Sesión expirada');
-      userStore.sync();
-      return;
+    if (error) {
+      if (error.code === 'UNAUTHORIZED') {
+        toast.error('Sesión expirada');
+        userStore.sync();
+        return;
+      }
+      throw new Error(error.message);
     }
 
-    if (!res.ok) throw new Error();
     comment.commentText = comment.editedText;
     comment.isEditing = false;
-    comment.updatedAt = new Date().toISOString();
+    // Orion: Usamos número para consistencia con la sanitización de Astro 5
+    comment.updatedAt = Date.now();
+    // Orion: Forzamos reactividad
+    comments = [...comments];
     toast.success('Editado correctamente');
   } catch {
     toast.error('Error al editar');
@@ -412,29 +431,19 @@ async function handleSave(comment: Comment) {
 async function confirmDelete(commentId: number) {
   isDeletingCommentId = commentId;
   try {
-    const url =
-      targetType === 'series'
-        ? '/api/comments/series/delete-own'
-        : targetType === 'news'
-          ? '/api/comments/news/manage'
-          : '/api/comments/delete';
-
-    const res = await fetch(url, {
-      method: targetType === 'news' ? 'DELETE' : 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ commentId }),
+    const { error } = await actions.comments.delete({
+      targetType,
+      commentId,
     });
 
-    if (res.status === 401) {
-      toast.error('Sesión expirada');
-      userStore.sync();
-      return;
+    if (error) {
+      if (error.code === 'UNAUTHORIZED') {
+        toast.error('Sesión expirada');
+        userStore.sync();
+        return;
+      }
+      throw new Error(error.message);
     }
-
-    if (!res.ok) throw new Error();
 
     const updateInTree = (nodes: Comment[]) => {
       for (const node of nodes) {
@@ -494,16 +503,13 @@ async function handleTogglePin(comment: Comment) {
   comments = treeCopy;
 
   try {
-    const res = await fetch('/api/comments/pin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        commentId: comment.id,
-        targetType,
-        isPinned: newState,
-      }),
+    const { error } = await actions.comments.pin({
+      commentId: comment.id,
+      targetType,
+      isPinned: newState,
     });
-    if (!res.ok) throw new Error();
+
+    if (error) throw new Error(error.message);
     toast.success(newState ? 'Comentario fijado' : 'Comentario desfijado');
   } catch {
     comment.isPinned = previousState;
@@ -641,7 +647,7 @@ async function handleTogglePin(comment: Comment) {
                         </div>
 
                         {#if node.isEditing}
-                            <div class="edit-mode" transition:slide>
+                            <div class="edit-mode">
                                 <label for={`edit-input-${node.id}`} class="sr-only">Editar comentario</label>
                                 <textarea 
                                     id={`edit-input-${node.id}`}
@@ -683,7 +689,9 @@ async function handleTogglePin(comment: Comment) {
                                                 toggleReply(node.id); 
                                             }}
                                         >
-                                            <span class="btn-icon">{@html '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>'}</span>
+                                            <span class="btn-icon">
+                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                            </span>
                                             <span class="btn-label">Responder</span>
                                         </button>
                                     {/if}
@@ -694,7 +702,9 @@ async function handleTogglePin(comment: Comment) {
                                             class="action-btn" 
                                             onclick={() => { node.isEditing = true; node.editedText = node.commentText; }}
                                         >
-                                            <span class="btn-icon">{@html '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'}</span>
+                                            <span class="btn-icon">
+                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                            </span>
                                             <span class="btn-label">Editar</span>
                                         </button>
 
@@ -703,7 +713,9 @@ async function handleTogglePin(comment: Comment) {
                                             class="action-btn danger" 
                                             onclick={() => { showDeleteConfirmId = node.id; }}
                                         >
-                                            <span class="btn-icon">{@html '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>'}</span>
+                                            <span class="btn-icon">
+                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            </span>
                                             <span class="btn-label">Eliminar</span>
                                         </button>
                                     {/if}
@@ -714,7 +726,9 @@ async function handleTogglePin(comment: Comment) {
                                             class="action-btn pin" 
                                             onclick={() => handleTogglePin(node)}
                                         >
-                                            <span class="btn-icon">{@html '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 9V4l1 0c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1l1 0v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"></path></svg>'}</span>
+                                            <span class="btn-icon">
+                                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 9V4l1 0c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1l1 0v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3z"></path></svg>
+                                            </span>
                                             <span class="btn-label">{node.isPinned ? 'Desfijar' : 'Fijar'}</span>
                                         </button>
                                     {/if}
@@ -723,7 +737,7 @@ async function handleTogglePin(comment: Comment) {
                         </div>
 
                         {#if replyToId === node.id && level < 9}
-                            <div class="reply-input-box" transition:slide={{ duration: 250, easing: quintOut }}>
+                            <div class="reply-input-box">
                                 <div class="reply-header">
                                     <span class="replying-to">Respondiendo a <strong>{node.username}</strong></span>
                                     <button class="btn-close-sm" onclick={() => replyToId = null}>✕</button>
@@ -782,11 +796,23 @@ async function handleTogglePin(comment: Comment) {
                                 </button>
                             </div>
                         {/if}
-                        <div class="replies-tree" transition:slide>
-                            {#each node.children as child (child.id)}
-                                {@render commentNode(child, level + 1)}
-                            {/each}
-                        </div>
+                        {#if level === 0}
+                            <div class="replies-tree" transition:slide>
+                                {#each node.children as child (child.id)}
+                                    {#if level < 10 && child.id !== node.id}
+                                        {@render commentNode(child, level + 1)}
+                                    {/if}
+                                {/each}
+                            </div>
+                        {:else}
+                            <div class="replies-tree">
+                                {#each node.children as child (child.id)}
+                                    {#if level < 10 && child.id !== node.id}
+                                        {@render commentNode(child, level + 1)}
+                                    {/if}
+                                {/each}
+                            </div>
+                        {/if}
                     {/if}
                 {/if}
             </div>

@@ -160,6 +160,8 @@ import AdminDescriptionTextarea from './AdminDescriptionTextarea.astro';
 </div>
 
 <script>
+  import { actions } from 'astro:actions';
+
   const form = document.getElementById('create-series-form') as HTMLFormElement;
   const titleInput = document.getElementById('new-title') as HTMLInputElement;
   const slugInput = document.getElementById('new-slug') as HTMLInputElement;
@@ -216,13 +218,9 @@ import AdminDescriptionTextarea from './AdminDescriptionTextarea.astro';
 
     try {
       const formData = new FormData(form);
-      const res = await fetch('/api/admin/series', {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
+      const { data, error } = await actions.series.create(formData);
 
-      if (res.ok) {
+      if (!error) {
         if (statusMsg) {
           statusMsg.textContent = '¡Serie creada con éxito! Sincronizando...';
           statusMsg.className = 'form-status-bar success';
@@ -230,7 +228,7 @@ import AdminDescriptionTextarea from './AdminDescriptionTextarea.astro';
         }
         setTimeout(() => window.location.reload(), 1500);
       } else {
-        throw new Error(data.error || 'Ocurrió un error inesperado al crear la serie.');
+        throw new Error(error.message || 'Ocurrió un error inesperado al crear la serie.');
       }
     } catch (err: any) {
       if (statusMsg) {

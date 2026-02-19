@@ -1,10 +1,14 @@
 <script lang="ts">
 import { onMount } from 'svelte';
 
-export let onVerify: (token: string) => void;
-export let theme: 'light' | 'dark' | 'auto' = 'auto';
+interface Props {
+  onVerify: (token: string) => void;
+  theme?: 'light' | 'dark' | 'auto';
+}
 
-let containerId = `turnstile-widget-${Math.random().toString(36).substring(2, 9)}`;
+let { onVerify, theme = 'auto' }: Props = $props();
+
+const containerId = `turnstile-widget-${Math.random().toString(36).substring(2, 9)}`;
 
 onMount(() => {
   // 1. Inyectar script si no existe

@@ -1,4 +1,5 @@
 <script lang="ts">
+import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
 
 interface Chapter {
@@ -62,13 +63,13 @@ async function saveTitle() {
   }
   isLoading = true;
 
-  const formData = new FormData();
-  formData.append('chapterId', chapter.id.toString());
-  formData.append('title', title);
-
   try {
-    const response = await fetch('/api/update-chapter', { method: 'POST', body: formData });
-    if (!response.ok) throw new Error('Error al actualizar.');
+    const { error } = await actions.chapters.update({
+      chapterId: chapter.id,
+      title,
+    });
+
+    if (error) throw new Error(error.message);
 
     chapter.title = title;
     isEditing = false;
@@ -95,12 +96,9 @@ async function handleDelete() {
     isLoading = true;
     clearTimeout(deleteTimeout);
 
-    const formData = new FormData();
-    formData.append('chapterId', chapter.id.toString());
-
     try {
-      const response = await fetch('/api/delete-chapters', { method: 'POST', body: formData });
-      if (!response.ok) throw new Error('Error al eliminar.');
+      const { error } = await actions.chapters.deleteBulk({ chapterIds: [chapter.id] });
+      if (error) throw new Error(error.message);
 
       window.dispatchEvent(new CustomEvent('chapterDeleted', { detail: { id: chapter.id } }));
     } catch {
@@ -122,14 +120,11 @@ async function handleThumbnailUpload(event: Event) {
   formData.append('thumbnailImage', file);
 
   try {
-    const response = await fetch('/api/upload-chapter-thumbnail', {
-      method: 'POST',
-      body: formData,
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error('Falló subida.');
+    const { data, error } = await actions.chapters.uploadThumbnail(formData);
 
-    chapter.urlPortada = `${result.thumbnailUrl}?t=${Date.now()}`;
+    if (error) throw new Error(error.message);
+
+    chapter.urlPortada = `${data.thumbnailUrl}?t=${Date.now()}`;
     showMessage('success', 'Img OK');
   } catch {
     showMessage('error', 'Error Img');

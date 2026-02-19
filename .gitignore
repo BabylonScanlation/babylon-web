@@ -18,7 +18,6 @@ yarn-error.log*
 .vscode/
 Thumbs.db
 db_snapshots/
-scripts/
 
 # Environment variables
 .env

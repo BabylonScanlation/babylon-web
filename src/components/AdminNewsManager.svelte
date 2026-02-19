@@ -1,6 +1,7 @@
 <script lang="ts">
+import { actions } from 'astro:actions';
 import { fade, fly, slide } from 'svelte/transition';
-import { toast } from '../lib/toastStore';
+import { toast } from '../lib/toastStore.svelte';
 
 // Tipos
 interface Series {
@@ -20,14 +21,23 @@ interface NewsItem {
   createdAt: number | Date;
 }
 
-// Props recibidas desde Astro
-export let allSeries: Series[] = [];
-export let initialNews: NewsItem[] = [];
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export let currentUser: any = null;
-export let r2PublicUrlAssets = '';
+// Props Svelte 5
+interface Props {
+  allSeries?: Series[];
+  initialNews?: NewsItem[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  currentUser?: any;
+  r2PublicUrlAssets?: string;
+}
 
-// Orion: Normalizador de imágenes para evitar 404 por rutas relativas
+let {
+  allSeries = [],
+  initialNews = $state([]),
+  currentUser = null,
+  r2PublicUrlAssets = '',
+}: Props = $props();
+
+// Orion: Normalizador de imágenes
 const getImageUrl = (path: string | null) => {
   if (!path) return '';
   if (path.startsWith('http')) return path;
@@ -35,39 +45,34 @@ const getImageUrl = (path: string | null) => {
   return `${base}/${path}`.replace(/([^:]\/)\/+/g, '$1');
 };
 
-// Estado local
-let selectedSeriesId: number | null = null;
-let filteredNews: NewsItem[] = [];
-let isEditing = false;
-let editingNewsId: string | null = null;
+// Estado local reactivo
+let selectedSeriesId = $state<number | null>(null);
+let isEditing = $state(false);
+let editingNewsId = $state<string | null>(null);
 
 // Form state
-let formTitle = '';
-let formContent = '';
-let formStatus: 'draft' | 'published' = 'published';
-let isSubmitting = false;
-let formImage: File | null = null;
-let imagePreview: string | null = null;
+let formTitle = $state('');
+let formContent = $state('');
+let formStatus = $state<'draft' | 'published'>('published');
+let isSubmitting = $state(false);
+let formImage = $state<File | null>(null);
+let imagePreview = $state<string | null>(null);
 
-// Author logic
-$: authorToDisplay = currentUser?.username || currentUser?.displayName || 'Admin';
+// Author logic derivada
+const authorToDisplay = $derived(currentUser?.username || currentUser?.displayName || 'Admin');
 
-// Orion: Helper para obtener conteos específicos por estado
+// Filtrar noticias derivado
+const filteredNews = $derived(
+  selectedSeriesId ? initialNews.filter((n) => n.seriesId === selectedSeriesId) : []
+);
+
+// Orion: Helper para obtener conteos
 function getStats(seriesId: number, newsItems: NewsItem[]) {
   const seriesNews = newsItems.filter((n) => n.seriesId === seriesId);
   return {
     published: seriesNews.filter((n) => n.status === 'published').length,
     draft: seriesNews.filter((n) => n.status === 'draft').length,
   };
-}
-
-// Filtrar noticias cuando cambia la selección
-$: {
-  if (selectedSeriesId) {
-    filteredNews = initialNews.filter((n) => n.seriesId === selectedSeriesId);
-  } else {
-    filteredNews = [];
-  }
 }
 
 function selectSeries(id: number) {
@@ -110,15 +115,13 @@ async function handleDelete(newsId: string) {
   if (!confirm('¿Estás seguro de eliminar esta noticia?')) return;
 
   try {
-    const res = await fetch(`/api/admin/news/${newsId}`, {
-      method: 'DELETE',
-    });
+    const { error } = await actions.news.delete({ id: newsId });
 
-    if (res.ok) {
+    if (!error) {
       initialNews = initialNews.filter((n) => n.id !== newsId);
       toast.success('Noticia eliminada');
     } else {
-      toast.error('Error al eliminar');
+      toast.error('Error al eliminar: ' + error.message);
     }
   } catch {
     toast.error('Error de conexión');
@@ -139,32 +142,29 @@ async function handleSubmit() {
       content: formContent,
       status: formStatus,
       seriesId: selectedSeriesId,
-      authorName: authorToDisplay,
     };
 
-    let url = '/api/admin/news';
-    let method = 'POST';
+    let result;
 
     if (isEditing && editingNewsId) {
-      url = `/api/admin/news/${editingNewsId}`;
-      method = 'PUT';
+      result = await actions.news.update({ id: editingNewsId, ...payload });
+    } else {
+      result = await actions.news.create(payload);
     }
 
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    if (result.error) throw new Error(result.error.message);
 
-    if (!res.ok) throw new Error('Error en la petición');
-
-    const savedNews = await res.json();
+    const savedNews = result.data;
 
     if (formImage) {
-      const formData = new FormData();
-      formData.append('image', formImage);
-      formData.append('newsId', savedNews.id);
-      await fetch('/api/admin/news/upload-image', { method: 'POST', body: formData });
+      const uploadData = new FormData();
+      uploadData.append('image', formImage);
+      uploadData.append('newsId', savedNews.id);
+
+      const { error: uploadError } = await actions.news.uploadImage(uploadData);
+      if (uploadError) {
+        toast.warning('Noticia guardada pero la imagen falló: ' + uploadError.message);
+      }
     }
 
     toast.success(isEditing ? 'Noticia actualizada' : 'Noticia publicada');
@@ -192,9 +192,9 @@ async function handleSubmit() {
     }
 
     resetForm();
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    toast.error('Fallo al guardar noticia');
+    toast.error('Fallo al guardar noticia: ' + error.message);
   } finally {
     isSubmitting = false;
   }

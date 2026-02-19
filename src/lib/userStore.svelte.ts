@@ -1,3 +1,4 @@
+import { actions } from 'astro:actions';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase/client';
 
@@ -47,12 +48,10 @@ class UserStore {
         if (!dbUser && this.user && auth.currentUser) {
           console.log('[UserStore] Session expired or missing. Attempting auto-recovery...');
           const idToken = await auth.currentUser.getIdToken();
-          const sessionRes = await fetch('/api/auth/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken }),
-          });
-          if (sessionRes.ok) {
+
+          const { error } = await actions.auth.login({ idToken });
+
+          if (!error) {
             console.log('[UserStore] Session recovered successfully.');
             return this.sync(); // Re-sincronizar tras recuperar sesión
           }

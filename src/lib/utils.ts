@@ -1,61 +1,74 @@
-export function timeAgo(dateString: string | number | Date): string {
-  if (!dateString) return '';
+export function timeAgo(dateString: string | number | Date | null | undefined): string {
+  if (!dateString) return '---';
 
   let date: Date;
 
-  if (typeof dateString === 'string') {
-    // Si la cadena no termina en Z y no tiene T, es probable que sea de SQLite (UTC)
-    // Ejemplo: "2026-01-20 10:00:00" -> "2026-01-20T10:00:00Z"
-    let normalized = dateString;
-    if (!normalized.includes('T') && !normalized.endsWith('Z')) {
-      normalized = normalized.replace(' ', 'T') + 'Z';
+  try {
+    if (typeof dateString === 'string') {
+      let normalized = dateString;
+      if (!normalized.includes('T') && !normalized.endsWith('Z')) {
+        normalized = normalized.replace(' ', 'T') + 'Z';
+      }
+      date = new Date(normalized);
+    } else if (typeof dateString === 'number') {
+      // Orion: Si el número es pequeño (ej. 1700000000), probablemente son SEGUNDOS.
+      // Si es grande (ej. 1700000000000), son MILISEGUNDOS.
+      const val = dateString < 10000000000 ? dateString * 1000 : dateString;
+      date = new Date(val);
+    } else {
+      date = new Date(dateString);
     }
-    date = new Date(normalized);
-  } else {
-    date = new Date(dateString);
+
+    if (isNaN(date.getTime()) || date.getTime() <= 0) return '---';
+
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (seconds < 5) return 'justo ahora';
+    if (seconds < 60) return `hace ${seconds} segundos`;
+
+    let interval = seconds / 31536000;
+    if (interval > 1) return `hace ${Math.floor(interval)} años`;
+    interval = seconds / 2592000;
+    if (interval > 1) return `hace ${Math.floor(interval)} meses`;
+    interval = seconds / 86400;
+    if (interval > 1) return `hace ${Math.floor(interval)} días`;
+    interval = seconds / 3600;
+    if (interval > 1) return `hace ${Math.floor(interval)} horas`;
+    interval = seconds / 60;
+    if (interval > 1) return `hace ${Math.floor(interval)} minutos`;
+    return 'hace un momento';
+  } catch (e) {
+    return '---';
   }
-
-  if (isNaN(date.getTime())) return '';
-
-  const now = new Date();
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 5) return 'justo ahora';
-  if (seconds < 60) return `hace ${seconds} segundos`;
-
-  let interval = seconds / 31536000;
-  if (interval > 1) return `hace ${Math.floor(interval)} años`;
-  interval = seconds / 2592000;
-  if (interval > 1) return `hace ${Math.floor(interval)} meses`;
-  interval = seconds / 86400;
-  if (interval > 1) return `hace ${Math.floor(interval)} días`;
-  interval = seconds / 3600;
-  if (interval > 1) return `hace ${Math.floor(interval)} horas`;
-  interval = seconds / 60;
-  if (interval > 1) return `hace ${Math.floor(interval)} minutos`;
-  return 'hace un momento';
 }
 
-export const formatFullDate = (dateString: string) => {
+export const formatFullDate = (dateString: string | number | Date | null | undefined) => {
   if (!dateString) return 'N/A';
 
-  let date = new Date(dateString);
+  try {
+    let date = new Date(dateString as any);
 
-  if (isNaN(date.getTime())) {
-    const compatibleDateString = dateString.replace(' ', 'T') + 'Z';
-    date = new Date(compatibleDateString);
+    if (isNaN(date.getTime())) {
+      if (typeof dateString === 'string') {
+        const compatibleDateString = dateString.replace(' ', 'T') + 'Z';
+        date = new Date(compatibleDateString);
+      }
+    }
+
+    if (isNaN(date.getTime()) || date.getTime() <= 0) return 'N/A';
+
+    return date.toLocaleString('es-ES', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  } catch (e) {
+    return 'N/A';
   }
-
-  if (isNaN(date.getTime())) return 'N/A';
-
-  return date.toLocaleString('es-ES', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
 };
 
 export const generateRandomUsername = () => {

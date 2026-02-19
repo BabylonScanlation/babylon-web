@@ -1,7 +1,6 @@
 ---
 import AdContainer from '../../../../components/AdContainer.astro';
-import ChapterReaderRaw from '../../../../components/ChapterReader.svelte';
-const ChapterReader = ChapterReaderRaw as any;
+import ChapterReader from '../../../../components/ChapterReader.svelte';
 import UnifiedComments from '../../../../components/UnifiedComments.astro';
 // src/pages/series/[slug]/[chapter]/index.astro
 import Layout from '../../../../layouts/Layout.astro';
@@ -41,7 +40,14 @@ try {
     user ? { uid: user.uid, isAdmin: !!user.isAdmin } : undefined
   );
   if (seriesData) {
-    allChapters = seriesData.chapters || [];
+    // Orion: Sanitización ultra-permisiva de fechas para toda la lista de capítulos
+    allChapters = (seriesData.chapters || []).map((ch: any) => {
+      const ts = ch.createdAt ? new Date(ch.createdAt).getTime() : null;
+      return {
+        ...ch,
+        createdAt: ts && !isNaN(ts) ? ts : null,
+      };
+    });
     seriesTitle = seriesData.title;
   }
 
@@ -65,7 +71,17 @@ try {
     }
 
     if (chapterId) {
-      comments = await getCommentsForTarget(drizzleDb, 'chapter', chapterId, user?.uid);
+      const rawComments = await getCommentsForTarget(drizzleDb, 'chapter', chapterId, user?.uid);
+      // Orion: Sanitización "Tanque" para evitar cualquier posibilidad de Invalid Date en el cliente
+      comments = rawComments.map((c) => {
+        const cTs = c.createdAt ? new Date(c.createdAt).getTime() : null;
+        const uTs = c.updatedAt ? new Date(c.updatedAt).getTime() : null;
+        return {
+          ...c,
+          createdAt: cTs && !isNaN(cTs) ? cTs : Date.now(),
+          updatedAt: uTs && !isNaN(uTs) ? uTs : null,
+        };
+      });
     }
   } else {
     error = 'El capítulo solicitado no fue encontrado.';

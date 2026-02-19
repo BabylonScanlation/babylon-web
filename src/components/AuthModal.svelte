@@ -1,4 +1,5 @@
 <script lang="ts">
+import { actions } from 'astro:actions';
 import {
   type AuthCredential,
   createUserWithEmailAndPassword,
@@ -11,8 +12,8 @@ import { onMount } from 'svelte';
 import { fade, fly } from 'svelte/transition';
 import { auth } from '../lib/firebase/client';
 import { logError } from '../lib/logError';
-import { authModal } from '../lib/modalStore';
-import { toast } from '../lib/toastStore';
+import { authModal } from '../lib/modalStore.svelte';
+import { toast } from '../lib/toastStore.svelte';
 
 let loginEmail = $state('');
 let loginPassword = $state('');
@@ -63,23 +64,18 @@ async function handleLogin() {
     const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
     const idToken = await userCredential.user.getIdToken();
 
-    const response = await fetch('/api/auth/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken }),
-    });
+    const { error } = await actions.auth.login({ idToken });
 
-    if (response.ok) {
+    if (!error) {
       document.dispatchEvent(new CustomEvent('auth-success'));
       toast.success('¡Bienvenido de nuevo!');
       authModal.close();
       // Orion: Forzar recarga para que el servidor genere el HTML sin anuncios (Admin privilege)
       setTimeout(() => window.location.reload(), 500);
     } else {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Error del servidor al crear la sesión.');
+      throw new Error(error.message || 'Error del servidor al crear la sesión.');
     }
-  } catch (error) {
+  } catch (error: any) {
     logError(error, 'Error durante el inicio de sesión con email/contraseña');
     loginErrorMessage = 'Credenciales incorrectas o usuario no encontrado.';
     toast.error(loginErrorMessage);
@@ -132,21 +128,16 @@ function handleGoogleSignIn() {
   signInWithPopup(auth, googleProvider)
     .then(async (result) => {
       const idToken = await result.user.getIdToken();
-      const response = await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
-      });
+      const { error } = await actions.auth.login({ idToken });
 
-      if (response.ok) {
+      if (!error) {
         document.dispatchEvent(new CustomEvent('auth-success'));
         toast.success('¡Sesión iniciada con Google!');
         authModal.close();
         // Orion: Sincronización instantánea del estado de administrador con el servidor
         setTimeout(() => window.location.reload(), 500);
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error del servidor al crear sesión.');
+        throw new Error(error.message || 'Error del servidor al crear sesión.');
       }
     })
     .catch((error) => {
@@ -171,7 +162,7 @@ async function handleLinkAccount() {
   isLoading = true;
   linkErrorMessage = '';
 
-  const { email, pendingCredential } = $authModal.linkAccountInfo;
+  const { email, pendingCredential } = authModal.linkAccountInfo;
 
   if (!pendingCredential || !email || !linkPassword) {
     linkErrorMessage = 'Faltan datos para vincular la cuenta.';
@@ -183,19 +174,16 @@ async function handleLinkAccount() {
     const userCredential = await signInWithEmailAndPassword(auth, email, linkPassword);
     await linkWithCredential(userCredential.user, pendingCredential);
     const idToken = await userCredential.user.getIdToken();
-    const response = await fetch('/api/auth/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken }),
-    });
-    if (response.ok) {
+    const { error } = await actions.auth.login({ idToken });
+
+    if (!error) {
       document.dispatchEvent(new CustomEvent('auth-success'));
       toast.success('¡Cuentas vinculadas exitosamente!');
       authModal.close();
       // Orion: Refresco total para aplicar el modo Admin sin publicidad
       setTimeout(() => window.location.reload(), 500);
     } else {
-      throw new Error('Error al crear sesión después de vincular.');
+      throw new Error(error.message || 'Error al crear sesión después de vincular.');
     }
   } catch (error) {
     logError(error, 'Error durante la vinculación de cuenta');
@@ -212,7 +200,7 @@ function togglePassword() {
 
 // Astra: Sincronizar estado del body con el modal para ocultar el header
 $effect(() => {
-  if ($authModal.isOpen) {
+  if (authModal.isOpen) {
     document.body.setAttribute('data-reader-modal', 'open');
     document.documentElement.style.overflow = 'hidden';
   } else {
@@ -222,7 +210,7 @@ $effect(() => {
 });
 </script>
 
-{#if $authModal.isOpen}
+{#if authModal.isOpen}
   <div class="modal-overlay" 
     onclick={(e) => e.target === e.currentTarget && authModal.close()} 
     onkeydown={(e) => (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') && authModal.close()}
@@ -237,7 +225,7 @@ $effect(() => {
       </button>
 
       <div class="auth-content">
-        {#if $authModal.view === 'login'}
+        {#if authModal.view === 'login'}
           <div in:fly={{ x: -20, duration: 300, delay: 150 }}>
             <div class="auth-header">
               <h2>Bienvenido</h2>
@@ -245,8 +233,8 @@ $effect(() => {
             </div>
             
             <div class="message-container">
-              {#if $authModal.successMessage}
-                <p class="alert alert-success" transition:fade>{$authModal.successMessage}</p>
+              {#if authModal.successMessage}
+                <p class="alert alert-success" transition:fade>{authModal.successMessage}</p>
               {/if}
               {#if loginErrorMessage}
                 <p class="alert alert-danger" transition:fade>{loginErrorMessage}</p>
@@ -300,7 +288,7 @@ $effect(() => {
           </div>
         {/if}
 
-        {#if $authModal.view === 'register'}
+        {#if authModal.view === 'register'}
           <div in:fly={{ x: 20, duration: 300, delay: 150 }}>
             <div class="auth-header">
               <h2>Crear Cuenta</h2>
@@ -357,7 +345,7 @@ $effect(() => {
           </div>
         {/if}
 
-        {#if $authModal.view === 'link'}
+        {#if authModal.view === 'link'}
           <div in:fly={{ y: 20, duration: 300, delay: 150 }}>
             <div class="auth-header">
               <h2>Vincular Cuenta</h2>
@@ -374,7 +362,7 @@ $effect(() => {
               <div class="form-group">
                 <label class="form-label" for="link-email">Email</label>
                 <div class="input-wrapper">
-                  <input class="form-control disabled-input" type="email" id="link-email" readonly value={$authModal.linkAccountInfo.email} />
+                  <input class="form-control disabled-input" type="email" id="link-email" readonly value={authModal.linkAccountInfo.email} />
                 </div>
               </div>
 

@@ -1,5 +1,6 @@
 <script lang="ts">
-import { toast } from '../lib/toastStore';
+import { actions } from 'astro:actions';
+import { toast } from '../lib/toastStore.svelte';
 
 interface Props {
   seriesId: number;
@@ -37,15 +38,13 @@ async function toggleFavorite() {
   }
 
   try {
-    const res = await fetch('/api/user/favorites', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'series', id: seriesId }),
+    const { data, error } = await actions.user.toggleFavorite({
+      type: 'series',
+      id: seriesId,
     });
 
-    if (!res.ok) throw new Error('Failed to update favorite');
+    if (error) throw new Error(error.message);
 
-    const data = await res.json();
     isFavorited = data.action === 'added';
 
     if (isFavorited) {
@@ -53,7 +52,7 @@ async function toggleFavorite() {
     }
   } catch (e) {
     isFavorited = previousState;
-    toast.error('Error de conexión');
+    toast.error('Error al actualizar favoritos');
     console.error(e);
   } finally {
     isLoading = false;

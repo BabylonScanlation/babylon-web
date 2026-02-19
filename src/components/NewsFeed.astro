@@ -122,6 +122,7 @@ function formatDate(timestamp: number | string | Date) {
 </section>
 
 <script>
+  import { actions } from 'astro:actions';
   import { siteConfig } from '../site.config';
 
   function initNewsFeed() {
@@ -199,68 +200,67 @@ function formatDate(timestamp: number | string | Date) {
 
     window.newsFeedListener = listener;
     window.addEventListener('new-news-created', listener);
+
+    // Astro: Exponer funciones globales para los onclick
+    (window as any).handleDelete = async function(id: string) {
+      if(!confirm('¿Eliminar esta noticia?')) return;
+      const btn = document.querySelector(`button[onclick="handleDelete('${id}')"]`) as HTMLButtonElement;
+      if(btn) btn.disabled = true;
+
+      try {
+        const { error } = await actions.news.delete({ id });
+        if(!error) {
+          window.location.reload();
+        } else {
+          alert('Error al eliminar: ' + error.message);
+          if(btn) btn.disabled = false;
+        }
+      } catch(e) {
+        console.error(e);
+        if(btn) btn.disabled = false;
+      }
+    };
+
+    (window as any).handleEdit = function(id: string) {
+      const area = document.getElementById(`content-${id}`);
+      if (!area) return;
+      const original = area.querySelector('p')?.textContent || '';
+      area.innerHTML = `
+        <textarea class="glass-textarea" id="edit-text-${id}">${original}</textarea>
+        <div style="display:flex; gap:10px; margin-top:10px; justify-content:flex-end;">
+          <button onclick="location.reload()" style="padding:5px 15px; border-radius:8px; background:rgba(255,255,255,0.05); color:#666; border:none; cursor:pointer;">Cancelar</button>
+          <button onclick="saveEdit('${id}')" style="padding:5px 15px; border-radius:8px; background:var(--accent-color); color:#000; font-weight:800; border:none; cursor:pointer;">Guardar</button>
+        </div>
+      `;
+    };
+
+    (window as any).saveEdit = async function(id: string) {
+      const textEl = document.getElementById(`edit-text-${id}`) as HTMLTextAreaElement;
+      const content = textEl?.value;
+      if (!content) return;
+
+      const { error } = await actions.news.update({ id, content });
+      if(!error) {
+        window.location.reload();
+      } else {
+        alert('Error al guardar: ' + error.message);
+      }
+    };
+
+    (window as any).handleToggleStatus = async function(id: string, currentStatus: string) {
+      const status = currentStatus === 'published' ? 'draft' : 'published';
+      const { error } = await actions.news.update({ id, status });
+      if(!error) {
+        window.location.reload();
+      } else {
+        alert('Error al cambiar estado: ' + error.message);
+      }
+    };
   }
 
   // Ejecutar en carga inicial y tras cada transición
   initNewsFeed();
   document.addEventListener('astro:page-load', initNewsFeed);
-</script>
-
-<script is:inline>
-  // Astra: Lógica de cliente mínima para administración
-  window.handleDelete = async function(id) {
-    if(!confirm('¿Eliminar esta noticia?')) return;
-
-    // Disable buttons to prevent race conditions
-    const btn = document.querySelector(`button[onclick="handleDelete('${id}')"]`);
-    if(btn) btn.disabled = true;
-
-    try {
-      const res = await fetch(`/api/admin/news/${id}`, { method: 'DELETE' });
-      if(res.ok || res.status === 404) {
-        // Recargar para limpiar el estado del DOM de forma robusta
-        window.location.reload();
-      } else {
-        alert('Error al eliminar');
-        if(btn) btn.disabled = false;
-      }
-    } catch(e) {
-      console.error(e);
-      if(btn) btn.disabled = false;
-    }
-  }
-
-  window.handleEdit = function(id) {
-    const area = document.getElementById(`content-${id}`);
-    const original = area.querySelector('p').textContent;
-    area.innerHTML = `
-      <textarea class="glass-textarea" id="edit-text-${id}">${original}</textarea>
-      <div style="display:flex; gap:10px; margin-top:10px; justify-content:flex-end;">
-        <button onclick="location.reload()" style="padding:5px 15px; border-radius:8px; background:rgba(255,255,255,0.05); color:#666; border:none; cursor:pointer;">Cancelar</button>
-        <button onclick="saveEdit('${id}')" style="padding:5px 15px; border-radius:8px; background:var(--accent-color); color:#000; font-weight:800; border:none; cursor:pointer;">Guardar</button>
-      </div>
-    `;
-  }
-
-  window.saveEdit = async function(id) {
-    const content = document.getElementById(`edit-text-${id}`).value;
-    const res = await fetch(`/api/admin/news/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content })
-    });
-    if(res.ok) window.location.reload();
-  }
-
-  window.handleToggleStatus = async function(id, currentStatus) {
-    const newStatus = currentStatus === 'published' ? 'draft' : 'published';
-    const res = await fetch(`/api/admin/news/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
-    });
-    if(res.ok) window.location.reload();
-  }
 </script>
 
 <style>

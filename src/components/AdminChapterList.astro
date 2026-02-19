@@ -315,7 +315,8 @@ const { series, r2PublicUrlAssets } = Astro.props;
 </style>
 
 <script>
-  import { toast } from '../lib/toastStore';
+  import { actions } from 'astro:actions';
+  import { toast } from '../lib/toastStore.svelte';
 
   class ChapterManager extends HTMLElement {
     selectedIds: Set<string>;
@@ -394,22 +395,16 @@ const { series, r2PublicUrlAssets } = Astro.props;
         (this.fillChaptersBtn as HTMLButtonElement).disabled = true;
         this.fillChaptersInput.disabled = true;
 
-        const response = await fetch('/api/admin/chapters/bulk-create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            seriesId: parseInt(seriesId),
-            targetTotal: targetChapter,
-          }),
+        const { data, error } = await actions.chapters.bulkCreatePlaceholders({
+          seriesId: parseInt(seriesId),
+          targetTotal: targetChapter,
         });
 
-        const result = await response.json();
-
-        if (response.ok) {
-          toast.success(`¡Éxito! Se añadieron ${result.added} capítulos.`);
+        if (!error) {
+          toast.success(`¡Éxito! Se añadieron ${data.added} capítulos.`);
           setTimeout(() => window.location.reload(), 1500);
         } else {
-          toast.error(`Error: ${result.error || result.message}`);
+          toast.error(`Error: ${error.message}`);
           this.fillChaptersBtn.textContent = originalText;
           (this.fillChaptersBtn as HTMLButtonElement).disabled = false;
           this.fillChaptersInput.disabled = false;
@@ -493,16 +488,12 @@ const { series, r2PublicUrlAssets } = Astro.props;
       )
         return;
 
-      const idsToDelete = Array.from(this.selectedIds);
+      const idsToDelete = Array.from(this.selectedIds).map(id => parseInt(id));
 
       try {
-        const response = await fetch('/api/delete-chapters', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chapterIds: idsToDelete }),
-        });
+        const { error } = await actions.chapters.deleteBulk({ chapterIds: idsToDelete });
 
-        if (response.ok) {
+        if (!error) {
           idsToDelete.forEach((id) => {
             const row = this.querySelector(`div[data-chapter-id="${id}"]`);
             row?.remove();
@@ -513,7 +504,7 @@ const { series, r2PublicUrlAssets } = Astro.props;
           this.updateTotalCount();
           toast.success('Capítulos eliminados correctamente.');
         } else {
-          toast.error('Error al eliminar capítulos.');
+          toast.error('Error al eliminar capítulos: ' + error.message);
         }
       } catch (error) {
         console.error(error);

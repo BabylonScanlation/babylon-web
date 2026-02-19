@@ -394,3 +394,49 @@ export const newsCommentVotes = sqliteTable(
     index('idx_news_comment_votes_comment').on(table.commentId),
   ]
 );
+
+ e x p o r t   c o n s t   u s e r P r o g r e s s   =   s q l i t e T a b l e ( 
+     ' U s e r P r o g r e s s ' , 
+     
+{
+   
+         u s e r I d :   t e x t ( ' u s e r _ i d ' ) 
+             . n o t N u l l ( ) 
+             . r e f e r e n c e s ( ( )   = >   u s e r s . i d ,   
+     o n D e l e t e :   ' c a s c a d e '   
+   ) , 
+         s e r i e s I d :   i n t e g e r ( ' s e r i e s _ i d ' ,   
+     m o d e :   ' n u m b e r '   
+   ) 
+             . n o t N u l l ( ) 
+             . r e f e r e n c e s ( ( )   = >   s e r i e s . i d ,   
+     o n D e l e t e :   ' c a s c a d e '   
+   ) , 
+         c h a p t e r I d :   i n t e g e r ( ' c h a p t e r _ i d ' ,   
+     m o d e :   ' n u m b e r '   
+   ) 
+             . n o t N u l l ( ) 
+             . r e f e r e n c e s ( ( )   = >   c h a p t e r s . i d ,   
+     o n D e l e t e :   ' c a s c a d e '   
+   ) , 
+         c h a p t e r N u m b e r :   r e a l ( ' c h a p t e r _ n u m b e r ' ) . n o t N u l l ( ) , 
+         l a s t R e a d A t :   i n t e g e r ( ' l a s t _ r e a d _ a t ' ,   
+     m o d e :   ' t i m e s t a m p _ m s '   
+   ) . d e f a u l t ( 
+             s q l \ ( s t r f t i m e ( ' % s ' ,   ' n o w ' )   *   1 0 0 0 ) \ 
+         ) , 
+     
+}
+ , 
+     ( t a b l e )   = >   [ 
+         p r i m a r y K e y ( 
+{
+     c o l u m n s :   [ t a b l e . u s e r I d ,   t a b l e . s e r i e s I d ]   
+}
+ ) , 
+         i n d e x ( ' i d x _ u s e r _ p r o g r e s s _ u s e r ' ) . o n ( t a b l e . u s e r I d ) , 
+     ] 
+ ) 
+ 
+ 
+ 

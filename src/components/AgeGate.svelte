@@ -1,4 +1,5 @@
 <script lang="ts">
+import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
 import { fade, fly } from 'svelte/transition';
 import { siteConfig } from '../site.config';
@@ -57,8 +58,8 @@ function handleCaptchaVerify(token: string) {
 async function enterSite() {
   if (isAdult && acceptedTerms && (captchaToken || isLocal)) {
     try {
-      const res = await fetch('/api/auth/verify-age', { method: 'POST' });
-      if (res.ok) {
+      const { error } = await actions.auth.verifyAge();
+      if (!error) {
         sessionStorage.setItem('site_access_granted', 'true');
         if (isVerificationPage) {
           window.location.href = '/';
@@ -68,6 +69,8 @@ async function enterSite() {
           document.documentElement.classList.remove('age-gate-active');
           window.dispatchEvent(new CustomEvent('age-gate-passed'));
         }
+      } else {
+        console.error('Error en verificación:', error);
       }
     } catch (e) {
       console.error('Error en verificación:', e);

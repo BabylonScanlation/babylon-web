@@ -1,0 +1,107 @@
+---
+// src/components/Skeletons.astro
+interface Props {
+  type: 'header' | 'bottom-nav';
+}
+const { type } = Astro.props;
+---
+
+{type === 'header' && (
+    <div class="header-skeleton">
+        <div class="skeleton-container">
+            <div class="skeleton-logo"></div>
+            <div class="skeleton-nav">
+                <div class="skeleton-link"></div>
+                <div class="skeleton-link"></div>
+                <div class="skeleton-link"></div>
+                <div class="skeleton-link"></div>
+            </div>
+        </div>
+    </div>
+)}
+
+{type === 'bottom-nav' && (
+    <div class="bottom-nav-skeleton">
+        <div class="skeleton-capsule">
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-icon"></div>
+        </div>
+    </div>
+)}
+
+<style>
+    /* Estilos base para esqueletos */
+    .header-skeleton, .bottom-nav-skeleton {
+        pointer-events: none;
+        user-select: none;
+    }
+
+    [class^="skeleton-"] {
+        background: rgba(255, 255, 255, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    [class^="skeleton-"]::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+        animation: shimmer 1.5s infinite;
+    }
+
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    /* Header Skeleton */
+    .header-skeleton {
+        position: absolute;
+        top: 0; left: 0; width: 100%;
+        height: 90px;
+        display: flex;
+        align-items: center;
+        z-index: 4999;
+    }
+
+    .skeleton-container {
+        width: 100%; max-width: 1600px;
+        margin: 0 auto; padding: 0 3rem;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+
+    .skeleton-logo { width: 120px; height: 40px; border-radius: 8px; }
+    .skeleton-nav { display: flex; gap: 2rem; }
+    .skeleton-link { width: 60px; height: 12px; border-radius: 4px; }
+
+    /* Bottom Nav Skeleton */
+    .bottom-nav-skeleton {
+        position: fixed;
+        bottom: 24px; left: 0; right: 0;
+        padding: 0 1rem;
+        z-index: 3999;
+    }
+
+    .skeleton-capsule {
+        max-width: 500px; margin: 0 auto;
+        height: 60px;
+        background: rgba(30, 30, 35, 0.8);
+        backdrop-filter: blur(10px);
+        border-radius: 100px;
+        display: flex; justify-content: space-around; align-items: center;
+        padding: 0 1rem;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .skeleton-icon { width: 24px; height: 24px; border-radius: 50%; }
+
+    @media (max-width: 1023px) {
+        .header-skeleton { position: relative; height: 80px; justify-content: center; }
+        .skeleton-nav { display: none; }
+        .skeleton-container { justify-content: center; padding: 0; }
+    }
+</style>

@@ -42,18 +42,20 @@ interface RatingItem {
 }
 
 // State
-let activeTab: 'history' | 'favorites' | 'ratings' = 'history';
-let historyItems: ProgressItem[] = [];
-let favoritesItems: FavoriteItem[] = [];
-let ratingsItems: RatingItem[] = [];
-let isLoading = true;
-let isAuthenticated = false;
-let selectedStarFilter: number | null = null;
+let activeTab = $state<'history' | 'favorites' | 'ratings'>('history');
+let historyItems = $state<ProgressItem[]>([]);
+let favoritesItems = $state<FavoriteItem[]>([]);
+let ratingsItems = $state<RatingItem[]>([]);
+let isLoading = $state(true);
+let isAuthenticated = $state(false);
+let selectedStarFilter = $state<number | null>(null);
 
 // Derived state for filtered ratings
-$: filteredRatings = selectedStarFilter
-  ? ratingsItems.filter((item) => item.rating === selectedStarFilter)
-  : ratingsItems;
+let filteredRatings = $derived(
+  selectedStarFilter
+    ? ratingsItems.filter((item) => item.rating === selectedStarFilter)
+    : ratingsItems
+);
 
 // Actions
 async function loadData() {
@@ -110,14 +112,14 @@ onMount(() => {
   <div class="tabs-header">
     <button 
       class="tab-btn {activeTab === 'history' ? 'active' : ''}" 
-      on:click={() => activeTab = 'history'}
+      onclick={() => activeTab = 'history'}
     >
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
       Historial
     </button>
     <button 
       class="tab-btn {activeTab === 'favorites' ? 'active' : ''}" 
-      on:click={() => activeTab = 'favorites'}
+      onclick={() => activeTab = 'favorites'}
     >
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
       Favoritos
@@ -127,7 +129,7 @@ onMount(() => {
     </button>
     <button 
       class="tab-btn {activeTab === 'ratings' ? 'active' : ''}" 
-      on:click={() => activeTab = 'ratings'}
+      onclick={() => activeTab = 'ratings'}
     >
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
       Calificaciones
@@ -149,7 +151,7 @@ onMount(() => {
         <div class="icon-lock">🔒</div>
         <h2>Acceso Restringido</h2>
         <p>Inicia sesión para sincronizar tu historial y gestionar tus favoritos en todos tus dispositivos.</p>
-        <button class="btn-primary" on:click={handleLogin}>
+        <button class="btn-primary" onclick={handleLogin}>
           Iniciar Sesión
         </button>
       </div>
@@ -227,14 +229,14 @@ onMount(() => {
         <div class="rating-filters" in:fade>
           <button 
             class="filter-chip {selectedStarFilter === null ? 'active' : ''}"
-            on:click={() => selectedStarFilter = null}
+            onclick={() => selectedStarFilter = null}
           >
             Todos
           </button>
           {#each [5, 4, 3, 2, 1] as star (star)}
             <button 
               class="filter-chip {selectedStarFilter === star ? 'active' : ''}"
-              on:click={() => selectedStarFilter = star}
+              onclick={() => selectedStarFilter = star}
             >
               {star} ⭐
             </button>
@@ -278,7 +280,7 @@ onMount(() => {
             {#if !selectedStarFilter}
               <a href="/search" class="btn-secondary">Explorar y Calificar</a>
             {:else}
-              <button class="btn-secondary" on:click={() => selectedStarFilter = null}>Ver todas</button>
+              <button class="btn-secondary" onclick={() => selectedStarFilter = null}>Ver todas</button>
             {/if}
           </div>
         {/if}

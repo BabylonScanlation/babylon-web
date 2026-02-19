@@ -30,8 +30,16 @@ let hasContent = false;
 try {
   const db = getDB(runtime.env);
 
-  const filterValidSeries = (series: any[]) =>
-    series.filter((s) => s && s.title && s.coverImageUrl);
+  const sanitizeSeriesDates = (list: any[]) =>
+    list
+      .filter((s) => s && s.title && s.coverImageUrl)
+      .map((s) => {
+        const ts = s.createdAt ? new Date(s.createdAt).getTime() : null;
+        return {
+          ...s,
+          createdAt: ts && !isNaN(ts) ? ts : Date.now(),
+        };
+      });
 
   const [recent, popular, recentChapters, all, byChapters] = await Promise.all([
     getRecentSeries(db, allowNsfw, 20),
@@ -41,12 +49,12 @@ try {
     getSeriesByChapterCount(db, allowNsfw),
   ]);
 
-  recentSeries = filterValidSeries(recent);
-  popularSeries = filterValidSeries(popular);
-  seriesByChapterCount = filterValidSeries(byChapters);
-  seriesWithRecentChapters = filterValidSeries(recentChapters);
+  recentSeries = sanitizeSeriesDates(recent);
+  popularSeries = sanitizeSeriesDates(popular);
+  seriesByChapterCount = sanitizeSeriesDates(byChapters);
+  seriesWithRecentChapters = sanitizeSeriesDates(recentChapters);
 
-  allSeriesAlphabetical = filterValidSeries(all);
+  allSeriesAlphabetical = sanitizeSeriesDates(all);
 } catch (error) {
   console.error('🔥 ERROR CRÍTICO EN HOME:', error);
   logError(error, 'Error al obtener las listas de series (SSR Optimizado)');

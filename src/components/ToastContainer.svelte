@@ -1,7 +1,7 @@
 <script lang="ts">
 import { flip } from 'svelte/animate';
 import { fade, fly } from 'svelte/transition';
-import { toast } from '../lib/toastStore';
+import { toast } from '../lib/toastStore.svelte';
 
 // Íconos SVG simples
 const icons = {
@@ -13,7 +13,7 @@ const icons = {
 </script>
 
 <div class="toast-container">
-  {#each $toast as t (t.id)}
+  {#each toast.messages as t (t.id)}
     <div
       animate:flip={{ duration: 300 }}
       in:fly={{ y: 20, x: 20, duration: 400, opacity: 0 }}

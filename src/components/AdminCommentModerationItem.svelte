@@ -1,6 +1,7 @@
 <script lang="ts">
+import { actions } from 'astro:actions';
 import { slide } from 'svelte/transition';
-import { toast } from '../lib/toastStore';
+import { toast } from '../lib/toastStore.svelte';
 
 interface Props {
   commentId: number;
@@ -42,21 +43,21 @@ async function handleDelete() {
 
   if (deleteState === 'confirm') {
     deleteState = 'deleting';
-    const url = targetType === 'series' ? '/api/comments/series/delete' : '/api/comments/delete';
-
-    const formData = new FormData();
-    formData.append('commentId', commentId.toString());
 
     try {
-      const res = await fetch(url, { method: 'POST', body: formData });
-      if (res.ok) {
+      const { error } = await actions.comments.delete({
+        targetType,
+        commentId,
+      });
+
+      if (!error) {
         isRemoved = true;
         toast.success('Comentario erradicado');
       } else {
-        throw new Error();
+        throw new Error(error.message);
       }
-    } catch {
-      toast.error('Error en los sistemas de eliminación');
+    } catch (e: any) {
+      toast.error('Error al eliminar: ' + e.message);
       deleteState = 'idle';
     }
   }

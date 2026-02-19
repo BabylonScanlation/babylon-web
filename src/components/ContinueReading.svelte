@@ -1,11 +1,11 @@
-<script>
+<script lang="ts">
 import { onMount } from 'svelte';
 import { fade } from 'svelte/transition';
 import { timeAgo } from '../lib/utils';
 import Swiper from './Swiper.svelte';
 
-let progressList = [];
-let isAuthenticated = false;
+let progressList = $state<any[]>([]);
+let isAuthenticated = $state(false);
 
 async function checkAuthAndLoadProgress() {
   try {

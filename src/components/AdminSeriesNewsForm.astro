@@ -119,6 +119,7 @@ const { seriesId, seriesTitle, userName = 'Staff', seriesCover } = Astro.props;
 </div>
 
 <script>
+  import { actions } from 'astro:actions';
   import { logError } from '../lib/logError';
 
   // Astra: Inicialización única para evitar duplicidad de eventos en View Transitions
@@ -153,7 +154,7 @@ const { seriesId, seriesTitle, userName = 'Staff', seriesCover } = Astro.props;
       const content = formData.get('content')?.toString().trim();
       const image = formData.get('image');
 
-      const { seriesId, userName } = form.dataset;
+      const { seriesId } = form.dataset;
 
       if (!content || !seriesId || !title) return;
 
@@ -163,30 +164,23 @@ const { seriesId, seriesTitle, userName = 'Staff', seriesCover } = Astro.props;
       }
 
       try {
-        const res = await fetch('/api/admin/news', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: title,
-            content,
-            seriesId,
-            authorName: userName,
-            status: 'published',
-          }),
+        const { data, error } = await actions.news.create({
+          title: title,
+          content,
+          seriesId: Number(seriesId),
+          status: 'published',
         });
 
-        if (!res.ok) throw new Error('Error API');
-        const data = await res.json();
+        if (error) throw new Error(error.message);
 
         if (image instanceof File && image.size > 0) {
           if (statusEl) statusEl.textContent = 'Subiendo media...';
           const imgData = new FormData();
           imgData.append('image', image);
           imgData.append('newsId', data.id);
-          await fetch('/api/admin/news/upload-image', {
-            method: 'POST',
-            body: imgData,
-          });
+          
+          const { error: uploadError } = await actions.news.uploadImage(imgData);
+          if (uploadError) throw new Error(uploadError.message);
         }
 
         if (statusEl) {

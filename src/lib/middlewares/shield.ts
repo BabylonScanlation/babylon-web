@@ -49,6 +49,7 @@ export async function shield(context: any, next: any) {
     currentPath === '/verify' ||
     currentPath === '/terms' ||
     currentPath.startsWith('/api/') ||
+    currentPath.startsWith('/_actions/') ||
     currentPath.startsWith('/js/') ||
     currentPath.startsWith('/_astro') ||
     currentPath.startsWith('/favicon.svg');

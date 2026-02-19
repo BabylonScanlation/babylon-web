@@ -147,7 +147,7 @@ onMount(() => {
     chapter = bridge.getAttribute('data-chapter') || chapter;
     const bridgeEncrypted = bridge.getAttribute('data-encrypted');
     if (bridgeEncrypted) encryptedData = bridgeEncrypted;
-    
+
     const rawId = bridge.getAttribute('data-chapter-id');
     if (rawId) chapterId = parseInt(rawId);
 
@@ -455,12 +455,12 @@ function setupSse(isRetry = false) {
   });
 }
 
+import { actions } from 'astro:actions';
+
 function registerView() {
-  fetch('/api/chapters/view', {
-    method: 'POST',
-    body: JSON.stringify({ chapterId }),
-    headers: { 'Content-Type': 'application/json' },
-  }).catch(() => {});
+  if (chapterId) {
+    actions.chapters.registerView({ chapterId }).catch(() => {});
+  }
 }
 
 function startProgressSimulation() {

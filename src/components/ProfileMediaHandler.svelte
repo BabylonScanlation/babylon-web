@@ -1,11 +1,12 @@
 <script lang="ts">
+import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
-import { toast } from '../lib/toastStore';
+import { toast } from '../lib/toastStore.svelte';
 import { userStore } from '../lib/userStore.svelte';
 import ImageSelectorModal from './ImageSelectorModal.svelte';
 
-let showModal = false;
-let modalType: 'avatar' | 'banner' = 'avatar';
+let showModal = $state(false);
+let modalType = $state<'avatar' | 'banner'>('avatar');
 
 onMount(() => {
   // Expose function to window for legacy scripts to call
@@ -16,21 +17,15 @@ onMount(() => {
   };
 });
 
-async function handleSelect(event: CustomEvent) {
-  const { type, url } = event.detail;
+async function handleSelect(detail: { type: 'avatar' | 'banner'; url: string }) {
+  const { type, url } = detail;
 
-  // Optimistic update handled by the caller or we do it here?
-  // Let's do the API call here.
   try {
     const payload = type === 'avatar' ? { avatarUrl: url } : { bannerUrl: url };
 
-    const res = await fetch('/api/user/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    const { error } = await actions.user.updateProfile(payload);
 
-    if (!res.ok) throw new Error('Error actualizando perfil');
+    if (error) throw new Error(error.message || 'Error actualizando perfil');
 
     // Orion: Actualizar el store global para que el cambio se vea en comentarios, header, etc.
     if (type === 'avatar') {
@@ -47,9 +42,9 @@ async function handleSelect(event: CustomEvent) {
     }
 
     toast.success(type === 'avatar' ? 'Avatar actualizado' : 'Portada actualizada');
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
-    toast.error('Fallo al actualizar');
+    toast.error('Fallo al actualizar: ' + e.message);
   }
 }
 </script>
@@ -57,6 +52,6 @@ async function handleSelect(event: CustomEvent) {
 <ImageSelectorModal 
   isOpen={showModal} 
   type={modalType} 
-  on:close={() => showModal = false}
-  on:select={handleSelect}
+  onClose={() => showModal = false}
+  onSelect={handleSelect}
 />
