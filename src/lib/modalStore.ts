@@ -20,24 +20,16 @@ function createModalStore() {
 
   return {
     subscribe,
-    open: (
-      view: 'login' | 'register' | 'link' = 'login',
-      successMessage: string = ''
-    ) =>
+    open: (view: 'login' | 'register' | 'link' = 'login', successMessage: string = '') =>
       update((state) => ({
         ...state,
         isOpen: true,
         view,
         successMessage,
         linkAccountInfo:
-          view === 'link'
-            ? state.linkAccountInfo
-            : { email: null, pendingCredential: undefined },
+          view === 'link' ? state.linkAccountInfo : { email: null, pendingCredential: undefined },
       })),
-    openForLinking: (
-      email: string | null | undefined,
-      pendingCredential: any
-    ) =>
+    openForLinking: (email: string | null | undefined, pendingCredential: any) =>
       update((state) => ({
         ...state,
         isOpen: true,
@@ -51,8 +43,7 @@ function createModalStore() {
         successMessage: '',
         linkAccountInfo: { email: null, pendingCredential: undefined },
       })),
-    switchTo: (view: 'login' | 'register' | 'link') =>
-      update((state) => ({ ...state, view })),
+    switchTo: (view: 'login' | 'register' | 'link') => update((state) => ({ ...state, view })),
   };
 }
 

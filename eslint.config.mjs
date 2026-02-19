@@ -1,11 +1,11 @@
-import globals from 'globals';
 import pluginJs from '@eslint/js';
-import tseslint from 'typescript-eslint';
-import pluginAstro from 'eslint-plugin-astro';
-import prettier from 'eslint-config-prettier';
 import astroParser from 'astro-eslint-parser';
+import prettier from 'eslint-config-prettier';
+import pluginAstro from 'eslint-plugin-astro';
 import eslintPluginSvelte from 'eslint-plugin-svelte';
+import globals from 'globals';
 import svelteParser from 'svelte-eslint-parser';
+import tseslint from 'typescript-eslint';
 
 export default [
   {

@@ -5,7 +5,7 @@ export const GET: APIRoute = async ({ locals }) => {
   const siteUrl = siteConfig.url;
   const name = siteConfig.name;
   const shortName = siteConfig.shortName;
-  const authSecret = locals.runtime.env.AUTH_SECRET || "YOUR_SECRET";
+  const authSecret = locals.runtime.env.AUTH_SECRET || 'YOUR_SECRET';
 
   const content = `/* eslint-disable */
 // ==MiruExtension==
@@ -176,7 +176,7 @@ class DefaultExtension extends MProvider {
   return new Response(content, {
     headers: {
       'Content-Type': 'application/javascript',
-      'Cache-Control': 'public, max-age=3600'
-    }
+      'Cache-Control': 'public, max-age=3600',
+    },
   });
 };

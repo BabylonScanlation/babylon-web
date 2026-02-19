@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getDB, getAllNews, getNewsImages, type NewsImageItem } from '../../../lib/db';
+import { getAllNews, getDB, getNewsImages, type NewsImageItem } from '../../../lib/db';
 import { logError } from '../../../lib/logError';
 
 export const GET: APIRoute = async ({ locals }) => {
@@ -17,10 +17,12 @@ export const GET: APIRoute = async ({ locals }) => {
           }
           return `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`;
         });
-        
+
         // Debug Log
         if (newsItem.seriesTitle) {
-            console.log(`[API/News] Noticia vinculada encontrada: ${newsItem.title} -> ${newsItem.seriesTitle}`);
+          console.log(
+            `[API/News] Noticia vinculada encontrada: ${newsItem.title} -> ${newsItem.seriesTitle}`
+          );
         }
 
         return { ...newsItem, imageUrls };
@@ -33,9 +35,12 @@ export const GET: APIRoute = async ({ locals }) => {
   } catch (error) {
     logError(error, 'Error al obtener noticias públicas');
     // Return a more informative error response
-    return new Response(JSON.stringify({
+    return new Response(
+      JSON.stringify({
         error: 'Error interno del servidor al obtener noticias',
-        details: error instanceof Error ? error.message : String(error)
-    }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        details: error instanceof Error ? error.message : String(error),
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 };

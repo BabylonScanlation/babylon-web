@@ -1,11 +1,11 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import { getSession } from '../lib/session';
-import { getDB } from '../lib/db';
-import { users, userRoles } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import AdminAccess from '../components/AdminAccess.svelte';
 import ProfileMediaHandler from '../components/ProfileMediaHandler.svelte';
+import { userRoles, users } from '../db/schema';
+import Layout from '../layouts/Layout.astro';
+import { getDB } from '../lib/db';
+import { getSession } from '../lib/session';
 
 // 1. Auth Check
 const sessionCookie = getSession(Astro);
@@ -20,27 +20,16 @@ const { user } = Astro.locals;
 if (!user) return Astro.redirect('/');
 
 // Fetch full user profile
-const userProfile = await db
-  .select()
-  .from(users)
-  .where(eq(users.id, user.uid))
-  .get();
-const userRoleData = await db
-  .select()
-  .from(userRoles)
-  .where(eq(userRoles.userId, user.uid))
-  .get();
+const userProfile = await db.select().from(users).where(eq(users.id, user.uid)).get();
+const userRoleData = await db.select().from(userRoles).where(eq(userRoles.userId, user.uid)).get();
 
 // Fallbacks
 const avatar =
-  userProfile?.avatarUrl ||
-  `https://ui-avatars.com/api/?name=${user.email}&background=random`;
+  userProfile?.avatarUrl || `https://ui-avatars.com/api/?name=${user.email}&background=random`;
 const bannerUrl = userProfile?.bannerUrl || null;
-const username =
-  userProfile?.username || user.email?.split('@')[0] || 'Usuario';
+const username = userProfile?.username || user.email?.split('@')[0] || 'Usuario';
 const bio = userProfile?.bio || 'Sin biografía aún.';
-const roleDisplay =
-  userRoleData?.role === 'admin' ? 'Administrador' : 'Explorador';
+const roleDisplay = userRoleData?.role === 'admin' ? 'Administrador' : 'Explorador';
 const isPrivate = userProfile?.isPrivate || false;
 const isNsfw = userProfile?.isNsfw || false;
 
@@ -51,6 +40,7 @@ const joinedDate = userProfile?.createdAt
       year: 'numeric',
     })
   : 'Recientemente';
+
 import { siteConfig } from '../site.config';
 ---
 

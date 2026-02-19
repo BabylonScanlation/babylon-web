@@ -1,7 +1,7 @@
-import { news, newsImage, series, users } from '../../db/schema';
-import { eq, desc, and, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
+import { news, newsImage, series, users } from '../../db/schema';
 
 export async function getNewsList(
   db: DrizzleD1Database<typeof schema>,
@@ -9,13 +9,14 @@ export async function getNewsList(
   seriesId?: number | null
 ) {
   const conditions = [eq(news.status, status)];
-  
+
   if (seriesId !== undefined) {
     conditions.push(seriesId === null ? isNull(news.seriesId) : eq(news.seriesId, seriesId));
   }
 
   try {
-    const results = await db.select({
+    const results = await db
+      .select({
         id: news.id,
         title: news.title,
         content: news.content,
@@ -38,41 +39,43 @@ export async function getNewsList(
 
     const finalResults = [];
     for (const r of results) {
-      const images = await db.select()
+      const images = await db
+        .select()
         .from(newsImage)
         .where(eq(newsImage.newsId, r.id))
         .orderBy(newsImage.displayOrder)
         .all();
-      
+
       finalResults.push({
         ...r,
         seriesCover: r.seriesCover || undefined,
         seriesTitle: r.seriesTitle || undefined,
         authorAvatar: r.authorAvatar || undefined,
         images: images || [],
-        imageUrls: images.map(img => img.r2Key)
+        imageUrls: images.map((img) => img.r2Key),
       });
     }
 
     return finalResults;
   } catch (error) {
     console.error('Error fetching news list with joins:', error);
-    
+
     // Fallback: Try fetching only news without joins if the complex query fails
     try {
-      const basicNews = await db.select()
+      const basicNews = await db
+        .select()
         .from(news)
         .where(and(...conditions))
         .orderBy(desc(news.createdAt))
         .all();
-        
-      return basicNews.map(n => ({
+
+      return basicNews.map((n) => ({
         ...n,
         seriesCover: undefined,
         seriesTitle: undefined,
         authorAvatar: undefined,
         images: [],
-        imageUrls: []
+        imageUrls: [],
       }));
     } catch (fallbackError) {
       console.error('Critical failure in news fallback:', fallbackError);
@@ -83,7 +86,8 @@ export async function getNewsList(
 
 export async function getLatestNewsId(db: DrizzleD1Database<typeof schema>) {
   try {
-    const result = await db.select({ id: news.id, createdAt: news.createdAt })
+    const result = await db
+      .select({ id: news.id, createdAt: news.createdAt })
       .from(news)
       .where(eq(news.status, 'published'))
       .orderBy(desc(news.createdAt))
@@ -95,12 +99,10 @@ export async function getLatestNewsId(db: DrizzleD1Database<typeof schema>) {
   }
 }
 
-export async function getNewsDetail(
-  db: DrizzleD1Database<typeof schema>,
-  id: string
-) {
+export async function getNewsDetail(db: DrizzleD1Database<typeof schema>, id: string) {
   try {
-    const result = await db.select({
+    const result = await db
+      .select({
         id: news.id,
         title: news.title,
         content: news.content,
@@ -120,7 +122,8 @@ export async function getNewsDetail(
 
     if (!result) return null;
 
-    const images = await db.select()
+    const images = await db
+      .select()
       .from(newsImage)
       .where(eq(newsImage.newsId, id))
       .orderBy(newsImage.displayOrder)
@@ -131,26 +134,23 @@ export async function getNewsDetail(
       seriesSlug: result.seriesSlug || undefined,
       seriesTitle: result.seriesTitle || undefined,
       images: images || [],
-      imageUrls: images.map(img => img.r2Key)
+      imageUrls: images.map((img) => img.r2Key),
     };
   } catch (error) {
     console.error('Error fetching news detail with joins:', error);
-    
+
     // Fallback: Basic news detail
     try {
-      const basicResult = await db.select()
-        .from(news)
-        .where(eq(news.id, id))
-        .get();
-        
+      const basicResult = await db.select().from(news).where(eq(news.id, id)).get();
+
       if (!basicResult) return null;
-      
+
       return {
         ...basicResult,
         seriesSlug: undefined,
         seriesTitle: undefined,
         images: [],
-        imageUrls: []
+        imageUrls: [],
       };
     } catch (fallbackError) {
       console.error('Critical failure in news detail fallback:', fallbackError);

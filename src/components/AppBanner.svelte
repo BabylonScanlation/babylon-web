@@ -1,51 +1,51 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { fade, slide } from 'svelte/transition';
-  import { siteConfig } from '../site.config';
+import { onMount } from 'svelte';
+import { fade, slide } from 'svelte/transition';
+import { siteConfig } from '../site.config';
 
-  let isVisible = $state(false);
-  let showConfirmation = $state(false);
-  let hasClosed = $state(false);
+let isVisible = $state(false);
+let showConfirmation = $state(false);
+let hasClosed = $state(false);
 
-  const appUrl = siteConfig.app.androidUrl;
+const appUrl = siteConfig.app.androidUrl;
 
-  onMount(() => {
-    const closedStatus = localStorage.getItem('app-banner-closed');
-    const lastClosedTime = localStorage.getItem('app-banner-closed-time');
-    
-    if (closedStatus === 'true') {
-      const sevenDays = 7 * 24 * 60 * 60 * 1000;
-      if (lastClosedTime && (Date.now() - parseInt(lastClosedTime)) < sevenDays) {
-        hasClosed = true;
-      }
+onMount(() => {
+  const closedStatus = localStorage.getItem('app-banner-closed');
+  const lastClosedTime = localStorage.getItem('app-banner-closed-time');
+
+  if (closedStatus === 'true') {
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    if (lastClosedTime && Date.now() - parseInt(lastClosedTime) < sevenDays) {
+      hasClosed = true;
     }
-
-    if (!hasClosed && window.innerWidth < 768) {
-      setTimeout(() => {
-        isVisible = true;
-      }, 4000);
-    }
-  });
-
-  function closeBanner() {
-    isVisible = false;
-    localStorage.setItem('app-banner-closed', 'true');
-    localStorage.setItem('app-banner-closed-time', Date.now().toString());
   }
 
-  function handleInstallClick() {
-    showConfirmation = true;
+  if (!hasClosed && window.innerWidth < 768) {
+    setTimeout(() => {
+      isVisible = true;
+    }, 4000);
   }
+});
 
-  function confirmDownload() {
-    showConfirmation = false;
-    isVisible = false;
-    window.location.href = appUrl;
-  }
+function closeBanner() {
+  isVisible = false;
+  localStorage.setItem('app-banner-closed', 'true');
+  localStorage.setItem('app-banner-closed-time', Date.now().toString());
+}
 
-  function cancelDownload() {
-    showConfirmation = false;
-  }
+function handleInstallClick() {
+  showConfirmation = true;
+}
+
+function confirmDownload() {
+  showConfirmation = false;
+  isVisible = false;
+  window.location.href = appUrl;
+}
+
+function cancelDownload() {
+  showConfirmation = false;
+}
 </script>
 
 {#if isVisible}

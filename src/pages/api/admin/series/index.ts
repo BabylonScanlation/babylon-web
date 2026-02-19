@@ -1,5 +1,5 @@
-import { createApiRoute } from '../../../../lib/api';
 import { series } from '../../../../db/schema';
+import { createApiRoute } from '../../../../lib/api';
 import { logError } from '../../../../lib/logError';
 import { siteConfig } from '../../../../site.config';
 
@@ -11,17 +11,23 @@ export const POST = createApiRoute({ auth: 'admin' }, async ({ request, locals }
     const formData = await request.formData();
     const title = formData.get('title')?.toString().trim();
     let slug = formData.get('slug')?.toString().trim();
-    
+
     if (!title || !slug) {
-        return new Response(JSON.stringify({ error: 'El Título y el Slug son campos obligatorios.' }), { status: 400 });
+      return new Response(
+        JSON.stringify({ error: 'El Título y el Slug son campos obligatorios.' }),
+        { status: 400 }
+      );
     }
 
     // Normalizar slug
-    slug = slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    slug = slug
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
 
     const description = formData.get('description')?.toString();
     const coverImageFile = formData.get('coverImage');
-    
+
     let coverImageUrl = formData.get('coverImageUrl')?.toString(); // Fallback por si acaso
 
     // Lógica de subida de imagen
@@ -29,11 +35,11 @@ export const POST = createApiRoute({ auth: 'admin' }, async ({ request, locals }
       const fileExt = coverImageFile.name.split('.').pop() || 'jpg';
       const folder = siteConfig.folders.covers;
       const fileName = `${folder}/${slug}-${Date.now()}.${fileExt}`;
-      
+
       await env.R2_ASSETS.put(fileName, await coverImageFile.arrayBuffer(), {
-        httpMetadata: { contentType: coverImageFile.type }
+        httpMetadata: { contentType: coverImageFile.type },
       });
-      
+
       // Orion: Store relative path
       coverImageUrl = fileName;
     } else if (!coverImageUrl) {
@@ -56,7 +62,12 @@ export const POST = createApiRoute({ auth: 'admin' }, async ({ request, locals }
 
     const chatId = env.TELEGRAM_CHAT_ID;
     if (!chatId) {
-      return new Response(JSON.stringify({ error: 'Error de configuración: TELEGRAM_CHAT_ID no está definido en el servidor.' }), { status: 500 });
+      return new Response(
+        JSON.stringify({
+          error: 'Error de configuración: TELEGRAM_CHAT_ID no está definido en el servidor.',
+        }),
+        { status: 500 }
+      );
     }
 
     const telegramUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/createForumTopic`;
@@ -65,18 +76,22 @@ export const POST = createApiRoute({ auth: 'admin' }, async ({ request, locals }
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: chatId,
-        name: title
-      })
+        name: title,
+      }),
     });
 
     const tgData: any = await tgResponse.json();
 
     if (!tgResponse.ok || !tgData.ok) {
       logError(tgData, 'Error al crear el topic en Telegram');
-      return new Response(JSON.stringify({ 
-        error: 'No se pudo crear el tema en Telegram. Asegúrate de que el bot sea admin y los temas estén activados.',
-        details: tgData.description 
-      }), { status: 500 });
+      return new Response(
+        JSON.stringify({
+          error:
+            'No se pudo crear el tema en Telegram. Asegúrate de que el bot sea admin y los temas estén activados.',
+          details: tgData.description,
+        }),
+        { status: 500 }
+      );
     }
 
     const topicId = tgData.result.message_thread_id;
@@ -99,13 +114,14 @@ export const POST = createApiRoute({ auth: 'admin' }, async ({ request, locals }
       isAppSeries,
       isHidden,
       isNsfw,
-      createdAt: new Date()
+      createdAt: new Date(),
     });
 
     return new Response(JSON.stringify({ success: true, topicId }), { status: 201 });
-
   } catch (error) {
     logError(error, 'Error crítico al crear la serie desde el panel admin');
-    return new Response(JSON.stringify({ error: 'Ocurrió un error interno en el servidor.' }), { status: 500 });
+    return new Response(JSON.stringify({ error: 'Ocurrió un error interno en el servidor.' }), {
+      status: 500,
+    });
   }
 });

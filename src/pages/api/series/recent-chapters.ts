@@ -1,18 +1,17 @@
 import type { APIRoute } from 'astro';
-import { logError } from '../../../lib/logError';
+import { and, desc, eq, sql } from 'drizzle-orm'; // Added sql
+import { chapters, series } from '../../../db/schema';
 import { getDB } from '../../../lib/db';
-import { series, chapters } from '../../../db/schema';
-import { eq, desc, and, sql } from 'drizzle-orm'; // Added sql
+import { logError } from '../../../lib/logError';
 
 export const GET: APIRoute = async (context) => {
   let twoDaysAgo: string | undefined;
   try {
     const drizzleDb = getDB(context.locals.runtime.env);
-    twoDaysAgo = new Date(
-      Date.now() - 2 * 24 * 60 * 60 * 1000
-    ).toISOString();
+    twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
 
-    const recentChapters = await drizzleDb.select({
+    const recentChapters = await drizzleDb
+      .select({
         slug: series.slug,
         title: series.title,
         coverImageUrl: series.coverImageUrl,
@@ -21,7 +20,13 @@ export const GET: APIRoute = async (context) => {
       })
       .from(chapters)
       .innerJoin(series, eq(chapters.seriesId, series.id))
-      .where(and(eq(chapters.status, 'live'), sql`${chapters.createdAt} >= ${twoDaysAgo}`, eq(series.isHidden, false)))
+      .where(
+        and(
+          eq(chapters.status, 'live'),
+          sql`${chapters.createdAt} >= ${twoDaysAgo}`,
+          eq(series.isHidden, false)
+        )
+      )
       .orderBy(series.slug, desc(chapters.createdAt))
       .all();
 
@@ -43,13 +48,11 @@ export const GET: APIRoute = async (context) => {
         });
       }
     }
-    const seriesWithRecentChapters = Array.from(seriesMap.values()).sort(
-      (a, b) => {
-        const dateA = new Date(a.chapters[0].createdAt).getTime();
-        const dateB = a.chapters.length > 0 ? new Date(b.chapters[0].createdAt).getTime() : 0;
-        return dateB - dateA;
-      }
-    );
+    const seriesWithRecentChapters = Array.from(seriesMap.values()).sort((a, b) => {
+      const dateA = new Date(a.chapters[0].createdAt).getTime();
+      const dateB = a.chapters.length > 0 ? new Date(b.chapters[0].createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
 
     return new Response(JSON.stringify(seriesWithRecentChapters), {
       headers: {
@@ -59,7 +62,9 @@ export const GET: APIRoute = async (context) => {
       },
     });
   } catch (error) {
-    logError(error, 'Error al obtener las series con capítulos recientes', { twoDaysAgo: twoDaysAgo });
+    logError(error, 'Error al obtener las series con capítulos recientes', {
+      twoDaysAgo: twoDaysAgo,
+    });
     return new Response('Error al obtener las series con capítulos recientes', {
       status: 500,
     });

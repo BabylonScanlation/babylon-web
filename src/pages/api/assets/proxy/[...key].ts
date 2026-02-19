@@ -32,7 +32,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   try {
     // Decode URI component just in case
     const objectKey = decodeURIComponent(key);
-    
+
     // Support conditional requests
     const etag = request.headers.get('If-None-Match');
     const object = await env.R2_ASSETS.get(objectKey, {
@@ -41,7 +41,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
 
     if (!object) {
       console.warn(`[Proxy] 404 Not Found in Local R2: ${objectKey}`);
-      
+
       // Orion: Fallback to Public URL in DEV if not found locally
       const publicBase = env.R2_PUBLIC_URL_ASSETS;
       if (publicBase && (import.meta.env.DEV || request.url.includes('localhost'))) {
@@ -55,7 +55,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
             newHeaders.set('Cache-Control', 'public, max-age=3600'); // Short cache for dev fallback
             return new Response(response.body, {
               status: 200,
-              headers: newHeaders
+              headers: newHeaders,
             });
           }
         } catch (fetchError) {
@@ -72,13 +72,13 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         status: 304,
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'ETag': object.httpEtag,
-        }
+          ETag: object.httpEtag,
+        },
       });
     }
 
     const headers = new Headers();
-    
+
     // 1. Asignación manual de metadatos para evitar errores de serialización en local
     const meta = object.httpMetadata;
     if (meta?.contentType) headers.set('Content-Type', meta.contentType);
@@ -86,12 +86,12 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     if (meta?.contentEncoding) headers.set('Content-Encoding', meta.contentEncoding);
     if (meta?.contentLanguage) headers.set('Content-Language', meta.contentLanguage);
     if (meta?.contentDisposition) headers.set('Content-Disposition', meta.contentDisposition);
-    
+
     // 2. Identificadores críticos y tamaño (Esencial para estabilidad del stream)
     headers.set('ETag', object.httpEtag);
     headers.set('Access-Control-Allow-Origin', '*');
     headers.set('Content-Length', object.size.toString());
-    
+
     // 3. Estrategia de Caché robusta (Inmutable para assets)
     if (!headers.has('Cache-Control')) {
       headers.set('Cache-Control', 'public, max-age=31536000, immutable');

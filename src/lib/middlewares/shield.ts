@@ -4,17 +4,17 @@ import { siteConfig } from '../../site.config';
 export async function shield(context: any, next: any) {
   const { request, url, locals } = context;
   const userAgent = request.headers.get('user-agent') || '';
-  const lowerUA = userAgent.toLowerCase();
+  const lowerUa = userAgent.toLowerCase();
   const currentPath = url.pathname;
-  
+
   // 1. BYPASS para Googlebot y SEO (Esencial para indexación)
-  const isGoogle = lowerUA.includes('google') || lowerUA.includes('sitemaps');
+  const isGoogle = lowerUa.includes('google') || lowerUa.includes('sitemaps');
   locals.isBot = isGoogle;
 
   if (
-    currentPath.endsWith('.xml') || 
-    currentPath.includes('sitemap') || 
-    currentPath === '/manifest.json' || 
+    currentPath.endsWith('.xml') ||
+    currentPath.includes('sitemap') ||
+    currentPath === '/manifest.json' ||
     currentPath === '/sw.js'
   ) {
     return next();
@@ -25,20 +25,21 @@ export async function shield(context: any, next: any) {
   const blacklistedCountries = siteConfig.security.blacklistedCountries;
 
   if (country && blacklistedCountries.includes(country) && !isGoogle) {
-    return new Response(getBlockedHTML('Geographic Restriction', country), { 
-      status: 403, 
-      headers: { 'Content-Type': 'text/html' } 
+    return new Response(getBlockedHtml('Geographic Restriction', country), {
+      status: 403,
+      headers: { 'Content-Type': 'text/html' },
     });
   }
 
   // 3. BOT-SHIELD (IA & Scrapers)
   const blockedBots = siteConfig.security.blockedBots;
-  const isAssetPath = currentPath.startsWith('/api/r2-cache/') || currentPath.startsWith('/api/assets/');
+  const isAssetPath =
+    currentPath.startsWith('/api/r2-cache/') || currentPath.startsWith('/api/assets/');
 
-  if (!isAssetPath && blockedBots.some(bot => lowerUA.includes(bot))) {
-    return new Response(getBlockedHTML('Automated Traffic Detected', 'Security System'), { 
-      status: 403, 
-      headers: { 'Content-Type': 'text/html' } 
+  if (!isAssetPath && blockedBots.some((bot) => lowerUa.includes(bot))) {
+    return new Response(getBlockedHtml('Automated Traffic Detected', 'Security System'), {
+      status: 403,
+      headers: { 'Content-Type': 'text/html' },
     });
   }
 
@@ -59,7 +60,7 @@ export async function shield(context: any, next: any) {
   return next();
 }
 
-function getBlockedHTML(reason: string, ip: string | null) {
+function getBlockedHtml(reason: string, ip: string | null) {
   const siteName = siteConfig.name;
   return `
     <!DOCTYPE html>

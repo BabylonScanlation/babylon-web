@@ -1,8 +1,8 @@
 // src/pages/api/series/recent.ts
 import type { APIRoute } from 'astro';
-import { logError } from '../../../lib/logError';
-import { getDB } from '../../../lib/db';
 import { getRecentSeries } from '../../../lib/data/series';
+import { getDB } from '../../../lib/db';
+import { logError } from '../../../lib/logError';
 
 export const GET: APIRoute = async ({ locals, url }) => {
   try {
@@ -22,7 +22,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
     logError(error, 'Error al obtener las series más recientes');
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
       status: 500,
-      headers: { 'content-type': 'application/json' }
+      headers: { 'content-type': 'application/json' },
     });
   }
 };

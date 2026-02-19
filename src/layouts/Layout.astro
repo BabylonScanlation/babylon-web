@@ -1,23 +1,23 @@
 ---
 import '../styles/global.css';
 import '../styles/components.css';
-import Header from '../components/Header.astro';
-import Footer from '../components/Footer.astro';
-import AuthModal from '../components/AuthModal.svelte';
-import ToastContainer from '../components/ToastContainer.svelte';
-import AppBanner from '../components/AppBanner.svelte';
+import { desc, eq, sql } from 'drizzle-orm';
 import AdblockWall from '../components/AdblockWall.astro';
 import AgeGate from '../components/AgeGate.svelte';
+import AppBanner from '../components/AppBanner.svelte';
+import AuthModal from '../components/AuthModal.svelte';
 import BottomNav from '../components/BottomNav.astro';
-import { siteConfig } from '../site.config';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import ToastContainer from '../components/ToastContainer.svelte';
 import { news } from '../db/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { siteConfig } from '../site.config';
 
-const { 
-  title: pageTitle, 
+const {
+  title: pageTitle,
   description = siteConfig.description,
   ogImage = siteConfig.assets.ogImage,
-  canonicalURL = Astro.url.href
+  canonicalURL = Astro.url.href,
 } = Astro.props;
 
 const { db, user } = Astro.locals;
@@ -40,13 +40,15 @@ if (db) {
   try {
     if (!lastSeenId) {
       // Usuario nuevo (sin rastro en DB ni Cookie)
-      const countResult = await db.select({ count: sql<number>`count(*)` })
+      const countResult = await db
+        .select({ count: sql<number>`count(*)` })
         .from(news)
         .where(eq(news.status, 'published'))
         .get();
       unreadCountServer = countResult?.count || 0;
     } else {
-      const latestNews = await db.select({ id: news.id })
+      const latestNews = await db
+        .select({ id: news.id })
         .from(news)
         .where(eq(news.status, 'published'))
         .orderBy(desc(news.createdAt))
@@ -54,7 +56,7 @@ if (db) {
         .all();
 
       if (latestNews && latestNews.length > 0) {
-        const lastSeenIndex = latestNews.findIndex(n => n.id.toString() === lastSeenId);
+        const lastSeenIndex = latestNews.findIndex((n) => n.id.toString() === lastSeenId);
         unreadCountServer = lastSeenIndex === -1 ? 0 : lastSeenIndex;
       }
     }

@@ -15,14 +15,14 @@ export const GET: APIRoute = async () => {
         src: siteConfig.assets.favicon,
         sizes: 'any',
         type: 'image/svg+xml',
-        purpose: 'any maskable'
-      }
-    ]
+        purpose: 'any maskable',
+      },
+    ],
   };
 
   return new Response(JSON.stringify(manifest), {
     headers: {
-      'Content-Type': 'application/manifest+json'
-    }
+      'Content-Type': 'application/manifest+json',
+    },
   });
 };

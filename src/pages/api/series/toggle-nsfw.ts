@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { getDB } from '../../../lib/db';
-import { series } from '../../../db/schema';
 import { eq } from 'drizzle-orm';
+import { series } from '../../../db/schema';
+import { getDB } from '../../../lib/db';
 import { logError } from '../../../lib/logError';
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -18,15 +18,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
     isNsfw = body.isNsfw;
 
     if (seriesId === undefined || isNsfw === undefined) {
-      return new Response(JSON.stringify({ message: 'seriesId and isNsfw are required' }), { status: 400 });
+      return new Response(JSON.stringify({ message: 'seriesId and isNsfw are required' }), {
+        status: 400,
+      });
     }
 
-    await drizzleDb.update(series)
-      .set({ isNsfw: isNsfw })
-      .where(eq(series.id, seriesId))
-      .run();
+    await drizzleDb.update(series).set({ isNsfw: isNsfw }).where(eq(series.id, seriesId)).run();
 
-    return new Response(JSON.stringify({ message: 'NSFW status updated successfully' }), { status: 200 });
+    return new Response(JSON.stringify({ message: 'NSFW status updated successfully' }), {
+      status: 200,
+    });
   } catch (error: unknown) {
     logError(error, 'Error al cambiar el estado NSFW de la serie', { seriesId, isNsfw });
     return new Response(JSON.stringify({ message: 'Internal Server Error' }), { status: 500 });

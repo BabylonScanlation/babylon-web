@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { getDB } from '../../../lib/db';
+import { and, desc, eq } from 'drizzle-orm';
 import { favorites, users } from '../../../db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { getDB } from '../../../lib/db';
 
 // GET: List favorites (optionally filtered by type)
 export const GET: APIRoute = async ({ request, locals }) => {
@@ -13,19 +13,20 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   try {
     const db = getDB(locals.runtime.env);
-    
+
     const conditions = [eq(favorites.userId, user.uid)];
     if (type) {
       conditions.push(eq(favorites.type, type));
     }
 
-    const results = await db.select()
+    const results = await db
+      .select()
       .from(favorites)
       .where(and(...conditions))
       .orderBy(desc(favorites.createdAt));
 
-    return new Response(JSON.stringify(results), { 
-      headers: { 'Content-Type': 'application/json' } 
+    return new Response(JSON.stringify(results), {
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Favorites GET Error:', error);
@@ -48,33 +49,41 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const db = getDB(locals.runtime.env);
-    
+
     // --- Orion: Ensure User exists in D1 before adding favorite ---
     // This fixes the FOREIGN KEY constraint failed error
-    const existingUser = await db.select({ id: users.id })
+    const existingUser = await db
+      .select({ id: users.id })
       .from(users)
       .where(eq(users.id, user.uid))
       .get();
 
     if (!existingUser) {
       // Create a basic user profile on-the-fly
-      await db.insert(users).values({
-        id: user.uid,
-        email: user.email || `${user.uid}@firebase.auth`,
-        username: user.email ? user.email.split('@')[0] : `user_${user.uid.slice(0, 5)}`,
-      }).onConflictDoNothing();
+      await db
+        .insert(users)
+        .values({
+          id: user.uid,
+          email: user.email || `${user.uid}@firebase.auth`,
+          username: user.email ? user.email.split('@')[0] : `user_${user.uid.slice(0, 5)}`,
+        })
+        .onConflictDoNothing();
     }
-    
+
     // Check if favorite exists
     let existing;
     if (type === 'series') {
-      existing = await db.select().from(favorites).where(
-        and(eq(favorites.userId, user.uid), eq(favorites.seriesId, id))
-      ).get();
+      existing = await db
+        .select()
+        .from(favorites)
+        .where(and(eq(favorites.userId, user.uid), eq(favorites.seriesId, id)))
+        .get();
     } else {
-      existing = await db.select().from(favorites).where(
-        and(eq(favorites.userId, user.uid), eq(favorites.chapterId, id))
-      ).get();
+      existing = await db
+        .select()
+        .from(favorites)
+        .where(and(eq(favorites.userId, user.uid), eq(favorites.chapterId, id)))
+        .get();
     }
 
     if (existing) {
@@ -91,7 +100,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
       return new Response(JSON.stringify({ action: 'added', id }), { status: 201 });
     }
-
   } catch (error) {
     console.error('Favorites POST Error:', error);
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });

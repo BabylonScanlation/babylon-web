@@ -1,8 +1,8 @@
-import type { APIRoute } from 'astro';
 import { getDB } from '@lib/db';
-import { sessions } from '../../../db/schema';
-import { eq } from 'drizzle-orm';
 import { deleteSession } from '@lib/session';
+import type { APIRoute } from 'astro';
+import { eq } from 'drizzle-orm';
+import { sessions } from '../../../db/schema';
 
 export const POST: APIRoute = async (context) => {
   const { cookies, redirect, request, locals } = context;
@@ -18,10 +18,10 @@ export const POST: APIRoute = async (context) => {
   }
 
   deleteSession(context as any);
-  
+
   const accept = request.headers.get('accept');
 
-    if (accept?.includes('application/json')) {
+  if (accept?.includes('application/json')) {
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

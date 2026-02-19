@@ -1,7 +1,16 @@
-import { comments, seriesComments, newsComments, users, commentVotes, seriesCommentVotes, newsCommentVotes, userRoles } from '../../db/schema';
-import { eq, desc, inArray } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
+import {
+  comments,
+  commentVotes,
+  newsComments,
+  newsCommentVotes,
+  seriesComments,
+  seriesCommentVotes,
+  userRoles,
+  users,
+} from '../../db/schema';
 
 export async function getCommentsForTarget(
   db: DrizzleD1Database<typeof schema>,
@@ -50,16 +59,19 @@ export async function getCommentsForTarget(
     .orderBy(desc(table.isPinned), desc(table.createdAt))
     .all();
 
-  const commentIds = results.map(c => c.id);
-  const voteMap = new Map<number, { likes: number, dislikes: number, userVote: number }>();
+  const commentIds = results.map((c) => c.id);
+  const voteMap = new Map<number, { likes: number; dislikes: number; userVote: number }>();
 
   if (commentIds.length > 0) {
-    const votes = await db.select().from(voteTable)
+    const votes = await db
+      .select()
+      .from(voteTable)
       .where(inArray(voteTable.commentId, commentIds))
       .all();
-    
+
     votes.forEach((v: any) => {
-      if (!voteMap.has(v.commentId)) voteMap.set(v.commentId, { likes: 0, dislikes: 0, userVote: 0 });
+      if (!voteMap.has(v.commentId))
+        voteMap.set(v.commentId, { likes: 0, dislikes: 0, userVote: 0 });
       const stats = voteMap.get(v.commentId)!;
       if (v.vote === 1) stats.likes++;
       if (v.vote === -1) stats.dislikes++;
@@ -67,7 +79,7 @@ export async function getCommentsForTarget(
     });
   }
 
-  return results.map(c => ({
+  return results.map((c) => ({
     ...c,
     userEmail: c.email,
     avatarUrl: c.avatarUrl,
@@ -75,6 +87,6 @@ export async function getCommentsForTarget(
     likes: voteMap.get(c.id)?.likes || 0,
     dislikes: voteMap.get(c.id)?.dislikes || 0,
     userVote: voteMap.get(c.id)?.userVote || 0,
-    isAdminComment: c.role === 'admin'
+    isAdminComment: c.role === 'admin',
   }));
 }

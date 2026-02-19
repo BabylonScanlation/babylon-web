@@ -1,6 +1,6 @@
-import { createApiRoute } from '../../../../lib/api';
-import { chapterViews, anonymousUsers, series } from '../../../../db/schema';
 import { sql } from 'drizzle-orm';
+import { anonymousUsers, chapterViews, series } from '../../../../db/schema';
+import { createApiRoute } from '../../../../lib/api';
 
 export const GET = createApiRoute({ auth: 'admin' }, async ({ locals }) => {
   const db = locals.db;
@@ -20,6 +20,9 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals }) => {
 
     return new Response(JSON.stringify(stats), { status: 200 });
   } catch {
-    return new Response(JSON.stringify({ error: 'No se pudo obtener el resumen de estadísticas.' }), { status: 500 });
+    return new Response(
+      JSON.stringify({ error: 'No se pudo obtener el resumen de estadísticas.' }),
+      { status: 500 }
+    );
   }
 });

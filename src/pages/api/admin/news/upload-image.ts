@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getDB, addNewsImage } from '../../../../lib/db';
+import { addNewsImage, getDB } from '../../../../lib/db';
 import { logError } from '../../../../lib/logError';
 import { generateUUID } from '../../../../lib/utils';
 
@@ -33,22 +33,27 @@ export const POST: APIRoute = async ({ request, locals }) => {
         contentType: file.type,
       },
     });
-    
+
     // Associate image with the news item in the database
     await addNewsImage(drizzleDb, {
-        newsId,
-        r2Key,
-        altText: 'Image for news ' + newsId, // Basic alt text
-        displayOrder: 0 // Assuming one image per post for now
+      newsId,
+      r2Key,
+      altText: 'Image for news ' + newsId, // Basic alt text
+      displayOrder: 0, // Assuming one image per post for now
     });
 
-    return new Response(JSON.stringify({ message: "Image uploaded and associated successfully", r2Key }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-
+    return new Response(
+      JSON.stringify({ message: 'Image uploaded and associated successfully', r2Key }),
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   } catch (error: unknown) {
     const userIdForLog = locals.user?.uid;
-    logError(error, 'Error al subir imagen de noticia a R2', { newsId: newsId, userId: userIdForLog });
+    logError(error, 'Error al subir imagen de noticia a R2', {
+      newsId: newsId,
+      userId: userIdForLog,
+    });
     return new Response('Internal Server Error', { status: 500 });
   }
 };

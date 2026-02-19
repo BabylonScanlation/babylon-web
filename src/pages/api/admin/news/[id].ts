@@ -1,5 +1,12 @@
 import type { APIRoute } from 'astro';
-import { getDB, getNewsById, updateNews, deleteNews, getNewsImages, type NewsImageItem } from '../../../../lib/db';
+import {
+  deleteNews,
+  getDB,
+  getNewsById,
+  getNewsImages,
+  type NewsImageItem,
+  updateNews,
+} from '../../../../lib/db';
 import { logError } from '../../../../lib/logError';
 
 export const GET: APIRoute = async ({ params, locals }) => {
@@ -68,7 +75,7 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
   try {
     // Step 1: Find images associated with the news item
     const images = await getNewsImages(drizzleDb, id);
-    
+
     // Step 2: If images exist, delete them from R2
     if (images && images.length > 0) {
       const keys = images.map((img: NewsImageItem) => img.r2Key);

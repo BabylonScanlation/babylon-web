@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
+import { eq } from 'drizzle-orm';
+import { chapters, series } from '../../db/schema';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
-import { series, chapters } from '../../db/schema';
-import { eq } from 'drizzle-orm';
 
 export const POST: APIRoute = async (context) => {
   const { request, redirect, locals } = context;
@@ -23,10 +23,7 @@ export const POST: APIRoute = async (context) => {
 
     if (!seriesId) {
       const errorUrl = new URL(referer);
-      errorUrl.searchParams.set(
-        'error',
-        'ID de serie no encontrado para eliminar'
-      );
+      errorUrl.searchParams.set('error', 'ID de serie no encontrado para eliminar');
       return redirect(errorUrl.toString());
     }
 
@@ -42,16 +39,16 @@ export const POST: APIRoute = async (context) => {
       let cursor: string | undefined;
 
       while (truncated) {
-        const list = await r2Cache.list({ 
+        const list = await r2Cache.list({
           prefix: `${seriesData.slug}/`,
-          cursor
+          cursor,
         });
-        
+
         const keys = list.objects.map((obj: { key: string }) => obj.key);
         if (keys.length > 0) {
           await r2Cache.delete(keys);
         }
-        
+
         truncated = list.truncated;
         cursor = list.truncated ? list.cursor : undefined;
       }
@@ -67,13 +64,18 @@ export const POST: APIRoute = async (context) => {
         await r2Assets.delete(coverKey);
       }
     }
-    
-    // First, delete chapters linked to the series
-    await drizzleDb.delete(chapters).where(eq(chapters.seriesId, parseInt(seriesId))).run();
-    
-    // Finally, delete the series itself
-    await drizzleDb.delete(series).where(eq(series.id, parseInt(seriesId))).run();
 
+    // First, delete chapters linked to the series
+    await drizzleDb
+      .delete(chapters)
+      .where(eq(chapters.seriesId, parseInt(seriesId)))
+      .run();
+
+    // Finally, delete the series itself
+    await drizzleDb
+      .delete(series)
+      .where(eq(series.id, parseInt(seriesId)))
+      .run();
 
     return redirect('/admin/series?success=Serie eliminada con éxito');
   } catch (e: unknown) {

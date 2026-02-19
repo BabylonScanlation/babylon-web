@@ -1,59 +1,66 @@
 <script lang="ts">
-  import { slide } from 'svelte/transition';
-  import { toast } from '../lib/toastStore';
+import { slide } from 'svelte/transition';
+import { toast } from '../lib/toastStore';
 
-  interface Props {
-    commentId: number;
-    userEmail: string;
-    text: string;
-    targetType: 'series' | 'chapter';
-    seriesTitle?: string;
-    createdAt?: string;
+interface Props {
+  commentId: number;
+  userEmail: string;
+  text: string;
+  targetType: 'series' | 'chapter';
+  seriesTitle?: string;
+  createdAt?: string;
+}
+
+let {
+  commentId,
+  userEmail,
+  text,
+  targetType,
+  seriesTitle = 'Contenido',
+  createdAt,
+}: Props = $props();
+
+let deleteState = $state<'idle' | 'confirm' | 'deleting'>('idle');
+let deleteTimeout: ReturnType<typeof setTimeout> | undefined;
+let isRemoved = $state(false);
+
+function getUsername(email: string) {
+  return (email || 'usuario@anonimo').split('@')[0];
+}
+
+function getInitial(email: string) {
+  return email.charAt(0).toUpperCase();
+}
+
+async function handleDelete() {
+  if (deleteState === 'idle') {
+    deleteState = 'confirm';
+    clearTimeout(deleteTimeout);
+    deleteTimeout = setTimeout(() => (deleteState = 'idle'), 4000);
+    return;
   }
 
-  let { commentId, userEmail, text, targetType, seriesTitle = "Contenido", createdAt }: Props = $props();
+  if (deleteState === 'confirm') {
+    deleteState = 'deleting';
+    const url = targetType === 'series' ? '/api/comments/series/delete' : '/api/comments/delete';
 
-  let deleteState = $state<'idle' | 'confirm' | 'deleting'>('idle');
-  let deleteTimeout: ReturnType<typeof setTimeout> | undefined;
-  let isRemoved = $state(false);
+    const formData = new FormData();
+    formData.append('commentId', commentId.toString());
 
-  function getUsername(email: string) {
-    return (email || "usuario@anonimo").split('@')[0];
-  }
-
-  function getInitial(email: string) {
-    return email.charAt(0).toUpperCase();
-  }
-
-  async function handleDelete() {
-    if (deleteState === 'idle') {
-      deleteState = 'confirm';
-      clearTimeout(deleteTimeout);
-      deleteTimeout = setTimeout(() => deleteState = 'idle', 4000);
-      return;
-    }
-
-    if (deleteState === 'confirm') {
-      deleteState = 'deleting';
-      const url = targetType === 'series' ? '/api/comments/series/delete' : '/api/comments/delete';
-      
-      const formData = new FormData();
-      formData.append('commentId', commentId.toString());
-
-      try {
-        const res = await fetch(url, { method: 'POST', body: formData });
-        if (res.ok) {
-          isRemoved = true;
-          toast.success('Comentario erradicado');
-        } else {
-          throw new Error();
-        }
-      } catch {
-        toast.error('Error en los sistemas de eliminación');
-        deleteState = 'idle';
+    try {
+      const res = await fetch(url, { method: 'POST', body: formData });
+      if (res.ok) {
+        isRemoved = true;
+        toast.success('Comentario erradicado');
+      } else {
+        throw new Error();
       }
+    } catch {
+      toast.error('Error en los sistemas de eliminación');
+      deleteState = 'idle';
     }
   }
+}
 </script>
 
 {#if !isRemoved}

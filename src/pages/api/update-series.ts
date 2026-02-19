@@ -1,9 +1,9 @@
 // src/pages/api/update-series.ts
 import type { APIRoute } from 'astro';
-import { logError } from '../../lib/logError';
-import { getDB } from '../../lib/db';
-import { series } from '../../db/schema';
 import { eq } from 'drizzle-orm';
+import { series } from '../../db/schema';
+import { getDB } from '../../lib/db';
+import { logError } from '../../lib/logError';
 
 export const POST: APIRoute = async (context) => {
   const { request, redirect, locals } = context;
@@ -20,7 +20,7 @@ export const POST: APIRoute = async (context) => {
     const r2Assets = locals.runtime.env.R2_ASSETS;
 
     const formData = await request.formData();
-    
+
     seriesId = formData.get('seriesId')?.toString();
     title = formData.get('title')?.toString();
     const description = formData.get('description')?.toString();
@@ -28,22 +28,39 @@ export const POST: APIRoute = async (context) => {
     const coverImage = formData.get('coverImage');
 
     if (!seriesId || !title || !description) {
-      return new Response(JSON.stringify({ error: 'Faltan datos obligatorios (ID, Título o Descripción)' }), { status: 400 });
+      return new Response(
+        JSON.stringify({ error: 'Faltan datos obligatorios (ID, Título o Descripción)' }),
+        { status: 400 }
+      );
     }
 
     // Orion: Lógica Inteligente de Slugs
-    const currentSeries = await drizzleDb.select().from(series).where(eq(series.id, parseInt(seriesId))).get();
-    
+    const currentSeries = await drizzleDb
+      .select()
+      .from(series)
+      .where(eq(series.id, parseInt(seriesId)))
+      .get();
+
     if (currentSeries) {
       if (slug && slug !== currentSeries.slug) {
-        slug = slug.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        slug = slug
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '');
       } else if (currentSeries.slug.startsWith('serie-') && title !== currentSeries.title) {
-        slug = title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        slug = title
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '');
       } else {
         slug = currentSeries.slug;
       }
     } else {
-        return new Response(JSON.stringify({ error: 'Serie no encontrada' }), { status: 404 });
+      return new Response(JSON.stringify({ error: 'Serie no encontrada' }), { status: 404 });
     }
 
     const status = formData.get('status')?.toString();
@@ -73,7 +90,8 @@ export const POST: APIRoute = async (context) => {
       coverImageUrlToUpdate = imageKey;
     }
 
-    await drizzleDb.update(series)
+    await drizzleDb
+      .update(series)
       .set({
         title,
         slug,
@@ -90,20 +108,23 @@ export const POST: APIRoute = async (context) => {
         isHidden,
         isNsfw,
         isAppSeries,
-        ...(coverImageUrlToUpdate ? { coverImageUrl: coverImageUrlToUpdate } : {})
+        ...(coverImageUrlToUpdate ? { coverImageUrl: coverImageUrlToUpdate } : {}),
       })
       .where(eq(series.id, parseInt(seriesId)))
       .run();
 
     return new Response(JSON.stringify({ success: true, message: 'Serie actualizada con éxito' }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (e: unknown) {
     logError(e, 'Error al actualizar la serie', { seriesId, title });
-    return new Response(JSON.stringify({ error: `Error interno: ${e instanceof Error ? e.message : String(e)}` }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return new Response(
+      JSON.stringify({ error: `Error interno: ${e instanceof Error ? e.message : String(e)}` }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 };

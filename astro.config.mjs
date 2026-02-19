@@ -1,7 +1,7 @@
-import { defineConfig } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
-import svelte from '@astrojs/svelte';
 import sitemap from '@astrojs/sitemap';
+import svelte from '@astrojs/svelte';
+import { defineConfig } from 'astro/config';
 
 import { siteConfig } from './src/site.config';
 
@@ -28,17 +28,15 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        external: ['@cf-wasm/photon']
-      }
-    }
+        external: ['@cf-wasm/photon'],
+      },
+    },
   },
 
   integrations: [
-    svelte(), 
+    svelte(),
     sitemap({
-      customPages: [
-        `${siteConfig.url}/sitemap-dynamic.xml`
-      ]
-    })
+      customPages: [`${siteConfig.url}/sitemap-dynamic.xml`],
+    }),
   ],
 });

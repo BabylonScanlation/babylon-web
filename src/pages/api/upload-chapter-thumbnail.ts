@@ -1,9 +1,10 @@
 // src/pages/api/upload-chapter-thumbnail.ts
-import type { APIRoute } from 'astro';
-import { getDB } from '../../lib/db';
-import { chapters } from '../../db/schema';
-import { eq } from 'drizzle-orm';
+
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
+import type { APIRoute } from 'astro';
+import { eq } from 'drizzle-orm';
+import { chapters } from '../../db/schema';
+import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
 
 interface Env {
@@ -42,9 +43,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    if (
-      !['image/jpeg', 'image/png', 'image/webp'].includes(thumbnailImage.type)
-    ) {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(thumbnailImage.type)) {
       return new Response(
         JSON.stringify({
           error: 'Invalid image type. Only JPEG, PNG, WEBP are allowed.',
@@ -55,17 +54,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const thumbnailKey = `chapter-thumbnails/${chapterId}-${Date.now()}.${thumbnailImage.name.split('.').pop()}`;
 
-    await env.R2_BUCKET_ASSETS.put(
-      thumbnailKey,
-      await thumbnailImage.arrayBuffer(),
-      {
-        httpMetadata: { contentType: thumbnailImage.type },
-      }
-    );
+    await env.R2_BUCKET_ASSETS.put(thumbnailKey, await thumbnailImage.arrayBuffer(), {
+      httpMetadata: { contentType: thumbnailImage.type },
+    });
 
     const thumbnailUrl = `${env.R2_PUBLIC_URL_ASSETS}/${thumbnailKey}`;
 
-    await drizzleDb.update(chapters)
+    await drizzleDb
+      .update(chapters)
       .set({ urlPortada: thumbnailUrl })
       .where(eq(chapters.id, parseInt(chapterId)));
 

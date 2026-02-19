@@ -1,152 +1,163 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+import { onMount } from 'svelte';
 
-  interface Chapter {
-    id: number;
-    title: string | null;
-    chapterNumber: string | number; // Orion: Migrado a camelCase
-    urlPortada: string | null;      // Orion: Migrado a camelCase
-  }
+interface Chapter {
+  id: number;
+  title: string | null;
+  chapterNumber: string | number; // Orion: Migrado a camelCase
+  urlPortada: string | null; // Orion: Migrado a camelCase
+}
 
-  let { 
-    chapter = $bindable(), 
-    seriesSlug, 
-    r2PublicUrlAssets 
-  } = $props<{
-    chapter: Chapter;
-    seriesSlug: string;
-    r2PublicUrlAssets: string;
-  }>();
+let {
+  chapter = $bindable(),
+  seriesSlug,
+  r2PublicUrlAssets,
+} = $props<{
+  chapter: Chapter;
+  seriesSlug: string;
+  r2PublicUrlAssets: string;
+}>();
 
-  let title = $state(chapter.title || '');
-  let isLoading = $state(false);
-  let isEditing = $state(false);
-  let isSelected = $state(false);
-  let deleteState = $state<'idle' | 'confirm' | 'deleting'>('idle');
-  let message = $state({ type: '', text: '' });
-  
-  let deleteTimeout: ReturnType<typeof setTimeout> | undefined;
-  let fileInput: HTMLInputElement | undefined = $state();
+let title = $state(chapter.title || '');
+let isLoading = $state(false);
+let isEditing = $state(false);
+let isSelected = $state(false);
+let deleteState = $state<'idle' | 'confirm' | 'deleting'>('idle');
+let message = $state({ type: '', text: '' });
 
-  onMount(() => {
-    const handleGlobalToggle = (e: Event) => {
-        const customEvent = e as CustomEvent<{ isChecked: boolean }>;
-        isSelected = customEvent.detail.isChecked;
-        dispatchSelection();
-    };
-    window.addEventListener('toggleAllChapters', handleGlobalToggle);
-    return () => {
-      window.removeEventListener('toggleAllChapters', handleGlobalToggle);
-      clearTimeout(deleteTimeout);
-    };
+let deleteTimeout: ReturnType<typeof setTimeout> | undefined;
+let fileInput: HTMLInputElement | undefined = $state();
+
+onMount(() => {
+  const handleGlobalToggle = (e: Event) => {
+    const customEvent = e as CustomEvent<{ isChecked: boolean }>;
+    isSelected = customEvent.detail.isChecked;
+    dispatchSelection();
+  };
+  window.addEventListener('toggleAllChapters', handleGlobalToggle);
+  return () => {
+    window.removeEventListener('toggleAllChapters', handleGlobalToggle);
+    clearTimeout(deleteTimeout);
+  };
+});
+
+function showMessage(type: string, text: string) {
+  message = { type, text };
+  setTimeout(() => {
+    message = { type: '', text: '' };
+  }, 3000);
+}
+
+function dispatchSelection() {
+  const event = new CustomEvent('chapterSelectionChanged', {
+    detail: { id: chapter.id, isSelected },
   });
+  window.dispatchEvent(event);
+}
 
-  function showMessage(type: string, text: string) {
-    message = { type, text };
-    setTimeout(() => {
-      message = { type: '', text: '' };
+async function saveTitle() {
+  if (title === chapter.title) {
+    isEditing = false;
+    return;
+  }
+  isLoading = true;
+
+  const formData = new FormData();
+  formData.append('chapterId', chapter.id.toString());
+  formData.append('title', title);
+
+  try {
+    const response = await fetch('/api/update-chapter', { method: 'POST', body: formData });
+    if (!response.ok) throw new Error('Error al actualizar.');
+
+    chapter.title = title;
+    isEditing = false;
+    showMessage('success', 'Guardado');
+  } catch {
+    showMessage('error', 'Error');
+  } finally {
+    isLoading = false;
+  }
+}
+
+async function handleDelete() {
+  if (deleteState === 'idle') {
+    deleteState = 'confirm';
+    clearTimeout(deleteTimeout);
+    deleteTimeout = setTimeout(() => {
+      deleteState = 'idle';
     }, 3000);
+    return;
   }
 
-  function dispatchSelection() {
-    const event = new CustomEvent('chapterSelectionChanged', {
-        detail: { id: chapter.id, isSelected }
-    });
-    window.dispatchEvent(event);
-  }
-
-  async function saveTitle() {
-    if (title === chapter.title) {
-        isEditing = false;
-        return;
-    }
+  if (deleteState === 'confirm') {
+    deleteState = 'deleting';
     isLoading = true;
-    
+    clearTimeout(deleteTimeout);
+
     const formData = new FormData();
     formData.append('chapterId', chapter.id.toString());
-    formData.append('title', title);
 
     try {
-      const response = await fetch('/api/update-chapter', { method: 'POST', body: formData });
-      if (!response.ok) throw new Error('Error al actualizar.');
-      
-      chapter.title = title; 
-      isEditing = false;
-      showMessage('success', 'Guardado');
+      const response = await fetch('/api/delete-chapters', { method: 'POST', body: formData });
+      if (!response.ok) throw new Error('Error al eliminar.');
+
+      window.dispatchEvent(new CustomEvent('chapterDeleted', { detail: { id: chapter.id } }));
     } catch {
       showMessage('error', 'Error');
-    } finally {
       isLoading = false;
+      deleteState = 'idle';
     }
   }
+}
 
-  async function handleDelete() {
-    if (deleteState === 'idle') {
-        deleteState = 'confirm';
-        clearTimeout(deleteTimeout);
-        deleteTimeout = setTimeout(() => {
-            deleteState = 'idle';
-        }, 3000);
-        return;
-    }
+async function handleThumbnailUpload(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
 
-    if (deleteState === 'confirm') {
-        deleteState = 'deleting';
-        isLoading = true;
-        clearTimeout(deleteTimeout);
-        
-        const formData = new FormData();
-        formData.append('chapterId', chapter.id.toString());
+  isLoading = true;
+  const formData = new FormData();
+  formData.append('chapterId', chapter.id.toString());
+  formData.append('thumbnailImage', file);
 
-        try {
-          const response = await fetch('/api/delete-chapters', { method: 'POST', body: formData });
-          if (!response.ok) throw new Error('Error al eliminar.');
+  try {
+    const response = await fetch('/api/upload-chapter-thumbnail', {
+      method: 'POST',
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error('Falló subida.');
 
-          window.dispatchEvent(new CustomEvent('chapterDeleted', { detail: { id: chapter.id } }));
-        } catch {
-          showMessage('error', 'Error');
-          isLoading = false;
-          deleteState = 'idle';
-        }
-    }
+    chapter.urlPortada = `${result.thumbnailUrl}?t=${Date.now()}`;
+    showMessage('success', 'Img OK');
+  } catch {
+    showMessage('error', 'Error Img');
+  } finally {
+    isLoading = false;
+    input.value = '';
   }
+}
 
-  async function handleThumbnailUpload(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
+function openCropper() {
+  window.dispatchEvent(
+    new CustomEvent('openCropperModal', {
+      detail: {
+        chapterId: chapter.id,
+        seriesSlug: seriesSlug,
+        chapterNumber: chapter.chapterNumber,
+      },
+    })
+  );
+}
 
-    isLoading = true;
-    const formData = new FormData();
-    formData.append('chapterId', chapter.id.toString());
-    formData.append('thumbnailImage', file);
-
-    try {
-        const response = await fetch('/api/upload-chapter-thumbnail', { method: 'POST', body: formData });
-        const result = await response.json();
-        if (!response.ok) throw new Error('Falló subida.');
-
-        chapter.urlPortada = `${result.thumbnailUrl}?t=${Date.now()}`;
-        showMessage('success', 'Img OK');
-    } catch {
-        showMessage('error', 'Error Img');
-    } finally {
-        isLoading = false;
-        input.value = '';
-    }
-  }
-
-  function openCropper() {
-    window.dispatchEvent(new CustomEvent('openCropperModal', {
-      detail: { chapterId: chapter.id, seriesSlug: seriesSlug, chapterNumber: chapter.chapterNumber }
-    }));
-  }
-
-  const finalUrl = $derived.by(() => {
-    if (!chapter.urlPortada) return `${r2PublicUrlAssets}/covers/placeholder-chapter.jpg`.replace(/([^:]\/)\/+/g, "$1");
-    if (chapter.urlPortada.startsWith('http') || chapter.urlPortada.startsWith('/')) return chapter.urlPortada;
-    return `${r2PublicUrlAssets}/${chapter.urlPortada}`.replace(/([^:]\/)\/+/g, "$1");
-  });
+const finalUrl = $derived.by(() => {
+  if (!chapter.urlPortada)
+    return `${r2PublicUrlAssets}/covers/placeholder-chapter.jpg`.replace(/([^:]\/)\/+/g, '$1');
+  if (chapter.urlPortada.startsWith('http') || chapter.urlPortada.startsWith('/'))
+    return chapter.urlPortada;
+  return `${r2PublicUrlAssets}/${chapter.urlPortada}`.replace(/([^:]\/)\/+/g, '$1');
+});
 </script>
 
 <div class="chapter-card" class:selected={isSelected} class:loading={isLoading} data-chapter-id={chapter.id}>

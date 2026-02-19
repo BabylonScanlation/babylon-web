@@ -1,5 +1,5 @@
 // src/lib/firebase/server.ts
-import { jwtVerify, importJWK } from 'jose';
+import { importJWK, jwtVerify } from 'jose';
 import { logError } from '../logError';
 
 // Esta es la URL CORRECTA para obtener las claves de Firebase.
@@ -10,7 +10,7 @@ interface Env {
   FIREBASE_PROJECT_ID: string;
 }
 
-interface JWK {
+interface Jwk {
   kid: string;
   kty: string;
   alg: string;
@@ -23,23 +23,24 @@ export async function verifyFirebaseToken(token: string, env: Env) {
   const projectIdToUse = env.FIREBASE_PROJECT_ID;
 
   if (!projectIdToUse) {
-    throw new Error(
-      'La variable de entorno FIREBASE_PROJECT_ID no está configurada.'
-    );
+    throw new Error('La variable de entorno FIREBASE_PROJECT_ID no está configurada.');
   }
 
   const res = await fetch(JWKS_URL);
   if (!res.ok) {
     const errorBody = await res.text();
-    logError(new Error(errorBody), 'Error fetching JWKS', { status: res.status, statusText: res.statusText });
+    logError(new Error(errorBody), 'Error fetching JWKS', {
+      status: res.status,
+      statusText: res.statusText,
+    });
     throw new Error('Error al obtener las claves de verificación de Firebase.');
   }
-  const jwks: { keys: JWK[] } = await res.json();
+  const jwks: { keys: Jwk[] } = await res.json();
 
   // Map kid to imported key
   const kidToKey: Record<string, CryptoKey> = {};
   await Promise.all(
-    jwks.keys.map(async (key: JWK) => {
+    jwks.keys.map(async (key: Jwk) => {
       const imported = await importJWK(key, 'RS256');
       if (imported instanceof CryptoKey) {
         kidToKey[key.kid] = imported;

@@ -1,6 +1,6 @@
-import { createApiRoute } from '../../../lib/api';
+import { and, desc, eq, gt, sql } from 'drizzle-orm';
 import { chapters, chapterViews, series } from '../../../db/schema';
-import { eq, desc, and, gt, sql } from 'drizzle-orm';
+import { createApiRoute } from '../../../lib/api';
 
 export const GET = createApiRoute({ auth: 'user' }, async ({ locals }) => {
   const db = locals.db;
@@ -81,8 +81,8 @@ export const GET = createApiRoute({ auth: 'user' }, async ({ locals }) => {
           url: `/series/${s.seriesSlug}/${nextChapter.chapterNumber}`,
           createdAt: nextChapter.createdAt,
           urlPortada: nextChapter.urlPortada,
-          views: nextChapter.views || 0
-        }
+          views: nextChapter.views || 0,
+        },
       });
     }
   }

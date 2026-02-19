@@ -1,85 +1,85 @@
 <script lang="ts">
-  import { toast } from '../lib/toastStore';
+import { toast } from '../lib/toastStore';
 
-  let { seriesId, seriesTitle } = $props<{
-    seriesId: number;
-    seriesTitle: string;
-  }>();
+let { seriesId, seriesTitle } = $props<{
+  seriesId: number;
+  seriesTitle: string;
+}>();
 
-  let fileInput: HTMLInputElement | undefined = $state();
-  let isUploading = $state(false);
-  let selectedFiles = $state<FileList | null>(null);
-  let progressText = $state('');
+let fileInput: HTMLInputElement | undefined = $state();
+let isUploading = $state(false);
+let selectedFiles = $state<FileList | null>(null);
+let progressText = $state('');
 
-  function handleFileChange(e: Event) {
-    const target = e.target as HTMLInputElement;
-    if (target.files && target.files.length > 0) {
-      selectedFiles = target.files;
+function handleFileChange(e: Event) {
+  const target = e.target as HTMLInputElement;
+  if (target.files && target.files.length > 0) {
+    selectedFiles = target.files;
+  }
+}
+
+async function uploadChapters() {
+  if (!selectedFiles || selectedFiles.length === 0) {
+    toast.error('Selecciona al menos un archivo');
+    return;
+  }
+
+  isUploading = true;
+  let successCount = 0;
+  let errorCount = 0;
+
+  const total = selectedFiles.length;
+
+  for (let i = 0; i < total; i++) {
+    const file = selectedFiles[i];
+    if (!file) continue;
+
+    progressText = `Subiendo ${i + 1}/${total}`;
+
+    if (!file.name.endsWith('.zip')) {
+      toast.error(`Ignorado ${file.name}: No es ZIP`);
+      errorCount++;
+      continue;
+    }
+
+    const formData = new FormData();
+    formData.append('seriesId', seriesId.toString());
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/admin/chapters/upload-to-telegram', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        successCount++;
+      } else {
+        const result = await res.json();
+        console.error(`Error subiendo ${file.name}:`, result);
+        errorCount++;
+      }
+    } catch (e) {
+      console.error(`Error de red con ${file.name}`, e);
+      errorCount++;
     }
   }
 
-  async function uploadChapters() {
-    if (!selectedFiles || selectedFiles.length === 0) {
-      toast.error('Selecciona al menos un archivo');
-      return;
-    }
+  isUploading = false;
+  progressText = '';
 
-    isUploading = true;
-    let successCount = 0;
-    let errorCount = 0;
-
-    const total = selectedFiles.length;
-
-    for (let i = 0; i < total; i++) {
-        const file = selectedFiles[i];
-        if (!file) continue;
-
-        progressText = `Subiendo ${i + 1}/${total}`;
-
-        if (!file.name.endsWith('.zip')) {
-            toast.error(`Ignorado ${file.name}: No es ZIP`);
-            errorCount++;
-            continue;
-        }
-
-        const formData = new FormData();
-        formData.append('seriesId', seriesId.toString());
-        formData.append('file', file);
-
-        try {
-            const res = await fetch('/api/admin/chapters/upload-to-telegram', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (res.ok) {
-                successCount++;
-            } else {
-                const result = await res.json();
-                console.error(`Error subiendo ${file.name}:`, result);
-                errorCount++;
-            }
-        } catch (e) {
-            console.error(`Error de red con ${file.name}`, e);
-            errorCount++;
-        }
-    }
-
-    isUploading = false;
-    progressText = '';
-    
-    if (successCount > 0) {
-        toast.success(`${successCount} capítulos subidos correctamente.`);
-        selectedFiles = null;
-        if (fileInput) fileInput.value = '';
-        // Disparar evento para recargar lista
-        window.dispatchEvent(new CustomEvent('chapterUploaded'));
-    }
-    
-    if (errorCount > 0) {
-        toast.warning(`${errorCount} fallaron. Revisa la consola.`);
-    }
+  if (successCount > 0) {
+    toast.success(`${successCount} capítulos subidos correctamente.`);
+    selectedFiles = null;
+    if (fileInput) fileInput.value = '';
+    // Disparar evento para recargar lista
+    window.dispatchEvent(new CustomEvent('chapterUploaded'));
   }
+
+  if (errorCount > 0) {
+    toast.warning(`${errorCount} fallaron. Revisa la consola.`);
+  }
+}
 </script>
 
 <div class="quick-uploader">

@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { getDB } from '../../../../lib/db';
-import { newsComments } from '../../../../db/schema';
 import { z } from 'zod';
+import { newsComments } from '../../../../db/schema';
+import { getDB } from '../../../../lib/db';
 
 const CommentSchema = z.object({
   newsId: z.string().uuid(),
@@ -16,8 +16,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body = await request.json();
     const validation = CommentSchema.safeParse(body);
-    if (!validation.success)
-      return new Response('Invalid data', { status: 400 });
+    if (!validation.success) return new Response('Invalid data', { status: 400 });
 
     const { newsId, commentText, parentId } = validation.data;
     const db = getDB(locals.runtime.env);
@@ -42,11 +41,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         commentText: commentText,
         parentId: parentId,
         userId: user.uid,
-        username:
-          user.username ||
-          user.displayName ||
-          user.email?.split('@')[0] ||
-          'Usuario',
+        username: user.username || user.displayName || user.email?.split('@')[0] || 'Usuario',
         avatarUrl: user.avatarUrl,
       }),
       { status: 201 }

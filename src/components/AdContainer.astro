@@ -8,10 +8,12 @@ interface Props {
   className?: string;
 }
 
-const { type, id, className = "" } = Astro.props;
+const { type, id, className = '' } = Astro.props;
 
 // Orion: Determinar el ID del anuncio según el tipo
-const adKey = siteConfig.ads.adsterra[type as keyof typeof siteConfig.ads.adsterra] || siteConfig.ads.adsterra.banner;
+const adKey =
+  siteConfig.ads.adsterra[type as keyof typeof siteConfig.ads.adsterra] ||
+  siteConfig.ads.adsterra.banner;
 
 // Dimensiones estándar para Adsterra
 const dimensions = {
@@ -19,7 +21,7 @@ const dimensions = {
   bannerLarge: { w: 728, h: 90 },
   bannerSmall: { w: 468, h: 60 },
   square: { w: 300, h: 250 },
-  native: { w: 0, h: 0 }
+  native: { w: 0, h: 0 },
 };
 
 const dim = dimensions[type as keyof typeof dimensions] || dimensions.banner;

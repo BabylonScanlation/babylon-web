@@ -2,13 +2,7 @@
 // src/components/MangaCard.astro
 import Image from './Image.astro';
 
-const {
-  coverImageUrl,
-  title,
-  lastChapter,
-  url,
-  loading = 'lazy',
-} = Astro.props;
+const { coverImageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props;
 ---
 
 <a href={url} class="card-wrapper">

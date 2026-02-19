@@ -1,8 +1,8 @@
-import type { APIRoute } from 'astro';
-import { logError } from '@lib/logError';
 import { getDB } from '@lib/db';
-import { chapterViews } from '@/db/schema';
+import { logError } from '@lib/logError';
+import type { APIRoute } from 'astro';
 import { sql } from 'drizzle-orm';
+import { chapterViews } from '@/db/schema';
 import { hashIpAddress } from '@/lib/crypto';
 
 export const POST: APIRoute = async ({ request, locals, clientAddress, cookies }) => {
@@ -24,24 +24,24 @@ export const POST: APIRoute = async ({ request, locals, clientAddress, cookies }
         if (kv) {
           const alreadyViewed = await kv.get(viewKey);
           if (alreadyViewed) return;
-          
+
           // Marcamos en KV (TTL 24h)
           await kv.put(viewKey, '1', { expirationTtl: 86400 });
         }
 
         // 2. Insert en D1 (Solo si KV no nos frenó)
         const drizzleDb = getDB(env);
-        await drizzleDb.insert(chapterViews)
-          .values({ 
-            chapterId, 
-            ipAddress: ipHash, 
-            guestId, 
+        await drizzleDb
+          .insert(chapterViews)
+          .values({
+            chapterId,
+            ipAddress: ipHash,
+            guestId,
             userId,
-            viewedAt: sql`CURRENT_TIMESTAMP` 
+            viewedAt: sql`CURRENT_TIMESTAMP`,
           })
           .onConflictDoNothing()
           .run();
-
       } catch (err) {
         logError(err, '[Chapter View API] Background Error', { chapterId });
       }

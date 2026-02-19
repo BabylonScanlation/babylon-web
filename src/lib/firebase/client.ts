@@ -1,10 +1,6 @@
 // src/lib/firebase/client.ts
-import { initializeApp, getApp, getApps } from 'firebase/app';
-import {
-  getAuth,
-  setPersistence,
-  browserLocalPersistence,
-} from 'firebase/auth';
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import { browserLocalPersistence, getAuth, setPersistence } from 'firebase/auth';
 import { logError } from '../logError';
 
 const firebaseConfig = {
@@ -24,8 +20,7 @@ export const auth = getAuth(app);
 
 // Configurar persistencia de sesión solo en el cliente
 if (typeof window !== 'undefined') {
-  setPersistence(auth, browserLocalPersistence)
-    .catch((error) => {
-      logError(error, 'Error configurando persistencia de Firebase');
-    });
+  setPersistence(auth, browserLocalPersistence).catch((error) => {
+    logError(error, 'Error configurando persistencia de Firebase');
+  });
 }

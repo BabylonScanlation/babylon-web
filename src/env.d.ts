@@ -36,7 +36,7 @@ declare global {
   // Extend the global Window interface
   interface Window {
     atOptions: any;
-    pageImageUrls: string[]; 
+    pageImageUrls: string[];
     isProcessing: boolean;
     isVignetteBlocked?: boolean;
     isAdsterraBlocked?: boolean;

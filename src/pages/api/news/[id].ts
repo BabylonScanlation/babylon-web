@@ -17,7 +17,9 @@ export const GET: APIRoute = async ({ params, locals }) => {
     }
 
     const images = await getNewsImages(drizzleDb, newsItem.id);
-    const imageUrls = images.map(img => `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`);
+    const imageUrls = images.map(
+      (img) => `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`
+    );
 
     return new Response(JSON.stringify({ ...newsItem, imageUrls }), {
       headers: { 'Content-Type': 'application/json' },

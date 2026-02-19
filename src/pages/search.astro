@@ -1,11 +1,11 @@
 ---
-// src/pages/search.astro
-import Layout from '../layouts/Layout.astro';
 import MangaList from '../components/MangaList.astro';
 import SearchFilters from '../components/SearchFilters.svelte';
-import { logError } from '../lib/logError';
-import { getDB } from '../lib/db';
+// src/pages/search.astro
+import Layout from '../layouts/Layout.astro';
 import { searchSeries } from '../lib/data/series';
+import { getDB } from '../lib/db';
+import { logError } from '../lib/logError';
 import { siteConfig } from '../site.config';
 
 const query = Astro.url.searchParams.get('q')?.trim() || '';
@@ -19,12 +19,12 @@ let error: string | null = null;
 try {
   const db = getDB(Astro.locals.runtime.env);
   const searchParams = Object.fromEntries(Astro.url.searchParams.entries());
-  
+
   const result = await searchSeries(db, {
     ...searchParams,
     q: query,
     page,
-    allowNsfw: user?.isNsfw || false
+    allowNsfw: user?.isNsfw || false,
   });
 
   searchResults = result.results;

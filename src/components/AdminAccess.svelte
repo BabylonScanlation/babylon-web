@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { fade, fly } from 'svelte/transition';
-  
-  let isHovered = $state(false);
+import { fade, fly } from 'svelte/transition';
+
+let isHovered = $state(false);
 </script>
 
 <a 

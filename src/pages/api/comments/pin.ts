@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
-import { logError } from '../../../lib/logError';
-import { getDB } from '../../../lib/db';
-import { comments, seriesComments, newsComments } from '../../../db/schema';
 import { eq } from 'drizzle-orm';
+import { comments, newsComments, seriesComments } from '../../../db/schema';
+import { getDB } from '../../../lib/db';
+import { logError } from '../../../lib/logError';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   if (!locals.user || !locals.user.isAdmin) {
@@ -25,10 +25,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     else return new Response(JSON.stringify({ error: 'Tipo inválido' }), { status: 400 });
 
     // En SQLite D1, actualizamos el estado de pin
-    await db.update(table)
-      .set({ isPinned: isPinned })
-      .where(eq(table.id, commentId))
-      .run();
+    await db.update(table).set({ isPinned: isPinned }).where(eq(table.id, commentId)).run();
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (error) {

@@ -1,44 +1,44 @@
 <script lang="ts">
-  import { createEventDispatcher, onMount } from 'svelte';
-  import { fade, scale } from 'svelte/transition';
-  import { toast } from '../lib/toastStore';
+import { createEventDispatcher, onMount } from 'svelte';
+import { fade, scale } from 'svelte/transition';
+import { toast } from '../lib/toastStore';
 
-  export let isOpen = false;
-  export let type: 'avatar' | 'banner' = 'avatar';
+export let isOpen = false;
+export let type: 'avatar' | 'banner' = 'avatar';
 
-  const dispatch = createEventDispatcher();
-  
-  let avatars: string[] = [];
-  let banners: string[] = [];
-  let loading = true;
-  let error = '';
+const dispatch = createEventDispatcher();
 
-  onMount(async () => {
-    try {
-      const res = await fetch('/api/assets/list-profile-images');
-      if (!res.ok) throw new Error('Error cargando galería');
-      const data = await res.json();
-      avatars = data.avatars || [];
-      banners = data.banners || [];
-    } catch (e) {
-      error = (e as Error).message;
-      toast.error(error);
-    } finally {
-      loading = false;
-    }
-  });
+let avatars: string[] = [];
+let banners: string[] = [];
+let loading = true;
+let error = '';
 
-  function close() {
-    dispatch('close');
+onMount(async () => {
+  try {
+    const res = await fetch('/api/assets/list-profile-images');
+    if (!res.ok) throw new Error('Error cargando galería');
+    const data = await res.json();
+    avatars = data.avatars || [];
+    banners = data.banners || [];
+  } catch (e) {
+    error = (e as Error).message;
+    toast.error(error);
+  } finally {
+    loading = false;
   }
+});
 
-  function selectImage(url: string) {
-    dispatch('select', { type, url });
-    close();
-  }
+function close() {
+  dispatch('close');
+}
 
-  $: images = type === 'avatar' ? avatars : banners;
-  $: title = type === 'avatar' ? 'Elige tu Avatar' : 'Elige tu Portada';
+function selectImage(url: string) {
+  dispatch('select', { type, url });
+  close();
+}
+
+$: images = type === 'avatar' ? avatars : banners;
+$: title = type === 'avatar' ? 'Elige tu Avatar' : 'Elige tu Portada';
 </script>
 
 {#if isOpen}

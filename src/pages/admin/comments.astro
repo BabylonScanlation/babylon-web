@@ -1,10 +1,10 @@
 ---
+import AdminCommentModerationItem from '../../components/AdminCommentModerationItem.svelte';
 // src/pages/admin/comments.astro
 import Layout from '../../layouts/Layout.astro';
-import AdminCommentModerationItem from '../../components/AdminCommentModerationItem.svelte';
-import { logError } from '../../lib/logError';
-import { getDB } from '../../lib/db';
 import { getAdminSeriesWithChapters } from '../../lib/data/admin';
+import { getDB } from '../../lib/db';
+import { logError } from '../../lib/logError';
 
 let allSeries: any[] = [];
 let hasAnyComments = false;
@@ -15,11 +15,13 @@ try {
   allSeries = result.series;
 
   // Calcular si hay comentarios reales en alguna parte
-  hasAnyComments = allSeries.some((s: any) => 
-    s.seriesComments.length > 0 || s.chapters.some((c: any) => c.comments.length > 0)
+  hasAnyComments = allSeries.some(
+    (s: any) => s.seriesComments.length > 0 || s.chapters.some((c: any) => c.comments.length > 0)
   );
 } catch (e) {
-  logError(e, 'Error al cargar series y comentarios para el panel de administración', { userId: Astro.locals.user?.uid });
+  logError(e, 'Error al cargar series y comentarios para el panel de administración', {
+    userId: Astro.locals.user?.uid,
+  });
 }
 ---
 

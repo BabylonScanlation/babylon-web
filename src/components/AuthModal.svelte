@@ -1,66 +1,137 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { fade, fly } from 'svelte/transition';
-  import { authModal } from '../lib/modalStore';
-  import { toast } from '../lib/toastStore';
-  import { auth } from '../lib/firebase/client';
-  import {
-    signInWithEmailAndPassword,
-    createUserWithEmailAndPassword,
-    GoogleAuthProvider,
-    signInWithPopup,
-    linkWithCredential,
-    type AuthCredential,
-  } from 'firebase/auth';
-  import { logError } from '../lib/logError';
+import {
+  type AuthCredential,
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  linkWithCredential,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+} from 'firebase/auth';
+import { onMount } from 'svelte';
+import { fade, fly } from 'svelte/transition';
+import { auth } from '../lib/firebase/client';
+import { logError } from '../lib/logError';
+import { authModal } from '../lib/modalStore';
+import { toast } from '../lib/toastStore';
 
-  let loginEmail = $state('');
-  let loginPassword = $state('');
-  let regEmail = $state('');
-  let regPassword = $state('');
-  let regConfirmPassword = $state('');
-  let linkPassword = $state('');
+let loginEmail = $state('');
+let loginPassword = $state('');
+let regEmail = $state('');
+let regPassword = $state('');
+let regConfirmPassword = $state('');
+let linkPassword = $state('');
 
-  let isLoading = $state(false);
-  let loginErrorMessage = $state('');
-  let registerErrorMessage = $state('');
-  let linkErrorMessage = $state('');
+let isLoading = $state(false);
+let loginErrorMessage = $state('');
+let registerErrorMessage = $state('');
+let linkErrorMessage = $state('');
 
-  let showPassword = $state(false);
-  
-  onMount(() => {
-    const handleOpenModal = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { view, message } = customEvent.detail || {};
-      authModal.open(view || 'login', message);
-    };
+let showPassword = $state(false);
 
-    window.addEventListener('open-auth-modal', handleOpenModal);
-    
-    // Global helper for non-Svelte components
-    (window as Window & typeof globalThis & { openAuthModal: (view?: 'login' | 'register') => void }).openAuthModal = (view: 'login' | 'register' = 'login') => {
-      authModal.open(view);
-    };
+onMount(() => {
+  const handleOpenModal = (event: Event) => {
+    const customEvent = event as CustomEvent;
+    const { view, message } = customEvent.detail || {};
+    authModal.open(view || 'login', message);
+  };
 
-    return () => {
-      window.removeEventListener('open-auth-modal', handleOpenModal);
-    };
-  });
+  window.addEventListener('open-auth-modal', handleOpenModal);
 
-  async function handleLogin() {
-    isLoading = true;
-    loginErrorMessage = '';
+  // Global helper for non-Svelte components
+  (
+    window as Window & typeof globalThis & { openAuthModal: (view?: 'login' | 'register') => void }
+  ).openAuthModal = (view: 'login' | 'register' = 'login') => {
+    authModal.open(view);
+  };
 
-    if (!loginEmail || !loginPassword) {
-      loginErrorMessage = 'Por favor, completa todos los campos.';
-      isLoading = false;
-      return;
+  return () => {
+    window.removeEventListener('open-auth-modal', handleOpenModal);
+  };
+});
+
+async function handleLogin() {
+  isLoading = true;
+  loginErrorMessage = '';
+
+  if (!loginEmail || !loginPassword) {
+    loginErrorMessage = 'Por favor, completa todos los campos.';
+    isLoading = false;
+    return;
+  }
+
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+    const idToken = await userCredential.user.getIdToken();
+
+    const response = await fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    });
+
+    if (response.ok) {
+      document.dispatchEvent(new CustomEvent('auth-success'));
+      toast.success('¡Bienvenido de nuevo!');
+      authModal.close();
+      // Orion: Forzar recarga para que el servidor genere el HTML sin anuncios (Admin privilege)
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error del servidor al crear la sesión.');
     }
+  } catch (error) {
+    logError(error, 'Error durante el inicio de sesión con email/contraseña');
+    loginErrorMessage = 'Credenciales incorrectas o usuario no encontrado.';
+    toast.error(loginErrorMessage);
+  } finally {
+    isLoading = false;
+  }
+}
 
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      const idToken = await userCredential.user.getIdToken();
-      
+async function handleRegister() {
+  isLoading = true;
+  registerErrorMessage = '';
+
+  if (!regEmail || !regPassword || !regConfirmPassword) {
+    registerErrorMessage = 'Por favor, completa todos los campos.';
+    isLoading = false;
+    return;
+  }
+  if (regPassword !== regConfirmPassword) {
+    registerErrorMessage = 'Las contraseñas no coinciden.';
+    isLoading = false;
+    return;
+  }
+
+  try {
+    await createUserWithEmailAndPassword(auth, regEmail, regPassword);
+    toast.success('¡Cuenta creada exitosamente! Por favor, inicia sesión.');
+    authModal.open('login');
+  } catch (error) {
+    const err = error as { code?: string };
+    logError(error, 'Error durante el registro de cuenta');
+    let msg = '';
+    if (err.code === 'auth/email-already-in-use') {
+      msg = 'Este email ya está registrado.';
+    } else if (err.code === 'auth/weak-password') {
+      msg = 'La contraseña debe tener al menos 6 caracteres.';
+    } else {
+      msg = 'Error al registrar la cuenta.';
+    }
+    registerErrorMessage = msg;
+    toast.error(msg);
+  } finally {
+    isLoading = false;
+  }
+}
+
+function handleGoogleSignIn() {
+  isLoading = true;
+  const googleProvider = new GoogleAuthProvider();
+
+  signInWithPopup(auth, googleProvider)
+    .then(async (result) => {
+      const idToken = await result.user.getIdToken();
       const response = await fetch('/api/auth/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -69,155 +140,86 @@
 
       if (response.ok) {
         document.dispatchEvent(new CustomEvent('auth-success'));
-        toast.success('¡Bienvenido de nuevo!');
+        toast.success('¡Sesión iniciada con Google!');
         authModal.close();
-        // Orion: Forzar recarga para que el servidor genere el HTML sin anuncios (Admin privilege)
+        // Orion: Sincronización instantánea del estado de administrador con el servidor
         setTimeout(() => window.location.reload(), 500);
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Error del servidor al crear la sesión.');
+        throw new Error(errorData.error || 'Error del servidor al crear sesión.');
       }
-    } catch (error) {
-      logError(error, 'Error durante el inicio de sesión con email/contraseña');
-      loginErrorMessage = 'Credenciales incorrectas o usuario no encontrado.';
-      toast.error(loginErrorMessage);
-    } finally {
-      isLoading = false;
-    }
-  }
-
-  async function handleRegister() {
-    isLoading = true;
-    registerErrorMessage = '';
-
-    if (!regEmail || !regPassword || !regConfirmPassword) {
-      registerErrorMessage = 'Por favor, completa todos los campos.';
-      isLoading = false;
-      return;
-    }
-    if (regPassword !== regConfirmPassword) {
-      registerErrorMessage = 'Las contraseñas no coinciden.';
-      isLoading = false;
-      return;
-    }
-
-    try {
-      await createUserWithEmailAndPassword(auth, regEmail, regPassword);
-      toast.success('¡Cuenta creada exitosamente! Por favor, inicia sesión.');
-      authModal.open('login');
-    } catch (error) {
-      const err = error as { code?: string };
-      logError(error, 'Error durante el registro de cuenta');
-      let msg = '';
-      if (err.code === 'auth/email-already-in-use') {
-        msg = 'Este email ya está registrado.';
-      } else if (err.code === 'auth/weak-password') {
-        msg = 'La contraseña debe tener al menos 6 caracteres.';
-      } else {
-        msg = 'Error al registrar la cuenta.';
+    })
+    .catch((error) => {
+      logError(error, 'Error durante el inicio de sesión con Google');
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        const email = error.customData?.email;
+        const pendingCredential = error.credential as AuthCredential;
+        toast.info(`Ya existe una cuenta para ${email}. Vinculala para continuar.`);
+        authModal.openForLinking(email, pendingCredential);
+      } else if (error.code !== 'auth/cancelled-popup-request') {
+        console.error('Google Sign-In Error:', error);
+        loginErrorMessage = `Error al iniciar sesión con Google: ${error.code} - ${error.message}`;
+        toast.error(loginErrorMessage);
       }
-      registerErrorMessage = msg;
-      toast.error(msg);
-    } finally {
+    })
+    .finally(() => {
       isLoading = false;
-    }
+    });
+}
+
+async function handleLinkAccount() {
+  isLoading = true;
+  linkErrorMessage = '';
+
+  const { email, pendingCredential } = $authModal.linkAccountInfo;
+
+  if (!pendingCredential || !email || !linkPassword) {
+    linkErrorMessage = 'Faltan datos para vincular la cuenta.';
+    isLoading = false;
+    return;
   }
 
-  function handleGoogleSignIn() {
-    isLoading = true;
-    const googleProvider = new GoogleAuthProvider();
-    
-    signInWithPopup(auth, googleProvider)
-      .then(async (result) => {
-        const idToken = await result.user.getIdToken();
-        const response = await fetch('/api/auth/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken }),
-        });
-
-        if (response.ok) {
-          document.dispatchEvent(new CustomEvent('auth-success'));
-          toast.success('¡Sesión iniciada con Google!');
-          authModal.close();
-          // Orion: Sincronización instantánea del estado de administrador con el servidor
-          setTimeout(() => window.location.reload(), 500);
-        } else {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Error del servidor al crear sesión.');
-        }
-      })
-      .catch((error) => {
-        logError(error, 'Error durante el inicio de sesión con Google');
-        if (error.code === 'auth/account-exists-with-different-credential') {
-          const email = error.customData?.email;
-          const pendingCredential = error.credential as AuthCredential;
-          toast.info(`Ya existe una cuenta para ${email}. Vinculala para continuar.`);
-          authModal.openForLinking(email, pendingCredential);
-        } else if (error.code !== 'auth/cancelled-popup-request') {
-           console.error('Google Sign-In Error:', error);
-           loginErrorMessage = `Error al iniciar sesión con Google: ${error.code} - ${error.message}`;
-           toast.error(loginErrorMessage);
-        }
-      })
-      .finally(() => {
-        isLoading = false;
-      });
-  }
-
-  async function handleLinkAccount() {
-    isLoading = true;
-    linkErrorMessage = '';
-    
-    const { email, pendingCredential } = $authModal.linkAccountInfo;
-
-    if (!pendingCredential || !email || !linkPassword) {
-      linkErrorMessage = 'Faltan datos para vincular la cuenta.';
-      isLoading = false;
-      return;
-    }
-    
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, linkPassword);
-      await linkWithCredential(userCredential.user, pendingCredential);
-      const idToken = await userCredential.user.getIdToken();
-      const response = await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
-      });
-      if (response.ok) {
-        document.dispatchEvent(new CustomEvent('auth-success'));
-        toast.success('¡Cuentas vinculadas exitosamente!');
-        authModal.close();
-        // Orion: Refresco total para aplicar el modo Admin sin publicidad
-        setTimeout(() => window.location.reload(), 500);
-      } else {
-        throw new Error('Error al crear sesión después de vincular.');
-      }
-    } catch (error) {
-      logError(error, 'Error durante la vinculación de cuenta');
-      linkErrorMessage = 'Error al vincular: credenciales incorrectas o problema de red.';
-      toast.error(linkErrorMessage);
-    } finally {
-      isLoading = false;
-    }
-  }
-
-  function togglePassword() {
-    showPassword = !showPassword;
-  }
-
-  // Astra: Sincronizar estado del body con el modal para ocultar el header
-  $effect(() => {
-    if ($authModal.isOpen) {
-      document.body.setAttribute('data-reader-modal', 'open');
-      document.documentElement.style.overflow = 'hidden';
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, linkPassword);
+    await linkWithCredential(userCredential.user, pendingCredential);
+    const idToken = await userCredential.user.getIdToken();
+    const response = await fetch('/api/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    });
+    if (response.ok) {
+      document.dispatchEvent(new CustomEvent('auth-success'));
+      toast.success('¡Cuentas vinculadas exitosamente!');
+      authModal.close();
+      // Orion: Refresco total para aplicar el modo Admin sin publicidad
+      setTimeout(() => window.location.reload(), 500);
     } else {
-      document.body.removeAttribute('data-reader-modal');
-      document.documentElement.style.overflow = '';
+      throw new Error('Error al crear sesión después de vincular.');
     }
-  });
+  } catch (error) {
+    logError(error, 'Error durante la vinculación de cuenta');
+    linkErrorMessage = 'Error al vincular: credenciales incorrectas o problema de red.';
+    toast.error(linkErrorMessage);
+  } finally {
+    isLoading = false;
+  }
+}
+
+function togglePassword() {
+  showPassword = !showPassword;
+}
+
+// Astra: Sincronizar estado del body con el modal para ocultar el header
+$effect(() => {
+  if ($authModal.isOpen) {
+    document.body.setAttribute('data-reader-modal', 'open');
+    document.documentElement.style.overflow = 'hidden';
+  } else {
+    document.body.removeAttribute('data-reader-modal');
+    document.documentElement.style.overflow = '';
+  }
+});
 </script>
 
 {#if $authModal.isOpen}

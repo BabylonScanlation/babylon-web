@@ -1,8 +1,8 @@
 // src/pages/api/user/favorites-full.ts
 import type { APIRoute } from 'astro';
+import { and, desc, eq } from 'drizzle-orm';
+import { favorites, series } from '../../../db/schema';
 import { getDB } from '../../../lib/db';
-import { series, favorites } from '../../../db/schema';
-import { eq, and, desc } from 'drizzle-orm';
 
 // GET: Full details for Library page
 export const GET: APIRoute = async ({ locals }) => {
@@ -11,26 +11,27 @@ export const GET: APIRoute = async ({ locals }) => {
 
   try {
     const db = getDB(locals.runtime.env);
-    
-    // Fetch series favorites with join
-    const seriesFavs = await db.select({
-      id: favorites.id,
-      createdAt: favorites.createdAt,
-      series: {
-        id: series.id,
-        title: series.title,
-        slug: series.slug,
-        cover: series.coverImageUrl,
-        views: series.views
-      }
-    })
-    .from(favorites)
-    .innerJoin(series, eq(favorites.seriesId, series.id))
-    .where(and(eq(favorites.userId, user.uid), eq(favorites.type, 'series')))
-    .orderBy(desc(favorites.createdAt));
 
-    return new Response(JSON.stringify(seriesFavs), { 
-      headers: { 'Content-Type': 'application/json' } 
+    // Fetch series favorites with join
+    const seriesFavs = await db
+      .select({
+        id: favorites.id,
+        createdAt: favorites.createdAt,
+        series: {
+          id: series.id,
+          title: series.title,
+          slug: series.slug,
+          cover: series.coverImageUrl,
+          views: series.views,
+        },
+      })
+      .from(favorites)
+      .innerJoin(series, eq(favorites.seriesId, series.id))
+      .where(and(eq(favorites.userId, user.uid), eq(favorites.type, 'series')))
+      .orderBy(desc(favorites.createdAt));
+
+    return new Response(JSON.stringify(seriesFavs), {
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Favorites Full GET Error:', error);

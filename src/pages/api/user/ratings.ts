@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { getDB } from '../../../lib/db';
+import { desc, eq } from 'drizzle-orm';
 import { series, seriesRatings } from '../../../db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { getDB } from '../../../lib/db';
 import { logError } from '../../../lib/logError';
 
 export const GET: APIRoute = async ({ locals }) => {
@@ -13,7 +13,7 @@ export const GET: APIRoute = async ({ locals }) => {
 
   try {
     const db = getDB(runtime.env);
-    
+
     // Obtenemos todas las calificaciones del usuario con la info de la serie
     const ratedSeries = await db
       .select({
@@ -24,8 +24,8 @@ export const GET: APIRoute = async ({ locals }) => {
           title: series.title,
           slug: series.slug,
           cover: series.coverImageUrl,
-          views: series.views
-        }
+          views: series.views,
+        },
       })
       .from(seriesRatings)
       .innerJoin(series, eq(seriesRatings.seriesId, series.id))
@@ -34,7 +34,7 @@ export const GET: APIRoute = async ({ locals }) => {
       .all();
 
     return new Response(JSON.stringify(ratedSeries), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
     logError(error, 'Error al obtener calificaciones del usuario');

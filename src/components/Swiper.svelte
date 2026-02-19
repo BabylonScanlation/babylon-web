@@ -1,45 +1,45 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import Swiper from 'swiper';
-  import { Navigation, Pagination, Autoplay, FreeMode, Mousewheel, Scrollbar } from 'swiper/modules';
-  import type { SwiperOptions } from 'swiper/types';
-  
-  // Import Swiper styles
-  import 'swiper/css';
-  import 'swiper/css/navigation';
-  import 'swiper/css/pagination';
-  import 'swiper/css/free-mode';
-  import 'swiper/css/scrollbar';
+import { onDestroy, onMount } from 'svelte';
+import Swiper from 'swiper';
+import { Autoplay, FreeMode, Mousewheel, Navigation, Pagination, Scrollbar } from 'swiper/modules';
+import type { SwiperOptions } from 'swiper/types';
 
-  // This component is a generic wrapper for Swiper.js
-  
-  export let options: SwiperOptions = {};
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+import 'swiper/css/free-mode';
+import 'swiper/css/scrollbar';
 
-  let swiperContainer: HTMLElement;
-  let swiperInstance: Swiper | null = null;
+// This component is a generic wrapper for Swiper.js
 
-  onMount(() => {
-    if (swiperContainer) {
-      // Initialize Swiper
-      swiperInstance = new Swiper(swiperContainer, {
-        // Explicitly pass modules here to ensure they are attached to this instance
-        modules: [Navigation, Pagination, Autoplay, FreeMode, Mousewheel, Scrollbar],
-        ...options,
-      });
+export let options: SwiperOptions = {};
 
-      // Force autoplay start if enabled in options
-      if (options.autoplay && swiperInstance.autoplay) {
-        swiperInstance.autoplay.start();
-      }
+let swiperContainer: HTMLElement;
+let swiperInstance: Swiper | null = null;
+
+onMount(() => {
+  if (swiperContainer) {
+    // Initialize Swiper
+    swiperInstance = new Swiper(swiperContainer, {
+      // Explicitly pass modules here to ensure they are attached to this instance
+      modules: [Navigation, Pagination, Autoplay, FreeMode, Mousewheel, Scrollbar],
+      ...options,
+    });
+
+    // Force autoplay start if enabled in options
+    if (options.autoplay && swiperInstance.autoplay) {
+      swiperInstance.autoplay.start();
     }
-  });
+  }
+});
 
-  onDestroy(() => {
-    // Destroy Swiper instance to prevent memory leaks
-    if (swiperInstance) {
-      swiperInstance.destroy(true, true);
-    }
-  });
+onDestroy(() => {
+  // Destroy Swiper instance to prevent memory leaks
+  if (swiperInstance) {
+    swiperInstance.destroy(true, true);
+  }
+});
 </script>
 
 <style>

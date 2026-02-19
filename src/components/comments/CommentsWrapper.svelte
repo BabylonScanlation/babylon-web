@@ -1,504 +1,517 @@
 <script lang="ts">
-  /* eslint-disable */
-  import { onMount } from 'svelte';
-  import { fade, slide, scale } from 'svelte/transition';
-  import { quintOut, elasticOut } from 'svelte/easing';
-  import { toast } from '../../lib/toastStore';
-  import { timeAgo } from '../../lib/utils';
-  import { userStore } from '../../lib/userStore.svelte';
-  import { siteConfig } from '../../site.config';
-  import type { User, Comment } from '../../types';
+/* eslint-disable */
+import { onMount } from 'svelte';
+import { elasticOut, quintOut } from 'svelte/easing';
+import { fade, scale, slide } from 'svelte/transition';
+import { toast } from '../../lib/toastStore';
+import { userStore } from '../../lib/userStore.svelte';
+import { timeAgo } from '../../lib/utils';
+import { siteConfig } from '../../site.config';
+import type { Comment, User } from '../../types';
 
-  interface Props {
-    targetType: 'chapter' | 'series' | 'news';
-    targetId: number | string;
-    initialComments?: Comment[];
-    user?: User | null;
-  }
+interface Props {
+  targetType: 'chapter' | 'series' | 'news';
+  targetId: number | string;
+  initialComments?: Comment[];
+  user?: User | null;
+}
 
-  let { targetType, targetId, initialComments = [], user: initialUser = null }: Props = $props();
+let { targetType, targetId, initialComments = [], user: initialUser = null }: Props = $props();
 
-  // Orion: Mezclamos datos de SSR con el store reactivo para máxima fluidez y frescura
-  let user = $derived(userStore.user ? { ...initialUser, ...userStore.user } : initialUser);
+// Orion: Mezclamos datos de SSR con el store reactivo para máxima fluidez y frescura
+let user = $derived(userStore.user ? { ...initialUser, ...userStore.user } : initialUser);
 
-  const COMMENTS_VISIBLE_LIMIT = 5;
+const COMMENTS_VISIBLE_LIMIT = 5;
 
-  const sortNodes = (nodes: Comment[] | undefined) => {
-      if (!nodes || !Array.isArray(nodes)) return;
-      
-      const isPinnedRecursive = (node: Comment): boolean => {
-          if (node.isPinned) return true;
-          if (node.children && node.children.length > 0) {
-              return node.children.some(child => isPinnedRecursive(child));
-          }
-          return false;
-      };
+const sortNodes = (nodes: Comment[] | undefined) => {
+  if (!nodes || !Array.isArray(nodes)) return;
 
-      nodes.sort((a, b) => {
-        const aPinned = isPinnedRecursive(a);
-        const bPinned = isPinnedRecursive(b);
-
-        if (aPinned && !bPinned) return -1;
-        if (!aPinned && bPinned) return 1;
-        return b.id - a.id;
-      });
-
-      nodes.forEach(node => {
-        if (node.children && node.children.length > 0) {
-          sortNodes(node.children);
-        }
-      });
+  const isPinnedRecursive = (node: Comment): boolean => {
+    if (node.isPinned) return true;
+    if (node.children && node.children.length > 0) {
+      return node.children.some((child) => isPinnedRecursive(child));
+    }
+    return false;
   };
 
-  function buildCommentTree(flatComments: Comment[]): Comment[] {
-    // eslint-disable-next-line svelte/prefer-svelte-map
-    const commentMap = new Map<number, Comment>();
-    const roots: Comment[] = [];
+  nodes.sort((a, b) => {
+    const aPinned = isPinnedRecursive(a);
+    const bPinned = isPinnedRecursive(b);
 
-    flatComments.forEach(c => {
-      const isDeleted = !!c.isDeleted;
-      const isOwner = !!(user && (user.email === c.userEmail || user.uid === c.userId));
-      
-      const processed: Comment = {
-        ...c,
-        isOwner,
-        isEditing: false,
-        editedText: c.isDeleted ? '' : c.commentText,
-        showSpoiler: Boolean(c.showSpoiler),
-        username: c.username || 'Usuario',
-        // Orion: Si es el dueño, priorizamos el avatar del objeto user reactivo
-        avatarUrl: ((isOwner && user) ? (user.avatarUrl || c.avatarUrl) : c.avatarUrl) || '',
-        isDeleted: Boolean(c.isDeleted),
-        isAdminComment: Boolean(c.isAdminComment),
-        isPinned: Boolean(c.isPinned),
-        isSpoiler: Boolean(c.isSpoiler),
-        children: []
-      };
-      commentMap.set(c.id, processed);
-    });
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+    return b.id - a.id;
+  });
 
-    flatComments.forEach(c => {
-      const processed = commentMap.get(c.id)!;
-      if (c.parentId && commentMap.has(c.parentId)) {
-        commentMap.get(c.parentId)!.children!.push(processed);
-      } else {
-        roots.push(processed);
-      }
-    });
+  nodes.forEach((node) => {
+    if (node.children && node.children.length > 0) {
+      sortNodes(node.children);
+    }
+  });
+};
 
-    sortNodes(roots);
-    return roots;
-  }
+function buildCommentTree(flatComments: Comment[]): Comment[] {
+  // eslint-disable-next-line svelte/prefer-svelte-map
+  const commentMap = new Map<number, Comment>();
+  const roots: Comment[] = [];
 
-  let comments = $state<Comment[]>([]);
+  flatComments.forEach((c) => {
+    const isOwner = !!(user && (user.email === c.userEmail || user.uid === c.userId));
 
-  // Astra: Sincronización robusta con Astro View Transitions
-  $effect(() => {
-    // Forzamos la dependencia de initialComments y targetId
-    const data = initialComments;
-    const id = targetId;
-    
-    if (id) {
-        const safeComments = data && Array.isArray(data) ? data : [];
-        const tree = buildCommentTree(safeComments);
-        sortNodes(tree);
-        comments = tree;
+    const processed: Comment = {
+      ...c,
+      isOwner,
+      isEditing: false,
+      editedText: c.isDeleted ? '' : c.commentText,
+      showSpoiler: Boolean(c.showSpoiler),
+      username: c.username || 'Usuario',
+      // Orion: Si es el dueño, priorizamos el avatar del objeto user reactivo
+      avatarUrl: (isOwner && user ? user.avatarUrl || c.avatarUrl : c.avatarUrl) || '',
+      isDeleted: Boolean(c.isDeleted),
+      isAdminComment: Boolean(c.isAdminComment),
+      isPinned: Boolean(c.isPinned),
+      isSpoiler: Boolean(c.isSpoiler),
+      children: [],
+    };
+    commentMap.set(c.id, processed);
+  });
+
+  flatComments.forEach((c) => {
+    const processed = commentMap.get(c.id)!;
+    if (c.parentId && commentMap.has(c.parentId)) {
+      commentMap.get(c.parentId)!.children!.push(processed);
+    } else {
+      roots.push(processed);
     }
   });
 
-  let commentText = $state('');
-  let replyText = $state('');
-  let replyToId = $state<number | null>(null);
-  let showDeleteConfirmId = $state<number | null>(null);
-  let isSubmittingComment = $state(false);
-  let isDeletingCommentId = $state<number | null>(null);
-  let isSavingEditId = $state<number | null>(null);
-  let showAllComments = $state(false);
+  sortNodes(roots);
+  return roots;
+}
 
-  let expandedThreads = $state(new Set<number>());
+let comments = $state<Comment[]>([]);
 
-  function toggleThread(id: number) {
-      if (expandedThreads.has(id)) {
-          expandedThreads.delete(id);
-      } else {
-          expandedThreads.add(id);
-      }
-      expandedThreads = new Set(expandedThreads); // Trigger reactivity
+// Astra: Sincronización robusta con Astro View Transitions
+$effect(() => {
+  // Forzamos la dependencia de initialComments y targetId
+  const data = initialComments;
+  const id = targetId;
+
+  if (id) {
+    const safeComments = data && Array.isArray(data) ? data : [];
+    const tree = buildCommentTree(safeComments);
+    sortNodes(tree);
+    comments = tree;
   }
+});
 
-  let cooldownRemaining = $state(0);
+let commentText = $state('');
+let replyText = $state('');
+let replyToId = $state<number | null>(null);
+let showDeleteConfirmId = $state<number | null>(null);
+let isSubmittingComment = $state(false);
+let isDeletingCommentId = $state<number | null>(null);
+let isSavingEditId = $state<number | null>(null);
+let showAllComments = $state(false);
 
-  // Orion: Recuperar cooldown persistente inmediatamente al cargar el script
-  if (typeof window !== 'undefined') {
-      const lastCommentTime = localStorage.getItem(`${siteConfig.storage.prefix}last_comment_ts`);
-      if (lastCommentTime) {
-          const elapsed = Math.floor((Date.now() - parseInt(lastCommentTime)) / 1000);
-          if (elapsed < 30) {
-              cooldownRemaining = 30 - elapsed;
-              const timer = setInterval(() => {
-                  cooldownRemaining--;
-                  if (cooldownRemaining <= 0) {
-                      clearInterval(timer);
-                      localStorage.removeItem(`${siteConfig.storage.prefix}last_comment_ts`);
-                  }
-              }, 1000);
-          } else {
-              localStorage.removeItem(`${siteConfig.storage.prefix}last_comment_ts`);
-          }
-      }
+let expandedThreads = $state(new Set<number>());
+
+function toggleThread(id: number) {
+  if (expandedThreads.has(id)) {
+    expandedThreads.delete(id);
+  } else {
+    expandedThreads.add(id);
   }
+  expandedThreads = new Set(expandedThreads); // Trigger reactivity
+}
 
-  let isFocused = $state(false);
-  let votingIds = $state(new Set<number>());
+let cooldownRemaining = $state(0);
 
-  async function handleVote(comment: Comment, voteValue: number) {
-    if (!user) return toast.error('Inicia sesión para votar');
-    if (votingIds.has(comment.id)) return;
-
-    votingIds.add(comment.id);
-
-    const previousVote = comment.userVote || 0;
-    const previousLikes = comment.likes || 0;
-    const previousDislikes = comment.dislikes || 0;
-
-    let newVote = voteValue;
-    if (previousVote === voteValue) newVote = 0;
-
-    comment.userVote = newVote;
-
-    if (previousVote === 1) comment.likes = Math.max(0, (comment.likes || 0) - 1);
-    if (previousVote === -1) comment.dislikes = Math.max(0, (comment.dislikes || 0) - 1);
-
-    if (newVote === 1) comment.likes = (comment.likes || 0) + 1;
-    if (newVote === -1) comment.dislikes = (comment.dislikes || 0) + 1;
-
-    try {
-        const res = await fetch('/api/comments/vote', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                targetType,
-                commentId: comment.id,
-                vote: newVote
-            })
-        });
-
-        if (res.status === 401) {
-            userStore.sync();
-            throw new Error('Sesión expirada');
+// Orion: Recuperar cooldown persistente inmediatamente al cargar el script
+if (typeof window !== 'undefined') {
+  const lastCommentTime = localStorage.getItem(`${siteConfig.storage.prefix}last_comment_ts`);
+  if (lastCommentTime) {
+    const elapsed = Math.floor((Date.now() - parseInt(lastCommentTime)) / 1000);
+    if (elapsed < 30) {
+      cooldownRemaining = 30 - elapsed;
+      const timer = setInterval(() => {
+        cooldownRemaining--;
+        if (cooldownRemaining <= 0) {
+          clearInterval(timer);
+          localStorage.removeItem(`${siteConfig.storage.prefix}last_comment_ts`);
         }
-
-        if (!res.ok) throw new Error();
-
-        setTimeout(() => {
-            votingIds.delete(comment.id);
-        }, 500);
-    } catch {
-        comment.userVote = previousVote;
-        comment.likes = previousLikes;
-        comment.dislikes = previousDislikes;
-        votingIds.delete(comment.id);
-        toast.error('Error al votar');
+      }, 1000);
+    } else {
+      localStorage.removeItem(`${siteConfig.storage.prefix}last_comment_ts`);
     }
   }
+}
 
-  onMount(() => {
-      // Orion: Sincronizar store al montar
-      if (userStore.user) {
-          userStore.sync();
-      }
+let isFocused = $state(false);
+let votingIds = $state(new Set<number>());
 
-      // Astra: Asegurar sincronización inicial en navegación
-      if (initialComments && comments.length === 0) {
-          const tree = buildCommentTree(initialComments);
-          sortNodes(tree);
-          comments = tree;
-      }
+async function handleVote(comment: Comment, voteValue: number) {
+  if (!user) return toast.error('Inicia sesión para votar');
+  if (votingIds.has(comment.id)) return;
 
-      const handleAuthSuccess = () => {
-          // Si el evento de login ocurre, forzamos un refresh del store si fuera necesario
-      };
-      document.addEventListener('auth-success', handleAuthSuccess);
-      return () => document.removeEventListener('auth-success', handleAuthSuccess);
-  });
+  votingIds.add(comment.id);
 
-  let charCounter = $derived(`${commentText.length}/1000`);
-  let visibleComments = $derived((comments && Array.isArray(comments)) ? (showAllComments ? comments : comments.slice(0, COMMENTS_VISIBLE_LIMIT)) : []);
+  const previousVote = comment.userVote || 0;
+  const previousLikes = comment.likes || 0;
+  const previousDislikes = comment.dislikes || 0;
 
-  const formatCommentDateClient = (dateString: string | number) => {
-    if (!dateString) return '';
-    const label = timeAgo(dateString);
-    return label.charAt(0).toUpperCase() + label.slice(1);
+  let newVote = voteValue;
+  if (previousVote === voteValue) newVote = 0;
+
+  comment.userVote = newVote;
+
+  if (previousVote === 1) comment.likes = Math.max(0, (comment.likes || 0) - 1);
+  if (previousVote === -1) comment.dislikes = Math.max(0, (comment.dislikes || 0) - 1);
+
+  if (newVote === 1) comment.likes = (comment.likes || 0) + 1;
+  if (newVote === -1) comment.dislikes = (comment.dislikes || 0) + 1;
+
+  try {
+    const res = await fetch('/api/comments/vote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        targetType,
+        commentId: comment.id,
+        vote: newVote,
+      }),
+    });
+
+    if (res.status === 401) {
+      userStore.sync();
+      throw new Error('Sesión expirada');
+    }
+
+    if (!res.ok) throw new Error();
+
+    setTimeout(() => {
+      votingIds.delete(comment.id);
+    }, 500);
+  } catch {
+    comment.userVote = previousVote;
+    comment.likes = previousLikes;
+    comment.dislikes = previousDislikes;
+    votingIds.delete(comment.id);
+    toast.error('Error al votar');
+  }
+}
+
+onMount(() => {
+  // Orion: Sincronizar store al montar
+  if (userStore.user) {
+    userStore.sync();
+  }
+
+  // Astra: Asegurar sincronización inicial en navegación
+  if (initialComments && comments.length === 0) {
+    const tree = buildCommentTree(initialComments);
+    sortNodes(tree);
+    comments = tree;
+  }
+
+  const handleAuthSuccess = () => {
+    // Si el evento de login ocurre, forzamos un refresh del store si fuera necesario
+  };
+  document.addEventListener('auth-success', handleAuthSuccess);
+  return () => document.removeEventListener('auth-success', handleAuthSuccess);
+});
+
+let charCounter = $derived(`${commentText.length}/1000`);
+let visibleComments = $derived(
+  comments && Array.isArray(comments)
+    ? showAllComments
+      ? comments
+      : comments.slice(0, COMMENTS_VISIBLE_LIMIT)
+    : []
+);
+
+const formatCommentDateClient = (dateString: string | number) => {
+  if (!dateString) return '';
+  const label = timeAgo(dateString);
+  return label.charAt(0).toUpperCase() + label.slice(1);
+};
+
+const isEdited = (comment: Comment) => {
+  if (!comment.updatedAt || !comment.createdAt) return false;
+  const normalize = (d: string | number) => {
+    if (typeof d === 'number') return d;
+    // Orion: Normalizar formato SQLite a ISO para que JS no se confunda
+    let clean = d;
+    if (!d.includes('T') && !d.endsWith('Z')) {
+      clean = d.replace(' ', 'T') + 'Z';
+    }
+    return new Date(clean).getTime();
   };
 
-  const isEdited = (comment: Comment) => {
-      if (!comment.updatedAt || !comment.createdAt) return false;
-      const normalize = (d: string | number) => {
-          if (typeof d === 'number') return d;
-          // Orion: Normalizar formato SQLite a ISO para que JS no se confunda
-          let clean = d;
-          if (!d.includes('T') && !d.endsWith('Z')) {
-              clean = d.replace(' ', 'T') + 'Z';
-          }
-          return new Date(clean).getTime();
-      };
-      
-      const created = normalize(comment.createdAt);
-      const updated = normalize(comment.updatedAt);
-      
-      // Orion: Si la diferencia es mayor a 2 segundos, se considera editado
-      return updated > (created + 2000);
-  };
+  const created = normalize(comment.createdAt);
+  const updated = normalize(comment.updatedAt);
 
-  const getAvatarColor = (identifier: string) => {
-    const seed = identifier || 'Anonymous';
-    const colors = [
-        'linear-gradient(135deg, #FF6B6B, #EE5253)',
-        'linear-gradient(135deg, #4ECDC4, #22A6B3)',
-        'linear-gradient(135deg, #A29BFE, #6C5CE7)',
-        'linear-gradient(135deg, #FD79A8, #E84393)',
-        'linear-gradient(135deg, #FDCB6E, #E17055)',
-        'linear-gradient(135deg, #6c5ce7, #a29bfe)',
-        'linear-gradient(135deg, #00b894, #55efc4)'
-    ];
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-    return colors[Math.abs(hash) % colors.length];
-  };
+  // Orion: Si la diferencia es mayor a 2 segundos, se considera editado
+  return updated > created + 2000;
+};
 
-  const getInitials = (name: string) => (name || '?').substring(0, 1).toUpperCase();
+const getAvatarColor = (identifier: string) => {
+  const seed = identifier || 'Anonymous';
+  const colors = [
+    'linear-gradient(135deg, #FF6B6B, #EE5253)',
+    'linear-gradient(135deg, #4ECDC4, #22A6B3)',
+    'linear-gradient(135deg, #A29BFE, #6C5CE7)',
+    'linear-gradient(135deg, #FD79A8, #E84393)',
+    'linear-gradient(135deg, #FDCB6E, #E17055)',
+    'linear-gradient(135deg, #6c5ce7, #a29bfe)',
+    'linear-gradient(135deg, #00b894, #55efc4)',
+  ];
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
 
-  async function handleSubmit(e: Event, parentId: number | null = null) {
-    e.preventDefault();
-    if (!user) return toast.error('Inicia sesión para comentar');
+const getInitials = (name: string) => (name || '?').substring(0, 1).toUpperCase();
 
-    const text = parentId ? replyText : commentText;
-    if (!text?.trim()) return;
-    if (cooldownRemaining > 0) return toast.warning(`Espera ${cooldownRemaining}s`);
+async function handleSubmit(e: Event, parentId: number | null = null) {
+  e.preventDefault();
+  if (!user) return toast.error('Inicia sesión para comentar');
 
-    isSubmittingComment = true;
+  const text = parentId ? replyText : commentText;
+  if (!text?.trim()) return;
+  if (cooldownRemaining > 0) return toast.warning(`Espera ${cooldownRemaining}s`);
 
-    try {
-      const url = targetType === 'series'
+  isSubmittingComment = true;
+
+  try {
+    const url =
+      targetType === 'series'
         ? '/api/comments/series/add'
         : targetType === 'news'
           ? '/api/comments/news/add'
           : '/api/comments/add';
 
-      const body = targetType === 'series'
+    const body =
+      targetType === 'series'
         ? { seriesId: targetId, commentText: text, parentId }
         : targetType === 'news'
           ? { newsId: targetId, commentText: text, parentId }
           : { chapterId: targetId, commentText: text, parentId };
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
 
-      if (res.status === 401) {
-          toast.error('Sesión expirada. Por favor, inicia sesión de nuevo.');
-          userStore.sync(); // Intentar recuperar sesión
-          return;
-      }
-      
-      if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || 'Error al publicar');
-      }
+    if (res.status === 401) {
+      toast.error('Sesión expirada. Por favor, inicia sesión de nuevo.');
+      userStore.sync(); // Intentar recuperar sesión
+      return;
+    }
 
-      const newC = await res.json();
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || 'Error al publicar');
+    }
 
-      const processedNew: Comment = {
-        ...newC,
-        isOwner: true,
-        isNew: true,
-        isAdminComment: !!user.isAdmin,
-        username: user.username || user.displayName || 'Usuario',
-        avatarUrl: user.avatarUrl || undefined,
-        children: []
+    const newC = await res.json();
+
+    const processedNew: Comment = {
+      ...newC,
+      isOwner: true,
+      isNew: true,
+      isAdminComment: !!user.isAdmin,
+      username: user.username || user.displayName || 'Usuario',
+      avatarUrl: user.avatarUrl || undefined,
+      children: [],
+    };
+
+    if (parentId) {
+      const addToTree = (nodes: Comment[]): boolean => {
+        for (const node of nodes) {
+          if (node.id === parentId) {
+            if (!node.children) node.children = [];
+            node.children.unshift(processedNew);
+            return true;
+          }
+          if (node.children && addToTree(node.children)) return true;
+        }
+        return false;
       };
+      addToTree(comments);
+      replyToId = null;
+      replyText = '';
+    } else {
+      comments = [processedNew, ...comments];
+      commentText = '';
+      isFocused = false;
+    }
 
-      if (parentId) {
-        const addToTree = (nodes: Comment[]): boolean => {
-            for (const node of nodes) {
-                if (node.id === parentId) {
-                    if (!node.children) node.children = [];
-                    node.children.unshift(processedNew);
-                    return true;
-                }
-                if (node.children && addToTree(node.children)) return true;
-            }
-            return false;
-        };
-        addToTree(comments);
-        replyToId = null;
-        replyText = '';
-      } else {
-        comments = [processedNew, ...comments];
-        commentText = '';
-        isFocused = false;
+    window.dispatchEvent(
+      new CustomEvent('comment-count-change', {
+        detail: { count: comments.length, targetId, targetType },
+      })
+    );
+
+    sortNodes(comments);
+
+    // Orion: Guardar timestamp para cooldown persistente
+    localStorage.setItem(`${siteConfig.storage.prefix}last_comment_ts`, Date.now().toString());
+
+    cooldownRemaining = 30;
+    const timer = setInterval(() => {
+      cooldownRemaining--;
+      if (cooldownRemaining <= 0) {
+        clearInterval(timer);
+        localStorage.removeItem(`${siteConfig.storage.prefix}last_comment_ts`);
       }
-      
-      window.dispatchEvent(new CustomEvent('comment-count-change', { 
-        detail: { count: comments.length, targetId, targetType } 
-      }));
-      
-      sortNodes(comments);
-
-      // Orion: Guardar timestamp para cooldown persistente
-      localStorage.setItem(`${siteConfig.storage.prefix}last_comment_ts`, Date.now().toString());
-      
-      cooldownRemaining = 30;
-      const timer = setInterval(() => {
-        cooldownRemaining--;
-        if (cooldownRemaining <= 0) {
-            clearInterval(timer);
-            localStorage.removeItem(`${siteConfig.storage.prefix}last_comment_ts`);
-        }
-      }, 1000);
-      toast.success('¡Comentario publicado!');
-    } catch {
-      toast.error('Error al publicar');
-    } finally {
-      isSubmittingComment = false;
-    }
+    }, 1000);
+    toast.success('¡Comentario publicado!');
+  } catch {
+    toast.error('Error al publicar');
+  } finally {
+    isSubmittingComment = false;
   }
+}
 
-  async function handleSave(comment: Comment) {
-    if (!comment.editedText) return;
-    isSavingEditId = comment.id;
-    try {
-        const url = targetType === 'series'
-          ? '/api/comments/series/edit'
-          : targetType === 'news'
-            ? '/api/comments/news/manage'
-            : '/api/comments/edit';
+async function handleSave(comment: Comment) {
+  if (!comment.editedText) return;
+  isSavingEditId = comment.id;
+  try {
+    const url =
+      targetType === 'series'
+        ? '/api/comments/series/edit'
+        : targetType === 'news'
+          ? '/api/comments/news/manage'
+          : '/api/comments/edit';
 
-        const res = await fetch(url, {
-            method: targetType === 'news' ? 'PUT' : 'POST',
-            body: JSON.stringify({ commentId: comment.id, commentText: comment.editedText })
-        });
-        
-        if (res.status === 401) {
-            toast.error('Sesión expirada');
-            userStore.sync();
-            return;
-        }
+    const res = await fetch(url, {
+      method: targetType === 'news' ? 'PUT' : 'POST',
+      body: JSON.stringify({ commentId: comment.id, commentText: comment.editedText }),
+    });
 
-        if(!res.ok) throw new Error();
-        comment.commentText = comment.editedText;
-        comment.isEditing = false;
-        comment.updatedAt = new Date().toISOString();
-        toast.success('Editado correctamente');
-    } catch {
-        toast.error('Error al editar');
-    } finally {
-        isSavingEditId = null;
+    if (res.status === 401) {
+      toast.error('Sesión expirada');
+      userStore.sync();
+      return;
     }
+
+    if (!res.ok) throw new Error();
+    comment.commentText = comment.editedText;
+    comment.isEditing = false;
+    comment.updatedAt = new Date().toISOString();
+    toast.success('Editado correctamente');
+  } catch {
+    toast.error('Error al editar');
+  } finally {
+    isSavingEditId = null;
   }
+}
 
-  async function confirmDelete(commentId: number) {
-      isDeletingCommentId = commentId;
-      try {
-          const url = targetType === 'series'
-            ? '/api/comments/series/delete-own'
-            : targetType === 'news'
-              ? '/api/comments/news/manage'
-              : '/api/comments/delete';
+async function confirmDelete(commentId: number) {
+  isDeletingCommentId = commentId;
+  try {
+    const url =
+      targetType === 'series'
+        ? '/api/comments/series/delete-own'
+        : targetType === 'news'
+          ? '/api/comments/news/manage'
+          : '/api/comments/delete';
 
-          const res = await fetch(url, {
-              method: targetType === 'news' ? 'DELETE' : 'POST',
-              headers: {
-                  'Accept': 'application/json',
-                  'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ commentId })
-          });
+    const res = await fetch(url, {
+      method: targetType === 'news' ? 'DELETE' : 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ commentId }),
+    });
 
-          if (res.status === 401) {
-              toast.error('Sesión expirada');
-              userStore.sync();
-              return;
+    if (res.status === 401) {
+      toast.error('Sesión expirada');
+      userStore.sync();
+      return;
+    }
+
+    if (!res.ok) throw new Error();
+
+    const updateInTree = (nodes: Comment[]) => {
+      for (const node of nodes) {
+        if (node.id === commentId) {
+          node.isDeleted = true;
+          // Orion: Preservamos los estados de identidad y novedad
+          const wasNew = node.isNew;
+          const wasOwner = node.isOwner;
+          const wasAdmin = node.isAdminComment;
+
+          if (!user?.isAdmin) {
+            node.commentText = '[Comentario eliminado]';
+            node.username = 'Usuario';
+            node.avatarUrl = undefined;
           }
 
-          if(!res.ok) throw new Error();
-
-          const updateInTree = (nodes: Comment[]) => {
-              for (const node of nodes) {
-                  if (node.id === commentId) {
-                      node.isDeleted = true;
-                      // Orion: Preservamos los estados de identidad y novedad
-                      const wasNew = node.isNew;
-                      const wasOwner = node.isOwner;
-                      const wasAdmin = node.isAdminComment;
-
-                      if (!user?.isAdmin) {
-                        node.commentText = '[Comentario eliminado]';
-                        node.username = 'Usuario';
-                        node.avatarUrl = undefined;
-                      }
-                      
-                      // Reforzamos la permanencia de los badges
-                      node.isNew = wasNew;
-                      node.isOwner = wasOwner;
-                      node.isAdminComment = wasAdmin;
-                      return;
-                  }
-                  if (node.children) updateInTree(node.children);
-              }
-          };
-          updateInTree(comments);
-          // Orion: Forzamos re-asignación para disparar la reactividad de Svelte 5
-          comments = [...comments];
-
-          window.dispatchEvent(new CustomEvent('comment-count-change', { 
-            detail: { count: comments.length, targetId, targetType } 
-          }));
-
-          toast.success('Comentario eliminado');
-      } catch {
-          toast.error('Error al eliminar');
-      } finally {
-          isDeletingCommentId = null;
-          showDeleteConfirmId = null;
+          // Reforzamos la permanencia de los badges
+          node.isNew = wasNew;
+          node.isOwner = wasOwner;
+          node.isAdminComment = wasAdmin;
+          return;
+        }
+        if (node.children) updateInTree(node.children);
       }
-  }
+    };
+    updateInTree(comments);
+    // Orion: Forzamos re-asignación para disparar la reactividad de Svelte 5
+    comments = [...comments];
 
-  function toggleReply(id: number) {
-      if (replyToId !== id) replyText = '';
-      replyToId = replyToId === id ? null : id;
-  }
+    window.dispatchEvent(
+      new CustomEvent('comment-count-change', {
+        detail: { count: comments.length, targetId, targetType },
+      })
+    );
 
-  async function handleTogglePin(comment: Comment) {
-      if (!user?.isAdmin) return;
-      const previousState = comment.isPinned;
-      const newState = !previousState;
-      comment.isPinned = newState;
-      const treeCopy = [...comments];
-      sortNodes(treeCopy);
-      comments = treeCopy;
-      
-      try {
-          const res = await fetch('/api/comments/pin', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                  commentId: comment.id,
-                  targetType,
-                  isPinned: newState
-              })
-          });
-          if (!res.ok) throw new Error();
-          toast.success(newState ? 'Comentario fijado' : 'Comentario desfijado');
-      } catch {
-          comment.isPinned = previousState;
-          sortNodes(comments);
-          comments = [...comments];
-          toast.error('Error al cambiar estado de fijado');
-      }
+    toast.success('Comentario eliminado');
+  } catch {
+    toast.error('Error al eliminar');
+  } finally {
+    isDeletingCommentId = null;
+    showDeleteConfirmId = null;
   }
+}
+
+function toggleReply(id: number) {
+  if (replyToId !== id) replyText = '';
+  replyToId = replyToId === id ? null : id;
+}
+
+async function handleTogglePin(comment: Comment) {
+  if (!user?.isAdmin) return;
+  const previousState = comment.isPinned;
+  const newState = !previousState;
+  comment.isPinned = newState;
+  const treeCopy = [...comments];
+  sortNodes(treeCopy);
+  comments = treeCopy;
+
+  try {
+    const res = await fetch('/api/comments/pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        commentId: comment.id,
+        targetType,
+        isPinned: newState,
+      }),
+    });
+    if (!res.ok) throw new Error();
+    toast.success(newState ? 'Comentario fijado' : 'Comentario desfijado');
+  } catch {
+    comment.isPinned = previousState;
+    sortNodes(comments);
+    comments = [...comments];
+    toast.error('Error al cambiar estado de fijado');
+  }
+}
 </script>
 
 <div class="comments-wrapper">

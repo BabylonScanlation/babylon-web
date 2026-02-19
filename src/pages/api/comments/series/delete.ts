@@ -1,15 +1,11 @@
 // src/pages/api/comments/series/delete.ts
 import type { APIRoute } from 'astro';
-import { logError } from '../../../../lib/logError';
-import { getDB } from '../../../../lib/db';
-import { seriesComments } from '../../../../db/schema';
 import { eq } from 'drizzle-orm';
+import { seriesComments } from '../../../../db/schema';
+import { getDB } from '../../../../lib/db';
+import { logError } from '../../../../lib/logError';
 
-export const POST: APIRoute = async ({
-  request,
-  redirect,
-  locals,
-}) => {
+export const POST: APIRoute = async ({ request, redirect, locals }) => {
   const referer = request.headers.get('Referer') || '/admin/comments';
 
   if (!locals.user?.isAdmin) {

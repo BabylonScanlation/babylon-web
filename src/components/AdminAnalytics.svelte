@@ -1,110 +1,113 @@
 <script>
-  import { onMount } from 'svelte';
-  import { Chart, registerables } from 'chart.js';
-  import { fade } from 'svelte/transition';
+import { Chart, registerables } from 'chart.js';
+import { onMount } from 'svelte';
+import { fade } from 'svelte/transition';
 
-  let summary = { totalViews: 0, totalUsers: 0, totalSeries: 0 };
-  let engagement = { topReactedSeries: [], topCommenters: [] };
-  let categories = { byType: [], byDemographic: [] };
-  let topSeriesData = [];
-  let loading = true;
-  let selectedRange = '7';
-  
-  let dailyChartCanvas;
-  let topSeriesChartCanvas;
-  let typeChartCanvas;
-  let demoChartCanvas;
+let summary = { totalViews: 0, totalUsers: 0, totalSeries: 0 };
+let engagement = { topReactedSeries: [], topCommenters: [] };
+let categories = { byType: [], byDemographic: [] };
+let topSeriesData = [];
+let loading = true;
+let selectedRange = '7';
 
-  let charts = { daily: null, top: null, type: null, demo: null };
+let dailyChartCanvas;
+let topSeriesChartCanvas;
+let typeChartCanvas;
+let demoChartCanvas;
 
-  const palette = {
-    primary: '#4facfe',
-    secondary: '#00f2fe',
-    accent: '#f093fb',
-    success: '#4ade80',
-    chart: ['#4facfe', '#f093fb', '#4ade80', '#f6d365', '#ff6b6b']
-  };
+let charts = { daily: null, top: null, type: null, demo: null };
 
-  async function fetchData() {
-    try {
-      loading = true;
-      const res = await fetch(`/api/admin/stats/all?range=${selectedRange}`);
-      if (!res.ok) throw new Error('Error stats');
-      
-      const data = await res.json();
-      summary = data.summary;
-      engagement = data.engagement;
-      categories = data.categories;
-      topSeriesData = data.topSeries;
+const palette = {
+  primary: '#4facfe',
+  secondary: '#00f2fe',
+  accent: '#f093fb',
+  success: '#4ade80',
+  chart: ['#4facfe', '#f093fb', '#4ade80', '#f6d365', '#ff6b6b'],
+};
 
-      renderDailyChart(data.dailyViews);
-      renderTopSeriesChart(topSeriesData);
-      
-      if (categories) {
-        renderCategoryPieChart('type', typeChartCanvas, categories.byType);
-        renderCategoryPieChart('demo', demoChartCanvas, categories.byDemographic);
-      }
-    } catch (e) {
-      console.error('Analytics error:', e);
-    } finally {
-      loading = false;
+async function fetchData() {
+  try {
+    loading = true;
+    const res = await fetch(`/api/admin/stats/all?range=${selectedRange}`);
+    if (!res.ok) throw new Error('Error stats');
+
+    const data = await res.json();
+    summary = data.summary;
+    engagement = data.engagement;
+    categories = data.categories;
+    topSeriesData = data.topSeries;
+
+    renderDailyChart(data.dailyViews);
+    renderTopSeriesChart(topSeriesData);
+
+    if (categories) {
+      renderCategoryPieChart('type', typeChartCanvas, categories.byType);
+      renderCategoryPieChart('demo', demoChartCanvas, categories.byDemographic);
     }
+  } catch (e) {
+    console.error('Analytics error:', e);
+  } finally {
+    loading = false;
   }
+}
 
-  function renderCategoryPieChart(key, canvas, data) {
-    if (!canvas || !data) return;
-    if (charts[key]) charts[key].destroy();
-    
-    // Astra: Detección de móvil para posicionar la leyenda
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+function renderCategoryPieChart(key, canvas, data) {
+  if (!canvas || !data) return;
+  if (charts[key]) charts[key].destroy();
 
-    charts[key] = new Chart(canvas, {
-      type: 'doughnut',
-      data: {
-        labels: data.map(d => d.name || 'N/A'),
-        datasets: [{
-          data: data.map(d => d.count),
+  // Astra: Detección de móvil para posicionar la leyenda
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
+  charts[key] = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: data.map((d) => d.name || 'N/A'),
+      datasets: [
+        {
+          data: data.map((d) => d.count),
           backgroundColor: palette.chart,
           hoverOffset: 10,
-          borderWidth: 0
-        }]
+          borderWidth: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '75%',
+      plugins: {
+        legend: {
+          position: isMobile ? 'bottom' : 'right',
+          labels: {
+            color: '#888',
+            font: { size: 10, weight: 'bold' },
+            padding: isMobile ? 10 : 15,
+            usePointStyle: true,
+            boxWidth: 8,
+          },
+        },
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '75%',
-        plugins: { 
-            legend: { 
-                position: isMobile ? 'bottom' : 'right', 
-                labels: { 
-                    color: '#888', 
-                    font: { size: 10, weight: 'bold' }, 
-                    padding: isMobile ? 10 : 15, 
-                    usePointStyle: true,
-                    boxWidth: 8
-                } 
-            } 
-        }
-      }
-    });
-  }
+    },
+  });
+}
 
-  function renderDailyChart(data) {
-    if (!dailyChartCanvas || !data) return;
-    if (charts.daily) charts.daily.destroy();
-    const ctx = dailyChartCanvas.getContext('2d');
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(79, 172, 254, 0.4)');
-    gradient.addColorStop(1, 'rgba(79, 172, 254, 0)');
+function renderDailyChart(data) {
+  if (!dailyChartCanvas || !data) return;
+  if (charts.daily) charts.daily.destroy();
+  const ctx = dailyChartCanvas.getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+  gradient.addColorStop(0, 'rgba(79, 172, 254, 0.4)');
+  gradient.addColorStop(1, 'rgba(79, 172, 254, 0)');
 
-    const labels = data.map(d => d.date).reverse();
-    const counts = data.map(d => d.count).reverse();
-    
-    charts.daily = new Chart(dailyChartCanvas, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
+  const labels = data.map((d) => d.date).reverse();
+  const counts = data.map((d) => d.count).reverse();
+
+  charts.daily = new Chart(dailyChartCanvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
           label: 'Vistas',
           data: counts,
           borderColor: palette.primary,
@@ -114,69 +117,82 @@
           pointHoverRadius: 6,
           backgroundColor: gradient,
           fill: true,
-          tension: 0.4
-        }]
+          tension: 0.4,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#666', font: { size: 10 } },
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: '#666', font: { size: 10 }, maxRotation: 45 },
+        },
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { intersect: false, mode: 'index' },
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666', font: { size: 10 } } },
-          x: { grid: { display: false }, ticks: { color: '#666', font: { size: 10 }, maxRotation: 45 } }
-        }
-      }
-    });
-  }
+    },
+  });
+}
 
-  function renderTopSeriesChart(data) {
-    if (!topSeriesChartCanvas || !data) return;
-    if (charts.top) charts.top.destroy();
-    charts.top = new Chart(topSeriesChartCanvas, {
-      type: 'bar',
-      data: {
-        labels: data.map(d => d.title.length > 12 ? d.title.substring(0, 12) + '..' : d.title),
-        datasets: [{
-          data: data.map(d => d.viewCount),
+function renderTopSeriesChart(data) {
+  if (!topSeriesChartCanvas || !data) return;
+  if (charts.top) charts.top.destroy();
+  charts.top = new Chart(topSeriesChartCanvas, {
+    type: 'bar',
+    data: {
+      labels: data.map((d) => (d.title.length > 12 ? d.title.substring(0, 12) + '..' : d.title)),
+      datasets: [
+        {
+          data: data.map((d) => d.viewCount),
           backgroundColor: palette.accent,
           borderRadius: 20,
           barThickness: 'flex',
-          maxBarThickness: 12
-        }]
+          maxBarThickness: 12,
+        },
+      ],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { display: false }, ticks: { display: false } },
+        y: {
+          grid: { display: false },
+          ticks: { color: '#888', font: { weight: 'bold', size: 10 } },
+        },
       },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { beginAtZero: true, grid: { display: false }, ticks: { display: false } },
-          y: { grid: { display: false }, ticks: { color: '#888', font: { weight: 'bold', size: 10 } } }
-        }
-      }
-    });
-  }
-
-  function handleRangeChange(range) {
-    selectedRange = range;
-    fetchData();
-  }
-
-  onMount(() => {
-    Chart.register(...registerables);
-    fetchData();
-    
-    // Astra: Escuchar redimensionamiento para actualizar leyendas
-    const handleResize = () => {
-        if (categories.byType.length > 0) {
-            renderCategoryPieChart('type', typeChartCanvas, categories.byType);
-            renderCategoryPieChart('demo', demoChartCanvas, categories.byDemographic);
-        }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    },
   });
+}
+
+function handleRangeChange(range) {
+  selectedRange = range;
+  fetchData();
+}
+
+onMount(() => {
+  Chart.register(...registerables);
+  fetchData();
+
+  // Astra: Escuchar redimensionamiento para actualizar leyendas
+  const handleResize = () => {
+    if (categories.byType.length > 0) {
+      renderCategoryPieChart('type', typeChartCanvas, categories.byType);
+      renderCategoryPieChart('demo', demoChartCanvas, categories.byDemographic);
+    }
+  };
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+});
 </script>
 
 <div class="analytics-container" in:fade>

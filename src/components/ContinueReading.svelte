@@ -1,43 +1,43 @@
 <script>
-  import { onMount } from 'svelte';
-  import { fade } from 'svelte/transition';
-  import Swiper from './Swiper.svelte';
-  import { timeAgo } from '../lib/utils';
+import { onMount } from 'svelte';
+import { fade } from 'svelte/transition';
+import { timeAgo } from '../lib/utils';
+import Swiper from './Swiper.svelte';
 
-  let progressList = [];
-  let isAuthenticated = false;
+let progressList = [];
+let isAuthenticated = false;
 
-  async function checkAuthAndLoadProgress() {
-    try {
-      const authRes = await fetch('/api/auth/status');
-      const userData = await authRes.json();
-      
-      if (userData && userData.uid) {
-        isAuthenticated = true;
-        const res = await fetch('/api/user/progress');
-        if (res.ok) {
-          const data = await res.json();
-          progressList = data.progress || [];
-        }
-      } else {
-        isAuthenticated = false;
-        progressList = [];
+async function checkAuthAndLoadProgress() {
+  try {
+    const authRes = await fetch('/api/auth/status');
+    const userData = await authRes.json();
+
+    if (userData && userData.uid) {
+      isAuthenticated = true;
+      const res = await fetch('/api/user/progress');
+      if (res.ok) {
+        const data = await res.json();
+        progressList = data.progress || [];
       }
-    } catch (e) {
-      console.error('Failed to load progress', e);
+    } else {
+      isAuthenticated = false;
+      progressList = [];
     }
+  } catch (e) {
+    console.error('Failed to load progress', e);
   }
+}
 
-  onMount(() => {
-    checkAuthAndLoadProgress();
-    
-    const handleAuthSuccess = () => checkAuthAndLoadProgress();
-    document.addEventListener('auth-success', handleAuthSuccess);
-    
-    return () => {
-      document.removeEventListener('auth-success', handleAuthSuccess);
-    };
-  });
+onMount(() => {
+  checkAuthAndLoadProgress();
+
+  const handleAuthSuccess = () => checkAuthAndLoadProgress();
+  document.addEventListener('auth-success', handleAuthSuccess);
+
+  return () => {
+    document.removeEventListener('auth-success', handleAuthSuccess);
+  };
+});
 </script>
 
 {#if isAuthenticated && progressList.length > 0}

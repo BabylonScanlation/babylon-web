@@ -1,6 +1,6 @@
-import type { APIRoute, APIContext } from 'astro';
-import { logError } from './logError';
+import type { APIContext, APIRoute } from 'astro';
 import type { getDB } from './db';
+import { logError } from './logError';
 
 export type DrizzleDB = ReturnType<typeof getDB>;
 
@@ -15,9 +15,7 @@ export type ApiHandler = (
     locals: APIContext['locals'] & {
       db: DrizzleDB;
 
-      user:
-        | (APIContext['locals']['user'] & { uid: string; isAdmin: boolean })
-        | undefined;
+      user: (APIContext['locals']['user'] & { uid: string; isAdmin: boolean }) | undefined;
     };
   }
 ) => Promise<Response>;
@@ -27,7 +25,6 @@ export function createApiRoute(
 
   handler: ApiHandler
 ): APIRoute {
-
   return async (context: APIContext): Promise<Response> => {
     const { locals, request } = context;
 
@@ -57,12 +54,8 @@ export function createApiRoute(
     }
 
     try {
-
       if (!db) {
-        logError(
-          'Database connection not found in API context.',
-          'API Middleware Error'
-        );
+        logError('Database connection not found in API context.', 'API Middleware Error');
 
         return new Response(
           JSON.stringify({
@@ -74,9 +67,7 @@ export function createApiRoute(
 
       const enrichedLocals: Omit<APIContext['locals'], 'user'> & {
         db: DrizzleDB;
-        user:
-          | (APIContext['locals']['user'] & { uid: string; isAdmin: boolean })
-          | undefined;
+        user: (APIContext['locals']['user'] & { uid: string; isAdmin: boolean }) | undefined;
       } = {
         ...locals,
 
@@ -101,7 +92,6 @@ export function createApiRoute(
 
       return await handler(handlerContext);
     } catch (error: unknown) {
-
       logError(error, `API Route Error at ${request.url}`, {
         userId: user?.uid,
       });

@@ -1,6 +1,6 @@
-import { createApiRoute } from '../../../../lib/api';
-import { anonymousUsers } from '../../../../db/schema';
 import { sql } from 'drizzle-orm';
+import { anonymousUsers } from '../../../../db/schema';
+import { createApiRoute } from '../../../../lib/api';
 
 export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request }) => {
   const db = locals.db;
@@ -13,18 +13,19 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
     const msToSubtract = days * 24 * 60 * 60 * 1000;
     const startTime = Date.now() - msToSubtract;
 
-    const rawUsers = await db.select({
-      createdAt: anonymousUsers.createdAt
-    })
-    .from(anonymousUsers)
-    .where(sql`${anonymousUsers.createdAt} >= ${startTime}`)
-    .all();
+    const rawUsers = await db
+      .select({
+        createdAt: anonymousUsers.createdAt,
+      })
+      .from(anonymousUsers)
+      .where(sql`${anonymousUsers.createdAt} >= ${startTime}`)
+      .all();
 
     const usersByDate: Record<string, number> = {};
-    rawUsers.forEach(u => {
+    rawUsers.forEach((u) => {
       if (!u.createdAt) return;
       // Convert timestamp to YYYY-MM-DD
-      const dateStr = new Date(u.createdAt).toISOString().substring(0, 10); 
+      const dateStr = new Date(u.createdAt).toISOString().substring(0, 10);
       usersByDate[dateStr] = (usersByDate[dateStr] || 0) + 1;
     });
 
@@ -34,10 +35,11 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
 
     // 2. Advanced Device & Geo Breakdown (Fetch all UAs and Countries to process in JS)
     // Fetching raw strings is cheap (bytes) vs complex SQL string parsing
-    const allUserData = await db.select({ 
-      ua: anonymousUsers.userAgent,
-      country: anonymousUsers.country 
-    })
+    const allUserData = await db
+      .select({
+        ua: anonymousUsers.userAgent,
+        country: anonymousUsers.country,
+      })
       .from(anonymousUsers)
       .where(sql`${anonymousUsers.userAgent} IS NOT NULL`)
       .all();
@@ -46,7 +48,7 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
       os: {} as Record<string, number>,
       browser: {} as Record<string, number>,
       type: { mobile: 0, desktop: 0 },
-      country: {} as Record<string, number>
+      country: {} as Record<string, number>,
     };
 
     allUserData.forEach(({ ua, country }) => {
@@ -67,7 +69,7 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
       else if (agent.includes('iphone') || agent.includes('ipad')) os = 'iOS';
       else if (agent.includes('mac os')) os = 'macOS';
       else if (agent.includes('linux')) os = 'Linux';
-      
+
       stats.os[os] = (stats.os[os] || 0) + 1;
 
       // Detect Browser
@@ -91,16 +93,22 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
     const systemStats = {
       newUsers,
       devices: {
-        type: stats.type, 
+        type: stats.type,
         os: stats.os,
         browser: stats.browser,
-        country: stats.country
-      }
+        country: stats.country,
+      },
     };
 
     return new Response(JSON.stringify(systemStats), { status: 200 });
   } catch (e) {
     console.error('API Error in /admin/stats/system:', e);
-    return new Response(JSON.stringify({ error: 'No se pudieron obtener las estadísticas del sistema.', details: String(e) }), { status: 500 });
+    return new Response(
+      JSON.stringify({
+        error: 'No se pudieron obtener las estadísticas del sistema.',
+        details: String(e),
+      }),
+      { status: 500 }
+    );
   }
 });

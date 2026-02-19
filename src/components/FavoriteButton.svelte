@@ -1,65 +1,64 @@
 <script lang="ts">
-  import { toast } from '../lib/toastStore';
-  
-  interface Props {
-    seriesId: number;
-    isFavorited?: boolean;
-    isLoggedIn?: boolean;
+import { toast } from '../lib/toastStore';
+
+interface Props {
+  seriesId: number;
+  isFavorited?: boolean;
+  isLoggedIn?: boolean;
+}
+
+let { seriesId, isFavorited: initialIsFavorited = false, isLoggedIn = false }: Props = $props();
+
+// eslint-disable-next-line svelte/prefer-writable-derived
+let isFavorited = $state(false);
+let isLoading = $state(false);
+let isAnimating = $state(false);
+
+$effect(() => {
+  isFavorited = initialIsFavorited;
+});
+
+async function toggleFavorite() {
+  if (!isLoggedIn) {
+    document.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }));
+    return;
   }
 
-  let { seriesId, isFavorited: initialIsFavorited = false, isLoggedIn = false }: Props = $props();
+  isLoading = true;
 
-  // eslint-disable-next-line svelte/prefer-writable-derived
-  let isFavorited = $state(false);
-  let isLoading = $state(false);
-  let isAnimating = $state(false);
+  // Optimistic UI update
+  const previousState = isFavorited;
+  isFavorited = !isFavorited;
 
-  $effect(() => {
-    isFavorited = initialIsFavorited;
-  });
+  // Trigger animation
+  if (isFavorited) {
+    isAnimating = true;
+    setTimeout(() => (isAnimating = false), 600);
+  }
 
-  async function toggleFavorite() {
-    if (!isLoggedIn) {
-      document.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }));
-      return;
-    }
+  try {
+    const res = await fetch('/api/user/favorites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'series', id: seriesId }),
+    });
 
-    isLoading = true;
-    
-    // Optimistic UI update
-    const previousState = isFavorited;
-    isFavorited = !isFavorited;
-    
-    // Trigger animation
+    if (!res.ok) throw new Error('Failed to update favorite');
+
+    const data = await res.json();
+    isFavorited = data.action === 'added';
+
     if (isFavorited) {
-      isAnimating = true;
-      setTimeout(() => isAnimating = false, 600);
+      toast.success('Serie guardada en biblioteca');
     }
-
-    try {
-      const res = await fetch('/api/user/favorites', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'series', id: seriesId })
-      });
-
-      if (!res.ok) throw new Error('Failed to update favorite');
-      
-      const data = await res.json();
-      isFavorited = data.action === 'added';
-      
-      if (isFavorited) {
-        toast.success('Serie guardada en biblioteca');
-      }
-
-    } catch (e) {
-      isFavorited = previousState;
-      toast.error('Error de conexión');
-      console.error(e);
-    } finally {
-      isLoading = false;
-    }
+  } catch (e) {
+    isFavorited = previousState;
+    toast.error('Error de conexión');
+    console.error(e);
+  } finally {
+    isLoading = false;
   }
+}
 </script>
 
 <button 

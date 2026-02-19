@@ -4,12 +4,12 @@ import { siteConfig } from '../site.config';
 export const GET: APIRoute = async () => {
   const repo = {
     name: siteConfig.author,
-    website: siteConfig.url
+    website: siteConfig.url,
   };
 
   return new Response(JSON.stringify(repo), {
     headers: {
-      'Content-Type': 'application/json'
-    }
+      'Content-Type': 'application/json',
+    },
   });
 };

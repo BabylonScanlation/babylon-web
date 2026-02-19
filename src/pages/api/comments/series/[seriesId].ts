@@ -1,27 +1,19 @@
 // src/pages/api/comments/series/[seriesId].ts
 import type { APIRoute } from 'astro';
-import { logError } from '../../../../lib/logError';
+import { desc, eq, inArray } from 'drizzle-orm';
+import { seriesComments, seriesCommentVotes, userRoles, users } from '../../../../db/schema';
 import { getDB } from '../../../../lib/db';
-import {
-  seriesComments,
-  users,
-  seriesCommentVotes,
-  userRoles,
-} from '../../../../db/schema';
-import { eq, desc, inArray } from 'drizzle-orm';
+import { logError } from '../../../../lib/logError';
 
 export const GET: APIRoute = async ({ params, locals }) => {
   const { seriesId } = params;
   if (!seriesId) {
-    return new Response(
-      JSON.stringify({ error: 'El ID de la serie es obligatorio.' }),
-      {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    return new Response(JSON.stringify({ error: 'El ID de la serie es obligatorio.' }), {
+      status: 400,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 
   try {
@@ -52,10 +44,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     const commentIds = results.map((c) => c.id);
 
     // Diccionario de votos
-    const voteMap = new Map<
-      number,
-      { likes: number; dislikes: number; userVote: number }
-    >();
+    const voteMap = new Map<number, { likes: number; dislikes: number; userVote: number }>();
 
     if (commentIds.length > 0) {
       // Traemos todos los votos asociados a estos comentarios

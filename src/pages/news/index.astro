@@ -1,10 +1,10 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import { SITE_TITLE } from '../../consts';
-import { getDB } from '../../lib/db';
-import { getNewsList } from '../../lib/data/news';
-import { users } from '../../db/schema';
 import { eq } from 'drizzle-orm';
+import { SITE_TITLE } from '../../consts';
+import { users } from '../../db/schema';
+import Layout from '../../layouts/Layout.astro';
+import { getNewsList } from '../../lib/data/news';
+import { getDB } from '../../lib/db';
 
 const drizzleDb = getDB(Astro.locals.runtime.env);
 const newsItems = (await getNewsList(drizzleDb)) || [];
@@ -13,13 +13,13 @@ const { user } = Astro.locals;
 // Orion: Marcar como leído (Standard Unificado + DB Sync)
 if (newsItems.length > 0 && newsItems[0]) {
   const latestId = newsItems[0].id.toString();
-  
+
   // 1. Sincronizar Cookie (para invitados y respuesta inmediata)
   Astro.cookies.set('last_news_id', latestId, {
     path: '/',
     expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
     sameSite: 'lax',
-    httpOnly: false
+    httpOnly: false,
   });
 
   // 2. Sincronizar Base de Datos (para usuarios registrados)
@@ -27,8 +27,9 @@ if (newsItems.length > 0 && newsItems[0]) {
     try {
       const currentPrefs = typeof user.preferences === 'string' ? JSON.parse(user.preferences) : {};
       const newPrefs = JSON.stringify({ ...currentPrefs, lastSeenNewsId: latestId });
-      
-      await drizzleDb.update(users)
+
+      await drizzleDb
+        .update(users)
         .set({ preferences: newPrefs })
         .where(eq(users.id, user.uid))
         .execute();

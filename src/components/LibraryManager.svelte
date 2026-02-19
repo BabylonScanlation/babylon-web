@@ -1,108 +1,108 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { fade } from 'svelte/transition';
-  import { timeAgo } from '../lib/utils';
+import { onMount } from 'svelte';
+import { fade } from 'svelte/transition';
+import { timeAgo } from '../lib/utils';
 
-  // Types
-  interface ProgressItem {
-    series: {
-      title: string;
-      slug: string;
-      cover: string;
-    };
-    nextChapter: {
-      number: string;
-      url: string;
-      createdAt: string;
-    };
-  }
+// Types
+interface ProgressItem {
+  series: {
+    title: string;
+    slug: string;
+    cover: string;
+  };
+  nextChapter: {
+    number: string;
+    url: string;
+    createdAt: string;
+  };
+}
 
-  interface FavoriteItem {
+interface FavoriteItem {
+  id: number;
+  createdAt: string;
+  series: {
     id: number;
-    createdAt: string;
-    series: {
-      id: number;
-      title: string;
-      slug: string;
-      cover: string | null;
-      views: number;
-    };
-  }
+    title: string;
+    slug: string;
+    cover: string | null;
+    views: number;
+  };
+}
 
-  interface RatingItem {
-    rating: number;
-    createdAt: string;
-    series: {
-      id: number;
-      title: string;
-      slug: string;
-      cover: string | null;
-      views: number;
-    };
-  }
+interface RatingItem {
+  rating: number;
+  createdAt: string;
+  series: {
+    id: number;
+    title: string;
+    slug: string;
+    cover: string | null;
+    views: number;
+  };
+}
 
-  // State
-  let activeTab: 'history' | 'favorites' | 'ratings' = 'history';
-  let historyItems: ProgressItem[] = [];
-  let favoritesItems: FavoriteItem[] = [];
-  let ratingsItems: RatingItem[] = [];
-  let isLoading = true;
-  let isAuthenticated = false;
-  let selectedStarFilter: number | null = null;
+// State
+let activeTab: 'history' | 'favorites' | 'ratings' = 'history';
+let historyItems: ProgressItem[] = [];
+let favoritesItems: FavoriteItem[] = [];
+let ratingsItems: RatingItem[] = [];
+let isLoading = true;
+let isAuthenticated = false;
+let selectedStarFilter: number | null = null;
 
-  // Derived state for filtered ratings
-  $: filteredRatings = selectedStarFilter 
-    ? ratingsItems.filter(item => item.rating === selectedStarFilter)
-    : ratingsItems;
+// Derived state for filtered ratings
+$: filteredRatings = selectedStarFilter
+  ? ratingsItems.filter((item) => item.rating === selectedStarFilter)
+  : ratingsItems;
 
-  // Actions
-  async function loadData() {
-    isLoading = true;
-    try {
-      const authRes = await fetch('/api/auth/status');
-      const userData = await authRes.json();
-      
-      if (userData && userData.uid) {
-        isAuthenticated = true;
-        
-        // Parallel fetch for better performance
-        const [histRes, favRes, ratRes] = await Promise.all([
-          fetch('/api/user/progress'),
-          fetch('/api/user/favorites-full'),
-          fetch('/api/user/ratings')
-        ]);
+// Actions
+async function loadData() {
+  isLoading = true;
+  try {
+    const authRes = await fetch('/api/auth/status');
+    const userData = await authRes.json();
 
-        if (histRes.ok) {
-          const data = await histRes.json();
-          historyItems = data.progress || [];
-        }
+    if (userData && userData.uid) {
+      isAuthenticated = true;
 
-        if (favRes.ok) {
-          favoritesItems = await favRes.json();
-        }
+      // Parallel fetch for better performance
+      const [histRes, favRes, ratRes] = await Promise.all([
+        fetch('/api/user/progress'),
+        fetch('/api/user/favorites-full'),
+        fetch('/api/user/ratings'),
+      ]);
 
-        if (ratRes.ok) {
-          ratingsItems = await ratRes.json();
-        }
-      } else {
-        isAuthenticated = false;
+      if (histRes.ok) {
+        const data = await histRes.json();
+        historyItems = data.progress || [];
       }
-    } catch (e) {
-      console.error('Library load error:', e);
-    } finally {
-      isLoading = false;
+
+      if (favRes.ok) {
+        favoritesItems = await favRes.json();
+      }
+
+      if (ratRes.ok) {
+        ratingsItems = await ratRes.json();
+      }
+    } else {
+      isAuthenticated = false;
     }
+  } catch (e) {
+    console.error('Library load error:', e);
+  } finally {
+    isLoading = false;
   }
+}
 
-  function handleLogin() {
-    document.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }));
-  }
+function handleLogin() {
+  document.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }));
+}
 
-  onMount(() => {
-    loadData();
-    document.addEventListener('auth-success', loadData);
-    return () => document.removeEventListener('auth-success', loadData);
-  });
+onMount(() => {
+  loadData();
+  document.addEventListener('auth-success', loadData);
+  return () => document.removeEventListener('auth-success', loadData);
+});
 </script>
 
 <div class="library-manager">

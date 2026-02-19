@@ -1,11 +1,11 @@
 ---
+import UnifiedComments from '../../components/UnifiedComments.astro';
 import Layout from '../../layouts/Layout.astro';
-import UnifiedComments from '../../components/UnifiedComments.astro'; 
-import { getDB } from '../../lib/db';
 import { getCommentsForTarget } from '../../lib/data/comments';
 import { getNewsDetail } from '../../lib/data/news';
-import type { Comment } from '../../types';
+import { getDB } from '../../lib/db';
 import { siteConfig } from '../../site.config';
+import type { Comment } from '../../types';
 
 const { id } = Astro.params;
 if (!id) return Astro.redirect('/404');
@@ -20,7 +20,7 @@ if (!newsItem) {
 }
 
 // Cargar comentarios iniciales
-const initialComments = await getCommentsForTarget(drizzleDb, 'news', id, user?.uid) as Comment[];
+const initialComments = (await getCommentsForTarget(drizzleDb, 'news', id, user?.uid)) as Comment[];
 ---
 
 <Layout title={`${newsItem.title} - Noticias - ${siteConfig.shortName}`}>

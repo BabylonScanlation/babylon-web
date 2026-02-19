@@ -1,6 +1,12 @@
 // src/pages/api/news/series/[seriesId].ts
 import type { APIRoute } from 'astro';
-import { getDB, getAllNews, getNewsImages, type NewsItem, type NewsImageItem } from '../../../../lib/db';
+import {
+  getAllNews,
+  getDB,
+  getNewsImages,
+  type NewsImageItem,
+  type NewsItem,
+} from '../../../../lib/db';
 import { logError } from '../../../../lib/logError';
 
 export const GET: APIRoute = async ({ params, locals }) => {
@@ -14,7 +20,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
   try {
     const numericSeriesId = parseInt(seriesId, 10);
     if (isNaN(numericSeriesId)) {
-        return new Response('Invalid Series ID', { status: 400 });
+      return new Response('Invalid Series ID', { status: 400 });
     }
 
     const newsForSeries = await getAllNews(drizzleDb, 'published', numericSeriesId);
@@ -28,10 +34,12 @@ export const GET: APIRoute = async ({ params, locals }) => {
     const newsWithImages = await Promise.all(
       newsForSeries.map(async (newsItem: NewsItem) => {
         const images = await getNewsImages(drizzleDb, newsItem.id);
-        const imageUrls = images.map((img: NewsImageItem) => `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`);
-        
-        return { 
-          ...newsItem, 
+        const imageUrls = images.map(
+          (img: NewsImageItem) => `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`
+        );
+
+        return {
+          ...newsItem,
           imageUrls,
           // The authorName is now directly available on the newsItem object
         };

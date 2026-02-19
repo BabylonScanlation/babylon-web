@@ -62,9 +62,7 @@
       "indexes": {
         "idx_anon_fingerprint": {
           "name": "idx_anon_fingerprint",
-          "columns": [
-            "fingerprint_hash"
-          ],
+          "columns": ["fingerprint_hash"],
           "isUnique": true
         }
       },
@@ -116,39 +114,27 @@
       "indexes": {
         "idx_chapter_views_chapter_id": {
           "name": "idx_chapter_views_chapter_id",
-          "columns": [
-            "chapter_id"
-          ],
+          "columns": ["chapter_id"],
           "isUnique": false
         },
         "idx_chapter_views_user_id": {
           "name": "idx_chapter_views_user_id",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "idx_chapter_views_guest_chapter": {
           "name": "idx_chapter_views_guest_chapter",
-          "columns": [
-            "chapter_id",
-            "guest_id"
-          ],
+          "columns": ["chapter_id", "guest_id"],
           "isUnique": true
         },
         "idx_chapter_views_user_chapter": {
           "name": "idx_chapter_views_user_chapter",
-          "columns": [
-            "chapter_id",
-            "user_id"
-          ],
+          "columns": ["chapter_id", "user_id"],
           "isUnique": true
         },
         "idx_chapter_views_viewed_at": {
           "name": "idx_chapter_views_viewed_at",
-          "columns": [
-            "viewed_at"
-          ],
+          "columns": ["viewed_at"],
           "isUnique": false
         }
       },
@@ -157,22 +143,15 @@
           "name": "ChapterViews_chapter_id_Chapters_id_fk",
           "tableFrom": "ChapterViews",
           "tableTo": "Chapters",
-          "columnsFrom": [
-            "chapter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chapter_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "ChapterViews_chapter_id_ip_address_pk": {
-          "columns": [
-            "chapter_id",
-            "ip_address"
-          ],
+          "columns": ["chapter_id", "ip_address"],
           "name": "ChapterViews_chapter_id_ip_address_pk"
         }
       },
@@ -252,24 +231,17 @@
       "indexes": {
         "Chapters_telegram_file_id_unique": {
           "name": "Chapters_telegram_file_id_unique",
-          "columns": [
-            "telegram_file_id"
-          ],
+          "columns": ["telegram_file_id"],
           "isUnique": true
         },
         "idx_chapters_series_id": {
           "name": "idx_chapters_series_id",
-          "columns": [
-            "series_id"
-          ],
+          "columns": ["series_id"],
           "isUnique": false
         },
         "idx_chapters_series_number": {
           "name": "idx_chapters_series_number",
-          "columns": [
-            "series_id",
-            "chapter_number"
-          ],
+          "columns": ["series_id", "chapter_number"],
           "isUnique": true
         }
       },
@@ -278,12 +250,8 @@
           "name": "Chapters_series_id_Series_id_fk",
           "tableFrom": "Chapters",
           "tableTo": "Series",
-          "columnsFrom": [
-            "series_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["series_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -342,9 +310,7 @@
       "indexes": {
         "idx_comments_chapter_id": {
           "name": "idx_comments_chapter_id",
-          "columns": [
-            "chapter_id"
-          ],
+          "columns": ["chapter_id"],
           "isUnique": false
         }
       },
@@ -353,12 +319,8 @@
           "name": "Comments_chapter_id_Chapters_id_fk",
           "tableFrom": "Comments",
           "tableTo": "Chapters",
-          "columnsFrom": [
-            "chapter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chapter_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -418,25 +380,17 @@
       "indexes": {
         "idx_favorites_user_id": {
           "name": "idx_favorites_user_id",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "idx_favorites_user_series": {
           "name": "idx_favorites_user_series",
-          "columns": [
-            "user_id",
-            "series_id"
-          ],
+          "columns": ["user_id", "series_id"],
           "isUnique": true
         },
         "idx_favorites_user_chapter": {
           "name": "idx_favorites_user_chapter",
-          "columns": [
-            "user_id",
-            "chapter_id"
-          ],
+          "columns": ["user_id", "chapter_id"],
           "isUnique": true
         }
       },
@@ -445,12 +399,8 @@
           "name": "Favorites_user_id_Users_id_fk",
           "tableFrom": "Favorites",
           "tableTo": "Users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -458,12 +408,8 @@
           "name": "Favorites_series_id_Series_id_fk",
           "tableFrom": "Favorites",
           "tableTo": "Series",
-          "columnsFrom": [
-            "series_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["series_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -471,12 +417,8 @@
           "name": "Favorites_chapter_id_Chapters_id_fk",
           "tableFrom": "Favorites",
           "tableTo": "Chapters",
-          "columnsFrom": [
-            "chapter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chapter_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -556,9 +498,7 @@
       "indexes": {
         "idx_news_series_id": {
           "name": "idx_news_series_id",
-          "columns": [
-            "series_id"
-          ],
+          "columns": ["series_id"],
           "isUnique": false
         }
       },
@@ -609,9 +549,7 @@
       "indexes": {
         "idx_news_image_news_id": {
           "name": "idx_news_image_news_id",
-          "columns": [
-            "newsId"
-          ],
+          "columns": ["newsId"],
           "isUnique": false
         }
       },
@@ -620,12 +558,8 @@
           "name": "NewsImage_newsId_News_id_fk",
           "tableFrom": "NewsImage",
           "tableTo": "News",
-          "columnsFrom": [
-            "newsId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["newsId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -669,9 +603,7 @@
       "indexes": {
         "idx_pages_chapter_id": {
           "name": "idx_pages_chapter_id",
-          "columns": [
-            "chapter_id"
-          ],
+          "columns": ["chapter_id"],
           "isUnique": false
         }
       },
@@ -680,12 +612,8 @@
           "name": "Pages_chapter_id_Chapters_id_fk",
           "tableFrom": "Pages",
           "tableTo": "Chapters",
-          "columnsFrom": [
-            "chapter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chapter_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -838,16 +766,12 @@
       "indexes": {
         "Series_slug_unique": {
           "name": "Series_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "isUnique": true
         },
         "Series_telegram_topic_id_unique": {
           "name": "Series_telegram_topic_id_unique",
-          "columns": [
-            "telegram_topic_id"
-          ],
+          "columns": ["telegram_topic_id"],
           "isUnique": true
         }
       },
@@ -906,9 +830,7 @@
       "indexes": {
         "idx_series_comments_series_id": {
           "name": "idx_series_comments_series_id",
-          "columns": [
-            "series_id"
-          ],
+          "columns": ["series_id"],
           "isUnique": false
         }
       },
@@ -917,12 +839,8 @@
           "name": "SeriesComments_series_id_Series_id_fk",
           "tableFrom": "SeriesComments",
           "tableTo": "Series",
-          "columnsFrom": [
-            "series_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["series_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -970,22 +888,15 @@
           "name": "SeriesRatings_series_id_Series_id_fk",
           "tableFrom": "SeriesRatings",
           "tableTo": "Series",
-          "columnsFrom": [
-            "series_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["series_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "SeriesRatings_series_id_user_id_pk": {
-          "columns": [
-            "series_id",
-            "user_id"
-          ],
+          "columns": ["series_id", "user_id"],
           "name": "SeriesRatings_series_id_user_id_pk"
         }
       },
@@ -1031,22 +942,15 @@
           "name": "SeriesReactions_series_id_Series_id_fk",
           "tableFrom": "SeriesReactions",
           "tableTo": "Series",
-          "columnsFrom": [
-            "series_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["series_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "SeriesReactions_series_id_user_id_pk": {
-          "columns": [
-            "series_id",
-            "user_id"
-          ],
+          "columns": ["series_id", "user_id"],
           "name": "SeriesReactions_series_id_user_id_pk"
         }
       },
@@ -1082,9 +986,7 @@
       "indexes": {
         "idx_series_views_viewed_at": {
           "name": "idx_series_views_viewed_at",
-          "columns": [
-            "viewed_at"
-          ],
+          "columns": ["viewed_at"],
           "isUnique": false
         }
       },
@@ -1093,22 +995,15 @@
           "name": "SeriesViews_series_id_Series_id_fk",
           "tableFrom": "SeriesViews",
           "tableTo": "Series",
-          "columnsFrom": [
-            "series_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["series_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "SeriesViews_series_id_ip_address_pk": {
-          "columns": [
-            "series_id",
-            "ip_address"
-          ],
+          "columns": ["series_id", "ip_address"],
           "name": "SeriesViews_series_id_ip_address_pk"
         }
       },
@@ -1278,16 +1173,12 @@
       "indexes": {
         "Users_email_unique": {
           "name": "Users_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         },
         "Users_username_unique": {
           "name": "Users_username_unique",
-          "columns": [
-            "username"
-          ],
+          "columns": ["username"],
           "isUnique": true
         }
       },

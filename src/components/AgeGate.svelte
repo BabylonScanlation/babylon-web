@@ -1,79 +1,79 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { fade, fly } from 'svelte/transition';
-  import Turnstile from './Turnstile.svelte';
-  import { siteConfig } from '../site.config';
+import { onMount } from 'svelte';
+import { fade, fly } from 'svelte/transition';
+import { siteConfig } from '../site.config';
+import Turnstile from './Turnstile.svelte';
 
-  // --- Runes Svelte 5 ---
-  let isVerified = $state(false);
-  let isAdult = $state(false);
-  let acceptedTerms = $state(false);
-  let captchaToken = $state('');
+// --- Runes Svelte 5 ---
+let isVerified = $state(false);
+let isAdult = $state(false);
+let acceptedTerms = $state(false);
+let captchaToken = $state('');
 
-  let { isVerificationPage = false } = $props();
+let { isVerificationPage = false } = $props();
 
-  // Detección de entorno local ultra-permissiva para desarrollo
-  const isLocal = $derived.by(() => {
-    if (typeof window === 'undefined') return false;
-    const h = window.location.hostname;
-    return (
-      h === 'localhost' || 
-      h === '127.0.0.1' || 
-      h.startsWith('192.168.') || 
-      h.startsWith('10.') || 
-      h.startsWith('172.') ||
-      h.includes('.local') ||
-      h.includes('0.0.0.0')
-    );
-  });
+// Detección de entorno local ultra-permissiva para desarrollo
+const isLocal = $derived.by(() => {
+  if (typeof window === 'undefined') return false;
+  const h = window.location.hostname;
+  return (
+    h === 'localhost' ||
+    h === '127.0.0.1' ||
+    h.startsWith('192.168.') ||
+    h.startsWith('10.') ||
+    h.startsWith('172.') ||
+    h.includes('.local') ||
+    h.includes('0.0.0.0')
+  );
+});
 
-  onMount(() => {
-    if (isVerificationPage) {
+onMount(() => {
+  if (isVerificationPage) {
+    isVerified = false;
+    document.body.classList.add('no-scroll');
+    document.documentElement.classList.add('age-gate-active');
+  } else {
+    const sessionVerified = sessionStorage.getItem('site_access_granted');
+    if (sessionVerified === 'true') {
+      isVerified = true;
+      document.body.classList.remove('no-scroll');
+      document.documentElement.classList.remove('age-gate-active');
+    } else {
       isVerified = false;
       document.body.classList.add('no-scroll');
       document.documentElement.classList.add('age-gate-active');
-    } else {
-      const sessionVerified = sessionStorage.getItem('site_access_granted');
-      if (sessionVerified === 'true') {
-        isVerified = true;
-        document.body.classList.remove('no-scroll');
-        document.documentElement.classList.remove('age-gate-active');
-      } else {
-        isVerified = false;
-        document.body.classList.add('no-scroll');
-        document.documentElement.classList.add('age-gate-active');
-      }
     }
-    
-    return () => {
-      document.body.classList.remove('no-scroll');
-    };
-  });
-
-  function handleCaptchaVerify(token: string) {
-    captchaToken = token;
   }
 
-  async function enterSite() {
-    if (isAdult && acceptedTerms && (captchaToken || isLocal)) {
-      try {
-        const res = await fetch('/api/auth/verify-age', { method: 'POST' });
-        if (res.ok) {
-          sessionStorage.setItem('site_access_granted', 'true');
-          if (isVerificationPage) {
-            window.location.href = '/'; 
-          } else {
-            isVerified = true;
-            document.body.classList.remove('no-scroll');
-            document.documentElement.classList.remove('age-gate-active');
-            window.dispatchEvent(new CustomEvent('age-gate-passed'));
-          }
+  return () => {
+    document.body.classList.remove('no-scroll');
+  };
+});
+
+function handleCaptchaVerify(token: string) {
+  captchaToken = token;
+}
+
+async function enterSite() {
+  if (isAdult && acceptedTerms && (captchaToken || isLocal)) {
+    try {
+      const res = await fetch('/api/auth/verify-age', { method: 'POST' });
+      if (res.ok) {
+        sessionStorage.setItem('site_access_granted', 'true');
+        if (isVerificationPage) {
+          window.location.href = '/';
+        } else {
+          isVerified = true;
+          document.body.classList.remove('no-scroll');
+          document.documentElement.classList.remove('age-gate-active');
+          window.dispatchEvent(new CustomEvent('age-gate-passed'));
         }
-      } catch (e) {
-        console.error('Error en verificación:', e);
       }
+    } catch (e) {
+      console.error('Error en verificación:', e);
     }
   }
+}
 </script>
 
 {#if !isVerified}

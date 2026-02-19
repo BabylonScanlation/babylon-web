@@ -2,7 +2,7 @@ export function timeAgo(dateString: string | number | Date): string {
   if (!dateString) return '';
 
   let date: Date;
-  
+
   if (typeof dateString === 'string') {
     // Si la cadena no termina en Z y no tiene T, es probable que sea de SQLite (UTC)
     // Ejemplo: "2026-01-20 10:00:00" -> "2026-01-20T10:00:00Z"
@@ -38,7 +38,7 @@ export function timeAgo(dateString: string | number | Date): string {
 
 export const formatFullDate = (dateString: string) => {
   if (!dateString) return 'N/A';
-  
+
   let date = new Date(dateString);
 
   if (isNaN(date.getTime())) {
@@ -48,24 +48,50 @@ export const formatFullDate = (dateString: string) => {
 
   if (isNaN(date.getTime())) return 'N/A';
 
-  return date.toLocaleString('es-ES', { 
-    year: 'numeric', 
-    month: '2-digit', 
-    day: '2-digit', 
-    hour: '2-digit', 
-    minute: '2-digit', 
-    second: '2-digit', 
-  }); 
+  return date.toLocaleString('es-ES', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 };
 
 export const generateRandomUsername = () => {
   const adjectives = [
-    'Happy', 'Swift', 'Brave', 'Calm', 'Wild', 'Silent', 'Cosmic', 
-    'Lucky', 'Crazy', 'Epic', 'Dark', 'Light', 'Magic', 'Hyper', 'Neo'
+    'Happy',
+    'Swift',
+    'Brave',
+    'Calm',
+    'Wild',
+    'Silent',
+    'Cosmic',
+    'Lucky',
+    'Crazy',
+    'Epic',
+    'Dark',
+    'Light',
+    'Magic',
+    'Hyper',
+    'Neo',
   ];
   const animals = [
-    'Panda', 'Tiger', 'Eagle', 'Wolf', 'Fox', 'Bear', 'Lion', 
-    'Hawk', 'Dragon', 'Phoenix', 'Cat', 'Dog', 'Shark', 'Raven', 'Viper'
+    'Panda',
+    'Tiger',
+    'Eagle',
+    'Wolf',
+    'Fox',
+    'Bear',
+    'Lion',
+    'Hawk',
+    'Dragon',
+    'Phoenix',
+    'Cat',
+    'Dog',
+    'Shark',
+    'Raven',
+    'Viper',
   ];
   const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
   const animal = animals[Math.floor(Math.random() * animals.length)];
@@ -82,7 +108,7 @@ export function generateUUID(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  
+
   // 2. Segunda Opción: Criptografía de hardware pero sin función de conveniencia
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
     return (([1e7] as any) + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c: any) => {
@@ -92,7 +118,7 @@ export function generateUUID(): string {
       return (c ^ (randomValue & (15 >> (c / 4)))).toString(16);
     });
   }
-  
+
   // 3. Último Recurso: Fallback matemático (Solo para desarrollo local vía IP)
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
@@ -105,12 +131,16 @@ export function generateUUID(): string {
  * Normaliza la URL de una imagen para usar R2 o el proxy local.
  * Astra + Orion: Garantiza que no haya barras duplicadas y maneja placeholders.
  */
-export function getImageUrl(path: string | null | undefined, r2PublicUrl: string = '', fallbackType: 'series' | 'chapter' | 'user' = 'series'): string {
+export function getImageUrl(
+  path: string | null | undefined,
+  r2PublicUrl: string = '',
+  fallbackType: 'series' | 'chapter' | 'user' = 'series'
+): string {
   if (!path) {
     const placeholders = {
       series: '/assets/placeholder-series.jpg',
       chapter: '/assets/placeholder-chapter.jpg',
-      user: '/assets/placeholder-user.jpg'
+      user: '/assets/placeholder-user.jpg',
     };
     return placeholders[fallbackType];
   }
@@ -123,7 +153,7 @@ export function getImageUrl(path: string | null | undefined, r2PublicUrl: string
 
   // Si no, concatenamos con el R2 public URL
   const base = r2PublicUrl || '/api/assets/proxy';
-  
+
   // Limpiamos barras duplicadas (excepto después de ://)
-  return `${base}/${path}`.replace(/([^:]\/)\/+/g, "$1");
+  return `${base}/${path}`.replace(/([^:]\/)\/+/g, '$1');
 }

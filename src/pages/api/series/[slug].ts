@@ -1,7 +1,7 @@
-import type { APIRoute } from 'astro';
-import { logError } from '@lib/logError';
-import { getDB } from '@lib/db';
 import { getSeriesDetails } from '@lib/data/series';
+import { getDB } from '@lib/db';
+import { logError } from '@lib/logError';
+import type { APIRoute } from 'astro';
 
 export const GET: APIRoute = async ({ params, locals }) => {
   const { slug } = params;
@@ -14,8 +14,8 @@ export const GET: APIRoute = async ({ params, locals }) => {
     const user = locals.user;
 
     const responseData = await getSeriesDetails(
-      drizzleDb, 
-      slug, 
+      drizzleDb,
+      slug,
       user ? { uid: user.uid, isAdmin: !!user.isAdmin } : undefined
     );
 

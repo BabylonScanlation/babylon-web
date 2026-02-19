@@ -1,8 +1,8 @@
 ---
+import { timeAgo } from '../lib/utils';
+import type { Series } from '../types';
 // src/components/UpdateCard.astro
 import Image from './Image.astro';
-import type { Series } from '../types';
-import { timeAgo } from '../lib/utils';
 
 interface Props {
   series: Series;

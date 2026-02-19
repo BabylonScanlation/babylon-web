@@ -1,8 +1,9 @@
 // src/pages/api/admin/series-with-chapters.ts
-import type { APIRoute } from 'astro';
-import { logError } from '@lib/logError';
-import { getDB } from '@lib/db';
+
 import { getAdminSeriesWithChapters } from '@lib/data/admin';
+import { getDB } from '@lib/db';
+import { logError } from '@lib/logError';
+import type { APIRoute } from 'astro';
 
 export const GET: APIRoute = async ({ locals, url }) => {
   if (!locals.user?.isAdmin) {
@@ -16,7 +17,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
 
   try {
     const drizzleDb = getDB(locals.runtime.env);
-    
+
     // Orion: Reutilizamos la función modular de alto rendimiento
     const data = await getAdminSeriesWithChapters(drizzleDb, limit, offset, false);
 

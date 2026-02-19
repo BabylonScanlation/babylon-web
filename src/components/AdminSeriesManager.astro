@@ -1,9 +1,9 @@
 ---
 // src/components/AdminSeriesManager.astro
 
-import AdminSeriesForm from './AdminSeriesForm.astro';
 import AdminChapterList from './AdminChapterList.astro';
 import AdminChapterUploader from './AdminChapterUploader.svelte';
+import AdminSeriesForm from './AdminSeriesForm.astro';
 
 interface Chapter {
   id: number;
@@ -49,15 +49,11 @@ const { series, r2PublicUrlAssets } = Astro.props;
 // Si empieza por http, es absoluta.
 // En DEV, forzamos el proxy local para rutas relativas para ver lo que acabamos de subir.
 const isDev = import.meta.env.DEV;
-const assetsBase = isDev
-  ? '/api/assets/proxy'
-  : r2PublicUrlAssets || '/api/assets/proxy';
+const assetsBase = isDev ? '/api/assets/proxy' : r2PublicUrlAssets || '/api/assets/proxy';
 
 const coverUrl = series.coverImageUrl?.startsWith('http')
   ? series.coverImageUrl
-  : `${assetsBase}/${series.coverImageUrl}`
-      .replace(/\/+/g, '/')
-      .replace(':/', '://');
+  : `${assetsBase}/${series.coverImageUrl}`.replace(/\/+/g, '/').replace(':/', '://');
 ---
 
 <div class="series-item-container">

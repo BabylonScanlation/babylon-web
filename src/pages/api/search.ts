@@ -1,14 +1,14 @@
 // src/pages/api/search.ts
 import type { APIRoute } from 'astro';
-import { logError } from '../../lib/logError';
-import { getDB } from '../../lib/db';
+import { and, asc, desc, eq, like, sql } from 'drizzle-orm';
 import { series } from '../../db/schema';
-import { eq, asc, desc, and, sql, like } from 'drizzle-orm';
+import { getDB } from '../../lib/db';
+import { logError } from '../../lib/logError';
 
 export const GET: APIRoute = async ({ url, locals }) => {
   try {
     const drizzleDb = getDB(locals.runtime.env);
-    
+
     // Extraction of all possible filters
     const query = url.searchParams.get('q')?.trim();
     const type = url.searchParams.get('type');
@@ -22,41 +22,42 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const page = parseInt(url.searchParams.get('page') || '1');
     const pageSize = parseInt(url.searchParams.get('pageSize') || '18');
     const offset = (page - 1) * pageSize;
-    
+
     // Auth-based NSFW filter
     const allowNsfw = locals.user?.isNsfw || false;
 
     // Base Selection
-    let baseQuery = drizzleDb.select({
-      id: series.id,
-      slug: series.slug,
-      title: series.title,
-      coverImageUrl: series.coverImageUrl,
-      description: series.description,
-      views: series.views,
-      type: series.type,
-      status: series.status,
-      genres: series.genres,
-      author: series.author,
-      artist: series.artist,
-      createdAt: series.createdAt
-    })
-    .from(series);
+    let baseQuery = drizzleDb
+      .select({
+        id: series.id,
+        slug: series.slug,
+        title: series.title,
+        coverImageUrl: series.coverImageUrl,
+        description: series.description,
+        views: series.views,
+        type: series.type,
+        status: series.status,
+        genres: series.genres,
+        author: series.author,
+        artist: series.artist,
+        createdAt: series.createdAt,
+      })
+      .from(series);
 
     // Dynamic Conditions
     const conditions = [eq(series.isHidden, false)];
-    
+
     if (!allowNsfw) {
       conditions.push(eq(series.isNsfw, false));
     }
 
     // 1. Text Search (FTS5 integration if query exists)
     if (query && query !== '') {
-      const searchTerm = query.split(/\s+/).map(word => `${word}*`).join(' ');
-      baseQuery = baseQuery.innerJoin(
-        sql`series_fts`,
-        eq(series.id, sql`series_fts.rowid`)
-      ) as any;
+      const searchTerm = query
+        .split(/\s+/)
+        .map((word) => `${word}*`)
+        .join(' ');
+      baseQuery = baseQuery.innerJoin(sql`series_fts`, eq(series.id, sql`series_fts.rowid`)) as any;
       conditions.push(sql`series_fts MATCH ${searchTerm}`);
     }
 
@@ -67,7 +68,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
     if (status && status !== 'all') {
       conditions.push(like(series.status, `%${status}%`));
     }
-    
+
     if (author) conditions.push(like(series.author, `%${author}%`));
     if (artist) conditions.push(like(series.artist, `%${artist}%`));
     if (publisher) conditions.push(like(series.publishedBy, `%${publisher}%`));
@@ -75,8 +76,8 @@ export const GET: APIRoute = async ({ url, locals }) => {
 
     // 3. Multi-Genre Filter (Intersection/AND logic)
     if (genresRaw) {
-      const genresList = genresRaw.split(',').filter(g => g.trim() !== '');
-      genresList.forEach(genre => {
+      const genresList = genresRaw.split(',').filter((g) => g.trim() !== '');
+      genresList.forEach((genre) => {
         conditions.push(like(series.genres, `%${genre.trim()}%`));
       });
     }
@@ -87,16 +88,11 @@ export const GET: APIRoute = async ({ url, locals }) => {
     // Get Total Count for pagination
     let countBase = drizzleDb.select({ count: sql`count(*)` }).from(series);
     if (query && query !== '') {
-      countBase = countBase.innerJoin(
-        sql`series_fts`,
-        eq(series.id, sql`series_fts.rowid`)
-      ) as any;
+      countBase = countBase.innerJoin(sql`series_fts`, eq(series.id, sql`series_fts.rowid`)) as any;
     }
-    
-    const [totalResult] = await (countBase as any)
-      .where(and(...conditions))
-      .all() as any;
-    
+
+    const [totalResult] = (await (countBase as any).where(and(...conditions)).all()) as any;
+
     const total = totalResult?.count || 0;
 
     // 4. Advanced Sorting
@@ -131,26 +127,29 @@ export const GET: APIRoute = async ({ url, locals }) => {
       coverImageUrl: s.coverImageUrl,
     }));
 
-    return new Response(JSON.stringify({
-      results: formattedResults,
-      pagination: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize)
+    return new Response(
+      JSON.stringify({
+        results: formattedResults,
+        pagination: {
+          page,
+          pageSize,
+          total,
+          totalPages: Math.ceil(total / pageSize),
+        },
+      }),
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=60', // Cache search for 1 min at edge
+        },
       }
-    }), {
-      headers: { 
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=60' // Cache search for 1 min at edge
-      },
-    });
+    );
   } catch (error: unknown) {
     const queryForLog = url.searchParams.get('q');
     logError(error, 'Error al realizar la búsqueda en la API', { query: queryForLog });
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), { 
+    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 };

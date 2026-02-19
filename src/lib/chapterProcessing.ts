@@ -26,7 +26,7 @@ export async function processAndCacheChapter(
 ) {
   const slug = String(seriesSlugParam || '');
   if (!slug) throw new Error('Series slug is required');
-  
+
   const drizzleDb = getDB(env);
 
   try {
@@ -82,9 +82,10 @@ export async function processAndCacheChapter(
         if (!name) return null;
 
         const allNumbers = name.match(/(\d+)/g);
-        if (!allNumbers) return null;
+        if (!allNumbers || allNumbers.length === 0) return null;
 
-        const pageNumber = parseInt(allNumbers[allNumbers.length - 1], 10);
+        const lastNumber = allNumbers[allNumbers.length - 1] as string;
+        const pageNumber = parseInt(lastNumber, 10);
         const r2Key = `${slug}/${chapterNumber}/${versionHash}/${name}`;
         return { pageNumber, imageUrl: `/api/r2-cache/${r2Key}` };
       })

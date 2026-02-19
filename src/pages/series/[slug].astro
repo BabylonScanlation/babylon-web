@@ -1,16 +1,16 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import Image from '../../components/Image.astro';
-import UnifiedComments from '../../components/UnifiedComments.astro';
-import NewsFeed from '../../components/NewsFeed.astro';
+import AdContainer from '../../components/AdContainer.astro';
 import AdminSeriesNewsForm from '../../components/AdminSeriesNewsForm.astro';
 import FavoriteButton from '../../components/FavoriteButton.svelte';
-import AdContainer from '../../components/AdContainer.astro';
-import { logError } from '../../lib/logError';
-import { formatFullDate, timeAgo, getImageUrl } from '../../lib/utils';
-import { getDB } from '../../lib/db';
+import Image from '../../components/Image.astro';
+import NewsFeed from '../../components/NewsFeed.astro';
+import UnifiedComments from '../../components/UnifiedComments.astro';
+import Layout from '../../layouts/Layout.astro';
 import { getCommentsForTarget } from '../../lib/data/comments';
 import { getSeriesDetails } from '../../lib/data/series';
+import { getDB } from '../../lib/db';
+import { logError } from '../../lib/logError';
+import { formatFullDate, getImageUrl, timeAgo } from '../../lib/utils';
 import { siteConfig } from '../../site.config';
 
 const { slug } = Astro.params;
@@ -25,8 +25,12 @@ let comments: any[] = [];
 let error: string | null = null;
 
 try {
-  series = await getSeriesDetails(drizzleDb, slug, user ? { uid: user.uid, isAdmin: !!user.isAdmin } : undefined);
-  
+  series = await getSeriesDetails(
+    drizzleDb,
+    slug,
+    user ? { uid: user.uid, isAdmin: !!user.isAdmin } : undefined
+  );
+
   if (series) {
     comments = await getCommentsForTarget(drizzleDb, 'series', series.id, user?.uid);
   } else {
@@ -42,7 +46,10 @@ Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate
 
 const formatDescription = (text: string | undefined) => {
   if (!text) return '';
-  return text.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\*(.*?)\*/g, '<i>$1</i>');
+  return text
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*(.*?)\*/g, '<i>$1</i>');
 };
 
 const initialState = {

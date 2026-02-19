@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
-import { getDB } from '../../../../lib/db';
-import { newsComments } from '../../../../db/schema';
 import { eq } from 'drizzle-orm';
+import { newsComments } from '../../../../db/schema';
+import { getDB } from '../../../../lib/db';
 
 export const PUT: APIRoute = async ({ request, locals }) => {
   const user = locals.user;
@@ -12,16 +12,21 @@ export const PUT: APIRoute = async ({ request, locals }) => {
     if (!commentId || !commentText) return new Response('Missing data', { status: 400 });
 
     const db = getDB(locals.runtime.env);
-    
+
     // Ownership check
-    const existing = await db.select().from(newsComments).where(eq(newsComments.id, commentId)).get();
+    const existing = await db
+      .select()
+      .from(newsComments)
+      .where(eq(newsComments.id, commentId))
+      .get();
     if (!existing) return new Response('Not found', { status: 404 });
     if (existing.userId !== user.uid) return new Response('Forbidden', { status: 403 });
 
-    await db.update(newsComments)
-      .set({ 
+    await db
+      .update(newsComments)
+      .set({
         commentText,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(newsComments.id, commentId))
       .run();
@@ -41,12 +46,18 @@ export const DELETE: APIRoute = async ({ request, locals }) => {
     if (!commentId) return new Response('Missing ID', { status: 400 });
 
     const db = getDB(locals.runtime.env);
-    const existing = await db.select().from(newsComments).where(eq(newsComments.id, commentId)).get();
-    
-    if (!existing) return new Response('Not found', { status: 404 });
-    if (existing.userId !== user.uid && !user.isAdmin) return new Response('Forbidden', { status: 403 });
+    const existing = await db
+      .select()
+      .from(newsComments)
+      .where(eq(newsComments.id, commentId))
+      .get();
 
-    await db.update(newsComments)
+    if (!existing) return new Response('Not found', { status: 404 });
+    if (existing.userId !== user.uid && !user.isAdmin)
+      return new Response('Forbidden', { status: 403 });
+
+    await db
+      .update(newsComments)
       .set({ isDeleted: true })
       .where(eq(newsComments.id, commentId))
       .run();

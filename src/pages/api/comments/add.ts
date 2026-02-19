@@ -1,9 +1,9 @@
 // src/pages/api/comments/add.ts
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { logError } from '../../../lib/logError';
-import { getDB } from '../../../lib/db';
 import { comments } from '../../../db/schema';
+import { getDB } from '../../../lib/db';
+import { logError } from '../../../lib/logError';
 
 const CommentSchema = z.object({
   chapterId: z.number().int().positive(),
@@ -36,8 +36,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const validation = CommentSchema.safeParse(body);
 
     if (!validation.success) {
-      const errorMessage =
-        validation.error.errors[0]?.message || 'Datos inválidos.';
+      const errorMessage = validation.error.errors[0]?.message || 'Datos inválidos.';
       return new Response(JSON.stringify({ error: errorMessage }), {
         status: 400,
       });
@@ -62,11 +61,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       commentText: commentText,
       parentId: parentId,
       createdAt: result.createdAt,
-      username:
-        user.username ||
-        user.displayName ||
-        user.email?.split('@')[0] ||
-        'Usuario',
+      username: user.username || user.displayName || user.email?.split('@')[0] || 'Usuario',
       avatarUrl: user.avatarUrl,
     };
 

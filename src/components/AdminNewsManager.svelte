@@ -1,201 +1,212 @@
 <script lang="ts">
-  import { fade, slide, fly } from 'svelte/transition';
-  import { toast } from '../lib/toastStore';
+import { fade, fly, slide } from 'svelte/transition';
+import { toast } from '../lib/toastStore';
 
-  // Tipos
-  interface Series {
-    id: number;
-    title: string;
-    coverImageUrl: string | null;
-    isNsfw: boolean | null;
-  }
+// Tipos
+interface Series {
+  id: number;
+  title: string;
+  coverImageUrl: string | null;
+  isNsfw: boolean | null;
+}
 
-  interface NewsItem {
-    id: string;
-    title: string;
-    content: string;
-    status: 'draft' | 'published' | string | null;
-    seriesId: number | null;
-    publishedBy: string;
-    createdAt: number | Date;
-  }
+interface NewsItem {
+  id: string;
+  title: string;
+  content: string;
+  status: 'draft' | 'published' | string | null;
+  seriesId: number | null;
+  publishedBy: string;
+  createdAt: number | Date;
+}
 
-  // Props recibidas desde Astro
-  export let allSeries: Series[] = [];
-  export let initialNews: NewsItem[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  export let currentUser: any = null;
-  export let r2PublicUrlAssets = '';
+// Props recibidas desde Astro
+export let allSeries: Series[] = [];
+export let initialNews: NewsItem[] = [];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export let currentUser: any = null;
+export let r2PublicUrlAssets = '';
 
-  // Orion: Normalizador de imágenes para evitar 404 por rutas relativas
-  const getImageUrl = (path: string | null) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    const base = r2PublicUrlAssets || '/api/assets/proxy';
-    return `${base}/${path}`.replace(/([^:]\/)\/+/g, "$1");
+// Orion: Normalizador de imágenes para evitar 404 por rutas relativas
+const getImageUrl = (path: string | null) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  const base = r2PublicUrlAssets || '/api/assets/proxy';
+  return `${base}/${path}`.replace(/([^:]\/)\/+/g, '$1');
+};
+
+// Estado local
+let selectedSeriesId: number | null = null;
+let filteredNews: NewsItem[] = [];
+let isEditing = false;
+let editingNewsId: string | null = null;
+
+// Form state
+let formTitle = '';
+let formContent = '';
+let formStatus: 'draft' | 'published' = 'published';
+let isSubmitting = false;
+let formImage: File | null = null;
+let imagePreview: string | null = null;
+
+// Author logic
+$: authorToDisplay = currentUser?.username || currentUser?.displayName || 'Admin';
+
+// Orion: Helper para obtener conteos específicos por estado
+function getStats(seriesId: number, newsItems: NewsItem[]) {
+  const seriesNews = newsItems.filter((n) => n.seriesId === seriesId);
+  return {
+    published: seriesNews.filter((n) => n.status === 'published').length,
+    draft: seriesNews.filter((n) => n.status === 'draft').length,
   };
+}
 
-  // Estado local
-  let selectedSeriesId: number | null = null;
-  let filteredNews: NewsItem[] = [];
-  let isEditing = false;
-  let editingNewsId: string | null = null;
-  
-  // Form state
-  let formTitle = '';
-  let formContent = '';
-  let formStatus: 'draft' | 'published' = 'published';
-  let isSubmitting = false;
-  let formImage: File | null = null;
-  let imagePreview: string | null = null;
-
-  // Author logic
-  $: authorToDisplay = currentUser?.username || currentUser?.displayName || 'Admin';
-
-  // Orion: Helper para obtener conteos específicos por estado
-  function getStats(seriesId: number, newsItems: NewsItem[]) {
-    const seriesNews = newsItems.filter(n => n.seriesId === seriesId);
-    return {
-      published: seriesNews.filter(n => n.status === 'published').length,
-      draft: seriesNews.filter(n => n.status === 'draft').length
-    };
+// Filtrar noticias cuando cambia la selección
+$: {
+  if (selectedSeriesId) {
+    filteredNews = initialNews.filter((n) => n.seriesId === selectedSeriesId);
+  } else {
+    filteredNews = [];
   }
+}
 
-  // Filtrar noticias cuando cambia la selección
-  $: {
-    if (selectedSeriesId) {
-      filteredNews = initialNews.filter(n => n.seriesId === selectedSeriesId);
+function selectSeries(id: number) {
+  selectedSeriesId = id;
+  resetForm();
+  isEditing = false;
+  window.dispatchEvent(new CustomEvent('series-selected', { detail: { selected: true } }));
+}
+
+function goBackToSeries() {
+  selectedSeriesId = null;
+  resetForm();
+  window.dispatchEvent(new CustomEvent('series-selected', { detail: { selected: false } }));
+}
+
+function resetForm() {
+  formTitle = '';
+  formContent = '';
+  formStatus = 'draft';
+  formImage = null;
+  imagePreview = null;
+  editingNewsId = null;
+  isEditing = false;
+  isSubmitting = false;
+}
+
+function startEdit(news: NewsItem) {
+  isEditing = true;
+  editingNewsId = news.id;
+  formTitle = news.title;
+  formContent = news.content;
+  formStatus = news.status === 'published' || news.status === 'draft' ? news.status : 'draft';
+
+  // Scroll al formulario
+  const formEl = document.getElementById('news-form');
+  if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function handleDelete(newsId: string) {
+  if (!confirm('¿Estás seguro de eliminar esta noticia?')) return;
+
+  try {
+    const res = await fetch(`/api/admin/news/${newsId}`, {
+      method: 'DELETE',
+    });
+
+    if (res.ok) {
+      initialNews = initialNews.filter((n) => n.id !== newsId);
+      toast.success('Noticia eliminada');
     } else {
-      filteredNews = [];
+      toast.error('Error al eliminar');
     }
+  } catch {
+    toast.error('Error de conexión');
+  }
+}
+
+async function handleSubmit() {
+  if (!formTitle || !formContent) {
+    toast.warning('Completa título y contenido');
+    return;
   }
 
-  function selectSeries(id: number) {
-    selectedSeriesId = id;
+  isSubmitting = true;
+
+  try {
+    const payload = {
+      title: formTitle,
+      content: formContent,
+      status: formStatus,
+      seriesId: selectedSeriesId,
+      authorName: authorToDisplay,
+    };
+
+    let url = '/api/admin/news';
+    let method = 'POST';
+
+    if (isEditing && editingNewsId) {
+      url = `/api/admin/news/${editingNewsId}`;
+      method = 'PUT';
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) throw new Error('Error en la petición');
+
+    const savedNews = await res.json();
+
+    if (formImage) {
+      const formData = new FormData();
+      formData.append('image', formImage);
+      formData.append('newsId', savedNews.id);
+      await fetch('/api/admin/news/upload-image', { method: 'POST', body: formData });
+    }
+
+    toast.success(isEditing ? 'Noticia actualizada' : 'Noticia publicada');
+
+    if (isEditing) {
+      initialNews = initialNews.map((n) =>
+        n.id === savedNews.id ? { ...savedNews, seriesId: selectedSeriesId } : n
+      );
+    } else {
+      initialNews = [
+        {
+          ...savedNews,
+          seriesId: selectedSeriesId,
+          createdAt: savedNews.createdAt || new Date().toISOString(),
+        },
+        ...initialNews,
+      ];
+
+      // Orion: Notificar al Servicio de Noticias centralizado
+      window.dispatchEvent(
+        new CustomEvent('new-news-created', {
+          detail: { news: savedNews },
+        })
+      );
+    }
+
     resetForm();
-    isEditing = false;
-    window.dispatchEvent(new CustomEvent('series-selected', { detail: { selected: true } }));
-  }
-
-  function goBackToSeries() {
-    selectedSeriesId = null;
-    resetForm();
-    window.dispatchEvent(new CustomEvent('series-selected', { detail: { selected: false } }));
-  }
-
-  function resetForm() {
-    formTitle = '';
-    formContent = '';
-    formStatus = 'draft';
-    formImage = null;
-    imagePreview = null;
-    editingNewsId = null;
-    isEditing = false;
+  } catch (error) {
+    console.error(error);
+    toast.error('Fallo al guardar noticia');
+  } finally {
     isSubmitting = false;
   }
+}
 
-  function startEdit(news: NewsItem) {
-    isEditing = true;
-    editingNewsId = news.id;
-    formTitle = news.title;
-    formContent = news.content;
-    formStatus = (news.status === 'published' || news.status === 'draft') ? news.status : 'draft';
-    
-    // Scroll al formulario
-    const formEl = document.getElementById('news-form');
-    if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+function handleImageChange(e: Event) {
+  const input = e.target as HTMLInputElement;
+  if (input.files && input.files[0]) {
+    formImage = input.files[0];
+    imagePreview = URL.createObjectURL(formImage);
   }
-
-  async function handleDelete(newsId: string) {
-    if (!confirm('¿Estás seguro de eliminar esta noticia?')) return;
-
-    try {
-      const res = await fetch(`/api/admin/news/${newsId}`, {
-         method: 'DELETE'
-      });
-
-      if (res.ok) {
-        initialNews = initialNews.filter((n) => n.id !== newsId);
-        toast.success('Noticia eliminada');
-      } else {
-        toast.error('Error al eliminar');
-      }
-    } catch {
-      toast.error('Error de conexión');
-    }
-  }
-
-  async function handleSubmit() {
-    if (!formTitle || !formContent) {
-      toast.warning('Completa título y contenido');
-      return;
-    }
-
-    isSubmitting = true;
-
-    try {
-      const payload = {
-        title: formTitle,
-        content: formContent,
-        status: formStatus,
-        seriesId: selectedSeriesId,
-        authorName: authorToDisplay
-      };
-
-      let url = '/api/admin/news';
-      let method = 'POST';
-
-      if (isEditing && editingNewsId) {
-        url = `/api/admin/news/${editingNewsId}`;
-        method = 'PUT';
-      }
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) throw new Error('Error en la petición');
-
-      const savedNews = await res.json();
-      
-      if (formImage) {
-        const formData = new FormData();
-        formData.append('image', formImage);
-        formData.append('newsId', savedNews.id);
-        await fetch('/api/admin/news/upload-image', { method: 'POST', body: formData });
-      }
-
-      toast.success(isEditing ? 'Noticia actualizada' : 'Noticia publicada');
-
-      if (isEditing) {
-        initialNews = initialNews.map(n => n.id === savedNews.id ? { ...savedNews, seriesId: selectedSeriesId } : n);
-      } else {
-        initialNews = [{ ...savedNews, seriesId: selectedSeriesId, createdAt: savedNews.createdAt || new Date().toISOString() }, ...initialNews];
-        
-        // Orion: Notificar al Servicio de Noticias centralizado
-        window.dispatchEvent(new CustomEvent('new-news-created', { 
-          detail: { news: savedNews } 
-        }));
-      }
-      
-      resetForm();
-    } catch (error) {
-      console.error(error);
-      toast.error('Fallo al guardar noticia');
-    } finally {
-      isSubmitting = false;
-    }
-  }
-
-  function handleImageChange(e: Event) {
-    const input = e.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      formImage = input.files[0];
-      imagePreview = URL.createObjectURL(formImage);
-    }
-  }
+}
 </script>
 
 <div class="news-manager">

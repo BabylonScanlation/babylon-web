@@ -1,9 +1,9 @@
 ---
-// src/components/NewsFeed.astro
-import type { User } from '../types';
-import { getDB, getAllNews, getNewsImages, type NewsItem, type NewsImageItem } from '../lib/db';
+import { getAllNews, getDB, getNewsImages, type NewsImageItem, type NewsItem } from '../lib/db';
 import { logError } from '../lib/logError';
 import { siteConfig } from '../site.config';
+// src/components/NewsFeed.astro
+import type { User } from '../types';
 
 interface Props {
   seriesId?: number | null;
@@ -24,7 +24,9 @@ try {
     newsWithImages = await Promise.all(
       newsForSeries.map(async (newsItem: NewsItem) => {
         const images = await getNewsImages(db, newsItem.id);
-        const imageUrls = images.map((img: NewsImageItem) => `${Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`);
+        const imageUrls = images.map(
+          (img: NewsImageItem) => `${Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`
+        );
 
         return {
           ...newsItem,

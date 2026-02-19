@@ -2,26 +2,45 @@ import type { APIRoute } from 'astro';
 
 export const GET: APIRoute = async ({ locals }) => {
   const { env } = locals.runtime;
-  
+
   // Lista manual de Avatares (Animales)
   const animals = [
-    "ardilla", "ballena", "caballo", "camaleon", "canguro", "conejo", 
-    "elefante", "flamenco", "gato", "jirafa", "koala", "leon", 
-    "leona", "loro", "mamut", "megatherium", "oso", "oveja", 
-    "panda", "pato", "perro", "plesiosaurio", "pterodactilo", "sable"
+    'ardilla',
+    'ballena',
+    'caballo',
+    'camaleon',
+    'canguro',
+    'conejo',
+    'elefante',
+    'flamenco',
+    'gato',
+    'jirafa',
+    'koala',
+    'leon',
+    'leona',
+    'loro',
+    'mamut',
+    'megatherium',
+    'oso',
+    'oveja',
+    'panda',
+    'pato',
+    'perro',
+    'plesiosaurio',
+    'pterodactilo',
+    'sable',
   ];
 
   // Lista manual de Banners
-  const banners = [
-    "moon.jpg",
-    "tokiri.jpg"
-  ];
+  const banners = ['moon.jpg', 'tokiri.jpg'];
 
   const publicUrl = env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 
   // Generamos las URLs completas
-  const MANUAL_AVATARS: string[] = animals.map(animal => `${publicUrl}/profile_logo/${animal}.png`);
-  const MANUAL_BANNERS: string[] = banners.map(banner => `${publicUrl}/profile_banner/${banner}`);
+  const ManualAvatars: string[] = animals.map(
+    (animal) => `${publicUrl}/profile_logo/${animal}.png`
+  );
+  const ManualBanners: string[] = banners.map((banner) => `${publicUrl}/profile_banner/${banner}`);
 
   if (!env.R2_ASSETS) {
     return new Response(JSON.stringify({ error: 'R2_ASSETS not configured' }), { status: 500 });
@@ -42,28 +61,33 @@ export const GET: APIRoute = async ({ locals }) => {
       .map((obj: any) => `${publicUrl}/${obj.key}`);
 
     // Unimos la lista manual con lo que encuentre en R2 (evitando duplicados)
-    const finalAvatars = [...new Set([...MANUAL_AVATARS, ...r2Avatars])];
-    const finalBanners = [...new Set([...MANUAL_BANNERS, ...r2Banners])];
+    const finalAvatars = [...new Set([...ManualAvatars, ...r2Avatars])];
+    const finalBanners = [...new Set([...ManualBanners, ...r2Banners])];
 
-    return new Response(JSON.stringify({ 
-      avatars: finalAvatars, 
-      banners: finalBanners 
-    }), { 
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store'
+    return new Response(
+      JSON.stringify({
+        avatars: finalAvatars,
+        banners: finalBanners,
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store',
+        },
       }
-    });
-
+    );
   } catch {
     // Si falla el listado (común en local), devolvemos al menos la lista manual
-    return new Response(JSON.stringify({ 
-      avatars: MANUAL_AVATARS, 
-      banners: MANUAL_BANNERS 
-    }), { 
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return new Response(
+      JSON.stringify({
+        avatars: ManualAvatars,
+        banners: ManualBanners,
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 };

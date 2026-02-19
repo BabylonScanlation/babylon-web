@@ -1,9 +1,9 @@
 import type { APIRoute } from 'astro';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { logError } from '../../../../lib/logError';
-import { getDB } from '../../../../lib/db';
 import { seriesComments } from '../../../../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { getDB } from '../../../../lib/db';
+import { logError } from '../../../../lib/logError';
 
 const EditSchema = z.object({
   commentId: z.number().int().positive(),
@@ -29,8 +29,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const validation = EditSchema.safeParse(body);
 
     if (!validation.success) {
-      const errorMessage =
-        validation.error.errors[0]?.message || 'Datos inválidos.';
+      const errorMessage = validation.error.errors[0]?.message || 'Datos inválidos.';
       return new Response(JSON.stringify({ error: errorMessage }), {
         status: 400,
       });
@@ -47,10 +46,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .get();
 
     if (!comment) {
-      return new Response(JSON.stringify({ error: 'El comentario no fue encontrado o no te pertenece.' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: 'El comentario no fue encontrado o no te pertenece.' }),
+        {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     if (comment.userId !== user.uid) {
@@ -65,9 +67,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Si todo es correcto, actualizamos el comentario
     await drizzleDb
       .update(seriesComments)
-      .set({ 
+      .set({
         commentText,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(and(eq(seriesComments.id, commentId), eq(seriesComments.userId, user.uid)))
       .run();
@@ -80,7 +82,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return new Response(JSON.stringify(updatedComment), { status: 200 });
   } catch (e: unknown) {
     const userIdForLog = user?.uid; // user is in scope from the outer function
-    logError(e, 'Error al editar el comentario de serie', { commentId: commentId, userId: userIdForLog });
+    logError(e, 'Error al editar el comentario de serie', {
+      commentId: commentId,
+      userId: userIdForLog,
+    });
     return new Response(JSON.stringify({ error: 'Ocurrió un error interno en el servidor.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

@@ -52,15 +52,15 @@ export class NewsService {
     if (typeof window === 'undefined') return;
     const isNewsPage = window.location.pathname.startsWith('/news');
     const badges = document.querySelectorAll('[data-news-badge]');
-    
+
     if (isNewsPage) {
       localStorage.setItem(KEYS.COUNT, '0');
-      badges.forEach(el => el.classList.add('hidden'));
+      badges.forEach((el) => el.classList.add('hidden'));
       return;
     }
 
     const count = parseInt(localStorage.getItem(KEYS.COUNT) || '0');
-    badges.forEach(el => {
+    badges.forEach((el) => {
       if (count > 0) {
         el.textContent = count > 9 ? '+9' : count.toString();
         el.classList.remove('hidden');

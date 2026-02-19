@@ -1,152 +1,171 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import { fade } from 'svelte/transition';
-  import ImageWorker from '../lib/workers/image-processor.worker?worker';
+import { onDestroy, onMount } from 'svelte';
+import { fade } from 'svelte/transition';
+import ImageWorker from '../lib/workers/image-processor.worker?worker';
 
-  interface Props {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    page: any;
-    alt?: string;
-    watermark?: string;
-    loading?: "eager" | "lazy";
-  }
+interface PageData {
+  imageUrl?: string;
+  url?: string;
+  tiles?: string[];
+  [key: string]: unknown;
+}
 
-  let { page, alt = "", watermark = "", loading = "lazy" }: Props = $props();
+interface Props {
+  page: PageData;
+  alt?: string;
+  watermark?: string;
+  loading?: 'eager' | 'lazy';
+}
 
-  let canvas = $state<HTMLCanvasElement | null>(null);
-  let container = $state<HTMLDivElement | null>(null);
-  let isLoading = $state(true);
-  let error = $state(false);
-  let useFallback = $state(false); 
-  
-  let observer: IntersectionObserver | undefined;
-  let worker: Worker | null = null;
+interface WorkerMessage {
+  watermark: string;
+  type?: 'single' | 'tiled';
+  data?: {
+    url?: string;
+    tiles?: string[];
+    [key: string]: unknown;
+  };
+}
 
-  onMount(() => {
-    window.addEventListener('pageLoaded', handleGlobalPageLoad);
+let { page, alt = '', watermark = '', loading = 'lazy' }: Props = $props();
 
-    if (loading === 'eager') {
-      loadPageData();
-    } else {
-      const pageNum = getPageNum();
-      if (pageNum <= 5) {
-        loadPageData();
-        return;
-      }
+let canvas = $state<HTMLCanvasElement | null>(null);
+let container = $state<HTMLDivElement | null>(null);
+let isLoading = $state(true);
+let error = $state(false);
+let useFallback = $state(false);
 
-      observer = new IntersectionObserver(([entry], _self) => {
+let observer: IntersectionObserver | undefined;
+let worker: Worker | null = null;
+
+onMount(() => {
+  window.addEventListener('pageLoaded', handleGlobalPageLoad as EventListener);
+
+  if (loading === 'eager') {
+    void loadPageData();
+  } else {
+    const pageNum = getPageNum();
+    if (pageNum <= 5) {
+      void loadPageData();
+      return;
+    }
+
+    observer = new IntersectionObserver(
+      ([entry], _self) => {
         if (entry?.isIntersecting) {
-          loadPageData();
+          void loadPageData();
           _self.disconnect();
         }
-      }, { rootMargin: '1200px' });
-      if (container) observer.observe(container);
-    }
-  });
-
-  onDestroy(() => {
-    window.removeEventListener('pageLoaded', handleGlobalPageLoad);
-    if (observer) observer.disconnect();
-    if (worker) {
-        worker.terminate();
-        worker = null;
-    }
-  });
-
-  function getPageNum() {
-    const match = alt.match(/\d+/);
-    return match ? parseInt(match[0]) : 0;
+      },
+      { rootMargin: '1200px' }
+    );
+    if (container) observer.observe(container);
   }
+});
 
-  function handleGlobalPageLoad(e: any) {
-    const loadedNum = e.detail.pageNum;
-    const myNum = getPageNum();
-    
-    // Si se cargó la página anterior, yo (que soy la siguiente) empiezo ya.
-    // O si estoy en el rango de las próximas 2 páginas para pre-fetching agresivo.
-    if (loadedNum === myNum - 1 || (myNum > loadedNum && myNum <= loadedNum + 2)) {
-      if (isLoading) loadPageData();
-    }
+onDestroy(() => {
+  window.removeEventListener('pageLoaded', handleGlobalPageLoad as EventListener);
+  if (observer) observer.disconnect();
+  if (worker) {
+    worker.terminate();
+    worker = null;
   }
+});
 
-  async function loadPageData(retries = 2) {
-    if (!isLoading && !error) return;
+function getPageNum(): number {
+  const match = alt.match(/\d+/);
+  return match ? parseInt(match[0], 10) : 0;
+}
 
-    try {
-        await processWithWorker();
-        // Astra: Notificamos éxito para pre-cargar la siguiente página
-        window.dispatchEvent(new CustomEvent('pageLoaded', { detail: { pageNum: getPageNum() } }));
-    } catch (e) {
-      console.warn(`[ReaderPage] Worker error for ${alt}:`, e);
-      if (retries > 0) {
-          setTimeout(() => loadPageData(retries - 1), 1500);
-          return;
+function handleGlobalPageLoad(e: CustomEvent<{ pageNum: number }>) {
+  const loadedNum = e.detail.pageNum;
+  const myNum = getPageNum();
+
+  if (loadedNum === myNum - 1 || (myNum > loadedNum && myNum <= loadedNum + 2)) {
+    if (isLoading) void loadPageData();
+  }
+}
+
+async function loadPageData(retries = 2) {
+  if (!isLoading && !error) return;
+
+  try {
+    await processWithWorker();
+    window.dispatchEvent(new CustomEvent('pageLoaded', { detail: { pageNum: getPageNum() } }));
+  } catch (e) {
+    console.warn(`[ReaderPage] Worker error for ${alt}:`, e);
+    if (retries > 0) {
+      setTimeout(() => {
+        void loadPageData(retries - 1);
+      }, 1500);
+      return;
+    }
+    useFallback = true;
+    isLoading = false;
+    error = false;
+  }
+}
+
+function processWithWorker() {
+  return new Promise<void>((resolve, reject) => {
+    if (typeof Worker === 'undefined' || !window.OffscreenCanvas) {
+      return reject('Environment not supported');
+    }
+
+    if (!worker) {
+      try {
+        worker = new ImageWorker();
+      } catch {
+        return reject('Failed to initialize worker');
       }
-      useFallback = true;
-      isLoading = false;
-      error = false;
     }
-  }
 
-  function processWithWorker() {
-      return new Promise<void>((resolve, reject) => {
-          if (typeof Worker === 'undefined' || !window.OffscreenCanvas) {
-              return reject('Environment not supported');
-          }
+    if (!worker) return reject('Worker not available');
 
-          if (!worker) {
-              try {
-                worker = new ImageWorker();
-              } catch {
-                return reject('Failed to initialize worker');
-              }
-          }
+    worker.onmessage = (ev: MessageEvent) => {
+      const { success, bitmap, error: workerError } = ev.data;
+      if (success && bitmap && canvas) {
+        canvas.width = (bitmap as ImageBitmap).width;
+        canvas.height = (bitmap as ImageBitmap).height;
+        const ctx = canvas.getContext('2d', { alpha: false });
+        if (ctx) {
+          ctx.drawImage(bitmap as ImageBitmap, 0, 0);
+          (bitmap as ImageBitmap).close();
+          isLoading = false;
+          resolve();
+        } else {
+          reject('Canvas context failed');
+        }
+      } else {
+        reject(workerError || 'Worker returned failure');
+      }
+    };
 
-          if (!worker) return reject('Worker not available');
+    worker.onerror = (ev: ErrorEvent) => {
+      reject(ev.message || 'Worker error');
+    };
 
-          worker.onmessage = (ev: MessageEvent) => {
-              const { success, bitmap, error: workerError } = ev.data;
-              if (success && bitmap && canvas) {
-                  canvas.width = bitmap.width;
-                  canvas.height = bitmap.height;
-                  const ctx = canvas.getContext('2d', { alpha: false });
-                  if (ctx) {
-                      ctx.drawImage(bitmap, 0, 0);
-                      bitmap.close();
-                      isLoading = false;
-                      resolve();
-                  } else {
-                      reject('Canvas context failed');
-                  }
-              } else {
-                  reject(workerError || 'Worker returned failure');
-              }
-          };
+    const resolveUrl = (rel: string) => {
+      if (rel.startsWith('http') || rel.startsWith('/'))
+        return new URL(rel, window.location.href).href;
+      return new URL(`/${rel}`, window.location.origin).href;
+    };
+    const finalUrl = page.imageUrl || page.url;
 
-          worker.onerror = (ev: ErrorEvent) => {
-              reject(ev.message || 'Worker error');
-          };
-
-          const resolveUrl = (rel: string) => {
-              if (rel.startsWith('http') || rel.startsWith('/')) return new URL(rel, window.location.href).href;
-              return new URL(`/${rel}`, window.location.origin).href;
-          };
-          const finalUrl = page.imageUrl || page.url;
-
-          const message: { watermark: string, type?: 'single' | 'tiled', data?: unknown } = { watermark };
-          if (page.tiles && page.tiles.length > 0) {
-              message.type = 'tiled';
-              message.data = { ...page, tiles: page.tiles.map(resolveUrl) };
-          } else if (finalUrl) {
-              message.type = 'single';
-              message.data = { url: resolveUrl(finalUrl) };
-          } else {
-              reject('Missing data');
-              return;
-          }
-          worker.postMessage(message);
-      });
-  }
+    const message: WorkerMessage = { watermark };
+    if (page.tiles && (page.tiles as string[]).length > 0) {
+      message.type = 'tiled';
+      message.data = { ...page, tiles: (page.tiles as string[]).map(resolveUrl) };
+    } else if (finalUrl) {
+      message.type = 'single';
+      message.data = { url: resolveUrl(finalUrl as string) };
+    } else {
+      reject('Missing data');
+      return;
+    }
+    worker.postMessage(message);
+  });
+}
 </script>
 
 <div 
@@ -169,14 +188,14 @@
     <div class="error-wrapper" in:fade>
         <div class="error-card">
             <span class="error-title">Error de Carga</span>
-            <button class="retry-btn" onclick={() => loadPageData()}>Reintentar</button>
+            <button class="retry-btn" onclick={() => { void loadPageData(); }}>Reintentar</button>
         </div>
     </div>
   {/if}
 
   {#if useFallback}
     <div class="fallback-wrapper">
-      <img src={page.imageUrl || page.url} {alt} class="fallback-img" loading={loading} decoding="async" onload={() => isLoading = false} />
+      <img src={page.imageUrl || page.url} {alt} class="fallback-img" loading={loading} decoding="async" onload={() => { isLoading = false; }} />
     </div>
   {:else}
     <canvas bind:this={canvas} class:hidden={isLoading || error}></canvas>

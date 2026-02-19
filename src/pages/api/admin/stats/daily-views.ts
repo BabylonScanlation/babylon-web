@@ -1,6 +1,6 @@
-import { createApiRoute } from '../../../../lib/api';
+import { desc, sql } from 'drizzle-orm';
 import { chapterViews } from '../../../../db/schema';
-import { sql, desc } from 'drizzle-orm';
+import { createApiRoute } from '../../../../lib/api';
 
 export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request }) => {
   const db = locals.db;
@@ -10,18 +10,21 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
 
   try {
     // Query views per day for the last N days
-    const dailyViews = await db.select({
-      date: sql`DATE(${chapterViews.viewedAt})`.as('viewDate'),
-      count: sql`COUNT(*)`.as('viewCount')
-    })
-    .from(chapterViews)
-    .where(sql`${chapterViews.viewedAt} >= datetime('now', '-' || ${days} || ' days')`)
-    .groupBy(sql`viewDate`)
-    .orderBy(desc(sql`viewDate`))
-    .all();
+    const dailyViews = await db
+      .select({
+        date: sql`DATE(${chapterViews.viewedAt})`.as('viewDate'),
+        count: sql`COUNT(*)`.as('viewCount'),
+      })
+      .from(chapterViews)
+      .where(sql`${chapterViews.viewedAt} >= datetime('now', '-' || ${days} || ' days')`)
+      .groupBy(sql`viewDate`)
+      .orderBy(desc(sql`viewDate`))
+      .all();
 
     return new Response(JSON.stringify(dailyViews), { status: 200 });
   } catch {
-    return new Response(JSON.stringify({ error: 'No se pudieron obtener las visitas diarias.' }), { status: 500 });
+    return new Response(JSON.stringify({ error: 'No se pudieron obtener las visitas diarias.' }), {
+      status: 500,
+    });
   }
 });

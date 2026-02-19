@@ -1,14 +1,15 @@
 ---
+import AdContainer from '../../../../components/AdContainer.astro';
+import ChapterReaderRaw from '../../../../components/ChapterReader.svelte';
+const ChapterReader = ChapterReaderRaw as any;
+import UnifiedComments from '../../../../components/UnifiedComments.astro';
 // src/pages/series/[slug]/[chapter]/index.astro
 import Layout from '../../../../layouts/Layout.astro';
-import UnifiedComments from '../../../../components/UnifiedComments.astro';
-import ChapterReader from '../../../../components/ChapterReader.svelte';
-import AdContainer from '../../../../components/AdContainer.astro';
-import { logError } from '../../../../lib/logError';
-import { getDB } from '../../../../lib/db';
+import { getChapterPayload } from '../../../../lib/data/chapters';
 import { getCommentsForTarget } from '../../../../lib/data/comments';
 import { getSeriesDetails } from '../../../../lib/data/series';
-import { getChapterPayload } from '../../../../lib/data/chapters';
+import { getDB } from '../../../../lib/db';
+import { logError } from '../../../../lib/logError';
 
 import { siteConfig } from '../../../../site.config';
 
@@ -32,9 +33,13 @@ let allChapters: any[] = [];
 let seriesTitle: string | null = null;
 let comments: any[] = [];
 
-try { 
+try {
   // 1. Obtener detalles de la serie directamente
-  const seriesData = await getSeriesDetails(drizzleDb, slug, user ? { uid: user.uid, isAdmin: !!user.isAdmin } : undefined);
+  const seriesData = await getSeriesDetails(
+    drizzleDb,
+    slug,
+    user ? { uid: user.uid, isAdmin: !!user.isAdmin } : undefined
+  );
   if (seriesData) {
     allChapters = seriesData.chapters || [];
     seriesTitle = seriesData.title;
@@ -42,7 +47,13 @@ try {
 
   // 2. Obtener payload del capítulo directamente
   const chapterNumber = parseFloat(chapter);
-  const chapterResult = await getChapterPayload(drizzleDb, env, slug, chapterNumber, Astro.locals.runtime.ctx);
+  const chapterResult = await getChapterPayload(
+    drizzleDb,
+    env,
+    slug,
+    chapterNumber,
+    Astro.locals.runtime.ctx
+  );
 
   if (chapterResult) {
     encryptedData = chapterResult.payload;
@@ -52,14 +63,13 @@ try {
     if (isProcessing) {
       loadingMessage = 'Preparando capítulo para lectura...';
     }
-    
+
     if (chapterId) {
       comments = await getCommentsForTarget(drizzleDb, 'chapter', chapterId, user?.uid);
     }
   } else {
     error = 'El capítulo solicitado no fue encontrado.';
   }
-
 } catch (e) {
   logError(e, 'Error crítico cargando capítulo', { slug, chapter });
   error = 'Error de conexión con el servidor.';
@@ -70,12 +80,10 @@ Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate
 
 // Lógica para los botones de capítulo siguiente/anterior
 const currentChapterNumber = parseFloat(chapter!);
-const currentChapterIndex = allChapters.findIndex(
-  (c) => c.chapterNumber === currentChapterNumber
-);
+const currentChapterIndex = allChapters.findIndex((c) => c.chapterNumber === currentChapterNumber);
 
 let nextChapterUrl: string | null = null;
-let nextChapterProp: { slug: string, chapter: string } | null = null;
+let nextChapterProp: { slug: string; chapter: string } | null = null;
 
 if (currentChapterIndex > 0) {
   const nextChapter = allChapters[currentChapterIndex - 1];
@@ -86,10 +94,7 @@ if (currentChapterIndex > 0) {
 }
 
 let prevChapterUrl: string | null = null;
-if (
-  currentChapterIndex !== -1 &&
-  currentChapterIndex < allChapters.length - 1
-) {
+if (currentChapterIndex !== -1 && currentChapterIndex < allChapters.length - 1) {
   const prevChapter = allChapters[currentChapterIndex + 1];
   if (prevChapter) {
     prevChapterUrl = `/series/${slug}/${prevChapter.chapterNumber}`;
@@ -101,23 +106,23 @@ let nextWebChapterUrl: string | null = null;
 let prevWebChapterUrl: string | null = null;
 
 if (error && currentChapterIndex !== -1) {
-    // nextWebChapterUrl: Buscar hacia el futuro (capítulos más nuevos -> índices menores en array DESC)
-    for (let i = currentChapterIndex - 1; i >= 0; i--) {
-        const ch = allChapters[i];
-        if (ch && ch.status === 'live') {
-            nextWebChapterUrl = `/series/${slug}/${ch.chapterNumber}`;
-            break;
-        }
+  // nextWebChapterUrl: Buscar hacia el futuro (capítulos más nuevos -> índices menores en array DESC)
+  for (let i = currentChapterIndex - 1; i >= 0; i--) {
+    const ch = allChapters[i];
+    if (ch && ch.status === 'live') {
+      nextWebChapterUrl = `/series/${slug}/${ch.chapterNumber}`;
+      break;
     }
-    
-    // prevWebChapterUrl: Buscar hacia el pasado (capítulos más antiguos -> índices mayores en array DESC)
-    for (let i = currentChapterIndex + 1; i < allChapters.length; i++) {
-        const ch = allChapters[i];
-        if (ch && ch.status === 'live') {
-            prevWebChapterUrl = `/series/${slug}/${ch.chapterNumber}`;
-            break;
-        }
+  }
+
+  // prevWebChapterUrl: Buscar hacia el pasado (capítulos más antiguos -> índices mayores en array DESC)
+  for (let i = currentChapterIndex + 1; i < allChapters.length; i++) {
+    const ch = allChapters[i];
+    if (ch && ch.status === 'live') {
+      prevWebChapterUrl = `/series/${slug}/${ch.chapterNumber}`;
+      break;
     }
+  }
 }
 ---
 
@@ -235,15 +240,15 @@ if (error && currentChapterIndex !== -1) {
         ></div>
         <ChapterReader 
           client:load 
-          slug={slug}
-          chapter={chapter}
-          encryptedData={encryptedData}
-          chapterId={chapterId}
+          slug={slug || ''}
+          chapter={chapter || ''}
+          encryptedData={encryptedData || undefined}
+          chapterId={chapterId || undefined}
           processing={isProcessing}
-          initialLoadingMessage={loadingMessage}
-          seriesTitle={seriesTitle}
+          initialLoadingMessage={loadingMessage || undefined}
+          seriesTitle={seriesTitle || undefined}
           watermark={watermark}
-          nextChapter={nextChapterProp} 
+          nextChapter={nextChapterProp || undefined} 
         />
     )}
   </main>

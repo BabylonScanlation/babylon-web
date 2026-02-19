@@ -1,49 +1,53 @@
 <script lang="ts">
-  // Cropper.js imports would be here
-  import { logError } from '../lib/logError';
+// Cropper.js imports would be here
+import { logError } from '../lib/logError';
 
-  // --- Internal State (Svelte 5) ---
-  let isOpen = $state(false);
-  let chapterId = $state<string | null>(null);
-  let seriesSlug = $state<string | null>(null);
-  let chapterNumber = $state<string | null>(null);
+// --- Internal State (Svelte 5) ---
+let isOpen = $state(false);
+let chapterId = $state<string | null>(null);
+let seriesSlug = $state<string | null>(null);
+let chapterNumber = $state<string | null>(null);
 
-  // --- Helper Functions ---
-  const closeModal = () => {
-    isOpen = false;
+// --- Helper Functions ---
+const closeModal = () => {
+  isOpen = false;
+};
+
+const handleOpenModal = (event: Event) => {
+  const customEvent = event as CustomEvent<{
+    chapterId: string;
+    seriesSlug: string;
+    chapterNumber: string;
+  }>;
+  const { detail } = customEvent;
+
+  if (detail && detail.chapterId && detail.seriesSlug && detail.chapterNumber) {
+    chapterId = detail.chapterId;
+    seriesSlug = detail.seriesSlug;
+    chapterNumber = detail.chapterNumber;
+    isOpen = true;
+  } else {
+    logError('Modal opened with incomplete data', 'AdminThumbnailCropperModal', detail);
+  }
+};
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && isOpen) {
+    closeModal();
+  }
+};
+
+// --- Svelte 5 Side Effects ---
+// $effect is guaranteed to run ONLY in the browser
+$effect(() => {
+  window.addEventListener('openCropperModal', handleOpenModal);
+  window.addEventListener('keydown', handleKeydown);
+
+  return () => {
+    window.removeEventListener('openCropperModal', handleOpenModal);
+    window.removeEventListener('keydown', handleKeydown);
   };
-
-  const handleOpenModal = (event: Event) => {
-    const customEvent = event as CustomEvent<{ chapterId: string; seriesSlug: string; chapterNumber: string }>;
-    const { detail } = customEvent;
-    
-    if (detail && detail.chapterId && detail.seriesSlug && detail.chapterNumber) {
-      chapterId = detail.chapterId;
-      seriesSlug = detail.seriesSlug;
-      chapterNumber = detail.chapterNumber;
-      isOpen = true;
-    } else {
-      logError('Modal opened with incomplete data', 'AdminThumbnailCropperModal', detail);
-    }
-  };
-
-  const handleKeydown = (event: KeyboardEvent) => {
-    if (event.key === 'Escape' && isOpen) {
-      closeModal();
-    }
-  };
-
-  // --- Svelte 5 Side Effects ---
-  // $effect is guaranteed to run ONLY in the browser
-  $effect(() => {
-    window.addEventListener('openCropperModal', handleOpenModal);
-    window.addEventListener('keydown', handleKeydown);
-
-    return () => {
-      window.removeEventListener('openCropperModal', handleOpenModal);
-      window.removeEventListener('keydown', handleKeydown);
-    };
-  });
+});
 </script>
 
 <!-- HTML structure with Svelte bindings -->

@@ -1,5 +1,5 @@
 import type { APIContext } from 'astro';
-import { SignJWT, jwtVerify } from 'jose';
+import { jwtVerify, SignJWT } from 'jose';
 
 export interface UserSessionPayload {
   uid: string;
@@ -19,7 +19,10 @@ export async function createToken(payload: UserSessionPayload, secret: string): 
     .sign(secretKey);
 }
 
-export async function verifyToken(token: string, secret: string): Promise<UserSessionPayload | null> {
+export async function verifyToken(
+  token: string,
+  secret: string
+): Promise<UserSessionPayload | null> {
   try {
     const secretKey = new TextEncoder().encode(secret.trim().replace(/\n'$/, ''));
     const { payload } = await jwtVerify(token, secretKey);
@@ -35,7 +38,10 @@ export function getSession(context: APIContext): string | undefined {
 
 export function setSession(context: APIContext, sessionValue: string): void {
   const url = new URL(context.request.url);
-  const isLocalIp = url.hostname.startsWith('192.168.') || url.hostname.startsWith('10.') || url.hostname.startsWith('172.');
+  const isLocalIp =
+    url.hostname.startsWith('192.168.') ||
+    url.hostname.startsWith('10.') ||
+    url.hostname.startsWith('172.');
   const isProduction = import.meta.env.PROD;
 
   context.cookies.set('user_session', sessionValue, {
@@ -47,10 +53,17 @@ export function setSession(context: APIContext, sessionValue: string): void {
   });
 }
 
-export async function setAuthCookie(context: APIContext, payload: UserSessionPayload, secret: string): Promise<void> {
+export async function setAuthCookie(
+  context: APIContext,
+  payload: UserSessionPayload,
+  secret: string
+): Promise<void> {
   const token = await createToken(payload, secret);
   const url = new URL(context.request.url);
-  const isLocalIp = url.hostname.startsWith('192.168.') || url.hostname.startsWith('10.') || url.hostname.startsWith('172.');
+  const isLocalIp =
+    url.hostname.startsWith('192.168.') ||
+    url.hostname.startsWith('10.') ||
+    url.hostname.startsWith('172.');
   const isProduction = import.meta.env.PROD;
 
   context.cookies.set('user_auth', token, {

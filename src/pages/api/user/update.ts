@@ -1,11 +1,16 @@
 import type { APIRoute } from 'astro';
-import { getDB } from '../../../lib/db';
-import { users } from '../../../db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { users } from '../../../db/schema';
+import { getDB } from '../../../lib/db';
 
 const UpdateProfileSchema = z.object({
-  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, 'Solo letras, números y guiones bajos').optional(),
+  username: z
+    .string()
+    .min(3)
+    .max(30)
+    .regex(/^[a-zA-Z0-9_]+$/, 'Solo letras, números y guiones bajos')
+    .optional(),
   bio: z.string().max(160).optional(),
   website: z.string().url().optional().or(z.literal('')),
   isPrivate: z.boolean().optional(),
@@ -34,14 +39,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Check if username is taken by another user
     if (username) {
-        const existing = await db.select().from(users).where(eq(users.username, username)).get();
-        if (existing && existing.id !== user.uid) {
-            return new Response(JSON.stringify({ error: 'Este nombre de usuario ya está en uso.' }), { status: 409 });
-        }
+      const existing = await db.select().from(users).where(eq(users.username, username)).get();
+      if (existing && existing.id !== user.uid) {
+        return new Response(JSON.stringify({ error: 'Este nombre de usuario ya está en uso.' }), {
+          status: 409,
+        });
+      }
     }
 
     const updateData: any = {
-        updatedAt: new Date()
+      updatedAt: new Date(),
     };
     if (username !== undefined) updateData.username = username;
     if (bio !== undefined) updateData.bio = bio;
@@ -51,26 +58,31 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
     if (bannerUrl !== undefined) updateData.bannerUrl = bannerUrl;
 
-    await db.insert(users).values({
+    await db
+      .insert(users)
+      .values({
         id: user.uid,
-        email: user.email || 'no-email', 
-        username: username || `user_${user.uid.substring(0,8)}`, // Fallback for new insert
+        email: user.email || 'no-email',
+        username: username || `user_${user.uid.substring(0, 8)}`, // Fallback for new insert
         bio: bio,
         website: website,
         isPrivate: isPrivate ?? false,
         isNsfw: isNsfw ?? false,
         avatarUrl: avatarUrl,
         bannerUrl: bannerUrl,
-        updatedAt: new Date()
-    }).onConflictDoUpdate({
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
         target: users.id,
-        set: updateData
-    }).run();
+        set: updateData,
+      })
+      .run();
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
-
   } catch (e) {
     console.error(e);
-    return new Response(JSON.stringify({ error: 'Error interno al actualizar perfil' }), { status: 500 });
+    return new Response(JSON.stringify({ error: 'Error interno al actualizar perfil' }), {
+      status: 500,
+    });
   }
 };

@@ -20,7 +20,8 @@
     "types": ["astro/client"],
     "noEmit": true,
     "moduleResolution": "bundler",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "exactOptionalPropertyTypes": false
   },
   "include": [
     "src/**/*.ts",

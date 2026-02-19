@@ -11,49 +11,49 @@ const error = Astro.url.searchParams.get('error');
 
 const adminCards = [
   {
-    title: "Análisis & Datos",
-    desc: "Rendimiento, vistas diarias y series más populares.",
-    href: "/admin/stats",
+    title: 'Análisis & Datos',
+    desc: 'Rendimiento, vistas diarias y series más populares.',
+    href: '/admin/stats',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`,
-    color: "#00bfff"
+    color: '#00bfff',
   },
   {
-    title: "Biblioteca de Series",
-    desc: "Edita metadatos, gestiona capítulos y visibilidad.",
-    href: "/admin/series",
+    title: 'Biblioteca de Series',
+    desc: 'Edita metadatos, gestiona capítulos y visibilidad.',
+    href: '/admin/series',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`,
-    color: "#a29bfe"
+    color: '#a29bfe',
   },
   {
-    title: "Control de Contenido",
-    desc: "Crea series y sube nuevos capítulos vía Telegram.",
-    href: "/admin/upload",
+    title: 'Control de Contenido',
+    desc: 'Crea series y sube nuevos capítulos vía Telegram.',
+    href: '/admin/upload',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`,
-    color: "#00d2ff"
+    color: '#00d2ff',
   },
   {
-    title: "Moderación",
-    desc: "Gestiona comentarios y mantén la comunidad limpia.",
-    href: "/admin/comments",
+    title: 'Moderación',
+    desc: 'Gestiona comentarios y mantén la comunidad limpia.',
+    href: '/admin/comments',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`,
-    color: "#fab1a0"
+    color: '#fab1a0',
   },
   {
-    title: "Noticias & Feed",
-    desc: "Comunica actualizaciones y anuncios a los usuarios.",
-    href: "/admin/news",
+    title: 'Noticias & Feed',
+    desc: 'Comunica actualizaciones y anuncios a los usuarios.',
+    href: '/admin/news',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10l4 4v10a2 2 0 0 1-2 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`,
-    color: "#55efc4"
-  }
+    color: '#55efc4',
+  },
 ];
 
 if (isSuperAdmin) {
   adminCards.push({
-    title: "Administradores",
-    desc: "Gestiona privilegios y roles de acceso al sistema.",
-    href: "/admin/users",
+    title: 'Administradores',
+    desc: 'Gestiona privilegios y roles de acceso al sistema.',
+    href: '/admin/users',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`,
-    color: "#ff7675"
+    color: '#ff7675',
   });
 }
 ---

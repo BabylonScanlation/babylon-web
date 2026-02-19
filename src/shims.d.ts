@@ -70,8 +70,5 @@ declare module '@squoosh/lib/webp/encode' {
     binary: Uint8Array;
   }
 
-  export function encode(
-    _image: ImageData,
-    _options: WebPEncodeOptions
-  ): Promise<WebPEncodeResult>;
+  export function encode(_image: ImageData, _options: WebPEncodeOptions): Promise<WebPEncodeResult>;
 }

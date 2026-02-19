@@ -1,31 +1,27 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import { getDB } from '../../lib/db';
+import { and, desc, eq, sql } from 'drizzle-orm';
+import MangaCard from '../../components/MangaCard.astro';
 import {
-  users,
-  userRoles,
+  chapters,
   comments,
-  seriesComments,
   // newsComments,
   favorites,
-  series,
-  chapters,
   news,
+  series,
+  seriesComments,
   seriesRatings,
+  userRoles,
+  users,
 } from '../../db/schema';
-import { eq, desc, sql, and } from 'drizzle-orm';
+import Layout from '../../layouts/Layout.astro';
+import { getDB } from '../../lib/db';
 import { timeAgo } from '../../lib/utils';
-import MangaCard from '../../components/MangaCard.astro';
 
 const { username } = Astro.params;
 const db = getDB(Astro.locals.runtime.env);
 
 // 1. Fetch Target Profile
-const targetUser = await db
-  .select()
-  .from(users)
-  .where(eq(users.username, username!))
-  .get();
+const targetUser = await db.select().from(users).where(eq(users.username, username!)).get();
 
 if (!targetUser) {
   return Astro.redirect('/404');
@@ -104,9 +100,7 @@ if (currentTab === 'favorites') {
     })
     .from(favorites)
     .innerJoin(series, eq(favorites.seriesId, series.id))
-    .where(
-      and(eq(favorites.userId, targetUser.id), eq(favorites.type, 'series'))
-    )
+    .where(and(eq(favorites.userId, targetUser.id), eq(favorites.type, 'series')))
     .orderBy(desc(favorites.createdAt))
     .all();
 }
@@ -146,22 +140,19 @@ const totalFavs =
     await db
       .select({ count: sql`count(*)` })
       .from(favorites)
-      .where(
-        and(eq(favorites.userId, targetUser.id), eq(favorites.type, 'series'))
-      )
+      .where(and(eq(favorites.userId, targetUser.id), eq(favorites.type, 'series')))
       .get()
   )?.count || 0;
 
-const avgRating =
-  Number(
-    (
-      await db
-        .select({ avg: sql`avg(rating)` })
-        .from(seriesRatings)
-        .where(eq(seriesRatings.userId, targetUser.id))
-        .get()
-    )?.avg || 0
-  );
+const avgRating = Number(
+  (
+    await db
+      .select({ avg: sql`avg(rating)` })
+      .from(seriesRatings)
+      .where(eq(seriesRatings.userId, targetUser.id))
+      .get()
+  )?.avg || 0
+);
 
 import { siteConfig } from '../../site.config';
 

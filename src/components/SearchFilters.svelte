@@ -1,32 +1,102 @@
 <script lang="ts">
-  import { slide, fade } from 'svelte/transition';
-  import { onMount, onDestroy, untrack } from 'svelte';
-  import { navigate } from 'astro:transitions/client';
-  
-  const sortOptions = [
-    { value: 'relevance', label: 'Relevancia' },
-    { value: 'popular', label: 'Popularidad' },
-    { value: 'latest', label: 'Recientes' },
-    { value: 'az', label: 'A-Z' }
-  ];
+import { navigate } from 'astro:transitions/client';
+import { onDestroy, onMount, untrack } from 'svelte';
+import { fade, slide } from 'svelte/transition';
 
-  const typeOptions = [
-    { value: 'all', label: 'Todo' },
-    { value: 'Manga', label: 'Manga' },
-    { value: 'Manhwa', label: 'Manhwa' },
-    { value: 'Manhua', label: 'Manhua' }
-  ];
+const sortOptions = [
+  { value: 'relevance', label: 'Relevancia' },
+  { value: 'popular', label: 'Popularidad' },
+  { value: 'latest', label: 'Recientes' },
+  { value: 'az', label: 'A-Z' },
+];
 
-  const commonGenres = [
-    'Acción', 'Aventura', 'Comedia', 'Drama', 'Fantasía', 
-    'Romance', 'Sci-Fi', 'Recuentos de la vida', 'Tragedia', 
-    'Sobrenatural', 'Terror', 'Misterio', 'Psicológico'
-  ];
+const typeOptions = [
+  { value: 'all', label: 'Todo' },
+  { value: 'Manga', label: 'Manga' },
+  { value: 'Manhwa', label: 'Manhwa' },
+  { value: 'Manhua', label: 'Manhua' },
+];
 
-  let isAdvancedOpen = $state(false);
-  
-  // Estado real aplicado
-  let activeFilters = $state({
+const commonGenres = [
+  'Acción',
+  'Aventura',
+  'Comedia',
+  'Drama',
+  'Fantasía',
+  'Romance',
+  'Sci-Fi',
+  'Recuentos de la vida',
+  'Tragedia',
+  'Sobrenatural',
+  'Terror',
+  'Misterio',
+  'Psicológico',
+];
+
+let isAdvancedOpen = $state(false);
+
+// Estado real aplicado
+let activeFilters = $state({
+  sort: 'az',
+  type: 'all',
+  status: 'all',
+  author: '',
+  artist: '',
+  publisher: '',
+  magazine: '',
+  genres: [] as string[],
+});
+
+// Estado temporal (mientras el usuario edita)
+let stagingFilters = $state(
+  Object.assign(
+    {},
+    untrack(() => activeFilters)
+  )
+);
+
+onMount(() => {
+  const params = new URLSearchParams(window.location.search);
+  const loaded = {
+    sort: params.get('sort') || 'az',
+    type: params.get('type') || 'all',
+    status: params.get('status') || 'all',
+    author: params.get('author') || '',
+    artist: params.get('artist') || '',
+    publisher: params.get('publisher') || '',
+    magazine: params.get('magazine') || '',
+    genres: params.get('genres')?.split(',').filter(Boolean) || [],
+  };
+  activeFilters = { ...loaded };
+  stagingFilters = { ...loaded };
+});
+
+onDestroy(() => {
+  if (typeof document !== 'undefined') {
+    document.body.removeAttribute('data-search-filter');
+  }
+});
+
+function toggleAdvanced() {
+  if (!isAdvancedOpen) {
+    stagingFilters = JSON.parse(JSON.stringify(activeFilters));
+    document.body.setAttribute('data-search-filter', 'open');
+  } else {
+    document.body.removeAttribute('data-search-filter');
+  }
+  isAdvancedOpen = !isAdvancedOpen;
+}
+
+function toggleGenre(genre: string) {
+  if (stagingFilters.genres.includes(genre)) {
+    stagingFilters.genres = stagingFilters.genres.filter((g) => g !== genre);
+  } else {
+    stagingFilters.genres = [...stagingFilters.genres, genre];
+  }
+}
+
+function resetFilters() {
+  stagingFilters = {
     sort: 'az',
     type: 'all',
     status: 'all',
@@ -34,100 +104,45 @@
     artist: '',
     publisher: '',
     magazine: '',
-    genres: [] as string[]
-  });
+    genres: [],
+  };
+}
 
-  // Estado temporal (mientras el usuario edita)
-  let stagingFilters = $state(Object.assign({}, untrack(() => activeFilters)));
+function cancel() {
+  isAdvancedOpen = false;
+  document.body.removeAttribute('data-search-filter');
+  stagingFilters = JSON.parse(JSON.stringify(activeFilters));
+}
 
-  onMount(() => {
-    const params = new URLSearchParams(window.location.search);
-    const loaded = {
-      sort: params.get('sort') || 'az',
-      type: params.get('type') || 'all',
-      status: params.get('status') || 'all',
-      author: params.get('author') || '',
-      artist: params.get('artist') || '',
-      publisher: params.get('publisher') || '',
-      magazine: params.get('magazine') || '',
-      genres: params.get('genres')?.split(',').filter(Boolean) || []
-    };
-    activeFilters = { ...loaded };
-    stagingFilters = { ...loaded };
-  });
+function apply() {
+  activeFilters = JSON.parse(JSON.stringify(stagingFilters));
 
-  onDestroy(() => {
-    if (typeof document !== 'undefined') {
-      document.body.removeAttribute('data-search-filter');
+  // Orion: Construcción de parámetros limpia para evitar avisos de mutabilidad
+  const paramsMap: Record<string, string> = {};
+  const url = new URL(window.location.href);
+  const currentQ = url.searchParams.get('q');
+
+  if (currentQ) paramsMap.q = currentQ;
+  paramsMap.page = '1';
+
+  Object.entries(activeFilters).forEach(([k, v]) => {
+    if (k === 'genres') {
+      if (Array.isArray(v) && v.length > 0) paramsMap[k] = v.join(',');
+    } else if (v && v !== 'all' && v !== '') {
+      paramsMap[k] = String(v);
     }
   });
 
-  function toggleAdvanced() {
-    if (!isAdvancedOpen) {
-      stagingFilters = JSON.parse(JSON.stringify(activeFilters));
-      document.body.setAttribute('data-search-filter', 'open');
-    } else {
-      document.body.removeAttribute('data-search-filter');
-    }
-    isAdvancedOpen = !isAdvancedOpen;
-  }
+  const newSearchParams = new URLSearchParams(paramsMap);
 
-  function toggleGenre(genre: string) {
-    if (stagingFilters.genres.includes(genre)) {
-      stagingFilters.genres = stagingFilters.genres.filter(g => g !== genre);
-    } else {
-      stagingFilters.genres = [...stagingFilters.genres, genre];
-    }
-  }
+  // Cerrar modal antes de navegar para UX fluida
+  isAdvancedOpen = false;
+  document.body.removeAttribute('data-search-filter');
 
-  function resetFilters() {
-    stagingFilters = {
-      sort: 'az',
-      type: 'all',
-      status: 'all',
-      author: '',
-      artist: '',
-      publisher: '',
-      magazine: '',
-      genres: []
-    };
-  }
-
-  function cancel() {
-    isAdvancedOpen = false;
-    document.body.removeAttribute('data-search-filter');
-    stagingFilters = JSON.parse(JSON.stringify(activeFilters));
-  }
-
-  function apply() {
-    activeFilters = JSON.parse(JSON.stringify(stagingFilters));
-    
-    // Orion: Construcción de parámetros limpia para evitar avisos de mutabilidad
-    const paramsMap: Record<string, string> = {};
-    const url = new URL(window.location.href);
-    const currentQ = url.searchParams.get('q');
-    
-    if (currentQ) paramsMap.q = currentQ;
-    paramsMap.page = '1';
-    
-    Object.entries(activeFilters).forEach(([k, v]) => {
-      if (k === 'genres') {
-        if (Array.isArray(v) && v.length > 0) paramsMap[k] = v.join(',');
-      } else if (v && v !== 'all' && v !== '') {
-        paramsMap[k] = String(v);
-      }
-    });
-
-    const newSearchParams = new URLSearchParams(paramsMap);
-
-    // Cerrar modal antes de navegar para UX fluida
-    isAdvancedOpen = false;
-    document.body.removeAttribute('data-search-filter');
-
-    // Orion: Navegación inteligente sin refresco total
-    const nextUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
-    navigate(nextUrl, { history: 'push' });
-  }
+  // Orion: Navegación inteligente sin refresco total
+  const nextUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
+  navigate(nextUrl, { history: 'push' });
+}
 </script>
 
 <div class="filter-system-container">

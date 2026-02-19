@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
+import { desc, eq, inArray } from 'drizzle-orm';
+import { newsComments, newsCommentVotes, users } from '../../../../db/schema';
 import { getDB } from '../../../../lib/db';
-import { newsComments, users, newsCommentVotes } from '../../../../db/schema';
-import { eq, desc, inArray } from 'drizzle-orm';
 
 export const GET: APIRoute = async ({ params, locals }) => {
   const { newsId } = params;
@@ -29,26 +29,28 @@ export const GET: APIRoute = async ({ params, locals }) => {
       .all();
 
     // --- Optimización de Votos ---
-    const commentIds = results.map(c => c.id);
-    const voteMap = new Map<number, { likes: number, dislikes: number, userVote: number }>();
-    
+    const commentIds = results.map((c) => c.id);
+    const voteMap = new Map<number, { likes: number; dislikes: number; userVote: number }>();
+
     if (commentIds.length > 0) {
-        const votes = await db.select().from(newsCommentVotes)
-            .where(inArray(newsCommentVotes.commentId, commentIds))
-            .all();
+      const votes = await db
+        .select()
+        .from(newsCommentVotes)
+        .where(inArray(newsCommentVotes.commentId, commentIds))
+        .all();
 
-        const currentUserId = locals.user?.uid;
+      const currentUserId = locals.user?.uid;
 
-        votes.forEach(v => {
-            const entry = voteMap.get(v.commentId) || { likes: 0, dislikes: 0, userVote: 0 };
-            if (v.vote === 1) entry.likes++;
-            else if (v.vote === -1) entry.dislikes++;
-            if (currentUserId && v.userId === currentUserId) entry.userVote = v.vote;
-            voteMap.set(v.commentId, entry);
-        });
+      votes.forEach((v) => {
+        const entry = voteMap.get(v.commentId) || { likes: 0, dislikes: 0, userVote: 0 };
+        if (v.vote === 1) entry.likes++;
+        else if (v.vote === -1) entry.dislikes++;
+        if (currentUserId && v.userId === currentUserId) entry.userVote = v.vote;
+        voteMap.set(v.commentId, entry);
+      });
     }
 
-    const formatted = results.map(c => {
+    const formatted = results.map((c) => {
       const stats = voteMap.get(c.id) || { likes: 0, dislikes: 0, userVote: 0 };
       return {
         id: c.id,
@@ -62,15 +64,15 @@ export const GET: APIRoute = async ({ params, locals }) => {
         isPinned: !!c.isPinned,
         likes: stats.likes,
         dislikes: stats.dislikes,
-        userVote: stats.userVote
+        userVote: stats.userVote,
       };
     });
 
     return new Response(JSON.stringify(formatted), {
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-store, no-cache, must-revalidate',
-        'Vary': 'Cookie'
+        Vary: 'Cookie',
       },
     });
   } catch {

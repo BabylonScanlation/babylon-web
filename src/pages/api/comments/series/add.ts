@@ -1,8 +1,8 @@
 // src/pages/api/comments/series/add.ts
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
-import { getDB } from '../../../../lib/db';
 import { seriesComments } from '../../../../db/schema';
+import { getDB } from '../../../../lib/db';
 
 const CommentSchema = z.object({
   seriesId: z.number().int().positive(),
@@ -34,8 +34,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const validation = CommentSchema.safeParse(body);
 
     if (!validation.success) {
-      const errorMessage =
-        validation.error.errors[0]?.message || 'Datos inválidos.';
+      const errorMessage = validation.error.errors[0]?.message || 'Datos inválidos.';
       return new Response(JSON.stringify({ error: errorMessage }), {
         status: 400,
       });
@@ -68,14 +67,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return new Response(JSON.stringify(newComment), { status: 201 });
   } catch (error) {
     console.error('Error adding comment:', error);
-    return new Response(
-      JSON.stringify({ error: 'Ocurrió un error interno en el servidor.' }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    return new Response(JSON.stringify({ error: 'Ocurrió un error interno en el servidor.' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 };
