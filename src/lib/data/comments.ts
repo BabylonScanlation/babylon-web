@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from 'drizzle-orm';
+import { desc, eq, inArray, sql } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 import {
@@ -11,6 +11,7 @@ import {
   userRoles,
   users,
 } from '../../db/schema';
+import { parseToTimestamp } from '../utils';
 
 export async function getCommentsForTarget(
   db: DrizzleD1Database<typeof schema>,
@@ -42,8 +43,9 @@ export async function getCommentsForTarget(
       userId: table.userId,
       parentId: table.parentId,
       commentText: table.commentText,
-      createdAt: table.createdAt,
-      updatedAt: table.updatedAt,
+      // Forzar extracción como número (ms) para evitar fallos de serialización en Astro
+      createdAt: sql<number>`CAST(${table.createdAt} AS INTEGER)`,
+      updatedAt: sql<number>`CAST(${table.updatedAt} AS INTEGER)`,
       isPinned: table.isPinned,
       isDeleted: table.isDeleted,
       username: users.username,
@@ -88,5 +90,8 @@ export async function getCommentsForTarget(
     dislikes: voteMap.get(c.id)?.dislikes || 0,
     userVote: voteMap.get(c.id)?.userVote || 0,
     isAdminComment: c.role === 'admin',
+    // Normalizar a timestamps numéricos
+    createdAt: parseToTimestamp(c.createdAt),
+    updatedAt: parseToTimestamp(c.updatedAt),
   }));
 }

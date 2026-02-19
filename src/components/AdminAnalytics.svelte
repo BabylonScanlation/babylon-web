@@ -28,10 +28,11 @@ const palette = {
 async function fetchData() {
   try {
     loading = true;
-    const res = await fetch(`/api/admin/stats/all?range=${selectedRange}`);
+    const res = await fetch(`/api/admin/stats/all?range=${selectedRange}&refresh=true`);
     if (!res.ok) throw new Error('Error stats');
 
     const data = await res.json();
+    console.log('[Analytics Debug] Top Commenters:', data.engagement.topCommenters);
     summary = data.summary;
     engagement = data.engagement;
     categories = data.categories;
@@ -289,7 +290,7 @@ onMount(() => {
       <div class="engagement-list">
           {#each engagement.topCommenters as u (u.email)}
             <div class="engagement-item">
-                <span class="item-name">{u.email.split('@')[0]}</span>
+                <span class="item-name">{u.username || u.displayName || u.email.split('@')[0]}</span>
                 <div class="item-bar-wrap">
                     <div class="item-bar secondary" style="width: {(u.commentCount / (engagement.topCommenters[0]?.commentCount || 1)) * 100}%"></div>
                 </div>

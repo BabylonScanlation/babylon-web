@@ -57,7 +57,7 @@ export const commentActions = {
         id: result.id,
         text,
         parentId,
-        createdAt: result.createdAt,
+        createdAt: new Date(result.createdAt || Date.now()).getTime(),
         user: {
           username: user.username || user.displayName || 'Usuario',
           avatarUrl: user.avatarUrl,
@@ -155,7 +155,7 @@ export const commentActions = {
         .update(table)
         .set({
           commentText: text,
-          updatedAt: sql`CURRENT_TIMESTAMP`,
+          updatedAt: sql`(strftime('%s', 'now') * 1000)`,
         })
         .where(eq(table.id, commentId))
         .run();

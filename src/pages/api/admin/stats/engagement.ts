@@ -26,6 +26,8 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
     let commentersQuery = db
       .select({
         email: users.email,
+        username: users.username,
+        displayName: users.displayName,
         commentCount: sql<number>`COUNT(*)`,
       })
       .from(comments)

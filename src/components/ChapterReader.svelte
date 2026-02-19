@@ -353,11 +353,17 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+// Astra: Forzar scroll arriba al cambiar de página en modo single
+$effect(() => {
+  if (viewMode === 'single' && currentPageIndex >= 0) {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }
+});
+
 function changePage(delta: number) {
   const newIndex = currentPageIndex + delta;
   if (newIndex >= 0 && newIndex < pagesData.length) {
     currentPageIndex = newIndex;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
 
@@ -584,12 +590,22 @@ import { siteConfig } from '../site.config';
         {:else}
           <div class="single-wrapper">
             {#if pagesData[currentPageIndex]}
-              {@const currentPage = pagesData[currentPageIndex] as Page}
-              <div class="page-frame">
-                <ReaderPage page={currentPage} alt={`Página ${currentPageIndex + 1}`} watermark={watermark || undefined} loading="eager" />
-                <div class="no-copy-shield" role="presentation" oncontextmenu={(e) => e.preventDefault()}></div>
-                <div class="page-counter-floating">{currentPageIndex + 1} / {pagesData.length}</div>
-              </div>
+              {#key currentPageIndex}
+                {@const currentPage = pagesData[currentPageIndex] as Page}
+                <div class="page-frame">
+                  <ReaderPage page={currentPage} alt={`Página ${currentPageIndex + 1}`} watermark={watermark || undefined} loading="eager" />
+                  <div class="no-copy-shield" role="presentation" oncontextmenu={(e) => e.preventDefault()}></div>
+                  <div class="page-counter-floating">{currentPageIndex + 1} / {pagesData.length}</div>
+                  
+                  <!-- Botones de Navegación Visuales -->
+                  <button class="nav-zone-btn left" onclick={(e) => { e.stopPropagation(); changePage(-1); }} aria-label="Página anterior" class:hidden={currentPageIndex === 0}>
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  </button>
+                  <button class="nav-zone-btn right" onclick={(e) => { e.stopPropagation(); changePage(1); }} aria-label="Página siguiente" class:hidden={currentPageIndex === pagesData.length - 1}>
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
+              {/key}
             {/if}
           </div>
         {/if}
@@ -1152,6 +1168,58 @@ import { siteConfig } from '../site.config';
   .btn-save-config { width: 100%; background: #fff; color: #000; border: none; padding: 1rem; border-radius: 14px; font-weight: 800; cursor: pointer; }
 
   .page-counter-floating { position: fixed; top: 1.5rem; right: 1.5rem; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); padding: 4px 12px; border-radius: 100px; font-size: 0.75rem; font-weight: 800; border: 1px solid rgba(255, 255, 255, 0.1); z-index: 100; }
+
+  /* Estilos para botones de navegación lateral */
+  .nav-zone-btn {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.3);
+    width: 60px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    outline: none;
+  }
+
+  .nav-zone-btn:hover {
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    width: 70px;
+  }
+
+  .nav-zone-btn.left {
+    left: 0;
+    border-radius: 0 20px 20px 0;
+  }
+
+  .nav-zone-btn.right {
+    right: 0;
+    border-radius: 20px 0 0 20px;
+  }
+
+  .nav-zone-btn.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @media (max-width: 768px) {
+    .nav-zone-btn {
+      width: 45px;
+      height: 80px;
+      background: rgba(0, 0, 0, 0.4); /* Más visible en móvil */
+    }
+    .nav-zone-btn:hover {
+      width: 45px; /* No expandir en móvil para evitar saltos */
+    }
+  }
 
   @media (max-width: 768px) {
     .floating-hud { bottom: 1rem; width: 95%; }

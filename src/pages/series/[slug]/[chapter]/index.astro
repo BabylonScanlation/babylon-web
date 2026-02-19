@@ -9,6 +9,7 @@ import { getCommentsForTarget } from '../../../../lib/data/comments';
 import { getSeriesDetails } from '../../../../lib/data/series';
 import { getDB } from '../../../../lib/db';
 import { logError } from '../../../../lib/logError';
+import { parseToTimestamp } from '../../../../lib/utils';
 
 import { siteConfig } from '../../../../site.config';
 
@@ -71,17 +72,7 @@ try {
     }
 
     if (chapterId) {
-      const rawComments = await getCommentsForTarget(drizzleDb, 'chapter', chapterId, user?.uid);
-      // Orion: Sanitización "Tanque" para evitar cualquier posibilidad de Invalid Date en el cliente
-      comments = rawComments.map((c) => {
-        const cTs = c.createdAt ? new Date(c.createdAt).getTime() : null;
-        const uTs = c.updatedAt ? new Date(c.updatedAt).getTime() : null;
-        return {
-          ...c,
-          createdAt: cTs && !isNaN(cTs) ? cTs : Date.now(),
-          updatedAt: uTs && !isNaN(uTs) ? uTs : null,
-        };
-      });
+      comments = await getCommentsForTarget(drizzleDb, 'chapter', chapterId, user?.uid);
     }
   } else {
     error = 'El capítulo solicitado no fue encontrado.';

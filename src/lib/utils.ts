@@ -1,149 +1,92 @@
-export function timeAgo(dateString: string | number | Date | null | undefined): string {
-  if (!dateString) return '---';
+/**
+ * Convierte cualquier valor de fecha a un timestamp numérico (ms).
+ * Optimizada para ser el estándar de comunicación entre servidor y cliente.
+ */
+export function parseToTimestamp(dateInput: any): number {
+  if (!dateInput) return 0;
 
-  let date: Date;
+  if (typeof dateInput === 'number') {
+    return dateInput < 10000000000 ? dateInput * 1000 : dateInput;
+  }
+
+  if (dateInput instanceof Date) {
+    return isNaN(dateInput.getTime()) ? 0 : dateInput.getTime();
+  }
 
   try {
-    if (typeof dateString === 'string') {
-      let normalized = dateString;
-      if (!normalized.includes('T') && !normalized.endsWith('Z')) {
-        normalized = normalized.replace(' ', 'T') + 'Z';
-      }
-      date = new Date(normalized);
-    } else if (typeof dateString === 'number') {
-      // Orion: Si el número es pequeño (ej. 1700000000), probablemente son SEGUNDOS.
-      // Si es grande (ej. 1700000000000), son MILISEGUNDOS.
-      const val = dateString < 10000000000 ? dateString * 1000 : dateString;
-      date = new Date(val);
-    } else {
-      date = new Date(dateString);
+    let s = String(dateInput).trim();
+    if (!s || s === 'null' || s === 'undefined' || s === '[object Object]') return 0;
+
+    if (/^\d+$/.test(s)) {
+      const num = parseInt(s, 10);
+      return num < 10000000000 ? num * 1000 : num;
     }
 
-    if (isNaN(date.getTime()) || date.getTime() <= 0) return '---';
+    s = s.replace(' ', 'T');
+    if (s.includes('T') && !s.includes('Z') && !s.includes('+')) s += 'Z';
 
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (seconds < 5) return 'justo ahora';
-    if (seconds < 60) return `hace ${seconds} segundos`;
-
-    let interval = seconds / 31536000;
-    if (interval > 1) return `hace ${Math.floor(interval)} años`;
-    interval = seconds / 2592000;
-    if (interval > 1) return `hace ${Math.floor(interval)} meses`;
-    interval = seconds / 86400;
-    if (interval > 1) return `hace ${Math.floor(interval)} días`;
-    interval = seconds / 3600;
-    if (interval > 1) return `hace ${Math.floor(interval)} horas`;
-    interval = seconds / 60;
-    if (interval > 1) return `hace ${Math.floor(interval)} minutos`;
-    return 'hace un momento';
-  } catch (e) {
-    return '---';
+    const t = new Date(s).getTime();
+    return isNaN(t) ? 0 : t;
+  } catch {
+    return 0;
   }
+}
+
+/**
+ * Devuelve una etiqueta de tiempo relativo (ej. "hace 5 minutos").
+ */
+export function timeAgo(dateVal: any): string {
+  const timestamp = parseToTimestamp(dateVal);
+  if (timestamp <= 0) return 'justo ahora';
+
+  const absDiff = Math.abs(Date.now() - timestamp);
+  const seconds = Math.floor(absDiff / 1000);
+
+  if (seconds < 10) return 'justo ahora';
+  if (seconds < 60) return `hace ${seconds} segundos`;
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `hace ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `hace ${days} ${days === 1 ? 'día' : 'días'}`;
+
+  const months = Math.floor(days / 30);
+  if (months < 12) return `hace ${months} ${months === 1 ? 'mes' : 'meses'}`;
+
+  return `hace ${Math.floor(days / 365)} años`;
 }
 
 export const formatFullDate = (dateString: string | number | Date | null | undefined) => {
-  if (!dateString) return 'N/A';
+  const ts = parseToTimestamp(dateString);
+  if (ts <= 0) return 'N/A';
 
-  try {
-    let date = new Date(dateString as any);
-
-    if (isNaN(date.getTime())) {
-      if (typeof dateString === 'string') {
-        const compatibleDateString = dateString.replace(' ', 'T') + 'Z';
-        date = new Date(compatibleDateString);
-      }
-    }
-
-    if (isNaN(date.getTime()) || date.getTime() <= 0) return 'N/A';
-
-    return date.toLocaleString('es-ES', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  } catch (e) {
-    return 'N/A';
-  }
+  return new Date(ts).toLocaleString('es-ES', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
 
 export const generateRandomUsername = () => {
-  const adjectives = [
-    'Happy',
-    'Swift',
-    'Brave',
-    'Calm',
-    'Wild',
-    'Silent',
-    'Cosmic',
-    'Lucky',
-    'Crazy',
-    'Epic',
-    'Dark',
-    'Light',
-    'Magic',
-    'Hyper',
-    'Neo',
-  ];
-  const animals = [
-    'Panda',
-    'Tiger',
-    'Eagle',
-    'Wolf',
-    'Fox',
-    'Bear',
-    'Lion',
-    'Hawk',
-    'Dragon',
-    'Phoenix',
-    'Cat',
-    'Dog',
-    'Shark',
-    'Raven',
-    'Viper',
-  ];
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const animal = animals[Math.floor(Math.random() * animals.length)];
-  const num = Math.floor(Math.random() * 1000);
-  return `${adj}${animal}${num}`;
+  const adjectives = ['Happy', 'Swift', 'Brave', 'Calm', 'Wild', 'Silent', 'Cosmic', 'Lucky', 'Crazy', 'Epic'];
+  const animals = ['Panda', 'Tiger', 'Eagle', 'Wolf', 'Fox', 'Bear', 'Lion', 'Hawk', 'Dragon', 'Phoenix'];
+  return `${adjectives[Math.floor(Math.random() * adjectives.length)]}${animals[Math.floor(Math.random() * animals.length)]}${Math.floor(Math.random() * 1000)}`;
 };
 
-/**
- * Genera un UUID v4 de forma segura incluso en contextos no seguros (HTTP).
- * Prioriza crypto.randomUUID() si está disponible.
- */
 export function generateUUID(): string {
-  // 1. Prioridad Máxima: API nativa moderna (Producción y HTTPS)
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-
-  // 2. Segunda Opción: Criptografía de hardware pero sin función de conveniencia
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    return (([1e7] as any) + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c: any) => {
-      const array = new Uint8Array(1);
-      crypto.getRandomValues(array);
-      const randomValue = array[0] as number;
-      return (c ^ (randomValue & (15 >> (c / 4)))).toString(16);
-    });
-  }
-
-  // 3. Último Recurso: Fallback matemático (Solo para desarrollo local vía IP)
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
 }
 
-/**
- * Normaliza la URL de una imagen para usar R2 o el proxy local.
- * Astra + Orion: Garantiza que no haya barras duplicadas y maneja placeholders.
- */
 export function getImageUrl(
   path: string | null | undefined,
   r2PublicUrl: string = '',
@@ -157,16 +100,7 @@ export function getImageUrl(
     };
     return placeholders[fallbackType];
   }
-
-  // Si ya es una URL absoluta, la devolvemos tal cual
-  if (path.startsWith('http')) return path;
-
-  // Si empieza por /, asumimos que es una ruta relativa al servidor
-  if (path.startsWith('/')) return path;
-
-  // Si no, concatenamos con el R2 public URL
+  if (path.startsWith('http') || path.startsWith('/')) return path;
   const base = r2PublicUrl || '/api/assets/proxy';
-
-  // Limpiamos barras duplicadas (excepto después de ://)
   return `${base}/${path}`.replace(/([^:]\/)\/+/g, '$1');
 }

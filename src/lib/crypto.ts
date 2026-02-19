@@ -103,16 +103,20 @@ export async function verifySignature(
  * Normalizes a URL to be absolute and prefixed with the R2 cache proxy if needed.
  */
 function normalizeProxyUrl(url: string): string {
-  if (url.startsWith('http')) return url;
+  if (url.startsWith('http')) {
+    try {
+      const parsed = new URL(url);
+      return parsed.pathname + parsed.search;
+    } catch {
+      return url;
+    }
+  }
 
-  // Remove leading slash for consistent checking
   const cleanPath = url.startsWith('/') ? url.slice(1) : url;
-
   if (cleanPath.startsWith('api/r2-cache/')) {
     return `/${cleanPath}`;
   }
 
-  // Add missing proxy prefix
   return `/api/r2-cache/${cleanPath}`;
 }
 

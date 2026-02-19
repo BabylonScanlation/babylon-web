@@ -6,7 +6,7 @@ import { elasticOut, quintOut } from 'svelte/easing';
 import { fade, scale, slide } from 'svelte/transition';
 import { toast } from '../../lib/toastStore.svelte';
 import { userStore } from '../../lib/userStore.svelte';
-import { timeAgo } from '../../lib/utils';
+import { parseToTimestamp, timeAgo } from '../../lib/utils';
 import { siteConfig } from '../../site.config';
 import type { Comment, User } from '../../types';
 
@@ -248,47 +248,16 @@ let visibleComments = $derived(
 );
 
 const formatCommentDateClient = (dateVal: any) => {
-  if (!dateVal) return '---';
-  try {
-    // Orion: Convertir a número si es string numérico, o usar el valor directo
-    const input =
-      typeof dateVal === 'string' && /^\d+$/.test(dateVal) ? parseInt(dateVal, 10) : dateVal;
-    const label = timeAgo(input);
-    if (!label) return 'Hace un momento';
-    return label.charAt(0).toUpperCase() + label.slice(1);
-  } catch (e) {
-    console.warn('Error formatting date:', e);
-    return '---';
-  }
+  const ts = parseToTimestamp(dateVal);
+  const label = timeAgo(ts);
+  return label.charAt(0).toUpperCase() + label.slice(1);
 };
 
 const isEdited = (comment: Comment) => {
-  if (!comment.updatedAt || !comment.createdAt) return false;
-
-  const normalize = (d: string | number) => {
-    if (typeof d === 'number') return d;
-    // Orion: Si es 0 o similar, retornamos 0 para evitar Invalid Date
-    if (!d) return 0;
-
-    try {
-      let clean = d;
-      if (!d.includes('T') && !d.endsWith('Z')) {
-        clean = d.replace(' ', 'T') + 'Z';
-      }
-      const t = new Date(clean).getTime();
-      return isNaN(t) ? 0 : t;
-    } catch {
-      return 0;
-    }
-  };
-
-  const created = normalize(comment.createdAt);
-  const updated = normalize(comment.updatedAt);
-
-  if (created === 0 || updated === 0) return false;
-
-  // Orion: Si la diferencia es mayor a 2 segundos, se considera editado
-  return updated > created + 2000;
+  const created = parseToTimestamp(comment.createdAt);
+  const updated = parseToTimestamp(comment.updatedAt);
+  if (created <= 0 || updated <= 0) return false;
+  return updated > created + 5000;
 };
 
 const getAvatarColor = (identifier: string) => {
@@ -416,7 +385,7 @@ async function handleSave(comment: Comment) {
 
     comment.commentText = comment.editedText;
     comment.isEditing = false;
-    // Orion: Usamos número para consistencia con la sanitización de Astro 5
+    // Orion: Usamos milisegundos reales (número) para disparar isEdited al instante
     comment.updatedAt = Date.now();
     // Orion: Forzamos reactividad
     comments = [...comments];

@@ -10,7 +10,7 @@ import { getCommentsForTarget } from '../../lib/data/comments';
 import { getSeriesDetails } from '../../lib/data/series';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
-import { formatFullDate, getImageUrl, timeAgo } from '../../lib/utils';
+import { formatFullDate, getImageUrl, parseToTimestamp, timeAgo } from '../../lib/utils';
 import { siteConfig } from '../../site.config';
 
 const { slug } = Astro.params;
@@ -32,15 +32,7 @@ try {
   );
 
   if (series) {
-    const rawComments = await getCommentsForTarget(drizzleDb, 'series', series.id, user?.uid);
-    // Orion: Sanitización profunda para evitar errores de serialización en Astro 5
-    comments = rawComments.map((c) => ({
-      ...c,
-      createdAt:
-        c.createdAt instanceof Date && !isNaN(c.createdAt.getTime()) ? c.createdAt.getTime() : null,
-      updatedAt:
-        c.updatedAt instanceof Date && !isNaN(c.updatedAt.getTime()) ? c.updatedAt.getTime() : null,
-    }));
+    comments = await getCommentsForTarget(drizzleDb, 'series', series.id, user?.uid);
   } else {
     error = `Serie no encontrada.`;
   }

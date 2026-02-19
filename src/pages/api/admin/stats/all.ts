@@ -13,10 +13,11 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
   const db = locals.db;
   const kv = locals.runtime.env.KV_VIEWS;
   const range = url.searchParams.get('range') || '7';
+  const forceRefresh = url.searchParams.get('refresh') === 'true';
   const cacheKey = `admin_stats_all_${range}`;
 
   // 1. Intentar obtener de caché KV (60 min)
-  if (kv) {
+  if (kv && !forceRefresh) {
     const cached = await kv.get(cacheKey);
     if (cached) {
       return new Response(cached, {
@@ -29,11 +30,11 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
     const rangeDays = range === 'all' ? 365 * 10 : parseInt(range);
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - rangeDays);
-    const startDateStr = startDate.toISOString().split('T')[0];
+    const startTimestamp = startDate.getTime(); // Usar milisegundos reales
 
     // Orion: Si estamos en local sin KV, limitamos drásticamente el rango para no matar D1
     const isLocal = !kv;
-    const finalStartDateStr = isLocal && range === 'all' ? '2024-01-01' : startDateStr;
+    const finalStartTimestamp = isLocal && range === 'all' ? new Date('2024-01-01').getTime() : startTimestamp;
 
     // --- Consultas Paralelas Optimizadas ---
     const [summary, dailyViews, topSeries, engagement, categories] = await Promise.all([
@@ -48,17 +49,17 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
         totalSeries: Number(s?.count || 0),
       })),
 
-      // Vistas Diarias (Limitamos el escaneo con el índice de viewedAt)
+      // Vistas Diarias (Volviendo al formato nativo de fecha de SQLite)
       db
         .select({
           date: sql`DATE(viewed_at)`,
           count: sql`COUNT(*)`,
         })
         .from(chapterViews)
-        .where(sql`viewed_at >= ${finalStartDateStr}`)
+        .where(sql`DATE(viewed_at) >= DATE(${finalStartTimestamp} / 1000, 'unixepoch')`)
         .groupBy(sql`DATE(viewed_at)`)
         .orderBy(desc(sql`DATE(viewed_at)`))
-        .limit(31) // Orion: No necesitamos más de un mes de detalle diario en el dashboard principal
+        .limit(31)
         .all(),
 
       // Top Series (Sin JOINs masivos sobre toda la DB)
@@ -76,29 +77,49 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
         .limit(10)
         .all(),
 
-      // Engagement (Optimizado)
+      // Engagement (Optimizado y Unificado)
       Promise.all([
         db
           .select({
             title: series.title,
-            interactionCount: sql`COUNT(*)`,
+            interactionCount: sql<number>`COUNT(*)`,
           })
-          .from(seriesReactions)
-          .innerJoin(series, eq(seriesReactions.seriesId, series.id))
-          .groupBy(series.id)
+          .from(
+            sql`(
+              SELECT series_id, created_at FROM SeriesReactions
+              UNION ALL
+              SELECT series_id, created_at FROM Favorites WHERE type = 'series'
+              UNION ALL
+              SELECT series_id, created_at FROM SeriesRatings
+            ) as all_interactions`
+          )
+          .innerJoin(series, eq(sql`all_interactions.series_id`, series.id))
+          .where(sql`all_interactions.created_at >= ${finalStartTimestamp}`)
+          .groupBy(series.id, series.title)
           .orderBy(desc(sql`COUNT(*)`))
           .limit(5)
           .all(),
 
-        // Top Commenters (Refactored para evitar escaneo completo)
+        // Top Commenters (Unificado de todas las tablas de comentarios)
         db
           .select({
             email: users.email,
+            username: users.username,
+            displayName: users.displayName,
             commentCount: sql<number>`COUNT(*)`,
           })
-          .from(comments)
-          .innerJoin(users, eq(comments.userId, users.id))
-          .groupBy(users.id)
+          .from(
+            sql`(
+              SELECT user_id, created_at FROM Comments
+              UNION ALL
+              SELECT user_id, created_at FROM SeriesComments
+              UNION ALL
+              SELECT user_id, created_at FROM NewsComments
+            ) as all_comments`
+          )
+          .leftJoin(users, eq(sql`all_comments.user_id`, users.id))
+          .where(sql`all_comments.created_at >= ${finalStartTimestamp}`)
+          .groupBy(users.id, users.email, users.username, users.displayName)
           .orderBy(sql`COUNT(*) DESC`)
           .limit(5)
           .all(),

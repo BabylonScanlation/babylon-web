@@ -13,21 +13,6 @@ let captchaToken = $state('');
 
 let { isVerificationPage = false } = $props();
 
-// Detección de entorno local ultra-permissiva para desarrollo
-const isLocal = $derived.by(() => {
-  if (typeof window === 'undefined') return false;
-  const h = window.location.hostname;
-  return (
-    h === 'localhost' ||
-    h === '127.0.0.1' ||
-    h.startsWith('192.168.') ||
-    h.startsWith('10.') ||
-    h.startsWith('172.') ||
-    h.includes('.local') ||
-    h.includes('0.0.0.0')
-  );
-});
-
 onMount(() => {
   if (isVerificationPage) {
     isVerified = false;
@@ -56,7 +41,7 @@ function handleCaptchaVerify(token: string) {
 }
 
 async function enterSite() {
-  if (isAdult && acceptedTerms && (captchaToken || isLocal)) {
+  if (isAdult && acceptedTerms && captchaToken) {
     try {
       const { error } = await actions.auth.verifyAge();
       if (!error) {
@@ -112,16 +97,11 @@ async function enterSite() {
 
         <div class="captcha-area">
           <Turnstile onVerify={handleCaptchaVerify} theme="dark" />
-          {#if isLocal}
-            <div class="dev-badge">
-              <span>MODO DESARROLLO ACTIVO</span>
-            </div>
-          {/if}
         </div>
 
         <button 
           class="enter-btn" 
-          disabled={!isAdult || !acceptedTerms || (!captchaToken && !isLocal)}
+          disabled={!isAdult || !acceptedTerms || !captchaToken}
           onclick={enterSite}
         >
           <span class="btn-shine"></span>
