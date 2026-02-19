@@ -32,10 +32,13 @@ interface Props {
 
 let {
   allSeries = [],
-  initialNews = $state([]),
+  initialNews = [],
   currentUser = null,
   r2PublicUrlAssets = '',
 }: Props = $props();
+
+// Estado local reactivo para las noticias (Svelte 5)
+let newsItems = $state<NewsItem[]>(initialNews);
 
 // Orion: Normalizador de imágenes
 const getImageUrl = (path: string | null) => {
@@ -63,12 +66,12 @@ const authorToDisplay = $derived(currentUser?.username || currentUser?.displayNa
 
 // Filtrar noticias derivado
 const filteredNews = $derived(
-  selectedSeriesId ? initialNews.filter((n) => n.seriesId === selectedSeriesId) : []
+  selectedSeriesId ? newsItems.filter((n) => n.seriesId === selectedSeriesId) : []
 );
 
 // Orion: Helper para obtener conteos
-function getStats(seriesId: number, newsItems: NewsItem[]) {
-  const seriesNews = newsItems.filter((n) => n.seriesId === seriesId);
+function getStats(seriesId: number, currentItems: NewsItem[]) {
+  const seriesNews = currentItems.filter((n) => n.seriesId === seriesId);
   return {
     published: seriesNews.filter((n) => n.status === 'published').length,
     draft: seriesNews.filter((n) => n.status === 'draft').length,
@@ -118,7 +121,7 @@ async function handleDelete(newsId: string) {
     const { error } = await actions.news.delete({ id: newsId });
 
     if (!error) {
-      initialNews = initialNews.filter((n) => n.id !== newsId);
+      newsItems = newsItems.filter((n) => n.id !== newsId);
       toast.success('Noticia eliminada');
     } else {
       toast.error('Error al eliminar: ' + error.message);
@@ -170,17 +173,17 @@ async function handleSubmit() {
     toast.success(isEditing ? 'Noticia actualizada' : 'Noticia publicada');
 
     if (isEditing) {
-      initialNews = initialNews.map((n) =>
+      newsItems = newsItems.map((n) =>
         n.id === savedNews.id ? { ...savedNews, seriesId: selectedSeriesId } : n
       );
     } else {
-      initialNews = [
+      newsItems = [
         {
           ...savedNews,
           seriesId: selectedSeriesId,
           createdAt: savedNews.createdAt || new Date().toISOString(),
         },
-        ...initialNews,
+        ...newsItems,
       ];
 
       // Orion: Notificar al Servicio de Noticias centralizado
@@ -222,7 +225,7 @@ function handleImageChange(e: Event) {
     <div class="selector-view" in:fly={{ y: 20, duration: 400 }}>
       <div class="series-grid">
         {#each allSeries as serie (serie.id)}
-          {@const stats = getStats(serie.id, initialNews)}
+          {@const stats = getStats(serie.id, newsItems)}
           <div class="card-wrapper">
             <button class="series-card" onclick={() => selectSeries(serie.id)}>
               <div class="card-image">
