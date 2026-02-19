@@ -12,17 +12,17 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "lint": "biome check . && eslint .",
-    "lint:fix": "biome check . --write && eslint . --fix",
-    "format": "biome format . --write",
-    "check": "astro check && svelte-check",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write --unsafe .",
+    "format": "biome format --write .",
+    "check": "astro check && svelte-check --tsconfig ./tsconfig.json && biome check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "analyze": "vite-bundle-visualizer",
-    "build": "astro build",
+    "build": "npm run check && astro build",
     "preview": "astro build && wrangler pages dev ./dist",
     "astro": "astro",
-    "deploy": "astro build && wrangler pages deploy",
+    "deploy": "npm run build && wrangler pages deploy",
     "cf-typegen": "wrangler types",
     "dev:cf": "concurrently \"wrangler pages dev --proxy 8789 --ip 0.0.0.0 --port 8788\" \"astro dev --port 8789 --host 0.0.0.0\"",
     "dev:remote": "concurrently \"wrangler pages dev --proxy 8789 --ip 0.0.0.0 --port 8788 --remote\" \"astro dev --port 8789 --host 0.0.0.0\"",
@@ -36,7 +36,13 @@
     "db:purge": "node scripts/db-purge.js",
     "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
     "db:migrate:local": "drizzle-kit migrate:sqlite",
-    "db:push": "drizzle-kit push:sqlite"
+    "db:push": "drizzle-kit push:sqlite",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,ts,cjs,mjs,astro,svelte}": [
+      "biome check --write --no-errors-on-unformatted"
+    ]
   },
   "dependencies": {
     "@astrojs/check": "^0.9.2",
@@ -76,6 +82,8 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-astro": "^1.5.0",
     "eslint-plugin-svelte": "^3.14.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.7.1",
     "prettier-plugin-astro": "^0.14.1",
     "svelte-check": "^4.3.5",
