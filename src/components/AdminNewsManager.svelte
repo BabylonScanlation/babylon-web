@@ -61,9 +61,6 @@ let isSubmitting = $state(false);
 let formImage = $state<File | null>(null);
 let imagePreview = $state<string | null>(null);
 
-// Author logic derivada
-const authorToDisplay = $derived(currentUser?.username || currentUser?.displayName || 'Admin');
-
 // Filtrar noticias derivado
 const filteredNews = $derived(
   selectedSeriesId ? newsItems.filter((n) => n.seriesId === selectedSeriesId) : []

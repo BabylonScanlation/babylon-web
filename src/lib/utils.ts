@@ -74,8 +74,30 @@ export const formatFullDate = (dateString: string | number | Date | null | undef
 };
 
 export const generateRandomUsername = () => {
-  const adjectives = ['Happy', 'Swift', 'Brave', 'Calm', 'Wild', 'Silent', 'Cosmic', 'Lucky', 'Crazy', 'Epic'];
-  const animals = ['Panda', 'Tiger', 'Eagle', 'Wolf', 'Fox', 'Bear', 'Lion', 'Hawk', 'Dragon', 'Phoenix'];
+  const adjectives = [
+    'Happy',
+    'Swift',
+    'Brave',
+    'Calm',
+    'Wild',
+    'Silent',
+    'Cosmic',
+    'Lucky',
+    'Crazy',
+    'Epic',
+  ];
+  const animals = [
+    'Panda',
+    'Tiger',
+    'Eagle',
+    'Wolf',
+    'Fox',
+    'Bear',
+    'Lion',
+    'Hawk',
+    'Dragon',
+    'Phoenix',
+  ];
   return `${adjectives[Math.floor(Math.random() * adjectives.length)]}${animals[Math.floor(Math.random() * animals.length)]}${Math.floor(Math.random() * 1000)}`;
 };
 

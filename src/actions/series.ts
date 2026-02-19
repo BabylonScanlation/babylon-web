@@ -178,7 +178,6 @@ export const seriesActions = {
           isHidden: !!input.isHidden,
           isAppSeries: !!input.isAppSeries,
           isNsfw: !!input.isNsfw,
-          updatedAt: sql`CURRENT_TIMESTAMP`,
         })
         .where(eq(series.id, seriesId))
         .run();

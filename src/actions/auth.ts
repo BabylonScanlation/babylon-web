@@ -10,7 +10,7 @@ import { generateRandomUsername, generateUUID } from '../lib/utils';
 
 export const authActions = {
   logout: defineAction({
-    handler: async (input, context) => {
+    handler: async (_, context) => {
       const { cookies, locals } = context;
       const sessionId = cookies.get('user_session')?.value;
       const db = getDB(locals.runtime.env);
@@ -114,7 +114,7 @@ export const authActions = {
   }),
 
   verifyAge: defineAction({
-    handler: async (input, context) => {
+    handler: async (_, context) => {
       const { cookies, request } = context;
       const url = new URL(request.url);
       const isLocalIp =
@@ -155,7 +155,9 @@ export const authActions = {
       const uid = String(decodedToken.sub);
       const db = getDB(env);
 
-      const email = decodedToken.email || `${uid}@firebase.auth`;
+      // Orion: Acceso seguro a propiedades dinámicas del JWT
+      const payload = decodedToken as any;
+      const email = payload.email || `${uid}@firebase.auth`;
       const existingUser = await db.select().from(users).where(eq(users.id, uid)).get();
       const usernameToUse = existingUser?.username || generateRandomUsername();
 
@@ -233,7 +235,7 @@ export const authActions = {
           uid,
           email: email,
           username: usernameToUse,
-          displayName: existingUser?.displayName || decodedToken.name || null,
+          displayName: existingUser?.displayName || (decodedToken as any).name || null,
           role: role,
           isNsfw: existingUser?.isNsfw ?? false,
         },

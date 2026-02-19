@@ -31,7 +31,7 @@ export interface User {
   email?: string | null;
   username?: string | null; // Added username
   displayName?: string | null;
-  photoURL?: string | null;
+  photoUrl?: string | null;
   avatarUrl?: string | null; // Added for comments
   isAdmin?: boolean;
   emailVerified?: boolean;

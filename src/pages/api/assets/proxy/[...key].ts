@@ -50,10 +50,26 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
           const response = await fetch(`${publicBase}/${objectKey}`);
           if (response.ok) {
             console.log(`[Proxy] Fallback Success: ${objectKey}`);
+            
+            // Orion: Clonar el cuerpo para guardarlo en local sin bloquear la respuesta al usuario
+            const blob = await response.blob();
+            
+            // Guardar en R2 local en segundo plano si estamos en un contexto de Worker
+            if (locals.runtime.ctx?.waitUntil) {
+              locals.runtime.ctx.waitUntil(
+                env.R2_ASSETS.put(objectKey, blob, {
+                  httpMetadata: {
+                    contentType: response.headers.get('content-type') || 'image/jpeg',
+                    cacheControl: 'public, max-age=31536000, immutable'
+                  }
+                }).then(() => console.log(`[Proxy] Asset seeded locally: ${objectKey}`))
+              );
+            }
+
             const newHeaders = new Headers(response.headers);
             newHeaders.set('Access-Control-Allow-Origin', '*');
-            newHeaders.set('Cache-Control', 'public, max-age=3600'); // Short cache for dev fallback
-            return new Response(response.body, {
+            newHeaders.set('Cache-Control', 'public, max-age=31536000, immutable');
+            return new Response(blob, {
               status: 200,
               headers: newHeaders,
             });

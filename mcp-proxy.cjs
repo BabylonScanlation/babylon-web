@@ -1,5 +1,5 @@
-const { spawn } = require('child_process');
-const path = require('path');
+const { spawn } = require('node:child_process');
+const path = require('node:path');
 
 const target = path.join(__dirname, 'node_modules', '@upstash', 'context7-mcp', 'dist', 'index.js');
 
@@ -11,48 +11,45 @@ const env = {
 
 const child = spawn('node', [target], {
   env,
-  shell: false,
-  stdio: ['pipe', 'pipe', 'pipe'],
+  stdio: ['inherit', 'pipe', 'pipe'],
 });
 
-let stdoutBuffer = '';
-child.stdout.on('data', (data) => {
-  stdoutBuffer += data.toString();
-  const lines = stdoutBuffer.split('\n');
-  stdoutBuffer = lines.pop();
+function processOutput(stream, label) {
+  let buffer = '';
+  stream.on('data', (data) => {
+    buffer += data.toString();
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-      process.stdout.write(trimmed + '\n');
-    } else if (trimmed !== '') {
-      process.stderr.write('[PROXY LOG]: ' + trimmed + '\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        process.stdout.write(`${trimmed}\n`);
+      } else if (trimmed !== '') {
+        process.stderr.write(`[PROXY LOG]: ${trimmed}\n`);
+      }
     }
-  }
-});
+  });
+}
 
-let stderrBuffer = '';
+processOutput(child.stdout, 'STDOUT');
+
 child.stderr.on('data', (data) => {
-  stderrBuffer += data.toString();
-  const lines = stderrBuffer.split('\n');
-  stderrBuffer = lines.pop();
-
+  const lines = data.toString().split('\n');
   for (const line of lines) {
     const trimmed = line.trim();
     if (trimmed !== '') {
-      process.stderr.write('[SERVER ERR]: ' + trimmed + '\n');
+      process.stderr.write(`[SERVER ERR]: ${trimmed}\n`);
     }
   }
 });
 
-process.stdin.pipe(child.stdin);
-
 child.on('exit', (code) => {
-  if (code !== 0) process.stderr.write('[PROXY] Exit code: ' + code + '\n');
+  if (code !== 0) process.stderr.write(`[PROXY] Exit code: ${code}\n`);
   process.exit(code);
 });
 
 child.on('error', (err) => {
-  process.stderr.write('[PROXY] Start error: ' + err.message + '\n');
+  process.stderr.write(`[PROXY] Start error: ${err.message}\n`);
   process.exit(1);
 });

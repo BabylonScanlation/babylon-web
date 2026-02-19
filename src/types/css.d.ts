@@ -5,11 +5,11 @@ declare module '*.css' {
 
 // Specifically for swiper
 declare module 'swiper/css' {
-  const content: any;
+  const content: Record<string, string>;
   export default content;
 }
 
 declare module 'swiper/css/pagination' {
-  const content: any;
+  const content: Record<string, string>;
   export default content;
 }

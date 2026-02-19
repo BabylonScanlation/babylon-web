@@ -254,17 +254,6 @@ async function enterSite() {
     align-items: center;
   }
 
-  .dev-badge {
-    margin-top: 1rem;
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: var(--accent-color);
-    background: rgba(0, 191, 255, 0.1);
-    padding: 4px 12px;
-    border-radius: 100px;
-    letter-spacing: 0.05em;
-  }
-
   .enter-btn {
     position: relative;
     background: linear-gradient(135deg, var(--accent-color, var(--accent-color)) 0%, #0077ff 100%);

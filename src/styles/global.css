@@ -242,24 +242,24 @@ body {
 
 /* --- Global Link Reset for Card Components (Astra Fix) --- */
 /* Forces links to behave like unstyled blocks to prevent purple visited colors */
-a.library-card-inner,
-a.cover-link,
-a.series-title-link,
-a.chapter-pill,
-a.chapter-card-premium,
-a.news-card-inner,
-a.nav-btn-modern {
-  text-decoration: none !important;
-  color: inherit !important;
+body a.library-card-inner,
+body a.cover-link,
+body a.series-title-link,
+body a.chapter-pill,
+body a.chapter-card-premium,
+body a.news-card-inner,
+body a.nav-btn-modern {
+  text-decoration: none;
+  color: inherit;
 }
 
-a.library-card-inner:visited,
-a.cover-link:visited,
-a.series-title-link:visited,
-a.chapter-pill:visited,
-a.chapter-card-premium:visited,
-a.news-card-inner:visited,
-a.nav-btn-modern:visited {
-  color: inherit !important;
-  text-decoration: none !important;
+body a.library-card-inner:visited,
+body a.cover-link:visited,
+body a.series-title-link:visited,
+body a.chapter-pill:visited,
+body a.chapter-card-premium:visited,
+body a.news-card-inner:visited,
+body a.nav-btn-modern:visited {
+  color: inherit;
+  text-decoration: none;
 }

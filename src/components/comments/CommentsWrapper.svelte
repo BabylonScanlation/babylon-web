@@ -308,6 +308,7 @@ async function handleSubmit(e: Event, parentId: number | null = null) {
     const processedNew: Comment = {
       ...data,
       commentText: data.text,
+      userEmail: user.email || null,
       isOwner: true,
       isNew: true,
       isAdminComment: !!user.isAdmin,

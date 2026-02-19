@@ -218,7 +218,7 @@ import AdminDescriptionTextarea from './AdminDescriptionTextarea.astro';
 
     try {
       const formData = new FormData(form);
-      const { data, error } = await actions.series.create(formData);
+      const { error } = await actions.series.create(formData);
 
       if (!error) {
         if (statusMsg) {

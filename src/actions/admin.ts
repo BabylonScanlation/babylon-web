@@ -12,7 +12,7 @@ import { getDB } from '../lib/db';
 
 export const adminActions = {
   runMaintenance: defineAction({
-    handler: async (input, context) => {
+    handler: async (_, context) => {
       const { user } = context.locals;
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
@@ -52,7 +52,7 @@ export const adminActions = {
   }),
 
   repairDatabase: defineAction({
-    handler: async (input, context) => {
+    handler: async (_, context) => {
       const { user } = context.locals;
       if (!user?.isAdmin) throw new Error('Unauthorized');
 

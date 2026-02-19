@@ -24,6 +24,7 @@
     "exactOptionalPropertyTypes": false
   },
   "include": [
+    ".astro/**/*.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.astro",

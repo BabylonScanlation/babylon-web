@@ -73,15 +73,22 @@ export async function getAdminSeriesWithChapters(
   // 4. Obtener Comentarios
   if (includeComments) {
     const chapterIds = chaptersResults.map((c) => c.id);
-    const chapterComments =
-      chapterIds.length > 0
-        ? await db
-            .select()
-            .from(comments)
-            .where(inArray(comments.chapterId, chapterIds))
-            .orderBy(desc(comments.createdAt))
-            .all()
-        : [];
+    let chapterComments: any[] = [];
+
+    // Orion: Fragmentar la consulta de comentarios para evitar el límite de 1000 parámetros de SQLite
+    if (chapterIds.length > 0) {
+      const CHUNK_SIZE = 500;
+      for (let i = 0; i < chapterIds.length; i += CHUNK_SIZE) {
+        const chunk = chapterIds.slice(i, i + CHUNK_SIZE);
+        const results = await db
+          .select()
+          .from(comments)
+          .where(inArray(comments.chapterId, chunk))
+          .orderBy(desc(comments.createdAt))
+          .all();
+        chapterComments = [...chapterComments, ...results];
+      }
+    }
 
     chapterComments.forEach((comm) => {
       const ch = chaptersResults.find((c) => c.id === comm.chapterId);

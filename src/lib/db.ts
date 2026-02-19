@@ -10,8 +10,8 @@ export { getDB };
 
 export const NewsSchema = z.object({
   id: z.string().uuid(),
-  title: z.string().min(3, 'El título debe tener al menos 3 caracteres'),
-  content: z.string().min(10, 'El contenido es demasiado corto'),
+  title: z.string().min(1, 'El título es obligatorio'),
+  content: z.string().min(1, 'El contenido es obligatorio'),
   createdAt: z.date(),
   updatedAt: z.date(),
   publishedBy: z.string(),

@@ -1,12 +1,5 @@
 import { desc, eq, sql } from 'drizzle-orm';
-import {
-  anonymousUsers,
-  chapterViews,
-  comments,
-  series,
-  seriesReactions,
-  users,
-} from '../../../../db/schema';
+import { anonymousUsers, chapterViews, series, users } from '../../../../db/schema';
 import { createApiRoute } from '../../../../lib/api';
 
 export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => {
@@ -34,7 +27,8 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
 
     // Orion: Si estamos en local sin KV, limitamos drásticamente el rango para no matar D1
     const isLocal = !kv;
-    const finalStartTimestamp = isLocal && range === 'all' ? new Date('2024-01-01').getTime() : startTimestamp;
+    const finalStartTimestamp =
+      isLocal && range === 'all' ? new Date('2024-01-01').getTime() : startTimestamp;
 
     // --- Consultas Paralelas Optimizadas ---
     const [summary, dailyViews, topSeries, engagement, categories] = await Promise.all([

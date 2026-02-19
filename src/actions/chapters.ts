@@ -15,7 +15,8 @@ export const chapterActions = {
     handler: async (input, context) => {
       const { chapterId } = input;
       const { env, ctx } = context.locals.runtime;
-      const { user, cookies } = context;
+      const { user } = context.locals;
+      const cookies = context.cookies;
       const clientAddress = context.clientAddress;
 
       const runBackgroundLogic = async () => {
@@ -167,7 +168,7 @@ export const chapterActions = {
           })
           .returning({ id: chapters.id });
 
-        if (!insertResult || insertResult.length === 0) {
+        if (!insertResult || insertResult.length === 0 || !insertResult[0]) {
           throw new Error('Error al registrar el capítulo en la base de datos');
         }
         registeredChapterId = insertResult[0].id;

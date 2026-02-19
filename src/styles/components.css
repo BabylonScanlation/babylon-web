@@ -374,21 +374,21 @@
   color: #eee;
   font-weight: 700;
   font-size: 0.9rem;
-  text-decoration: none !important;
+  text-decoration: none;
 }
 
 .post-timestamp {
   font-size: 0.8rem;
   color: #555;
   font-weight: 600;
-  text-decoration: none !important;
+  text-decoration: none;
 }
 .post-content-area p {
   font-size: 1.05rem;
   line-height: 1.8;
   color: #aaa;
   white-space: pre-wrap;
-  text-decoration: none !important;
+  text-decoration: none;
 }
 
 .news-gallery {
@@ -403,7 +403,7 @@
   overflow: hidden;
   aspect-ratio: 16 / 9;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  text-decoration: none !important;
+  text-decoration: none;
 }
 .image-wrapper img {
   width: 100%;
@@ -420,7 +420,7 @@
   border-radius: 10px;
   opacity: 0;
   transition: 0.3s;
-  text-decoration: none !important;
+  text-decoration: none;
 }
 .image-wrapper:hover .zoom-btn {
   opacity: 1;

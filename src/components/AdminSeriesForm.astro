@@ -660,7 +660,7 @@ const { series } = Astro.props;
     const formData = new FormData(form);
 
     try {
-      const { data, error } = await actions.series.update(formData);
+      const { error } = await actions.series.update(formData);
 
       if (error) throw new Error(error.message || 'Error inesperado');
 
