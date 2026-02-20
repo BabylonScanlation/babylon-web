@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import * as schema from '../db/schema';
 import { getDB } from './db-client';
@@ -144,7 +144,7 @@ export async function getAllNews(
       .leftJoin(schema.series, eq(schema.news.seriesId, schema.series.id))
       .leftJoin(schema.users, eq(schema.news.publishedBy, schema.users.id))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(desc(schema.news.createdAt))
+      .orderBy(desc(sql`CAST(${schema.news.createdAt} AS INTEGER)`))
       .all();
 
     const validatedItems = results.map((r) => {

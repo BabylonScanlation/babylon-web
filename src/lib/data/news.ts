@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 import { news, newsImage, series, users } from '../../db/schema';
@@ -34,7 +34,7 @@ export async function getNewsList(
       .leftJoin(series, eq(news.seriesId, series.id))
       .leftJoin(users, eq(news.publishedBy, users.id))
       .where(and(...conditions))
-      .orderBy(desc(news.createdAt))
+      .orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`))
       .all();
 
     const finalResults = [];
@@ -66,7 +66,7 @@ export async function getNewsList(
         .select()
         .from(news)
         .where(and(...conditions))
-        .orderBy(desc(news.createdAt))
+        .orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`))
         .all();
 
       return basicNews.map((n) => ({
@@ -90,7 +90,7 @@ export async function getLatestNewsId(db: DrizzleD1Database<typeof schema>) {
       .select({ id: news.id, createdAt: news.createdAt })
       .from(news)
       .where(eq(news.status, 'published'))
-      .orderBy(desc(news.createdAt))
+      .orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`))
       .limit(1)
       .get();
     return result;

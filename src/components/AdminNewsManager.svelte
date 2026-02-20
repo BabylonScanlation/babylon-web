@@ -91,7 +91,7 @@ function goBackToSeries() {
 function resetForm() {
   formTitle = '';
   formContent = '';
-  formStatus = 'draft';
+  formStatus = 'published';
   formImage = null;
   imagePreview = null;
   editingNewsId = null;

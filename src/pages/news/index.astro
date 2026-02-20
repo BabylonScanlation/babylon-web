@@ -20,12 +20,14 @@ if (newsItems.length > 0 && newsItems[0]) {
     expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
     sameSite: 'lax',
     httpOnly: false,
+    secure: Astro.url.protocol === 'https:',
   });
 
   // 2. Sincronizar Base de Datos (para usuarios registrados)
   if (user?.uid) {
     try {
-      const currentPrefs = typeof user.preferences === 'string' ? JSON.parse(user.preferences) : {};
+      const dbUser = await drizzleDb.select().from(users).where(eq(users.id, user.uid)).get();
+      const currentPrefs = typeof dbUser?.preferences === 'string' ? JSON.parse(dbUser.preferences) : (dbUser?.preferences || {});
       const newPrefs = JSON.stringify({ ...currentPrefs, lastSeenNewsId: latestId });
 
       await drizzleDb
@@ -42,18 +44,37 @@ if (newsItems.length > 0 && newsItems[0]) {
 
 <Layout title={`Noticias - ${SITE_TITLE}`}>
   <script is:inline>
-    // LIMPIEZA DE GUERRA (Borrar cookies de versiones anteriores)
-    const badCookies = [
-      'babylon_unread_news_count', 'babylon_unread_news_count_v2',
-      'babylon_last_seen_news_id', 'babylon_last_seen_news_id_v2',
-      'babylon_news_read_id', 'babylon_last_read_id', 'babylon_news_id'
-    ];
-    badCookies.forEach(c => {
-      document.cookie = c + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      localStorage.removeItem(c);
-    });
-    // Sincronizar el contador local a 0 inmediatamente
-    localStorage.setItem('babylon_news_count', '0');
+    // LIMPIEZA ATÓMICA DE NOTICIAS
+    function clearNewsStatus() {
+      // 1. Unificar Cookie de "Último Visto"
+      const latestNewsId = document.querySelector('.news-card-wrapper a')?.getAttribute('href')?.split('/').pop();
+      if (latestNewsId) {
+        document.cookie = "last_news_id=" + latestNewsId + "; path=/; max-age=" + (365*24*60*60) + "; SameSite=Lax";
+      }
+
+      // 2. Limpiar rastros antiguos
+      const badKeys = [
+        'babylon_unread_news_count', 'babylon_news_count', 
+        'babylon_last_seen_news_id', 'last_news_id_v2'
+      ];
+      badKeys.forEach(k => {
+        localStorage.removeItem(k);
+        document.cookie = k + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      });
+
+      // 3. Forzar contador a 0 localmente
+      localStorage.setItem('babylon_news_count', '0');
+      
+      // 4. Notificar a la UI
+      window.dispatchEvent(new CustomEvent('news-count-updated', { detail: { count: 0 } }));
+      
+      // 5. Bloquear actualizaciones del Store por un breve momento para evitar race conditions
+      window.news_lock = Date.now() + 3000; 
+    }
+
+    clearNewsStatus();
+    // Ejecutar también en cargas de Astro (View Transitions)
+    document.addEventListener('astro:page-load', clearNewsStatus);
   </script>
   <main class="news-index-container">
     <div class="news-header-section">

@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { news } from '../../../db/schema';
 import { getDB } from '../../../lib/db';
 
@@ -29,7 +29,7 @@ export const GET: APIRoute = async ({ locals }) => {
           })
           .from(news)
           .where(eq(news.status, 'published'))
-          .orderBy(desc(news.createdAt))
+          .orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`))
           .limit(10)
           .all();
         break;

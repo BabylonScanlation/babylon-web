@@ -582,8 +582,9 @@ const bio = targetUser.bio || 'Este usuario aún no ha escrito una biografía.';
     display: flex;
     flex-direction: column;
     gap: 2rem;
-    position: sticky;
-    top: 100px;
+    /* Orion: Sidebar fija en su lugar original */
+    position: relative;
+    top: 0;
   }
   .bio-section h3 {
     font-size: 0.9rem;

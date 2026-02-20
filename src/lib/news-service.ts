@@ -38,13 +38,31 @@ export class NewsService {
       this.updateUI();
     });
 
+    window.addEventListener('news-count-updated', (e: any) => {
+      localStorage.setItem(KEYS.COUNT, e.detail.count.toString());
+      this.updateUI();
+    });
+
     this.updateUI();
   }
 
-  private syncWithServer() {
+  private async syncWithServer() {
     const serverCount = document.body.getAttribute('data-unread-count');
     if (serverCount !== null) {
       localStorage.setItem(KEYS.COUNT, serverCount);
+      this.updateUI();
+    } else {
+      // Orion: Si no hay dato en el body, consultamos la API centralizada
+      try {
+        const res = await fetch('/api/news/count');
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem(KEYS.COUNT, data.count.toString());
+          this.updateUI();
+        }
+      } catch (e) {
+        // Silencioso en producción
+      }
     }
   }
 

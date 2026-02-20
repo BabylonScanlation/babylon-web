@@ -32,7 +32,7 @@ const allSeries = await db
   .all();
 
 // 3. Obtener todas las noticias (solo IDs de serie para el conteo de badges)
-const allNews = await db.select().from(news).orderBy(desc(news.createdAt)).all();
+const allNews = await db.select().from(news).orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`)).all();
 
 const user = Astro.locals.user;
 const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
