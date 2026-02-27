@@ -31,7 +31,6 @@ const username = userProfile?.username || user.email?.split('@')[0] || 'Usuario'
 const bio = userProfile?.bio || 'Sin biografía aún.';
 const roleDisplay = userRoleData?.role === 'admin' ? 'Administrador' : 'Explorador';
 const isPrivate = userProfile?.isPrivate || false;
-const isNsfw = userProfile?.isNsfw || false;
 
 // Format Date
 const joinedDate = userProfile?.createdAt

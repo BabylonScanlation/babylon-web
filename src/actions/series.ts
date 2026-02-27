@@ -172,13 +172,17 @@ export const seriesActions = {
       await db
         .update(series)
         .set({
-          ...input,
+          title: input.title,
+          description: input.description,
+          status: input.status,
+          type: input.type,
+          author: input.author,
+          artist: input.artist,
           slug,
           coverImageUrl,
           isHidden: !!input.isHidden,
           isAppSeries: !!input.isAppSeries,
           isNsfw: !!input.isNsfw,
-          updatedAt: sql`CURRENT_TIMESTAMP`,
         })
         .where(eq(series.id, seriesId))
         .run();

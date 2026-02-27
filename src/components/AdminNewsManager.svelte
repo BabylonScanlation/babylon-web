@@ -32,10 +32,13 @@ interface Props {
 
 let {
   allSeries = [],
-  initialNews = $state([]),
+  initialNews = [],
   currentUser = null,
   r2PublicUrlAssets = '',
 }: Props = $props();
+
+// Estado local reactivo para manejar la lista de noticias de forma mutable
+let newsList = $state([...initialNews]);
 
 // Orion: Normalizador de imágenes
 const getImageUrl = (path: string | null) => {
@@ -63,7 +66,7 @@ const authorToDisplay = $derived(currentUser?.username || currentUser?.displayNa
 
 // Filtrar noticias derivado
 const filteredNews = $derived(
-  selectedSeriesId ? initialNews.filter((n) => n.seriesId === selectedSeriesId) : []
+  selectedSeriesId ? newsList.filter((n) => n.seriesId === selectedSeriesId) : []
 );
 
 // Orion: Helper para obtener conteos
@@ -118,7 +121,7 @@ async function handleDelete(newsId: string) {
     const { error } = await actions.news.delete({ id: newsId });
 
     if (!error) {
-      initialNews = initialNews.filter((n) => n.id !== newsId);
+      newsList = newsList.filter((n) => n.id !== newsId);
       toast.success('Noticia eliminada');
     } else {
       toast.error('Error al eliminar: ' + error.message);
@@ -170,17 +173,17 @@ async function handleSubmit() {
     toast.success(isEditing ? 'Noticia actualizada' : 'Noticia publicada');
 
     if (isEditing) {
-      initialNews = initialNews.map((n) =>
+      newsList = newsList.map((n) =>
         n.id === savedNews.id ? { ...savedNews, seriesId: selectedSeriesId } : n
       );
     } else {
-      initialNews = [
+      newsList = [
         {
           ...savedNews,
           seriesId: selectedSeriesId,
           createdAt: savedNews.createdAt || new Date().toISOString(),
         },
-        ...initialNews,
+        ...newsList,
       ];
 
       // Orion: Notificar al Servicio de Noticias centralizado
@@ -222,7 +225,8 @@ function handleImageChange(e: Event) {
     <div class="selector-view" in:fly={{ y: 20, duration: 400 }}>
       <div class="series-grid">
         {#each allSeries as serie (serie.id)}
-          {@const stats = getStats(serie.id, initialNews)}
+                      {@const stats = getStats(serie.id, newsList)}
+          
           <div class="card-wrapper">
             <button class="series-card" onclick={() => selectSeries(serie.id)}>
               <div class="card-image">
