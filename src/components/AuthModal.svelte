@@ -552,7 +552,7 @@ $effect(() => {
     border-radius: 16px;
     font-size: 1rem;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--accent-color) 0%, #0077ff 100%);
+    background: linear-gradient(135deg, var(--accent-color) 0%, rgba(0, 0, 0, 0.3) 100%);
     box-shadow: 0 10px 25px -5px rgba(0, 162, 255, 0.4);
     letter-spacing: 0.05em;
     text-transform: uppercase;

@@ -10,6 +10,76 @@
   --font-color: #e0e0e0;
 }
 
+/* Astra: Ruby Red Theme for NSFW Mode (Nuclear Override) */
+:root.nsfw-mode,
+html.nsfw-mode {
+  --accent-color: #900000 !important; /* Rojo Rubí Puro y Oscuro */
+  --accent-glow: rgba(144, 0, 0, 0.6) !important; 
+}
+
+/* Purga global de azul diamante en modo NSFW */
+.nsfw-mode [style*="0, 191, 255"],
+.nsfw-mode [style*="00bfff"],
+.nsfw-mode [class*="badge"],
+.nsfw-mode [class*="pill"],
+.nsfw-mode [class*="tag"] {
+  border-color: var(--accent-color) !important;
+}
+
+/* Corregir el bug de la línea horizontal: Aplicar sombra SOLO a contenedores raíz de tarjetas */
+.nsfw-mode .featured-card-premium,
+.nsfw-mode .premium-update-card-inner,
+.nsfw-mode .desktop-view,
+.nsfw-mode .manga-card,
+.nsfw-mode .btn-primary {
+  box-shadow: 0 0 20px var(--accent-glow) !important;
+  border-color: var(--accent-color) !important;
+}
+
+.nsfw-mode .new-chapter-tag,
+.nsfw-mode .action-pill,
+.nsfw-mode .btn-primary {
+  background: var(--accent-color) !important;
+  color: #fff !important;
+}
+
+.nsfw-mode .badge-new {
+  background: rgba(144, 0, 0, 0.15) !important;
+  color: var(--accent-color) !important;
+  border: 1px solid var(--accent-color) !important;
+  box-shadow: 0 0 15px var(--accent-glow) !important;
+}
+
+.nsfw-mode .nebula-glow {
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    rgba(2, 2, 5, 0) 0deg,
+    rgba(144, 0, 0, 0.03) 60deg,
+    rgba(80, 0, 0, 0.02) 120deg,
+    rgba(2, 2, 5, 0) 180deg,
+    rgba(144, 0, 0, 0.02) 240deg,
+    rgba(2, 2, 5, 0) 360deg
+  ) !important;
+  opacity: 0.6 !important;
+}
+
+.nsfw-mode .shooting-stars span {
+  filter: drop-shadow(0 0 8px var(--accent-color)) !important;
+  background: linear-gradient(-45deg, #fff, var(--accent-color)) !important;
+}
+
+/* Astra: Global Scrollbar and Selection Overrides for NSFW */
+.nsfw-mode ::-webkit-scrollbar-thumb {
+  background: var(--accent-color) !important;
+}
+.nsfw-mode {
+  scrollbar-color: var(--accent-color) transparent !important;
+}
+.nsfw-mode ::selection {
+  background: var(--accent-color);
+  color: #fff;
+}
+
 *,
 *::before,
 *::after {
@@ -68,7 +138,6 @@ body {
   width: 130%;
   height: 130%;
   background-repeat: repeat;
-  /* Removed global will-change to save memory */
 }
 
 /* CAPA 1: Fondo Lejano (Desenfocado y Lento) */

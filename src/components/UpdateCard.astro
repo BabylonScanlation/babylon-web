@@ -85,7 +85,7 @@ const recentChapters = (series as any).recentChapters || [];
   .premium-update-card-wrapper:hover .premium-update-card-inner {
     transform: translateY(-10px) scale(1.02);
     border-color: var(--accent-color);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 20px 40px var(--accent-glow);
   }
 
   .cover-link {
@@ -165,14 +165,14 @@ const recentChapters = (series as any).recentChapters || [];
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.04);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     padding: 8px 12px;
     border-radius: 12px;
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .chapter-pill:hover {
@@ -196,13 +196,14 @@ const recentChapters = (series as any).recentChapters || [];
   .time-text {
     font-size: 0.65rem;
     font-weight: 700;
-    color: #666;
+    color: #888;
     text-transform: uppercase;
-    transition: color 0.3s;
+    transition: all 0.3s ease;
   }
 
   .chapter-pill:hover .time-text {
-    color: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    opacity: 0.8;
   }
 
   .no-chapters-msg {

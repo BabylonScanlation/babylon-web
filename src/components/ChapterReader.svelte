@@ -906,7 +906,7 @@ import { siteConfig } from '../site.config';
     text-align: center;
     width: 100%;
     max-width: 400px;
-    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 191, 255, 0.1);
+    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8), 0 0 40px var(--accent-glow);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -959,7 +959,7 @@ import { siteConfig } from '../site.config';
   }
 
   .btn-download-app {
-    background: linear-gradient(135deg, var(--accent-color) 0%, #0077ff 100%);
+    background: linear-gradient(135deg, var(--accent-color) 0%, rgba(0, 0, 0, 0.3) 100%);
     color: #000;
     text-decoration: none;
     padding: 1.25rem;

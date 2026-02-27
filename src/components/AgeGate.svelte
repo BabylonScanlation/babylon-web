@@ -287,7 +287,7 @@ async function enterSite() {
 
   .enter-btn {
     position: relative;
-    background: linear-gradient(135deg, var(--accent-color, var(--accent-color)) 0%, #0077ff 100%);
+    background: linear-gradient(135deg, var(--accent-color) 0%, rgba(0, 0, 0, 0.2) 100%);
     color: #fff;
     border: none;
     padding: 1.1rem;

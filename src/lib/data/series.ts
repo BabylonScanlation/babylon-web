@@ -151,8 +151,7 @@ export async function getRecentSeries(
   allowNsfw: boolean = false,
   limit = 5
 ) {
-  const conditions = [eq(series.isHidden, false)];
-  if (!allowNsfw) conditions.push(eq(series.isNsfw, false));
+  const conditions = [eq(series.isHidden, false), eq(series.isNsfw, allowNsfw)];
 
   return await db
     .select()
@@ -171,8 +170,7 @@ export async function getPopularSeries(
   allowNsfw: boolean = false,
   limit = 5
 ) {
-  const conditions = [eq(series.isHidden, false)];
-  if (!allowNsfw) conditions.push(eq(series.isNsfw, false));
+  const conditions = [eq(series.isHidden, false), eq(series.isNsfw, allowNsfw)];
 
   return await db
     .select()
@@ -190,14 +188,13 @@ export async function getAllSeries(
   db: DrizzleD1Database<typeof schema>,
   allowNsfw: boolean = false
 ) {
-  const conditions = [eq(series.isHidden, false)];
-  if (!allowNsfw) conditions.push(eq(series.isNsfw, false));
+  const conditions = [eq(series.isHidden, false), eq(series.isNsfw, allowNsfw)];
 
   return await db
     .select()
     .from(series)
     .where(and(...conditions))
-    .orderBy(asc(series.isNsfw), asc(series.title))
+    .orderBy(asc(series.title))
     .all();
 }
 
@@ -211,9 +208,9 @@ export async function getSeriesWithRecentChapters(
   const conditions = [
     eq(chapters.status, 'live'),
     eq(series.isHidden, false),
+    eq(series.isNsfw, allowNsfw),
     sql`${chapters.chapterNumber} > 0`,
   ];
-  if (!allowNsfw) conditions.push(eq(series.isNsfw, false));
 
   const recentSeriesIds = await db
     .select({ seriesId: chapters.seriesId })
@@ -270,8 +267,11 @@ export async function getSeriesByChapterCount(
   allowNsfw: boolean = false,
   limit = 5
 ) {
-  const conditions = [eq(series.isHidden, false), eq(chapters.status, 'live')];
-  if (!allowNsfw) conditions.push(eq(series.isNsfw, false));
+  const conditions = [
+    eq(series.isHidden, false),
+    eq(series.isNsfw, allowNsfw),
+    eq(chapters.status, 'live'),
+  ];
 
   const results = await db
     .select({
@@ -330,9 +330,7 @@ export async function searchSeries(
   } = options;
 
   const offset = (page - 1) * limit;
-  const conditions = [eq(series.isHidden, false)];
-
-  if (!allowNsfw) conditions.push(eq(series.isNsfw, false));
+  const conditions = [eq(series.isHidden, false), eq(series.isNsfw, allowNsfw)];
 
   // Orion: Usamos FTS5 si hay una consulta de texto, de lo contrario usamos filtros estándar
   let baseQuery: any = db.select().from(series);
@@ -369,7 +367,7 @@ export async function searchSeries(
 
   // Orion: Aplicamos ordenamiento inteligente
   if (sort === 'az') {
-    query.orderBy(asc(series.isNsfw), asc(series.title));
+    query.orderBy(asc(series.title));
   } else if (sort === 'latest') {
     query.orderBy(desc(series.createdAt));
   } else if (sort === 'popular') {
@@ -377,7 +375,7 @@ export async function searchSeries(
   } else if (sort === 'relevance' && q) {
     query.orderBy(sql`rank`);
   } else {
-    query.orderBy(asc(series.isNsfw), asc(series.title));
+    query.orderBy(asc(series.title));
   }
 
   const results = await query.limit(limit).offset(offset).all();

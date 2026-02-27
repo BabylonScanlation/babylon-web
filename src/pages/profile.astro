@@ -414,22 +414,6 @@ import { siteConfig } from '../site.config';
                     <span class="slider round"></span>
                   </label>
                 </div>
-
-                <div class="divider"></div>
-
-                <div class="toggle-row">
-                  <div class="toggle-info">
-                    <div class="badge-title">
-                      <h4>Contenido NSFW</h4>
-                      <span class="badge-18">+18</span>
-                    </div>
-                    <p>Mostrar contenido explícito en la plataforma.</p>
-                  </div>
-                  <label class="switch danger">
-                    <input type="checkbox" id="nsfw-toggle" checked={isNsfw} />
-                    <span class="slider round"></span>
-                  </label>
-                </div>
               </div>
             </div>
           </div>
@@ -1316,10 +1300,6 @@ import { siteConfig } from '../site.config';
   handleToggle('privacy-toggle', 'isPrivate', [
     'Perfil ahora es PRIVADO 🔒',
     'Perfil ahora es PÚBLICO 🌍',
-  ]);
-  handleToggle('nsfw-toggle', 'isNsfw', [
-    'Contenido +18 visible 🔥',
-    'Contenido +18 oculto 🛡️',
   ]);
 
   // Logout Logic

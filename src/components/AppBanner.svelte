@@ -248,7 +248,7 @@ function cancelDownload() {
   }
 
   .btn-confirm {
-    background: linear-gradient(135deg, var(--accent-color) 0%, #0077ff 100%);
+    background: linear-gradient(135deg, var(--accent-color) 0%, rgba(0, 0, 0, 0.3) 100%);
     color: #000;
     padding: 1rem;
     border-radius: 16px;

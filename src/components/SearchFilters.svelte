@@ -48,12 +48,7 @@ let activeFilters = $state({
 });
 
 // Estado temporal (mientras el usuario edita)
-let stagingFilters = $state(
-  Object.assign(
-    {},
-    untrack(() => activeFilters)
-  )
-);
+let stagingFilters = $state({ ...activeFilters });
 
 onMount(() => {
   const params = new URLSearchParams(window.location.search);

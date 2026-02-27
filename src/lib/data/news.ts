@@ -6,7 +6,8 @@ import { news, newsImage, series, users } from '../../db/schema';
 export async function getNewsList(
   db: DrizzleD1Database<typeof schema>,
   status: 'draft' | 'published' = 'published',
-  seriesId?: number | null
+  seriesId?: number | null,
+  allowNsfw: boolean = false
 ) {
   const conditions = [eq(news.status, status)];
 
@@ -14,8 +15,15 @@ export async function getNewsList(
     conditions.push(seriesId === null ? isNull(news.seriesId) : eq(news.seriesId, seriesId));
   }
 
+  // Astra: Filtrar noticias de series NSFW si no se permiten
+  if (!allowNsfw) {
+    // Si la noticia tiene una serie asociada, la serie no debe ser NSFW. 
+    // Si no tiene serie asociada, se muestra (noticia general).
+    // Nota: Esto requiere que el join esté presente en la consulta principal.
+  }
+
   try {
-    const results = await db
+    const query = db
       .select({
         id: news.id,
         title: news.title,
@@ -28,11 +36,18 @@ export async function getNewsList(
         status: news.status,
         seriesCover: series.coverImageUrl,
         seriesTitle: series.title,
+        seriesIsNsfw: series.isNsfw,
         authorAvatar: users.avatarUrl,
       })
       .from(news)
       .leftJoin(series, eq(news.seriesId, series.id))
-      .leftJoin(users, eq(news.publishedBy, users.id))
+      .leftJoin(users, eq(news.publishedBy, users.id));
+
+    if (!allowNsfw) {
+      conditions.push(sql`(Series.is_nsfw IS NULL OR Series.is_nsfw = 0)`);
+    }
+
+    const results = await query
       .where(and(...conditions))
       .orderBy(desc(news.createdAt))
       .all();

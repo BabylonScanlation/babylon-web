@@ -30,13 +30,16 @@ const isVerified = Astro.cookies.get('site_verified')?.value === 'true';
 const isBot = (Astro.locals as any).isBot;
 const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage && !isBot;
 
+// Astra: Detección de modo NSFW en el Servidor (Garantía de sincronización)
+const isNsfw = Astro.cookies.get('babylon_nsfw')?.value === 'true';
+
 // Orion: URL Base para metadatos absolutos
 const siteUrl = siteConfig.url;
 const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
 ---
 
 <!doctype html>
-<html lang="es" class={shouldBlockContent ? 'age-gate-active' : ''}>
+<html lang="es" class:list={[ { 'age-gate-active': shouldBlockContent, 'nsfw-mode': isNsfw } ]}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -114,6 +117,11 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         --bg-color: ${siteConfig.theme.background};
         --bg-alt: ${siteConfig.theme.backgroundAlt};
       }
+      
+      html.nsfw-mode {
+        --accent-color: #900000 !important;
+        --accent-glow: rgba(144, 0, 0, 0.6) !important;
+      }
     `}>
     </style>
   </head>
@@ -139,9 +147,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     ) : (
       <>
         {!isVerifyPage && (
-          <Header server:defer>
-            <Skeletons slot="fallback" type="header" />
-          </Header>
+          <Header />
         )}
         <main class="site-main-content">
           <slot />

@@ -18,7 +18,10 @@ import type { Series } from '../types';
 
 const { runtime, user } = Astro.locals;
 const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
-const allowNsfw = user?.isNsfw || false;
+
+// Astra: El modo NSFW ahora es global vía cookies (logo del header)
+const nsfwCookie = Astro.cookies.get('babylon_nsfw')?.value === 'true';
+const allowNsfw = nsfwCookie || (user as any)?.isNsfw || false;
 
 let recentSeries: Series[] = [];
 let popularSeries: Series[] = [];
@@ -104,7 +107,12 @@ hasContent =
   {
     hasContent ? (
       <div class="main-content-wrapper">
-          {seriesByChapterCount.length > 0 && <HeroCarousel slides={seriesByChapterCount} />}
+          {seriesByChapterCount.length > 0 && (
+            <HeroCarousel 
+              slides={seriesByChapterCount} 
+              r2PublicUrlAssets={r2PublicUrlAssets} 
+            />
+          )}
 
         <div class="main-sections-container">
 

@@ -32,6 +32,14 @@ try {
   );
 
   if (series) {
+    // Astra: Validación de modo NSFW global vía cookies (Header Logo)
+    const nsfwCookie = Astro.cookies.get('babylon_nsfw')?.value === 'true';
+    const allowNsfw = nsfwCookie || user?.isNsfw || false;
+
+    if (series.isNsfw && !allowNsfw) {
+      return Astro.redirect('/?nsfw_required=true');
+    }
+
     const rawComments = await getCommentsForTarget(drizzleDb, 'series', series.id, user?.uid);
     // Orion: Sanitización profunda para evitar errores de serialización en Astro 5
     comments = rawComments.map((c) => ({
@@ -774,7 +782,7 @@ const reactions = [
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    background: linear-gradient(135deg, var(--accent-color) 0%, #0077ff 100%);
+    background: linear-gradient(135deg, var(--accent-color) 0%, rgba(0, 0, 0, 0.3) 100%);
     color: #000;
     text-decoration: none;
     padding: 1.2rem;

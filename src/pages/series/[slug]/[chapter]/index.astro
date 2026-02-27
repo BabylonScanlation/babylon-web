@@ -40,6 +40,14 @@ try {
     user ? { uid: user.uid, isAdmin: !!user.isAdmin } : undefined
   );
   if (seriesData) {
+    // Astra: Validación de modo NSFW global vía cookies (Header Logo)
+    const nsfwCookie = Astro.cookies.get('babylon_nsfw')?.value === 'true';
+    const allowNsfw = nsfwCookie || user?.isNsfw || false;
+
+    if (seriesData.isNsfw && !allowNsfw) {
+      return Astro.redirect('/?nsfw_required=true');
+    }
+
     // Orion: Sanitización ultra-permisiva de fechas para toda la lista de capítulos
     allChapters = (seriesData.chapters || []).map((ch: any) => {
       const ts = ch.createdAt ? new Date(ch.createdAt).getTime() : null;

@@ -5,6 +5,7 @@ import { commentActions } from './comments';
 import { newsActions } from './news';
 import { seriesActions } from './series';
 import { userActions } from './user';
+import { uiActions } from './ui';
 
 export const server = {
   admin: adminActions,
@@ -14,4 +15,5 @@ export const server = {
   series: seriesActions,
   chapters: chapterActions,
   comments: commentActions,
+  ui: uiActions,
 };
