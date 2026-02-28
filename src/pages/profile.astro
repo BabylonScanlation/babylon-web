@@ -31,7 +31,6 @@ const username = userProfile?.username || user.email?.split('@')[0] || 'Usuario'
 const bio = userProfile?.bio || 'Sin biografía aún.';
 const roleDisplay = userRoleData?.role === 'admin' ? 'Administrador' : 'Explorador';
 const isPrivate = userProfile?.isPrivate || false;
-const isNsfw = userProfile?.isNsfw || false;
 
 // Format Date
 const joinedDate = userProfile?.createdAt
@@ -411,22 +410,6 @@ import { siteConfig } from '../site.config';
                       id="privacy-toggle"
                       checked={isPrivate}
                     />
-                    <span class="slider round"></span>
-                  </label>
-                </div>
-
-                <div class="divider"></div>
-
-                <div class="toggle-row">
-                  <div class="toggle-info">
-                    <div class="badge-title">
-                      <h4>Contenido NSFW</h4>
-                      <span class="badge-18">+18</span>
-                    </div>
-                    <p>Mostrar contenido explícito en la plataforma.</p>
-                  </div>
-                  <label class="switch danger">
-                    <input type="checkbox" id="nsfw-toggle" checked={isNsfw} />
                     <span class="slider round"></span>
                   </label>
                 </div>
@@ -1208,7 +1191,7 @@ import { siteConfig } from '../site.config';
 
 <script>
   import { actions } from 'astro:actions';
-  import { toast } from '../lib/toastStore.svelte';
+  import { toast } from '../lib/toastStore.svelte.ts';
   import { auth } from '../lib/firebase/client';
   import { sendPasswordResetEmail, onAuthStateChanged } from 'firebase/auth';
 
@@ -1317,10 +1300,6 @@ import { siteConfig } from '../site.config';
   handleToggle('privacy-toggle', 'isPrivate', [
     'Perfil ahora es PRIVADO 🔒',
     'Perfil ahora es PÚBLICO 🌍',
-  ]);
-  handleToggle('nsfw-toggle', 'isNsfw', [
-    'Contenido +18 visible 🔥',
-    'Contenido +18 oculto 🛡️',
   ]);
 
   // Logout Logic

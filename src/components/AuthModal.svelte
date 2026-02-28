@@ -552,7 +552,7 @@ $effect(() => {
     border-radius: 16px;
     font-size: 1rem;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--accent-color) 0%, #0077ff 100%);
+    background: var(--accent-color);
     box-shadow: 0 10px 25px -5px rgba(0, 162, 255, 0.4);
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -670,18 +670,15 @@ $effect(() => {
 
   @media (max-width: 480px) {
     .modal-overlay {
-      padding-top: 100px; /* Margen de seguridad */
-      align-items: flex-start; /* Empezar desde arriba con aire */
+      padding: 1rem;
+      align-items: center; 
     }
     .auth-card {
-      padding: 2.5rem 1.5rem;
-      border-radius: 24px 28px 0 0;
+      padding: 2rem 1.5rem;
+      border-radius: 24px;
       height: auto;
-      min-height: 80%;
-      max-width: none;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
+      max-height: 90vh;
+      overflow-y: auto;
     }
   }
 </style>

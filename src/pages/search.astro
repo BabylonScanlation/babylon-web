@@ -12,6 +12,12 @@ const query = Astro.url.searchParams.get('q')?.trim() || '';
 const page = parseInt(Astro.url.searchParams.get('page') || '1');
 const user = Astro.locals.user;
 
+// Astra: NSFW Toggle via cookie global
+const nsfwCookieValue = Astro.cookies.get('babylon_nsfw')?.value;
+const allowNsfw = typeof nsfwCookieValue === 'string' 
+  ? nsfwCookieValue === 'true' 
+  : (user?.isNsfw || false);
+
 let searchResults: any[] = [];
 let pagination = { page: 1, totalPages: 1, total: 0 };
 let error: string | null = null;
@@ -24,7 +30,7 @@ try {
     ...searchParams,
     q: query,
     page,
-    allowNsfw: user?.isNsfw || false,
+    allowNsfw,
   });
 
   searchResults = result.results;

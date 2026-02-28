@@ -6,6 +6,10 @@ import { getDB } from '../db-client';
 import { logError } from '../logError';
 import { deleteSession, verifyToken } from '../session';
 
+// Orion: Cache de sesiones en memoria del Worker (TTL: 1 min)
+const sessionCache = new Map<string, { user: any; expires: number }>();
+const SESSION_CACHE_TTL = 60000;
+
 export async function authFlow(context: any, next: MiddlewareNext) {
   const { cookies, locals, request, url } = context;
   const currentPath = url.pathname;
@@ -43,46 +47,57 @@ export async function authFlow(context: any, next: MiddlewareNext) {
     currentPath.startsWith('/_astro');
 
   if (!locals.user && sessionId && db && !isAssetPath && !locals.isBot) {
-    try {
-      const userAgent = request.headers.get('user-agent') || 'unknown';
-      const result = await db
-        .select({
-          session: sessions,
-          user: users,
-          role: userRoles.role,
-        })
-        .from(sessions)
-        .innerJoin(users, eq(sessions.userId, users.id))
-        .leftJoin(userRoles, eq(sessions.userId, userRoles.userId))
-        .where(
-          and(
-            eq(sessions.id, sessionId),
-            gt(sessions.expiresAt, Math.floor(Date.now() / 1000)),
-            eq(sessions.userAgent, userAgent)
+    // 2.1 Verificar Cache en memoria
+    const cached = sessionCache.get(sessionId);
+    if (cached && cached.expires > Date.now()) {
+      locals.user = cached.user;
+    } else {
+      try {
+        const userAgent = request.headers.get('user-agent') || 'unknown';
+        const result = await db
+          .select({
+            session: sessions,
+            user: users,
+            role: userRoles.role,
+          })
+          .from(sessions)
+          .innerJoin(users, eq(sessions.userId, users.id))
+          .leftJoin(userRoles, eq(sessions.userId, userRoles.userId))
+          .where(
+            and(
+              eq(sessions.id, sessionId),
+              gt(sessions.expiresAt, Math.floor(Date.now() / 1000)),
+              eq(sessions.userAgent, userAgent)
+            )
           )
-        )
-        .get();
+          .get();
 
-      if (result && result.session) {
-        const uid = result.session.userId;
-        locals.user = {
-          uid,
-          email: result.user.email,
-          username: result.user.username || undefined,
-          displayName: result.user.displayName || undefined,
-          avatarUrl: result.user.avatarUrl || undefined,
-          isAdmin:
-            (runtime.env.SUPER_ADMIN_UID && uid === runtime.env.SUPER_ADMIN_UID) ||
-            result.role === 'admin',
-          isNsfw: result.user.isNsfw ?? false,
-          preferences: result.user.preferences || '{}',
-        };
-      } else {
+        if (result && result.session) {
+          const uid = result.session.userId;
+          const userObj = {
+            uid,
+            email: result.user.email,
+            username: result.user.username || undefined,
+            displayName: result.user.displayName || undefined,
+            avatarUrl: result.user.avatarUrl || undefined,
+            isAdmin:
+              (runtime.env.SUPER_ADMIN_UID && uid === runtime.env.SUPER_ADMIN_UID) ||
+              result.role === 'admin',
+            isNsfw: result.user.isNsfw ?? false,
+            preferences: result.user.preferences || '{}',
+          };
+          locals.user = userObj;
+          
+          // Guardar en cache para evitar la query en el próximo clic
+          sessionCache.set(sessionId, { user: userObj, expires: Date.now() + SESSION_CACHE_TTL });
+        } else {
+          deleteSession(context);
+          sessionCache.delete(sessionId);
+        }
+      } catch (error) {
+        logError(error, 'Auth Middleware Error');
         deleteSession(context);
       }
-    } catch (error) {
-      logError(error, 'Auth Middleware Error');
-      deleteSession(context);
     }
   }
 

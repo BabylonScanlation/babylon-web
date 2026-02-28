@@ -8,14 +8,15 @@ const { user, db, runtime } = Astro.locals;
 
 // Orion: Sistema de Noticias encapsulado (La cuenta manda sobre el navegador)
 let lastSeenId: string | null = null;
+const isNsfwActive = Astro.cookies.get('babylon_nsfw')?.value === 'true';
 
 if (user) {
   try {
     let prefs = (user as any).preferences;
-    
+
     // Si las preferencias no están en locals (JWT path), intentamos un fetch rápido de DB
     if (!prefs && db) {
-      const dbUser = await db.select({ preferences: users.preferences }).from(users).where(eq(users.id, user.uid)).get();
+      const dbUser = await db.select({ preferences: users.preferences }).from(users).where(eq(users.id, user.uid)).get();        
       prefs = dbUser?.preferences;
     }
 
@@ -33,7 +34,6 @@ if (user) {
 if (lastSeenId === 'undefined' || lastSeenId === 'null' || !lastSeenId) {
   lastSeenId = null;
 }
-
 let unreadNewsCount = 0;
 if (db) {
   try {
@@ -77,10 +77,23 @@ if (db) {
 const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 ---
 
-<header class="site-header">
+<header class:list={['site-header', { 'nsfw-active': isNsfwActive }]} id="main-header">
+  <script is:inline>
+    // Astra: Aplicar modo NSFW instantáneamente en el cliente, respetando si la página forzó el estado en el HTML
+    (function() {
+      // Si el HTML tiene explícitamente nsfw-mode (forzado por el Layout), el header debe coincidir
+      const htmlHasMode = document.documentElement.classList.contains('nsfw-mode');
+      const isNsfwCookie = document.cookie.split(';').some(c => c.trim().startsWith('babylon_nsfw=true'));
+      
+      // Si estamos en una página que fuerza NO ser roja (ej. serie SFW), no pintamos el header de rojo
+      if (isNsfwCookie || htmlHasMode) {
+        document.getElementById('main-header')?.classList.add('nsfw-active');
+      }
+    })();
+  </script>
   <div class="header-container">
     <div class="logo-section">
-      <a href="/" class="logo-link">
+      <a href="/" class="logo-link" id="header-logo-toggle">
         <img
           src={siteConfig.assets.logoHeader.startsWith('/') ? `${r2PublicUrlAssets}${siteConfig.assets.logoHeader}` : siteConfig.assets.logoHeader}
           alt={`${siteConfig.name} Logo`}
@@ -115,40 +128,69 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
 </header>
 
 <script>
+  import { actions } from 'astro:actions';
+
   let headerObserver: MutationObserver | null = null;
 
-  document.addEventListener('astro:page-load', () => {
+  function initHeader() {
     const header = document.querySelector('.site-header') as HTMLElement;
-    if (!header) return;
+    const logoToggle = document.getElementById('header-logo-toggle');
+    
+    if (!header || !logoToggle) return;
 
-    // Orion: Limpiar observador previo si existe para evitar duplicados en el body
-    if (headerObserver) {
-      headerObserver.disconnect();
-    }
+    // Orion: Limpiar observador previo
+    if (headerObserver) headerObserver.disconnect();
 
-    // Asegurar visibilidad inicial al navegar
-    header.style.opacity = '';
-    header.style.pointerEvents = '';
-    header.style.zIndex = '5000';
-
-    // Orion: Vigilante de modales (Garantía de limpieza visual)
     headerObserver = new MutationObserver(() => {
       const isModalOpen = document.body.getAttribute('data-reader-modal') === 'open' || 
                           document.body.classList.contains('modal-open');
-      
-      if (isModalOpen) {
-        header.style.opacity = '0';
-        header.style.pointerEvents = 'none';
-        header.style.zIndex = '-1';
-      } else {
-        header.style.opacity = '';
-        header.style.pointerEvents = '';
-        header.style.zIndex = '5000';
-      }
+      header.style.opacity = isModalOpen ? '0' : '';
+      header.style.pointerEvents = isModalOpen ? 'none' : '';
+      header.style.zIndex = isModalOpen ? '-1' : '5000';
     });
 
     headerObserver.observe(document.body, { attributes: true, attributeFilter: ['data-reader-modal', 'class'] });
-  });
+
+    // Astra: NSFW Toggle sincronizado vía Actions
+    let isToggling = false;
+    logoToggle.onclick = async (e) => {
+      if (isToggling) return;
+      isToggling = true;
+
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Feedback visual inmediato
+      (logoToggle as HTMLElement).style.opacity = '0.5';
+      
+      try {
+        // Orion: Cambiar estado en el servidor (100% fiable)
+        const { data, error } = await actions.ui.toggleNsfw();
+        
+        if (!error && data?.success) {
+          // Aplicar clases localmente antes de recargar
+          if (data.newValue) {
+            header.classList.add('nsfw-active');
+            document.documentElement.classList.add('nsfw-mode');
+          } else {
+            header.classList.remove('nsfw-active');
+            document.documentElement.classList.remove('nsfw-mode');
+          }
+          
+          // Forzar navegación limpia
+          window.location.assign('/'); 
+        }
+      } catch (err) {
+        console.error('[NSFW Toggle Error]:', err);
+        isToggling = false;
+        (logoToggle as HTMLElement).style.opacity = '';
+      }
+    };
+  }
+
+  // Inicializar
+  initHeader();
+  document.addEventListener('astro:page-load', initHeader);
 </script>
 
 <style>
@@ -278,5 +320,28 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
     .desktop-nav {
       display: none !important;
     }
+  }
+
+  /* Astra: NSFW Mode Styles (Minimalist Ruby) */
+  .site-header.nsfw-active {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(255, 0, 0, 0.1);
+  }
+
+  .site-header.nsfw-active .logo-link {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .site-header.nsfw-active .header-logo {
+    filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.3)) !important;
+  }
+
+  .logo-link:active {
+    transform: scale(0.9);
+  }
+  .site-header.nsfw-active .news-badge-dot {
+    background: var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-glow);
   }
 </style>

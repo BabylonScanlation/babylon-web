@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 import { chapters, favorites, series, seriesRatings, seriesReactions } from '../../db/schema';
@@ -18,6 +18,9 @@ export async function getSeriesDetails(
     .get();
 
   if (!seriesData) return null;
+
+  // Si la serie es NSFW y el usuario no tiene permiso (vía cookie/preferencia), no la mostramos
+  // Nota: La validación de permiso se hace en la página que llama a esta función.
 
   const [chaptersResult, ratingsResult, reactionsResult, userDataResult] = await Promise.all([
     // Orion: Obtenemos los capítulos y sumamos sus vistas registradas para asegurar precisión
@@ -144,6 +147,92 @@ export async function getSeriesDetails(
 }
 
 /**
+ * Orion: Obtiene los datos necesarios para la Home de forma ultra-optimizada.
+ * Reduce múltiples viajes a la DB y solo trae los campos necesarios para la UI.
+ */
+export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsfw = false) {
+  const commonConditions = [eq(series.isHidden, false)];
+  
+  // Orion: Modo Estricto. 
+  // Si allowNsfw es true, SOLO mostramos NSFW (isNsfw = true)
+  // Si allowNsfw es false, SOLO mostramos SFW (isNsfw = false o nulo)
+  if (allowNsfw) {
+    commonConditions.push(eq(series.isNsfw, true));
+  } else {
+    commonConditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
+  }
+
+  // Orion: Ejecutamos absolutamente todas las queries en paralelo
+  const [recent, popular, byChapters, recentChaptersData] = await Promise.all([
+    // Recientes
+    db
+      .select({
+        id: series.id,
+        title: series.title,
+        slug: series.slug,
+        coverImageUrl: series.coverImageUrl,
+        views: series.views,
+        createdAt: series.createdAt,
+        description: series.description,
+        status: series.status,
+      })
+      .from(series)
+      .where(and(...commonConditions))
+      .orderBy(desc(series.createdAt))
+      .limit(20)
+      .all(),
+
+    // Populares
+    db
+      .select({
+        id: series.id,
+        title: series.title,
+        slug: series.slug,
+        coverImageUrl: series.coverImageUrl,
+        views: series.views,
+        createdAt: series.createdAt,
+        description: series.description,
+        status: series.status,
+      })
+      .from(series)
+      .where(and(...commonConditions))
+      .orderBy(desc(series.views))
+      .limit(20)
+      .all(),
+
+    // Por cantidad de capítulos
+    db
+      .select({
+        id: series.id,
+        title: series.title,
+        slug: series.slug,
+        coverImageUrl: series.coverImageUrl,
+        description: series.description,
+        views: series.views,
+        chapterCount: sql<number>`count(${chapters.id})`.as('chapterCount'),
+      })
+      .from(series)
+      .leftJoin(chapters, eq(series.id, chapters.seriesId))
+      .where(and(...commonConditions, eq(chapters.status, 'live')))
+      .groupBy(series.id)
+      .orderBy(desc(sql`chapterCount`))
+      .limit(5)
+      .all(),
+
+    // Capítulos recientes
+    getSeriesWithRecentChapters(db, allowNsfw),
+  ]);
+
+  return {
+    recentSeries: recent,
+    popularSeries: popular,
+    seriesByChapterCount: byChapters,
+    seriesWithRecentChapters: recentChaptersData,
+    hasContent: recent.length > 0 || popular.length > 0 || (recentChaptersData as any[]).length > 0,
+  };
+}
+
+/**
  * Orion: Obtiene las series más recientes.
  */
 export async function getRecentSeries(
@@ -152,10 +241,23 @@ export async function getRecentSeries(
   limit = 5
 ) {
   const conditions = [eq(series.isHidden, false)];
-  if (!allowNsfw) conditions.push(eq(series.isNsfw, false));
+  if (allowNsfw) {
+    conditions.push(eq(series.isNsfw, true));
+  } else {
+    conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
+  }
 
   return await db
-    .select()
+    .select({
+      id: series.id,
+      title: series.title,
+      slug: series.slug,
+      coverImageUrl: series.coverImageUrl,
+      views: series.views,
+      createdAt: series.createdAt,
+      description: series.description,
+      status: series.status,
+    })
     .from(series)
     .where(and(...conditions))
     .orderBy(desc(series.createdAt))
@@ -172,10 +274,23 @@ export async function getPopularSeries(
   limit = 5
 ) {
   const conditions = [eq(series.isHidden, false)];
-  if (!allowNsfw) conditions.push(eq(series.isNsfw, false));
+  if (allowNsfw) {
+    conditions.push(eq(series.isNsfw, true));
+  } else {
+    conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
+  }
 
   return await db
-    .select()
+    .select({
+      id: series.id,
+      title: series.title,
+      slug: series.slug,
+      coverImageUrl: series.coverImageUrl,
+      views: series.views,
+      createdAt: series.createdAt,
+      description: series.description,
+      status: series.status,
+    })
     .from(series)
     .where(and(...conditions))
     .orderBy(desc(series.views))
@@ -184,42 +299,60 @@ export async function getPopularSeries(
 }
 
 /**
- * Orion: Obtiene todas las series con ordenamiento inteligente.
+ * Orion: Obtiene todas las series (Solo para el Sitemap o Admin, NUNCA usar en la Home).
  */
 export async function getAllSeries(
   db: DrizzleD1Database<typeof schema>,
   allowNsfw: boolean = false
 ) {
   const conditions = [eq(series.isHidden, false)];
-  if (!allowNsfw) conditions.push(eq(series.isNsfw, false));
+  if (allowNsfw) {
+    conditions.push(eq(series.isNsfw, true));
+  } else {
+    conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
+  }
 
   return await db
-    .select()
+    .select({
+      id: series.id,
+      title: series.title,
+      slug: series.slug,
+      coverImageUrl: series.coverImageUrl,
+      views: series.views,
+    })
     .from(series)
     .where(and(...conditions))
-    .orderBy(asc(series.isNsfw), asc(series.title))
+    .orderBy(asc(series.title))
     .all();
 }
 
 /**
  * Orion: Obtiene series con capítulos actualizados recientemente.
+ * Utiliza 2 pasos optimizados para garantizar variedad de series sin sobrecargar memoria.
  */
 export async function getSeriesWithRecentChapters(
   db: DrizzleD1Database<typeof schema>,
   allowNsfw: boolean = false
 ) {
-  const conditions = [
-    eq(chapters.status, 'live'),
-    eq(series.isHidden, false),
-    sql`${chapters.chapterNumber} > 0`,
-  ];
-  if (!allowNsfw) conditions.push(eq(series.isNsfw, false));
+  const seriesConditions = [eq(series.isHidden, false)];
+  if (allowNsfw) {
+    seriesConditions.push(eq(series.isNsfw, true));
+  } else {
+    seriesConditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
+  }
 
+  // 1. Obtener los IDs de las ÚLTIMAS 25 SERIES distintas que han actualizado
   const recentSeriesIds = await db
     .select({ seriesId: chapters.seriesId })
     .from(chapters)
     .innerJoin(series, eq(chapters.seriesId, series.id))
-    .where(and(...conditions))
+    .where(
+      and(
+        eq(chapters.status, 'live'),
+        ...seriesConditions,
+        sql`${chapters.chapterNumber} > 0`
+      )
+    )
     .groupBy(chapters.seriesId)
     .orderBy(desc(sql`MAX(${chapters.createdAt})`))
     .limit(25)
@@ -228,14 +361,15 @@ export async function getSeriesWithRecentChapters(
   const targetIds = recentSeriesIds.map((r) => r.seriesId).filter(Boolean) as number[];
   if (targetIds.length === 0) return [];
 
-  const rawChapters = await db
+  // 2. Traer los capítulos de esas 25 series y agrupar en JS (solo campos necesarios)
+  const rawData = await db
     .select({
       seriesId: series.id,
       slug: series.slug,
       title: series.title,
       coverImageUrl: series.coverImageUrl,
       chapterNumber: chapters.chapterNumber,
-      createdAt: chapters.createdAt,
+      chapterCreatedAt: chapters.createdAt,
     })
     .from(chapters)
     .innerJoin(series, eq(chapters.seriesId, series.id))
@@ -250,15 +384,26 @@ export async function getSeriesWithRecentChapters(
     .all();
 
   const seriesMap = new Map();
-  for (const ch of rawChapters) {
-    if (!seriesMap.has(ch.slug)) {
-      seriesMap.set(ch.slug, { ...ch, recentChapters: [], lastUpdate: ch.createdAt });
+  for (const row of rawData) {
+    if (!seriesMap.has(row.slug)) {
+      seriesMap.set(row.slug, {
+        id: row.seriesId,
+        slug: row.slug,
+        title: row.title,
+        coverImageUrl: row.coverImageUrl,
+        recentChapters: [],
+        lastUpdate: row.chapterCreatedAt,
+      });
     }
-    const entry = seriesMap.get(ch.slug);
+    const entry = seriesMap.get(row.slug);
     if (entry.recentChapters.length < 3) {
-      entry.recentChapters.push({ number: ch.chapterNumber, createdAt: ch.createdAt });
+      entry.recentChapters.push({ 
+        number: row.chapterNumber, 
+        createdAt: row.chapterCreatedAt 
+      });
     }
   }
+  
   return Array.from(seriesMap.values());
 }
 
@@ -270,8 +415,16 @@ export async function getSeriesByChapterCount(
   allowNsfw: boolean = false,
   limit = 5
 ) {
-  const conditions = [eq(series.isHidden, false), eq(chapters.status, 'live')];
-  if (!allowNsfw) conditions.push(eq(series.isNsfw, false));
+  const conditions = [
+    eq(series.isHidden, false),
+    eq(chapters.status, 'live'),
+  ];
+  
+  if (allowNsfw) {
+    conditions.push(eq(series.isNsfw, true));
+  } else {
+    conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
+  }
 
   const results = await db
     .select({
@@ -331,8 +484,11 @@ export async function searchSeries(
 
   const offset = (page - 1) * limit;
   const conditions = [eq(series.isHidden, false)];
-
-  if (!allowNsfw) conditions.push(eq(series.isNsfw, false));
+  if (allowNsfw) {
+    conditions.push(eq(series.isNsfw, true));
+  } else {
+    conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
+  }
 
   // Orion: Usamos FTS5 si hay una consulta de texto, de lo contrario usamos filtros estándar
   let baseQuery: any = db.select().from(series);
@@ -369,7 +525,7 @@ export async function searchSeries(
 
   // Orion: Aplicamos ordenamiento inteligente
   if (sort === 'az') {
-    query.orderBy(asc(series.isNsfw), asc(series.title));
+    query.orderBy(asc(series.title));
   } else if (sort === 'latest') {
     query.orderBy(desc(series.createdAt));
   } else if (sort === 'popular') {
@@ -377,7 +533,7 @@ export async function searchSeries(
   } else if (sort === 'relevance' && q) {
     query.orderBy(sql`rank`);
   } else {
-    query.orderBy(asc(series.isNsfw), asc(series.title));
+    query.orderBy(asc(series.title));
   }
 
   const results = await query.limit(limit).offset(offset).all();

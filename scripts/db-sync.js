@@ -37,7 +37,9 @@ async function main() {
 
   // Orion: Desactivar FKs para evitar errores de restricción durante la importación local
   const originalSql = fs.readFileSync(DUMP_PATH, 'utf8');
-  const safeSql = `PRAGMA foreign_keys = OFF;\n${originalSql}\nPRAGMA foreign_keys = ON;`;
+  // Eliminamos los PRAGMA anteriores si los hay
+  const cleanSql = originalSql.replace(/PRAGMA foreign_keys = (ON|OFF);/g, '');
+  const safeSql = `PRAGMA defer_foreign_keys = ON;\nBEGIN TRANSACTION;\n${cleanSql}\nCOMMIT;`;
   fs.writeFileSync(DUMP_PATH, safeSql);
 
   try {

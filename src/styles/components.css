@@ -175,6 +175,12 @@
   background-color: rgba(52, 152, 219, 0.1);
 }
 
+/* Astra: NSFW theme overrides */
+:root.nsfw-mode .alert-info {
+  color: var(--accent-color);
+  background-color: var(--accent-glow);
+}
+
 /* --- Specific Buttons --- */
 .btn-google {
   display: flex;

@@ -222,8 +222,7 @@ function handleImageChange(e: Event) {
     <div class="selector-view" in:fly={{ y: 20, duration: 400 }}>
       <div class="series-grid">
         {#each allSeries as serie (serie.id)}
-          {@const stats = getStats(serie.id, newsItems)}
-          <div class="card-wrapper">
+{@const stats = getStats(serie.id, newsItems)}          <div class="card-wrapper">
             <button class="series-card" onclick={() => selectSeries(serie.id)}>
               <div class="card-image">
                   {#if serie.coverImageUrl}

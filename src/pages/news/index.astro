@@ -7,8 +7,15 @@ import { getNewsList } from '../../lib/data/news';
 import { getDB } from '../../lib/db';
 
 const drizzleDb = getDB(Astro.locals.runtime.env);
-const newsItems = (await getNewsList(drizzleDb)) || [];
 const { user } = Astro.locals;
+
+// Astra: El modo NSFW ahora es global vía cookies (logo del header)
+const nsfwCookieValue = Astro.cookies.get('babylon_nsfw')?.value;
+const allowNsfw = typeof nsfwCookieValue === 'string' 
+  ? nsfwCookieValue === 'true' 
+  : (user?.isNsfw || false);
+
+const newsItems = (await getNewsList(drizzleDb, 'published', undefined, allowNsfw)) || [];
 
 // Orion: Marcar como leído (Standard Unificado + DB Sync)
 if (newsItems.length > 0 && newsItems[0]) {

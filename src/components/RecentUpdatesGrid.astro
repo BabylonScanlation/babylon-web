@@ -200,8 +200,14 @@ const { mangas = [], title = 'Últimos Capítulos Publicados' } = Astro.props;
   }
 
   :global(.recent-updates-swiper .swiper-scrollbar-drag) {
-    background: linear-gradient(90deg, var(--accent-color), #0077ff) !important;
-    box-shadow: 0 0 10px rgba(0, 191, 255, 0.4);
+    background: var(--accent-color) !important;
+    box-shadow: 0 0 10px var(--accent-glow);
+  }
+
+  /* Astra: NSFW Scrollbar fix */
+  :global(.nsfw-mode .recent-updates-swiper .swiper-scrollbar-drag) {
+    background: var(--accent-color) !important;
+    box-shadow: 0 0 10px var(--accent-glow) !important;
   }
 
   .empty-updates {
