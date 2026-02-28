@@ -8,7 +8,8 @@ export const GET: APIRoute = async ({ locals, url }) => {
   try {
     const db = getDB(locals.runtime.env);
     const user = locals.user;
-    const allowNsfw = user?.isNsfw || url.searchParams.get('nsfw') === 'true';
+    const nsfwCookieValue = url.searchParams.get('nsfw') || locals.cookies.get('babylon_nsfw')?.value;
+    const allowNsfw = typeof nsfwCookieValue === 'string' ? nsfwCookieValue === 'true' : (user?.isNsfw || false);
 
     const results = await getRecentSeries(db, allowNsfw, 1000);
 

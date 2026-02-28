@@ -1,6 +1,6 @@
 // src/pages/api/search.ts
 import type { APIRoute } from 'astro';
-import { and, asc, desc, eq, like, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, like, or, sql } from 'drizzle-orm';
 import { series } from '../../db/schema';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
@@ -24,7 +24,8 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const offset = (page - 1) * pageSize;
 
     // Auth-based NSFW filter
-    const allowNsfw = locals.user?.isNsfw || false;
+    const nsfwCookieValue = url.searchParams.get('nsfw') || locals.cookies.get('babylon_nsfw')?.value;
+    const allowNsfw = typeof nsfwCookieValue === 'string' ? nsfwCookieValue === 'true' : (locals.user?.isNsfw || false);
 
     // Base Selection
     let baseQuery = drizzleDb
@@ -47,8 +48,10 @@ export const GET: APIRoute = async ({ url, locals }) => {
     // Dynamic Conditions
     const conditions = [eq(series.isHidden, false)];
 
-    if (!allowNsfw) {
-      conditions.push(eq(series.isNsfw, false));
+    if (allowNsfw) {
+      conditions.push(eq(series.isNsfw, true));
+    } else {
+      conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
     }
 
     // 1. Text Search (FTS5 integration if query exists)

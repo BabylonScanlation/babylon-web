@@ -17,9 +17,14 @@ const {
   description = siteConfig.description,
   ogImage = siteConfig.assets.ogImage,
   canonicalURL = Astro.url.href,
+  isNsfwContent, // Orion: Prop para forzar la temática según el contenido actual
 } = Astro.props;
 
 const { user } = Astro.locals;
+
+// Orion: Detección de dispositivo para evitar carga de componentes móviles en Desktop
+const ua = Astro.request.headers.get('user-agent') || '';
+const isMobile = /mobile|iphone|ipad|android|blackberry|opera mini|iemobile|wpdesktop/i.test(ua);
 
 const title = pageTitle ? `${pageTitle} | ${siteConfig.shortName}` : siteConfig.name;
 
@@ -30,8 +35,11 @@ const isVerified = Astro.cookies.get('site_verified')?.value === 'true';
 const isBot = (Astro.locals as any).isBot;
 const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage && !isBot;
 
-// Astra: Detección de modo NSFW en el Servidor (Garantía de sincronización)
-const isNsfw = Astro.cookies.get('babylon_nsfw')?.value === 'true';
+// Astra: Detección de modo NSFW. 
+// Prioridad: 1. Prop de la página (para forzar color en series específicas) -> 2. Cookie Global
+const isNsfw = isNsfwContent !== undefined 
+  ? isNsfwContent 
+  : (Astro.cookies.get('babylon_nsfw')?.value === 'true');
 
 // Orion: URL Base para metadatos absolutos
 const siteUrl = siteConfig.url;
@@ -152,10 +160,8 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         <main class="site-main-content">
           <slot />
         </main>
-        {!isVerifyPage && (
-          <BottomNav server:defer>
-            <Skeletons slot="fallback" type="bottom-nav" />
-          </BottomNav>
+        {!isVerifyPage && isMobile && (
+          <BottomNav />
         )}
         {!isVerifyPage && <Footer />}
         <AuthModal client:load />

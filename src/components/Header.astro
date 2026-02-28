@@ -51,10 +51,14 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
 
 <header class:list={['site-header', { 'nsfw-active': isNsfwActive }]} id="main-header">
   <script is:inline>
-    // Astra: Aplicar modo NSFW instantáneamente en el cliente para evitar parpadeos
+    // Astra: Aplicar modo NSFW instantáneamente en el cliente, respetando si la página forzó el estado en el HTML
     (function() {
-      const isNsfw = document.cookie.split(';').some(c => c.trim().startsWith('babylon_nsfw=true'));
-      if (isNsfw) {
+      // Si el HTML tiene explícitamente nsfw-mode (forzado por el Layout), el header debe coincidir
+      const htmlHasMode = document.documentElement.classList.contains('nsfw-mode');
+      const isNsfwCookie = document.cookie.split(';').some(c => c.trim().startsWith('babylon_nsfw=true'));
+      
+      // Si estamos en una página que fuerza NO ser roja (ej. serie SFW), no pintamos el header de rojo
+      if (isNsfwCookie || htmlHasMode) {
         document.getElementById('main-header')?.classList.add('nsfw-active');
       }
     })();

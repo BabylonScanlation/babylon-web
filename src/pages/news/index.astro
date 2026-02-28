@@ -10,8 +10,10 @@ const drizzleDb = getDB(Astro.locals.runtime.env);
 const { user } = Astro.locals;
 
 // Astra: El modo NSFW ahora es global vía cookies (logo del header)
-const nsfwCookie = Astro.cookies.get('babylon_nsfw')?.value === 'true';
-const allowNsfw = nsfwCookie || user?.isNsfw || false;
+const nsfwCookieValue = Astro.cookies.get('babylon_nsfw')?.value;
+const allowNsfw = typeof nsfwCookieValue === 'string' 
+  ? nsfwCookieValue === 'true' 
+  : (user?.isNsfw || false);
 
 const newsItems = (await getNewsList(drizzleDb, 'published', undefined, allowNsfw)) || [];
 

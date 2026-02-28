@@ -31,18 +31,21 @@ let isProcessing = false;
 let allChapters: any[] = [];
 let seriesTitle: string | null = null;
 let comments: any[] = [];
+let seriesData: any = null; // Orion: Variable en scope global para el template
 
 try {
   // 1. Obtener detalles de la serie directamente
-  const seriesData = await getSeriesDetails(
+  seriesData = await getSeriesDetails(
     drizzleDb,
     slug,
     user ? { uid: user.uid, isAdmin: !!user.isAdmin } : undefined
   );
   if (seriesData) {
     // Astra: Validación de modo NSFW global vía cookies (Header Logo)
-    const nsfwCookie = Astro.cookies.get('babylon_nsfw')?.value === 'true';
-    const allowNsfw = nsfwCookie || user?.isNsfw || false;
+    const nsfwCookieValue = Astro.cookies.get('babylon_nsfw')?.value;
+    const allowNsfw = typeof nsfwCookieValue === 'string' 
+      ? nsfwCookieValue === 'true' 
+      : (user?.isNsfw || false);
 
     if (seriesData.isNsfw && !allowNsfw) {
       return Astro.redirect('/?nsfw_required=true');
@@ -154,6 +157,7 @@ if (error && currentChapterIndex !== -1) {
   title={`Leer ${seriesTitle ?? 'Serie'} Capítulo ${chapter} en Español Online - ${siteConfig.name}`} 
   description={`Lee el capítulo ${chapter} de ${seriesTitle} online en español. Disfruta de la mejor experiencia de lectura manga con carga rápida en ${siteConfig.name}.`}
   hidePushAds={true}
+  isNsfwContent={seriesData?.isNsfw || false}
 >
   {nextChapterUrl && <link rel="next" href={nextChapterUrl} slot="head" />}
   {prevChapterUrl && <link rel="prev" href={prevChapterUrl} slot="head" />}

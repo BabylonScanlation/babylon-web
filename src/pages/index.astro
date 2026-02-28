@@ -6,6 +6,7 @@ import RecentUpdatesGrid from '../components/RecentUpdatesGrid.astro';
 import Layout from '../layouts/Layout.astro';
 import {
   getAllSeries,
+  getHomeData,
   getPopularSeries,
   getRecentSeries,
   getSeriesByChapterCount,
@@ -20,83 +21,39 @@ const { runtime, user } = Astro.locals;
 const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 
 // Astra: El modo NSFW ahora es global vía cookies (logo del header)
-const nsfwCookie = Astro.cookies.get('babylon_nsfw')?.value === 'true';
-const allowNsfw = nsfwCookie || (user as any)?.isNsfw || false;
+const nsfwCookieValue = Astro.cookies.get('babylon_nsfw')?.value;
+// Si la cookie existe (true o false), usamos su valor. Si no existe, usamos el perfil.
+const allowNsfw = typeof nsfwCookieValue === 'string' 
+  ? nsfwCookieValue === 'true' 
+  : ((user as any)?.isNsfw || false);
 
 let recentSeries: Series[] = [];
 let popularSeries: Series[] = [];
 let seriesByChapterCount: Series[] = [];
-let seriesWithRecentChapters: Series[] = [];
-let allSeriesAlphabetical: Series[] = [];
+let seriesWithRecentChapters: any[] = [];
 let hasContent = false;
 
 try {
   const db = getDB(runtime.env);
 
-  const sanitizeSeriesDates = (list: any[]) =>
-    list
-      .filter((s) => s && s.title && s.coverImageUrl)
-      .map((s) => {
-        const ts = s.createdAt ? new Date(s.createdAt).getTime() : null;
-        return {
-          ...s,
-          createdAt: ts && !isNaN(ts) ? ts : Date.now(),
-        };
-      });
+  // Orion: Carga ultra-optimizada en un solo paso
+  const homeData = await getHomeData(db, allowNsfw);
+  
+  recentSeries = homeData.recentSeries as any;
+  popularSeries = homeData.popularSeries as any;
+  seriesByChapterCount = homeData.seriesByChapterCount as any;
+  seriesWithRecentChapters = homeData.seriesWithRecentChapters;
+  hasContent = homeData.hasContent;
 
-  const [recent, popular, recentChapters, all, byChapters] = await Promise.all([
-    getRecentSeries(db, allowNsfw, 20),
-    getPopularSeries(db, allowNsfw, 20),
-    getSeriesWithRecentChapters(db, allowNsfw),
-    getAllSeries(db, allowNsfw),
-    getSeriesByChapterCount(db, allowNsfw),
-  ]);
-
-  recentSeries = sanitizeSeriesDates(recent);
-  popularSeries = sanitizeSeriesDates(popular);
-  seriesByChapterCount = sanitizeSeriesDates(byChapters);
-  seriesWithRecentChapters = sanitizeSeriesDates(recentChapters);
-
-  allSeriesAlphabetical = sanitizeSeriesDates(all);
 } catch (error) {
   console.error('🔥 ERROR CRÍTICO EN HOME:', error);
-  logError(error, 'Error al obtener las listas de series (SSR Optimizado)');
+  logError(error, 'Error al obtener las listas de series (Ultra Optimizado)');
 }
 
-// Orion: Combinación inteligente priorizando visualizaciones con deduplicación robusta
-const combinedSeriesMap = new Map<string, Series>();
-
-// Priorizamos popularSeries asegurándonos de que están ordenadas
-popularSeries
-  .sort((a, b) => (b.views || 0) - (a.views || 0))
-  .forEach((s) => combinedSeriesMap.set(s.slug, s));
-
-// Añadimos recientes solo si no están ya (o si tienen más vistas por algún motivo)
-recentSeries.forEach((s) => {
-  if (
-    !combinedSeriesMap.has(s.slug) ||
-    (s.views || 0) > (combinedSeriesMap.get(s.slug)?.views || 0)
-  ) {
-    combinedSeriesMap.set(s.slug, s);
-  }
-});
-
-const featuredGridData = Array.from(combinedSeriesMap.values())
-  .sort((a, b) => {
-    const viewsA = Number(a.views || 0);
-    const viewsB = Number(b.views || 0);
-    return viewsB - viewsA;
-  })
+// Orion: Deduplicación inteligente para el FeaturedGrid
+const featuredGridData = [...popularSeries]
+  .sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0))
   .slice(0, 6);
-
-// Orion: Debug para verificar visualizaciones en el home
-// console.log('🔥 FEATURED DATA:', featuredGridData.map(s => ({ title: s.title, views: s.views, isNsfw: s.isNsfw })));
-
-hasContent =
-  recentSeries.length > 0 ||
-  featuredGridData.length > 0 ||
-  seriesWithRecentChapters.length > 0 ||
-  allSeriesAlphabetical.length > 0;
 ---
 
 <Layout 

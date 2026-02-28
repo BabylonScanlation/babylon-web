@@ -47,6 +47,17 @@ let activeFilters = $state({
   genres: [] as string[],
 });
 
+// Orion: Calculamos si hay filtros activos de forma reactiva con $derived
+const hasActiveFilters = $derived(
+  activeFilters.genres.length > 0 || 
+  activeFilters.type !== 'all' || 
+  activeFilters.author !== '' || 
+  activeFilters.artist !== '' ||
+  activeFilters.publisher !== '' ||
+  activeFilters.magazine !== '' ||
+  activeFilters.status !== 'all'
+);
+
 // Estado temporal (mientras el usuario edita)
 let stagingFilters = $state({ ...activeFilters });
 

@@ -27,6 +27,8 @@ export default defineConfig({
       exclude: ['swiper', 'swiper/modules', '@cf-wasm/photon'],
     },
     build: {
+      // Orion: Endurecimiento de Seguridad (Hardening)
+      sourcemap: false, // Nunca generar mapas de código en producción
       rollupOptions: {
         external: ['@cf-wasm/photon'],
       },

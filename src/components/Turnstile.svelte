@@ -36,9 +36,16 @@ onMount(() => {
 });
 
 function renderWidget() {
+  // Orion: Si estamos en modo desarrollo local, usamos la Sitekey oficial de Test de Cloudflare
+  // que "Siempre Pasa" para evitar errores de dominio al probar desde el móvil en la misma red WiFi.
+  const isDev = import.meta.env.DEV;
+  const sitekey = isDev 
+    ? '1x00000000000000000000AA' 
+    : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+
   // @ts-expect-error Global turnstile
   window.turnstile.render(`#${containerId}`, {
-    sitekey: import.meta.env.PUBLIC_TURNSTILE_SITE_KEY,
+    sitekey: sitekey,
     theme: theme,
     callback: (token: string) => {
       onVerify(token);

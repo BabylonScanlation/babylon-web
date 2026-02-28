@@ -959,7 +959,7 @@ import { siteConfig } from '../site.config';
   }
 
   .btn-download-app {
-    background: linear-gradient(135deg, var(--accent-color) 0%, rgba(0, 0, 0, 0.3) 100%);
+    background: var(--accent-color);
     color: #000;
     text-decoration: none;
     padding: 1.25rem;

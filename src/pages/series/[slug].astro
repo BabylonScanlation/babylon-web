@@ -33,8 +33,10 @@ try {
 
   if (series) {
     // Astra: Validación de modo NSFW global vía cookies (Header Logo)
-    const nsfwCookie = Astro.cookies.get('babylon_nsfw')?.value === 'true';
-    const allowNsfw = nsfwCookie || user?.isNsfw || false;
+    const nsfwCookieValue = Astro.cookies.get('babylon_nsfw')?.value;
+    const allowNsfw = typeof nsfwCookieValue === 'string' 
+      ? nsfwCookieValue === 'true' 
+      : (user?.isNsfw || false);
 
     if (series.isNsfw && !allowNsfw) {
       return Astro.redirect('/?nsfw_required=true');
@@ -88,6 +90,7 @@ const reactions = [
   title={`Leer ${series?.title ?? 'Serie'} Manga Online en Español - ${siteConfig.name}`}
   description={`Lee ${series?.title} online en español con la mejor calidad. ${series?.description?.substring(0, 140).replace(/\*/g, '') ?? ''}... ¡Solo en ${siteConfig.name}!`}
   ogImage={getImageUrl(series?.coverImageUrl, r2PublicUrlAssets, 'series')}
+  isNsfwContent={series?.isNsfw || false}
 >
   <!-- SEO: Datos Estructurados JSON-LD -->
   <script type="application/ld+json" is:inline set:html={JSON.stringify({
@@ -782,7 +785,7 @@ const reactions = [
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    background: linear-gradient(135deg, var(--accent-color) 0%, rgba(0, 0, 0, 0.3) 100%);
+    background: var(--accent-color);
     color: #000;
     text-decoration: none;
     padding: 1.2rem;

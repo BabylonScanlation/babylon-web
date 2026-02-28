@@ -159,7 +159,10 @@ export const news = sqliteTable(
       .notNull()
       .default('draft'),
   },
-  (table) => [index('idx_news_series_id').on(table.seriesId)]
+  (table) => [
+    index('idx_news_series_id').on(table.seriesId),
+    index('idx_news_status').on(table.status),
+  ]
 );
 
 export const newsImage = sqliteTable(
