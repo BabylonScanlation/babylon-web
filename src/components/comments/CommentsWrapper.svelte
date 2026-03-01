@@ -291,7 +291,7 @@ async function handleSubmit(e: Event, parentId: number | null = null) {
   try {
     const { data, error } = await actions.comments.add({
       targetType,
-      targetId: Number(targetId),
+      targetId: targetId as any, // Orion: Enviamos el ID tal cual (string para news, number para resto)
       parentId,
       text,
     });
@@ -838,12 +838,12 @@ async function handleTogglePin(comment: Comment) {
         --c-bg-card-hover: #25252b;
         --c-bg-input: #15151a;
         --c-border: rgba(255, 255, 255, 0.08);
-        --c-border-focus: rgba(79, 172, 254, 0.5);
+        --c-border-focus: var(--accent-glow);
         --c-text-primary: #f3f4f6;
         --c-text-secondary: #9ca3af;
         --c-text-tertiary: #6b7280;
-        --c-accent: #3b82f6;
-        --c-accent-hover: #2563eb;
+        --c-accent: var(--accent-color);
+        --c-accent-hover: var(--accent-color);
         --c-danger: #ef4444;
         --thread-line: rgba(255, 255, 255, 0.1);
         --radius-lg: 16px;

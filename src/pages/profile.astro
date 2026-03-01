@@ -55,6 +55,12 @@ const joinedDate = userProfile?.createdAt
       >
         {!bannerUrl && <div class="banner-pattern" />}
         <div class="hero-overlay"></div>
+        
+        <!-- Astra: Botón de cambio de portada -->
+        <button class="change-banner-btn" onclick="window.openProfileMediaModal('banner')">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Cambiar Portada</span>
+        </button>
       </div>
 
       <div class="hero-content">
@@ -68,6 +74,10 @@ const joinedDate = userProfile?.createdAt
                 class="main-avatar"
                 id="avatar-preview"
               />
+              <!-- Astra: Overlay para cambiar avatar -->
+              <button class="avatar-edit-overlay" onclick="window.openProfileMediaModal('avatar')">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </button>
             </div>
           </div>
 
@@ -114,7 +124,7 @@ const joinedDate = userProfile?.createdAt
       <!-- SIDEBAR NAV -->
       <aside class="profile-sidebar">
         {
-          user.isAdmin && (
+          userRoleData?.role === 'admin' && (
             <div class="admin-wrapper">
               <AdminAccess client:load />
             </div>
@@ -429,6 +439,63 @@ const joinedDate = userProfile?.createdAt
   .profile-page-wrapper {
     min-height: 100vh;
     padding-bottom: 4rem;
+  }
+
+  /* --- MEDIA EDIT BUTTONS --- */
+  .change-banner-btn {
+    position: absolute;
+    top: 50px;
+    right: 1.5rem;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 0.6rem 1.2rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    transition: all 0.2s ease;
+    z-index: 50;
+  }
+
+  .change-banner-btn:hover {
+    background: #fff;
+    color: #000;
+    transform: translateY(-2px);
+  }
+
+  .avatar-edit-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    opacity: 0;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    z-index: 2;
+  }
+
+  .avatar-container:hover .avatar-edit-overlay {
+    opacity: 1;
+    backdrop-filter: blur(2px);
+  }
+
+  @media (max-width: 900px) {
+    .change-banner-btn {
+      top: 45px;
+      right: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+    }
   }
 
   /* --- HERO SECTION --- */

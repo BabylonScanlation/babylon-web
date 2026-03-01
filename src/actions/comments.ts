@@ -17,7 +17,7 @@ export const commentActions = {
   add: defineAction({
     input: z.object({
       targetType: CommentTargetSchema,
-      targetId: z.number(),
+      targetId: z.union([z.string(), z.number()]),
       parentId: z.number().nullable().optional(),
       text: z.string().min(1).max(1000),
     }),
