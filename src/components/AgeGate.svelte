@@ -1,7 +1,7 @@
 <script lang="ts">
-import { fade, fly } from 'svelte/transition';
 import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
+import { fade, fly } from 'svelte/transition';
 import { siteConfig } from '../site.config';
 import Turnstile from './Turnstile.svelte';
 
@@ -67,49 +67,45 @@ async function enterSite() {
 {#if !isVerified}
   <div class="age-gate-overlay" transition:fade={{ duration: 300 }}>
     <div class="gate-card" in:fly={{ y: 30, duration: 600, delay: 100 }}>
-      <div class="header-glow"></div>
-      
       <div class="logo-area">
-        <div class="logo-circle">
-          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          </svg>
+        <div class="logo-wrapper">
+          <img src={siteConfig.assets.logo} alt={`${siteConfig.name} Logo`} width="80" height="80" /> 
         </div>
       </div>
 
       <div class="content-area">
         <h1>Bienvenido a {siteConfig.shortName}</h1>
-        <p class="subtitle">Confirma que eres mayor de edad y aceptas nuestros términos y condiciones para acceder.</p>
+        <p class="subtitle">Confirma que eres mayor de edad y aceptas nuestros términos y condiciones para continuar.</p>
 
-        <div class="verification-steps">
-          <div class="check-box-wrapper" class:active={isAdult}>
-            <input type="checkbox" id="adult-check" bind:checked={isAdult} />
-            <label for="adult-check">
-              <span class="custom-check"></span>
-              Soy mayor de 18 años
-            </label>
-          </div>
+        <div class="checks-area">
+          <label class="checkbox-container">
+            <input type="checkbox" bind:checked={isAdult} />
+            <div class="custom-checkbox">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <span class="label-text">Soy mayor de 18 años</span>
+          </label>
 
-          <div class="check-box-wrapper" class:active={acceptedTerms}>
-            <input type="checkbox" id="terms-check" bind:checked={acceptedTerms} />
-            <label for="terms-check">
-              <span class="custom-check"></span>
-              Acepto los <a href="/terms" target="_blank">términos de uso</a> y la <a href="/privacy" target="_blank">política de privacidad</a>
-            </label>
-          </div>
+          <label class="checkbox-container">
+            <input type="checkbox" bind:checked={acceptedTerms} />
+            <div class="custom-checkbox">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <span class="label-text">Acepto los <a href="/terms" onclick={(e) => e.stopPropagation()}>Términos y Condiciones</a> y la Política de Privacidad</span>
+          </label>
         </div>
 
-        <div class="captcha-container">
+        <div class="captcha-area">
           <Turnstile onVerify={handleCaptchaVerify} theme="dark" />
         </div>
 
-        <button 
-          class="enter-btn" 
+        <button
+          class="enter-btn"
           disabled={!isAdult || !acceptedTerms || !captchaToken}
           onclick={enterSite}
         >
-          <span class="btn-text">Entrar al sitio</span>
           <span class="btn-shine"></span>
+          Entrar al Sitio
         </button>
       </div>
     </div>
@@ -120,195 +116,180 @@ async function enterSite() {
   .age-gate-overlay {
     position: fixed;
     inset: 0;
-    background: #000;
-    z-index: 100000;
+    background-color: rgba(0, 0, 0, 0.95);
+    background-image:
+      radial-gradient(circle at 50% -20%, rgba(0, 191, 255, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 0% 100%, rgba(0, 191, 255, 0.05) 0%, transparent 40%);
+    z-index: 10000;
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
     padding: 1.5rem;
+    backdrop-filter: blur(8px);
   }
 
   .gate-card {
-    position: relative;
-    background: #0a0a0f;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    width: 100%;
-    max-width: 480px;
-    border-radius: 32px;
-    overflow: hidden;
-    padding: 3rem 2.5rem;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
-  }
-
-  .header-glow {
-    position: absolute;
-    top: -100px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(0, 191, 255, 0.15) 0%, transparent 70%);
-    pointer-events: none;
-  }
-
-  .logo-area {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 2rem;
-  }
-
-  .logo-circle {
-    width: 90px;
-    height: 90px;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(30, 30, 30, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
+    padding: 3rem 2.5rem;
+    border-radius: 32px;
+    width: 100%;
+    max-width: 520px;
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  }
+
+  .logo-wrapper {
+    background: rgba(255, 255, 255, 0.03);
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 2rem;
+    border-radius: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--accent-color);
-    box-shadow: 0 0 20px rgba(0, 191, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    transform: rotate(-5deg);
+    transition: transform 0.3s ease;
   }
 
-  .content-area {
-    text-align: center;
+  .gate-card:hover .logo-wrapper {
+    transform: rotate(0deg) scale(1.05);
   }
 
   h1 {
     font-size: 2.2rem;
-    font-weight: 900;
-    margin-bottom: 0.75rem;
-    letter-spacing: -0.04em;
+    font-weight: 800;
     color: #fff;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+    background: linear-gradient(to bottom, #fff, #999);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .subtitle {
-    color: #666;
-    font-size: 0.95rem;
-    line-height: 1.5;
+    color: #888;
     margin-bottom: 2.5rem;
-    font-weight: 500;
+    font-size: 1rem;
+    line-height: 1.5;
   }
 
-  .verification-steps {
+  .checks-area {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 2rem;
+    gap: 1.25rem;
     text-align: left;
+    margin-bottom: 2rem;
   }
 
-  .check-box-wrapper {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
-    padding: 1rem 1.25rem;
-    display: flex;
-    align-items: center;
-    transition: all 0.2s;
-    cursor: pointer;
-  }
-
-  .check-box-wrapper:hover {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .check-box-wrapper.active {
-    background: rgba(0, 191, 255, 0.05);
-    border-color: rgba(0, 191, 255, 0.2);
-  }
-
-  input[type="checkbox"] {
-    display: none;
-  }
-
-  label {
-    display: flex;
-    align-items: center;
+  .checkbox-container {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: flex-start;
     gap: 1rem;
-    color: #aaa;
-    font-size: 0.9rem;
-    font-weight: 600;
     cursor: pointer;
-    width: 100%;
+    color: #ccc;
+    font-size: 1rem;
+    user-select: none;
+    transition: color 0.2s;
   }
 
-  .check-box-wrapper.active label {
+  .checkbox-container:hover {
     color: #fff;
   }
 
-  .custom-check {
-    width: 22px;
-    height: 22px;
+  .checkbox-container input {
+    display: none;
+  }
+
+  .custom-checkbox {
+    width: 24px;
+    height: 24px;
     border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    position: relative;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
-    transition: all 0.2s;
+    margin-top: 2px;
   }
 
-  .check-box-wrapper.active .custom-check {
-    background: var(--accent-color);
-    border-color: var(--accent-color);
+  .custom-checkbox svg {
+    width: 14px;
+    height: 14px;
+    color: #000;
+    transform: scale(0);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .custom-check::after {
-    content: "";
-    position: absolute;
-    top: 2px;
-    left: 7px;
-    width: 5px;
-    height: 10px;
-    border: solid #000;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-    opacity: 0;
+  .checkbox-container input:checked + .custom-checkbox {
+    background-color: var(--accent-color, var(--accent-color));
+    border-color: var(--accent-color, var(--accent-color));
+    box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
   }
 
-  .check-box-wrapper.active .custom-check::after {
-    opacity: 1;
+  .checkbox-container input:checked + .custom-checkbox svg {
+    transform: scale(1);
   }
 
-  a {
-    color: var(--accent-color);
+  .label-text {
+    line-height: 1.4;
+  }
+
+  .label-text a {
+    color: var(--accent-color, var(--accent-color));
     text-decoration: none;
+    font-weight: 600;
   }
 
-  a:hover {
+  .label-text a:hover {
     text-decoration: underline;
   }
 
-  .captcha-container {
-    margin-bottom: 2.5rem;
+  .captcha-area {
+    margin-bottom: 2rem;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
   }
 
   .enter-btn {
-    width: 100%;
-    background: var(--accent-color);
-    color: #000;
-    border: none;
-    padding: 1.25rem;
-    border-radius: 18px;
-    font-size: 1.1rem;
-    font-weight: 900;
-    cursor: pointer;
     position: relative;
+    background: linear-gradient(135deg, var(--accent-color, var(--accent-color)) 0%, #0077ff 100%);   
+    color: #fff;
+    border: none;
+    padding: 1.1rem;
+    width: 100%;
+    border-radius: 16px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 20px -5px rgba(0, 162, 255, 0.4);
   }
 
   .enter-btn:disabled {
-    background: #222;
-    color: #444;
+    background: rgba(255, 255, 255, 0.05);
+    color: #555;
     cursor: not-allowed;
+    box-shadow: none;
   }
 
   .enter-btn:not(:disabled):hover {
-    transform: scale(1.02);
-    box-shadow: 0 10px 25px rgba(0, 191, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 15px 25px -5px rgba(0, 162, 255, 0.5);
+  }
+
+  .enter-btn:not(:disabled):active {
+    transform: translateY(0);
   }
 
   .btn-shine {
@@ -317,8 +298,13 @@ async function enterSite() {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
+    background: linear-gradient(
+      120deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    transition: all 0.6s;
   }
 
   .enter-btn:not(:disabled):hover .btn-shine {
@@ -330,7 +316,7 @@ async function enterSite() {
       padding: 2.5rem 1.5rem;
       border-radius: 24px;
     }
-    
+
     h1 {
       font-size: 1.8rem;
     }

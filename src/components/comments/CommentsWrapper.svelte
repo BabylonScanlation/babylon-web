@@ -496,7 +496,7 @@ async function handleTogglePin(comment: Comment) {
             <div class="guest-content">
                 <span class="guest-icon">👋</span>
                 <p>Únete a la conversación</p>
-                <button class="login-btn-pulse" onclick={() => document.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }))}>
+                <button class="login-btn-pulse" onclick={() => window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }))}>
                     Iniciar sesión para comentar
                 </button>
             </div>

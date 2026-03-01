@@ -32,9 +32,9 @@ onMount(async () => {
   }
 });
 
-async function _toggleFavorite() {
+async function toggleFavorite() {
   if (!isLoggedIn) {
-    document.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }));
+    window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }));
     return;
   }
 

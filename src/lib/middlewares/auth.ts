@@ -10,6 +10,14 @@ import { deleteSession, verifyToken } from '../session';
 const sessionCache = new Map<string, { user: any; expires: number }>();
 const SESSION_CACHE_TTL = 60000;
 
+export function clearSessionCache(sessionId?: string) {
+  if (sessionId) {
+    sessionCache.delete(sessionId);
+  } else {
+    sessionCache.clear();
+  }
+}
+
 export async function authFlow(context: any, next: MiddlewareNext) {
   const { cookies, locals, request, url } = context;
   const currentPath = url.pathname;
@@ -104,6 +112,20 @@ export async function authFlow(context: any, next: MiddlewareNext) {
   // Redirecciones de seguridad
   if (currentPath.startsWith('/admin') && !locals.user?.isAdmin) {
     return context.redirect('/');
+  }
+
+  // Orion: Sincronización de estado NSFW (Solo si la cookie no existe para evitar reversiones molestas)
+  if (locals.user) {
+    const hasNsfwCookie = cookies.has('babylon_nsfw');
+    if (!hasNsfwCookie) {
+      const userNsfwPref = locals.user.isNsfw === true || String(locals.user.isNsfw) === '1';
+      cookies.set('babylon_nsfw', userNsfwPref ? 'true' : 'false', {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 30, // 30 días
+        httpOnly: false,
+        sameSite: 'lax',
+      });
+    }
   }
 
   return next();

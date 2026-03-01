@@ -1,10 +1,8 @@
 <script lang="ts">
-import { fade, fly } from 'svelte/transition';
 import { onMount } from 'svelte';
+import { fade, fly } from 'svelte/transition';
 import { deobfuscate } from '../lib/obfuscator';
-import { siteConfig } from '../site.config';
 import ReaderPage from './ReaderPage.svelte';
-import { actions } from 'astro:actions';
 
 interface Page {
   url?: string;
@@ -51,7 +49,6 @@ let loadingMessage = $state<string | null>(null);
 let isProcessing = $state(false);
 let error = $state<string | null>(null);
 let isComplete = $state(false);
-let useFallback = $state(false);
 
 // Astra: Sincronización inicial silenciosa
 onMount(() => {
@@ -152,7 +149,7 @@ onMount(() => {
     if (bridgeEncrypted) encryptedData = bridgeEncrypted;
 
     const rawId = bridge.getAttribute('data-chapter-id');
-    if (rawId) chapterId = parseInt(rawId, 10);
+    if (rawId) chapterId = parseInt(rawId);
 
     const processingAttr = bridge.getAttribute('data-processing') === 'true';
     isProcessing = processingAttr;
@@ -172,7 +169,7 @@ onMount(() => {
   // Intentar recuperar configuración guardada de forma segura
   try {
     const savedWidth = localStorage.getItem('readerWidth');
-    if (savedWidth) readerWidth = parseInt(savedWidth, 10);
+    if (savedWidth) readerWidth = parseInt(savedWidth);
     else if (isMobile) readerWidth = 100;
 
     const savedMode = localStorage.getItem('viewMode');
@@ -250,6 +247,7 @@ onMount(() => {
             pagesData = incomingPages.sort(
               (a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0)
             );
+            // console.log('[READER] Sequence:', pagesData.map(p => p.pageNumber).join(', '));
             if (isProcessing) isProcessing = false;
           } else {
             console.warn('[READER] No pages found in decrypted payload');
@@ -383,6 +381,7 @@ function setupSse(isRetry = false) {
   eventSource = new EventSource(`/api/series/${slug}/${chapter}`);
 
   eventSource.addEventListener('processing', (e) => {
+    // console.log('[ChapterReader] SSE Processing event');
     retryCount = 0;
     try {
       const rawData = JSON.parse(e.data);
@@ -462,6 +461,8 @@ function setupSse(isRetry = false) {
   });
 }
 
+import { actions } from 'astro:actions';
+
 function registerView() {
   if (chapterId) {
     actions.chapters.registerView({ chapterId }).catch(() => {});
@@ -472,13 +473,20 @@ function startProgressSimulation() {
   clearInterval(progressInterval);
   simulatedProgress = 0;
 
+  // Orion: Curva de progresión tipo "Zeno" o "Phi"
+  // Avanza rápido al principio y se va cortando a la mitad conforme se acerca al final.
   progressInterval = window.setInterval(() => {
     if (simulatedProgress < 99) {
+      // Calculamos cuánto falta para llegar a 100
       const remaining = 100 - simulatedProgress;
+
+      // El incremento es una pequeña fracción de lo que queda (se corta a la mitad/proporción)
+      // Esto hace que nunca llegue a 100 por sí solo.
       const increment = remaining * 0.015;
+
       simulatedProgress += Math.max(0.01, increment);
     }
-  }, 150);
+  }, 150); // Intervalo más corto para que el movimiento sea fluido (60fps feel)
 }
 
 function saveSettings() {
@@ -487,483 +495,761 @@ function saveSettings() {
   showConfig = false;
 }
 
+// Orion: Detectar si el capítulo es solo para la app (Protección de contenido)
 const isInAppOnly = $derived(encryptedData === 'inapp' || loadingMessage === 'inapp');
+
+import { siteConfig } from '../site.config';
 </script>
 
-<div 
-  class="reader-root" 
-  bind:this={readerEl}
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<main
+  class="premium-reader-context"
+  role="application"
+  aria-label="Lector de Manga"
   onclick={handleGlobalClick}
-  role="presentation"
+  onkeydown={handleKeydown}
+  tabindex="-1"
+  bind:this={readerEl}
 >
-  {#if useFallback}
-    <div class="fallback-wrapper">
-        <div class="fallback-card">
-            <h2>Modo Seguro Activo</h2>
-            <p>Hemos detectado un problema con el motor de renderizado. Intentando cargar versión simplificada.</p>
-            <button onclick={() => window.location.reload()}>Recargar Lector</button>
-        </div>
-    </div>
-  {/if}
+  <div class="top-progress-bar" style="width: {scrollProgress}%"></div>
 
-  {#if isInAppOnly}
+  <div class="reader-container" style="width: {isMobile ? 100 : readerWidth}%">
+    {#if isInAppOnly}
       <div class="loader-overlay" in:fade>
          <div class="glass-inapp">
-            <div class="lock-icon">📱</div>
-            <h2>Contenido Exclusivo</h2>
-            <p>Este capítulo solo puede leerse desde nuestra App oficial.</p>
-            <a href={siteConfig.app.androidUrl} class="btn-get-app">Descargar App</a>
+            <div class="inapp-icon">
+              <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+            </div>
+            <h3>Contenido Exclusivo</h3>
+            <p class="inapp-desc">Este capítulo solo está disponible a través de nuestra aplicación oficial para una mejor experiencia.</p>
+
+            <div class="inapp-actions">
+              <a href={siteConfig.app.androidUrl} class="btn-download-app" download>
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Descargar App
+              </a>
+              <button class="btn-back-inapp" onclick={() => window.history.back()}>
+                Volver
+              </button>
+            </div>
          </div>
       </div>
     {:else if error}
       <div class="loader-overlay" in:fade>
         <div class="glass-error">
-          <div class="error-icon">⚠️</div>
-          <h2>¡Vaya! Algo salió mal</h2>
-          <p>{error}</p>
-          <button class="retry-btn" onclick={() => window.location.reload()}>Reintentar</button>
+          <div class="error-icon-anim">
+            <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          </div>
+          <h3>Conexión Interrumpida</h3>
+          <p class="error-desc">{error}</p>
+          <button class="btn-retry" onclick={() => window.location.reload()}>
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            Reintentar
+          </button>
         </div>
       </div>
     {:else if isProcessing}
       <div class="loader-overlay" in:fade>
         <div class="glass-loader">
-          <div class="dynamic-icon">🚀</div>
-          <h2>Procesando Capítulo</h2>
-          <p>{loadingMessage || 'Preparando imágenes...'}</p>
-          
-          <div class="progress-bar-wrapper">
-            <div class="progress-fill" style="width: {simulatedProgress}%"></div>
+          <div class="loader-visual">
+            <img src="/favicon.svg" alt={seriesTitle || 'Logo'} class="loader-logo" />
+            <div class="loader-ring"></div>
           </div>
-          
-          <div class="loader-hints">
-            <span class="hint">Esto solo ocurre la primera vez que se lee.</span>
+          <div class="loader-info">
+            {#key loadingMessage}
+              <div in:fly={{ y: 10, duration: 400 }} out:fly={{ y: -10, duration: 300 }}>
+                <p class="main-loading-text">{loadingMessage}</p>
+                <p class="sub-loading-text">Esto solo lo tendrás que hacer una vez, gracias por su paciencia.</p>
+              </div>
+            {/key}
+            <div class="progress-section">
+              <div class="bar-container">
+                <div class="bar-fill" style="width: {simulatedProgress}%"></div>
+              </div>
+              <div class="progress-meta">
+                <span class="status-dot"></span>
+                <span class="pct">{Math.round(simulatedProgress)}%</span>
+              </div>
+            </div>
+
+            <button class="cancel-load-btn" onclick={() => window.history.back()}>
+              Cancelar
+            </button>
           </div>
         </div>
       </div>
-    {/if}
+    {:else}
+      <div class="reading-area {viewMode}">
+        {#if viewMode === 'cascade'}
+          {#each pagesData as page, i (i)}
+            <div class="page-frame">
+              <ReaderPage {page} alt={`Página ${i + 1}`} watermark={watermark || undefined} loading={i < 2 ? 'eager' : 'lazy'} />
+              <div class="no-copy-shield" role="presentation" oncontextmenu={(e) => e.preventDefault()}></div>
+            </div>
+          {/each}
+        {:else}
+          <div class="single-wrapper">
+            {#if pagesData[currentPageIndex]}
+              {#key currentPageIndex}
+                {@const currentPage = pagesData[currentPageIndex] as Page}
+                <div class="page-frame">
+                  <ReaderPage page={currentPage} alt={`Página ${currentPageIndex + 1}`} watermark={watermark || undefined} loading="eager" />
+                  <div class="no-copy-shield" role="presentation" oncontextmenu={(e) => e.preventDefault()}></div>
+                  <div class="page-counter-floating">{currentPageIndex + 1} / {pagesData.length}</div>
 
-    <div 
-      class="pages-container {viewMode}" 
-      style="--reader-width: {readerWidth}%"
-    >
-      {#if viewMode === 'cascade'}
-        {#each pagesData as page, i (i)}
-          <div class="page-frame">
-            <ReaderPage {page} alt={`Página ${i + 1}`} watermark={watermark || undefined} loading={i > 3 ? 'lazy' : 'eager'} />
-          </div>
-        {/each}
-      {:else}
-        {#if pagesData[currentPageIndex]}
-          <div class="page-frame single-page" in:fade={{ duration: 200 }}>
-            <ReaderPage 
-              page={pagesData[currentPageIndex]!} 
-              alt={`Página ${currentPageIndex + 1}`} 
-              watermark={watermark || undefined}
-            />
+                  <!-- Botones de Navegación Visuales -->
+                  <button class="nav-zone-btn left" onclick={(e) => { e.stopPropagation(); changePage(-1); }} aria-label="Página anterior" class:hidden={currentPageIndex === 0}>
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  </button>
+                  <button class="nav-zone-btn right" onclick={(e) => { e.stopPropagation(); changePage(1); }} aria-label="Página siguiente" class:hidden={currentPageIndex === pagesData.length - 1}>
+                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
+              {/key}
+            {/if}
           </div>
         {/if}
-      {/if}
-    </div>
-
-    {#if !isProcessing && pagesData.length > 0}
-      <div class="reader-footer">
-        <div class="finish-line">
-          <span class="check-icon">✓</span>
-          <h3>Has terminado el capítulo</h3>
-          <p>¿Qué te ha parecido?</p>
-        </div>
-
-        <div class="footer-nav-btns">
-          {#if nextChapter}
-            <a href={`/series/${nextChapter.slug}/${nextChapter.chapter}`} class="next-btn-massive">
-              Leer Capítulo {nextChapter.chapter}
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </a>
-          {:else}
-            <a href={`/series/${slug}`} class="next-btn-massive back-series">
-              Volver a la serie
-            </a>
-          {/if}
-        </div>
       </div>
     {/if}
+  </div>
 
-    <div class="floating-hud" class:visible={controlsVisible}>
-      <div class="hud-content">
-        <div class="hud-section left">
-          <a href={`/series/${slug}`} class="back-link" title="Volver a la serie">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          </a>
-          <div class="chapter-info">
-            <span class="series-name">{seriesTitle}</span>
-            <span class="chapter-num">Capítulo {chapter}</span>
-          </div>
-        </div>
-
-        <div class="hud-section central">
-          <button class="action-pill-btn" onclick={scrollToComments}>
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-            <span>Comentarios</span>
-          </button>
-        </div>
-
-        <div class="hud-section right">
-          {#if viewMode === 'single'}
-            <div class="page-counter">
-              {currentPageIndex + 1} / {pagesData.length}
-            </div>
-          {/if}
-          <button class="config-btn" onclick={() => showConfig = true} aria-label="Ajustes">
-            <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </button>
-        </div>
-      </div>
-      
-      <div class="scroll-progress-hud" style="width: {scrollProgress}%"></div>
-    </div>
-</div>
-
-{#if showConfig}
-  <div class="modal-overlay" transition:fade={{ duration: 200 }} onclick={() => showConfig = false} role="presentation">
-    <div class="reader-cfg-panel" transition:fly={{ y: 50, duration: 400 }} onclick={(e) => e.stopPropagation()} role="presentation">
-      <div class="cfg-header">
-        <h3>Ajustes de Lectura</h3>
-        <button class="close-cfg" onclick={() => showConfig = false}>×</button>
-      </div>
-
-      <div class="cfg-body">
-        <div class="cfg-section">
-          <label for="view-mode">Modo de visualización</label>
-          <div class="mode-selector">
-            <button class:active={viewMode === 'cascade'} onclick={() => viewMode = 'cascade'}>
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-              Cascada
-            </button>
-            <button class:active={viewMode === 'single'} onclick={() => viewMode = 'single'}>
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
-              Página a Página
-            </button>
-          </div>
-        </div>
-
-        <div class="cfg-section">
-          <label for="width-range">Ancho del lector ({readerWidth}%)</label>
-          <input 
-            id="width-range"
-            type="range" 
-            min="30" 
-            max="100" 
-            step="5" 
-            bind:value={readerWidth} 
-          />
-          <div class="range-labels">
-            <span>Estrecho</span>
-            <span>Completo</span>
-          </div>
+  <div id="reader-floating-hud" class="floating-hud {controlsVisible ? 'visible' : 'hidden'}">
+    <div class="hud-glass">
+      <div class="hud-section info">
+        <a href={`/series/${slug}`} class="back-pill" title="Volver a la serie">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </a>
+        <div class="chapter-label">
+          <span class="s-title">{seriesTitle}</span>
+          <span class="c-num">Capítulo {chapter}</span>
         </div>
       </div>
 
-      <div class="cfg-footer">
-        <button class="btn-save-cfg" onclick={saveSettings}>Guardar y Cerrar</button>
+      <div class="hud-section central">
+        <button class="action-pill-btn" onclick={scrollToComments}>
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span>Comentarios</span>
+        </button>
+      </div>
+
+      <div class="hud-section tools">
+        <button class="tool-btn" onclick={(e) => {
+          e.stopPropagation();
+          showConfig = true;
+        }} title="Configuración">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.5"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
       </div>
     </div>
   </div>
-{/if}
+
+  <div
+    id="reader-config-overlay"
+    class="reader-cfg-backdrop"
+    class:active={showConfig}
+    role="presentation"
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.stopPropagation()}
+  >
+        <div
+          class="reader-cfg-panel"
+          role="dialog"
+          tabindex="-1"
+          aria-modal="true"
+          onclick={(e) => e.stopPropagation()}
+          onkeydown={(e) => e.stopPropagation()}
+        >      <div class="modal-header-compact">
+        <h3>Configuración</h3>
+        <button class="close-modal-btn" onclick={() => showConfig = false}>✕</button>
+      </div>
+
+      <div class="config-row">
+        <label for="view-mode-cascade">Modo de Vista</label>
+        <div class="pill-group" id="view-mode-select">
+          <button id="view-mode-cascade" class:active={viewMode === 'cascade'} onclick={() => viewMode = 'cascade'}>Cascada</button>
+          <button id="view-mode-single" class:active={viewMode === 'single'} onclick={() => viewMode = 'single'}>Paginado</button>
+        </div>
+      </div>
+
+      <div class="config-row">
+        <label for="reader-width-range">Ancho del Lector ({readerWidth}%)</label>
+        <input id="reader-width-range" name="reader-width" type="range" min="20" max="100" step="5" bind:value={readerWidth} disabled={isMobile} />
+      </div>
+
+      <button class="btn-save-config" onclick={saveSettings}>Guardar Ajustes</button>
+    </div>
+  </div>
+</main>
 
 <style>
-  .reader-root {
-    background: #000;
-    min-height: 100vh;
-    color: #fff;
-    outline: none;
-  }
-
-  .fallback-wrapper {
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    background: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-  }
-
-  .fallback-card {
-    background: #111;
-    border: 1px solid #333;
-    padding: 2rem;
-    border-radius: 24px;
-    text-align: center;
-    max-width: 400px;
-  }
-
-  .fallback-card h2 { color: var(--accent-color); margin-bottom: 1rem; }
-  .fallback-card p { color: #888; margin-bottom: 1.5rem; }
-  .fallback-card button { background: var(--accent-color); color: #000; border: none; padding: 0.8rem 1.5rem; border-radius: 12px; font-weight: 800; cursor: pointer; }
-
-  .loader-overlay {
-    position: fixed;
-    inset: 0;
-    background: #000;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-  }
-
-  .glass-loader, .glass-error, .glass-inapp {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 40px;
-    padding: 3rem;
-    text-align: center;
+  .premium-reader-context {
+    position: relative;
     width: 100%;
-    max-width: 450px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    min-height: 100vh;
+    background: #000;
+    color: #fff;
+    z-index: 10;
   }
 
-  .dynamic-icon, .error-icon, .lock-icon { font-size: 3.5rem; margin-bottom: 1.5rem; }
-  .glass-loader h2 { font-size: 1.5rem; font-weight: 900; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
-  .glass-loader p { color: #666; font-weight: 600; }
-
-  .progress-bar-wrapper {
-    height: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    margin: 2rem 0;
-    overflow: hidden;
-  }
-
-  .progress-fill {
-    height: 100%;
+  .top-progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
     background: var(--accent-color);
-    box-shadow: 0 0 15px var(--accent-color);
-    transition: width 0.3s ease-out;
+    box-shadow: none; /* Astra: Eliminada sombra que parece línea */
+    z-index: 2000;
+    transition: width 0.2s ease;
   }
 
-  .loader-hints { font-size: 0.75rem; color: #444; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-
-  .retry-btn, .btn-get-app {
-    margin-top: 1.5rem;
-    background: var(--accent-color);
-    color: #000;
-    border: none;
-    padding: 0.8rem 2rem;
-    border-radius: 14px;
-    font-weight: 800;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
+  .reader-container {
+    margin: 0 auto !important;
+    background: transparent; /* Astra: Transparencia total */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Astra: Centrado de imágenes hijas */
+    position: relative;
+    z-index: 1;
   }
 
-  .pages-container {
-    margin: 0 auto;
-    width: var(--reader-width);
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .pages-container.single {
+  .reading-area {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 100vh;
-    justify-content: center;
+    width: 100%; /* Astra: Asegurar que ocupe todo el ancho del container */
   }
 
   .page-frame {
+    position: relative;
     width: 100%;
     line-height: 0;
-    margin-bottom: 0;
   }
 
-  .single-page {
-    max-width: 100%;
-    display: flex;
+  .no-copy-shield {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+  }
+
+  /* Reader Specific Modal Styles */
+  .reader-cfg-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 3000;
+    display: none;
+    align-items: flex-end;
     justify-content: center;
+    padding: 0;
+    pointer-events: none;
   }
 
-  .reader-footer {
-    padding: 6rem 2rem 10rem;
-    max-width: 600px;
-    margin: 0 auto;
-    text-align: center;
-  }
-
-  .finish-line { margin-bottom: 3rem; }
-  .check-icon { font-size: 3rem; color: var(--accent-color); display: block; margin-bottom: 1rem; }
-  .finish-line h3 { font-size: 1.5rem; font-weight: 900; margin-bottom: 0.5rem; }
-  .finish-line p { color: #666; font-weight: 600; }
-
-  .next-btn-massive {
+  .reader-cfg-backdrop.active {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    background: #fff;
-    color: #000;
-    text-decoration: none;
-    padding: 1.5rem;
-    border-radius: 24px;
-    font-size: 1.25rem;
-    font-weight: 900;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 1;
+    pointer-events: auto;
   }
 
-  .next-btn-massive:hover { transform: scale(1.02); box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2); }
-  .back-series { background: #222; color: #fff; }
+  .reader-cfg-panel {
+    background: #111;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 32px 32px 0 0;
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 650px;
+    box-shadow: 0 -10px 50px rgba(0,0,0,0.9);
+    position: relative;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reader-cfg-backdrop.active .reader-cfg-panel {
+    transform: translateY(0);
+  }
+
+  /* Astra: Ocultar herramientas de lectura cuando estamos en comentarios */
+  :global(body[data-in-comments="true"]) .floating-hud,
+  :global(body[data-in-comments="true"]) .reader-cfg-backdrop {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* Floating HUD */
+  :global(.floating-hud.visible) {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: translateX(-50%) translateY(0) !important;
+  }
 
   .floating-hud {
     position: fixed;
     bottom: 2rem;
     left: 50%;
-    transform: translateX(-50%) translateY(100px);
+    transform: translateX(-50%);
+    z-index: 2500;
     width: 90%;
-    max-width: 600px;
-    z-index: 100;
+    max-width: 650px;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    visibility: hidden;
     opacity: 0;
   }
 
-  .floating-hud.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .floating-hud.hidden {
+    transform: translateX(-50%) translateY(100px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
 
-  .hud-content {
-    background: rgba(15, 15, 20, 0.8);
+  .hud-glass {
+    background: rgba(20, 20, 20, 0.7);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 24px;
     padding: 0.75rem 1.25rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+    box-shadow: none; /* Astra: Eliminada sombra que parece línea */
   }
 
   .hud-section { display: flex; align-items: center; gap: 1rem; }
-  .back-link { color: #fff; opacity: 0.6; transition: opacity 0.2s; }
-  .back-link:hover { opacity: 1; }
 
-  .chapter-info { display: flex; flex-direction: column; }
-  .series-name { font-size: 0.75rem; font-weight: 800; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
-  .chapter-num { font-size: 0.9rem; font-weight: 900; color: #fff; }
-
-  .action-pill-btn {
+  .back-pill {
     background: rgba(255, 255, 255, 0.05);
-    border: none;
     color: #fff;
-    padding: 0.6rem 1.25rem;
-    border-radius: 16px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    transition: background 0.2s;
-  }
-
-  .action-pill-btn:hover { background: rgba(255, 255, 255, 0.1); }
-
-  .page-counter { background: rgba(0, 191, 255, 0.1); color: var(--accent-color); padding: 0.4rem 0.8rem; border-radius: 10px; font-weight: 800; font-size: 0.8rem; }
-
-  .config-btn { background: none; border: none; color: #fff; opacity: 0.6; cursor: pointer; transition: all 0.2s; padding: 0.5rem; }
-  .config-btn:hover { opacity: 1; transform: rotate(30deg); }
-
-  .scroll-progress-hud {
-    position: absolute;
-    bottom: -4px;
-    left: 20px;
-    height: 3px;
-    background: var(--accent-color);
-    border-radius: 10px;
-    box-shadow: 0 0 10px var(--accent-color);
-    transition: width 0.1s linear;
-  }
-
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(8px);
-    z-index: 1000;
-    display: flex;
-    align-items: flex-end;
     justify-content: center;
-  }
-
-  .reader-cfg-panel {
-    background: #15151a;
-    width: 100%;
-    max-width: 500px;
-    border-radius: 32px 32px 0 0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 2rem;
-    box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.5);
-  }
-
-  .cfg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-  .cfg-header h3 { font-size: 1.25rem; font-weight: 900; margin: 0; }
-  .close-cfg { background: none; border: none; color: #666; font-size: 2rem; cursor: pointer; }
-
-  .cfg-section { margin-bottom: 2rem; }
-  .cfg-section label { display: block; font-size: 0.85rem; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 1rem; }
-
-  .mode-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  .mode-selector button {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    color: #666;
-    padding: 1rem;
-    border-radius: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
     transition: all 0.2s;
   }
 
-  .mode-selector button.active { background: rgba(0, 191, 255, 0.1); border-color: var(--accent-color); color: #fff; }
+  .back-pill:hover { background: rgba(255, 255, 255, 0.15); color: var(--accent-color); }
 
-  input[type="range"] {
-    width: 100%;
-    height: 6px;
-    background: #222;
-    border-radius: 10px;
-    appearance: none;
-    outline: none;
-  }
+  .chapter-label { display: flex; flex-direction: column; }
+  .s-title { font-size: 0.65rem; font-weight: 800; color: #555; text-transform: uppercase; letter-spacing: 0.05em; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .c-num { font-size: 0.9rem; font-weight: 700; color: #fff; }
 
-  input[type="range"]::-webkit-slider-thumb {
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    background: var(--accent-color);
-    border-radius: 50%;
+  .action-pill-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 0.6rem 1.2rem;
+    border-radius: 100px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     cursor: pointer;
-    box-shadow: 0 0 10px var(--accent-color);
+    transition: all 0.3s;
   }
 
-  .range-labels { display: flex; justify-content: space-between; margin-top: 0.75rem; font-size: 0.7rem; color: #444; font-weight: 800; text-transform: uppercase; }
+  .action-pill-btn:hover {
+    background: rgba(0, 191, 255, 0.1);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    transform: translateY(-2px);
+  }
 
-  .btn-save-cfg {
+  .tool-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: #666;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tool-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.1); transform: rotate(30deg); }
+
+  /* Error State */
+  .glass-error {
+    background: rgba(20, 20, 20, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 100, 100, 0.2);
+    padding: 3rem;
+    border-radius: 32px;
+    text-align: center;
+    width: 320px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .error-icon-anim {
+    width: 64px;
+    height: 64px;
+    background: rgba(255, 80, 80, 0.1);
+    color: #ff5555;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0 0 8px rgba(255, 80, 80, 0.05);
+    animation: pulse-error 2s infinite;
+  }
+
+  @keyframes pulse-error { 0% { box-shadow: 0 0 0 0 rgba(255, 80, 80, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(255, 80, 80, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 80, 80, 0); } }
+
+  .glass-error h3 { font-size: 1.25rem; font-weight: 800; color: #fff; margin: 0 0 0.5rem 0; }
+  .error-desc { color: #aaa; margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.5; }
+
+  /* In-App Exclusive Style */
+  .glass-inapp {
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(0, 191, 255, 0.2);
+    padding: 3.5rem 2rem;
+    border-radius: 40px;
+    text-align: center;
     width: 100%;
+    max-width: 400px;
+    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 191, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: slideUpIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideUpIn {
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .inapp-icon {
+    width: 90px;
+    height: 90px;
+    background: linear-gradient(135deg, rgba(0, 191, 255, 0.2) 0%, rgba(0, 119, 255, 0.1) 100%);
+    color: var(--accent-color);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(0, 191, 255, 0.3);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+  }
+
+  .glass-inapp h3 {
+    font-size: 1.75rem;
+    font-weight: 900;
+    margin: 0 0 1rem 0;
+    letter-spacing: -0.02em;
+    background: linear-gradient(to bottom, #fff, #999);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .inapp-desc {
+    color: #888;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+    max-width: 280px;
+  }
+
+  .inapp-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .btn-download-app {
+    background: linear-gradient(135deg, var(--accent-color) 0%, #0077ff 100%);
+    color: #000;
+    text-decoration: none;
+    padding: 1.25rem;
+    border-radius: 20px;
+    font-weight: 900;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    box-shadow: 0 15px 30px rgba(0, 191, 255, 0.3);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .btn-download-app:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 191, 255, 0.4);
+    filter: brightness(1.1);
+  }
+
+  .btn-back-inapp {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #666;
+    padding: 1rem;
+    border-radius: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-back-inapp:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  .btn-retry {
     background: #fff;
     color: #000;
     border: none;
-    padding: 1rem;
-    border-radius: 16px;
-    font-weight: 900;
+    padding: 0.9rem 2rem;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.95rem;
     cursor: pointer;
-    transition: transform 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.2s;
   }
 
-  .btn-save-cfg:hover {
+  .btn-retry:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1); }
+  .btn-retry svg { transition: transform 0.5s ease; }
+  .btn-retry:hover svg { transform: rotate(180deg); }
+
+  /* Loader */
+  .loader-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 2, 5, 0.6); /* Astra: Oscuridad mínima para contraste */
+    backdrop-filter: blur(15px); /* Astra: Suavizado galáctico */
+    -webkit-backdrop-filter: blur(15px);
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .glass-loader {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 3rem 2rem;
+    border-radius: 32px;
+    text-align: center;
+    width: 90%;
+    max-width: 320px;
+    height: auto;
+  }
+
+  .loader-visual {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .loader-ring {
+    position: absolute;
+    inset: -10px;
+    border: 2px solid rgba(255, 255, 255, 0.05);
+    border-top-color: var(--accent-color);
+    border-radius: 50%;
+    animation: spin 1.5s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loader-logo { width: 50px; z-index: 2; animation: pulse 2s infinite; }
+
+  .loader-info {
+    position: relative;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0.5rem;
+  }
+
+  .main-loading-text {
+    font-size: 0.95rem;
+    color: #fff;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    min-height: 1.5em;
+  }
+
+  .sub-loading-text {
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 2rem;
+    font-weight: 500;
+  }
+
+  .progress-section {
+    width: 100%;
+  }
+
+  .bar-container { background: rgba(255, 255, 255, 0.05); height: 6px; border-radius: 100px; overflow: hidden; margin-bottom: 1rem; }
+  .bar-fill { background: var(--accent-color); height: 100%; transition: width 0.4s cubic-bezier(0.1, 0.7, 0.1, 1); box-shadow: 0 0 20px var(--accent-color); }
+
+  .progress-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent-color);
+    animation: blink 1s infinite;
+  }
+
+  @keyframes blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+
+  .pct { font-size: 0.85rem; font-weight: 900; color: #555; font-family: 'JetBrains Mono', monospace; }
+
+  @keyframes pulse { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } }
+
+  .modal-header-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .close-modal-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    width: 40px; /* Astra: Target táctil optimizado */
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .close-modal-btn:active {
+    transform: scale(0.9);
+    background: rgba(255,255,255,0.15);
+  }
+
+  .reader-cfg-panel h3 { margin: 0; font-size: 1.1rem; font-weight: 800; }
+  .config-row { margin-bottom: 2rem; }
+  .config-row label { display: block; font-size: 0.75rem; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 1rem; }
+  .pill-group { display: flex; background: #0a0a0a; padding: 4px; border-radius: 14px; gap: 4px; }
+  .pill-group button { flex: 1; background: transparent; border: none; color: #555; padding: 0.6rem; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+  .pill-group button.active { background: var(--accent-color); color: #000; }
+  input[type="range"] { width: 100%; accent-color: var(--accent-color); }
+  .btn-save-config { width: 100%; background: #fff; color: #000; border: none; padding: 1rem; border-radius: 14px; font-weight: 800; cursor: pointer; }
+
+  .page-counter-floating { position: fixed; top: 1.5rem; right: 1.5rem; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); padding: 4px 12px; border-radius: 100px; font-size: 0.75rem; font-weight: 800; border: 1px solid rgba(255, 255, 255, 0.1); z-index: 100; }
+
+  /* Estilos para botones de navegación lateral */
+  .nav-zone-btn {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.3);
+    width: 60px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    outline: none;
+  }
+
+  .nav-zone-btn:hover {
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    width: 70px;
+  }
+
+  .nav-zone-btn.left {
+    left: 0;
+    border-radius: 0 20px 20px 0;
+  }
+
+  .nav-zone-btn.right {
+    right: 0;
+    border-radius: 20px 0 0 20px;
+  }
+
+  .nav-zone-btn.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @media (max-width: 768px) {
+    .nav-zone-btn {
+      width: 45px;
+      height: 80px;
+      background: rgba(0, 0, 0, 0.4); /* Más visible en móvil */
+    }
+    .nav-zone-btn:hover {
+      width: 45px; /* No expandir en móvil para evitar saltos */
+    }
+  }
+
+  @media (max-width: 768px) {
+    .floating-hud { bottom: 1rem; width: 95%; }
+    .hud-glass { padding: 0.5rem 1rem; gap: 0.5rem; }
+    .s-title { max-width: 100px; }
+    .action-pill-btn { padding: 0.6rem 1rem; }
+  }
+
+  .cancel-load-btn {
+    margin-top: 2.5rem;
+    margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #aaa;
+    padding: 0.75rem 1.5rem;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .cancel-load-btn:hover {
+    color: #fff;
+    border-color: var(--accent-color, #00bfff);
+    background: rgba(0, 191, 255, 0.05);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   }
 
   @media (max-width: 480px) {

@@ -97,7 +97,7 @@ async function loadData() {
 }
 
 function handleLogin() {
-  document.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }));
+  window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }));
 }
 
 onMount(() => {
@@ -288,7 +288,7 @@ onMount(() => {
 
   .loading-state, .guest-state, .empty-tab {
     text-align: center;
-    padding: 5rem 2rem;
+    padding: 2rem;
     background: rgba(255, 255, 255, 0.02);
     border-radius: 32px;
     border: 1px dashed rgba(255, 255, 255, 0.08);
@@ -299,25 +299,35 @@ onMount(() => {
     border: 4px solid rgba(255, 255, 255, 0.05);
     border-top-color: var(--accent-color);
     border-radius: 50%;
-    margin: 0 auto 1.5rem;
+    margin: 0 auto 0.5rem;
     animation: spin 1s linear infinite;
   }
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .illustration-locked, .illustration-empty { font-size: 4rem; margin-bottom: 1.5rem; filter: grayscale(1) opacity(0.3); }
+  .illustration-locked, .illustration-empty { font-size: 3.5rem; margin-bottom: 0.5rem; filter: grayscale(1) opacity(0.3); }
+
+  .guest-state h2 { font-size: 1.6rem; font-weight: 900; margin-bottom: 0.25rem; color: #fff; }
+  .guest-state p { color: #666; margin-bottom: 1.25rem; font-weight: 600; font-size: 0.9rem; }
 
   .login-btn, .explore-btn {
-    margin-top: 1.5rem;
     background: var(--accent-color);
     color: #000;
     border: none;
-    padding: 0.8rem 2rem;
-    border-radius: 14px;
-    font-weight: 800;
+    padding: 1.1rem 3.5rem;
+    border-radius: 18px;
+    font-weight: 900;
+    font-size: 1.1rem;
     cursor: pointer;
     display: inline-block;
     text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 25px rgba(0, 191, 255, 0.2);
+  }
+
+  .login-btn:hover, .explore-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px rgba(0, 191, 255, 0.3);
   }
 
   .history-grid {
@@ -359,7 +369,16 @@ onMount(() => {
   .history-card:hover .play-btn { transform: scale(1); }
 
   .card-details { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
-  .card-details h3 { font-size: 1rem; margin: 0 0 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
+  .card-details h3 { 
+    font-size: 1rem; 
+    margin: 0 0 0.5rem; 
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis; 
+    color: #fff; 
+  }
   
   .meta { display: flex; flex-direction: column; gap: 0.25rem; }
   .chap-badge { font-size: 0.75rem; font-weight: 800; color: var(--accent-color); }

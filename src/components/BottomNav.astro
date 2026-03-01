@@ -93,8 +93,9 @@ const navItems = [
   window.addEventListener('scroll', () => {
     if (!bottomNav) return;
     
+    // Orion: Si hay un modal abierto (Lectura o Filtros), ocultamos la barra
     if (document.body.getAttribute('data-reader-modal') === "open") {
-      bottomNav.classList.remove('nav-hidden');
+      bottomNav.classList.add('nav-hidden');
       return;
     }
 
@@ -113,25 +114,27 @@ const navItems = [
   .mobile-bottom-nav {
     display: none;
     position: fixed;
-    bottom: 24px; /* Flotando real sobre el borde */
+    bottom: max(24px, env(safe-area-inset-bottom, 24px));
     left: 0;
     right: 0;
-    z-index: 4000;
+    margin: 0 auto;
     padding: 0 1rem;
+    width: 100%;
+    max-width: 500px;
+    z-index: 4000;
     pointer-events: none;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
   }
 
   .mobile-bottom-nav.nav-hidden,
-  :global(body[data-search-filter="open"]) .mobile-bottom-nav {
-    transform: translateY(100%) scale(0.8);
+  :global(body[data-reader-modal="open"]) .mobile-bottom-nav {
+    transform: translateY(150%);
     opacity: 0;
   }
 
   .nav-glass-container {
     pointer-events: auto;
-    max-width: 500px;
-    margin: 0 auto;
+    width: 100%;
     background: var(--glass-bg);
     backdrop-filter: blur(25px);
     -webkit-backdrop-filter: blur(25px);
@@ -155,6 +158,7 @@ const navItems = [
     padding: 0.6rem 0.2rem;
     transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
     flex: 1;
+    min-width: 0;
   }
 
   .nav-item.active {
