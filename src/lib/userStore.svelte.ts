@@ -48,7 +48,7 @@ class UserStore {
 
     try {
       const res = await fetch(`/api/auth/status?t=${Date.now()}`);
-      
+
       if (res.ok) {
         const dbUser = await res.json();
 

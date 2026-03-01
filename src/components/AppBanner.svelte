@@ -1,6 +1,6 @@
 <script lang="ts">
-import { onMount } from 'svelte';
 import { fade, slide } from 'svelte/transition';
+import { onMount } from 'svelte';
 import { siteConfig } from '../site.config';
 
 let isVisible = $state(false);
@@ -15,7 +15,7 @@ onMount(() => {
 
   if (closedStatus === 'true') {
     const sevenDays = 7 * 24 * 60 * 60 * 1000;
-    if (lastClosedTime && Date.now() - parseInt(lastClosedTime) < sevenDays) {
+    if (lastClosedTime && Date.now() - parseInt(lastClosedTime, 10) < sevenDays) {
       hasClosed = true;
     }
   }
@@ -50,236 +50,172 @@ function cancelDownload() {
 
 {#if isVisible}
   <div class="app-banner-container" in:slide={{ axis: 'y', duration: 500 }} out:fade>
-    <div class="app-banner-content">
-      <button class="close-btn" onclick={closeBanner} aria-label="Cerrar aviso">
-        &times;
-      </button>
-      
-      <div class="app-icon">
-        <img src={siteConfig.assets.logo} alt={`${siteConfig.name} Logo`} />
-      </div>
-      
-      <div class="app-text">
-        <p class="app-title">{siteConfig.shortName} App</p>
-        <p class="app-subtitle">Una mejor experiencia de lectura</p>
-      </div>
-      
-      <button class="install-btn" onclick={handleInstallClick}>
-        INSTALAR
-      </button>
-    </div>
-  </div>
-{/if}
+    <div class="app-banner-glass"></div>
+    
+    <button class="close-btn" onclick={closeBanner} aria-label="Cerrar">×</button>
 
-{#if showConfirmation}
-  <div 
-    class="modal-overlay" 
-    onclick={cancelDownload} 
-    onkeydown={(e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        cancelDownload();
-      }
-    }}
-    role="button"
-    tabindex="0"
-    in:fade={{ duration: 200 }}
-  >
-    <div 
-      class="confirmation-modal" 
-      onclick={(e) => e.stopPropagation()}
-      onkeydown={(e) => e.stopPropagation()}
-      role="button"
-      tabindex="0"
-    >
-      <h3>¿Descargar {siteConfig.shortName} App?</h3>
-      <p>Estás a punto de descargar el archivo instalador (.APK) para Android.</p>
-      
-      <div class="modal-actions">
-        <button class="btn-cancel" onclick={cancelDownload}>Cancelar</button>
-        <button class="btn-confirm" onclick={confirmDownload}>Descargar ahora</button>
+    <div class="app-content">
+      <div class="app-icon">
+        <img src="/favicon.svg" alt={siteConfig.name} />
       </div>
+      <div class="app-info">
+        <span class="app-title">{siteConfig.shortName} App</span>
+        <span class="app-desc">¡Mejor experiencia en Android!</span>
+      </div>
+      <button class="install-btn" onclick={handleInstallClick}>Instalar</button>
     </div>
+
+    {#if showConfirmation}
+      <div class="confirm-overlay" transition:fade>
+        <div class="confirm-dialog" in:slide>
+          <p>¿Quieres descargar la aplicación oficial para Android?</p>
+          <div class="confirm-actions">
+            <button class="btn-cancel" onclick={cancelDownload}>Luego</button>
+            <button class="btn-confirm" onclick={confirmDownload}>Descargar</button>
+          </div>
+        </div>
+      </div>
+    {/if}
   </div>
 {/if}
 
 <style>
   .app-banner-container {
     position: fixed;
-    bottom: 15px;
-    left: 10px;
-    right: 10px;
+    bottom: 0;
+    left: 0;
+    width: 100%;
     z-index: 9999;
-    pointer-events: none;
-  }
-
-  .app-banner-content {
-    pointer-events: auto;
-    background: rgba(20, 20, 20, 0.9);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    padding: 10px 16px;
+    padding: 0.75rem 1rem;
+    color: white;
     display: flex;
     align-items: center;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-    position: relative;
-    max-width: 500px;
-    margin: 0 auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+  }
+
+  .app-banner-glass {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(15px);
+    z-index: -1;
   }
 
   .close-btn {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    width: 24px;
-    height: 24px;
-    background: #333;
-    color: #fff;
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 50%;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    margin-right: 0.5rem;
+    line-height: 1;
+  }
+
+  .app-content {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    gap: 0.75rem;
+    flex: 1;
   }
 
   .app-icon {
-    width: 44px;
-    height: 44px;
-    background: #000;
+    width: 42px;
+    height: 42px;
+    background: #222;
     border-radius: 10px;
-    margin-right: 12px;
+    padding: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
   }
 
   .app-icon img {
-    width: 32px;
-    height: 32px;
+    width: 100%;
+    height: 100%;
   }
 
-  .app-text {
-    flex-grow: 1;
+  .app-info {
     display: flex;
     flex-direction: column;
-    justify-content: center;
   }
 
   .app-title {
-    margin: 0;
-    font-weight: 700;
-    font-size: 0.95rem;
+    font-weight: 800;
+    font-size: 0.9rem;
     color: #fff;
   }
 
-  .app-subtitle {
-    margin: 0;
-    font-size: 0.75rem;
+  .app-desc {
+    font-size: 0.7rem;
     color: #aaa;
   }
 
   .install-btn {
-    background-color: var(--accent-color);
-    color: #fff;
+    background: var(--accent-color);
+    color: #000;
     border: none;
-    border-radius: 20px;
-    padding: 8px 16px;
-    font-weight: 700;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-weight: 800;
     font-size: 0.85rem;
     cursor: pointer;
     transition: transform 0.2s;
   }
 
-  .install-btn:active {
-    transform: scale(0.95);
+  .install-btn:hover {
+    transform: scale(1.05);
   }
 
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+  .confirm-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10000;
-    padding: 20px;
+    z-index: 10;
   }
 
-  .confirmation-modal {
-    background: #1e1e1e;
-    border: 1px solid #333;
-    border-radius: 20px;
-    padding: 24px;
-    width: 100%;
-    max-width: 320px;
+  .confirm-dialog {
     text-align: center;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    padding: 0.5rem;
   }
 
-  .confirmation-modal h3 {
-    margin-top: 0;
-    margin-bottom: 12px;
-    font-size: 1.25rem;
-    color: #fff;
+  .confirm-dialog p {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
   }
 
-  .confirmation-modal p {
-    font-size: 0.9rem;
-    color: #ccc;
-    line-height: 1.5;
-    margin-bottom: 24px;
-  }
-
-  .modal-actions {
+  .confirm-actions {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
+    gap: 1rem;
+    justify-content: center;
   }
 
   .btn-confirm {
     background: var(--accent-color);
     color: #000;
-    padding: 1rem;
-    border-radius: 16px;
-    font-weight: 900;
-    font-size: 1rem;
     border: none;
+    padding: 0.4rem 1rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.8rem;
     cursor: pointer;
-    box-shadow: 0 10px 20px rgba(0, 191, 255, 0.2);
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-
-  .btn-confirm:hover {
-    transform: translateY(-3px);
-    filter: brightness(1.1);
-    box-shadow: 0 15px 30px rgba(0, 191, 255, 0.3);
   }
 
   .btn-cancel {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #666;
-    padding: 0.8rem;
-    border-radius: 14px;
+    background: transparent;
+    color: #aaa;
+    border: 1px solid #444;
+    padding: 0.4rem 1rem;
+    border-radius: 8px;
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
   }
 </style>

@@ -3,12 +3,12 @@ import { Chart, registerables } from 'chart.js';
 import { onMount } from 'svelte';
 import { fade } from 'svelte/transition';
 
-let summary = { totalViews: 0, totalUsers: 0, totalSeries: 0 };
-let engagement = { topReactedSeries: [], topCommenters: [] };
-let categories = { byType: [], byDemographic: [] };
-let topSeriesData = [];
-let loading = true;
-let selectedRange = '7';
+let summary = $state({ totalViews: 0, totalUsers: 0, totalSeries: 0 });
+let engagement = $state({ topReactedSeries: [], topCommenters: [] });
+let categories = $state({ byType: [], byDemographic: [] });
+let topSeriesData = $state([]);
+let loading = $state(true);
+let selectedRange = $state('7');
 
 let dailyChartCanvas;
 let topSeriesChartCanvas;
@@ -32,7 +32,6 @@ async function fetchData() {
     if (!res.ok) throw new Error('Error stats');
 
     const data = await res.json();
-    console.log('[Analytics Debug] Top Commenters:', data.engagement.topCommenters);
     summary = data.summary;
     engagement = data.engagement;
     categories = data.categories;
@@ -148,7 +147,7 @@ function renderTopSeriesChart(data) {
   charts.top = new Chart(topSeriesChartCanvas, {
     type: 'bar',
     data: {
-      labels: data.map((d) => (d.title.length > 12 ? d.title.substring(0, 12) + '..' : d.title)),
+      labels: data.map((d) => (d.title.length > 12 ? `${d.title.substring(0, 12)}..` : d.title)),
       datasets: [
         {
           data: data.map((d) => d.viewCount),

@@ -8,7 +8,7 @@ const DB_NAME = 'babylon-scanlation-prod';
 function runCommand(command) {
   try {
     return execSync(command, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] });
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }
@@ -18,7 +18,7 @@ function escapeStringOneLine(val) {
   if (typeof val === 'number') return val;
   if (typeof val === 'boolean') return val ? 1 : 0;
   const str = String(val).replace(/'/g, "''");
-  return "'" + str + "'";
+  return `'${str}'`;
 }
 
 async function main() {

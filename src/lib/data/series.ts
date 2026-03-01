@@ -151,9 +151,9 @@ export async function getSeriesDetails(
  * Reduce múltiples viajes a la DB y solo trae los campos necesarios para la UI.
  */
 export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsfw = false) {
-  const commonConditions = [eq(series.isHidden, false)];
-  
-  // Orion: Modo Estricto. 
+  const commonConditions: any[] = [eq(series.isHidden, false)];
+
+  // Orion: Modo Estricto.
   // Si allowNsfw es true, SOLO mostramos NSFW (isNsfw = true)
   // Si allowNsfw es false, SOLO mostramos SFW (isNsfw = false o nulo)
   if (allowNsfw) {
@@ -177,7 +177,7 @@ export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsf
         status: series.status,
       })
       .from(series)
-      .where(and(...commonConditions))
+      .where(and(...commonConditions.filter(Boolean)))
       .orderBy(desc(series.createdAt))
       .limit(20)
       .all(),
@@ -195,7 +195,7 @@ export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsf
         status: series.status,
       })
       .from(series)
-      .where(and(...commonConditions))
+      .where(and(...commonConditions.filter(Boolean)))
       .orderBy(desc(series.views))
       .limit(20)
       .all(),
@@ -213,7 +213,7 @@ export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsf
       })
       .from(series)
       .leftJoin(chapters, eq(series.id, chapters.seriesId))
-      .where(and(...commonConditions, eq(chapters.status, 'live')))
+      .where(and(...commonConditions.filter(Boolean), eq(chapters.status, 'live')))
       .groupBy(series.id)
       .orderBy(desc(sql`chapterCount`))
       .limit(5)
@@ -240,7 +240,7 @@ export async function getRecentSeries(
   allowNsfw: boolean = false,
   limit = 5
 ) {
-  const conditions = [eq(series.isHidden, false)];
+  const conditions: any[] = [eq(series.isHidden, false)];
   if (allowNsfw) {
     conditions.push(eq(series.isNsfw, true));
   } else {
@@ -256,10 +256,9 @@ export async function getRecentSeries(
       views: series.views,
       createdAt: series.createdAt,
       description: series.description,
-      status: series.status,
     })
     .from(series)
-    .where(and(...conditions))
+    .where(and(...conditions.filter(Boolean)))
     .orderBy(desc(series.createdAt))
     .limit(limit)
     .all();
@@ -273,7 +272,7 @@ export async function getPopularSeries(
   allowNsfw: boolean = false,
   limit = 5
 ) {
-  const conditions = [eq(series.isHidden, false)];
+  const conditions: any[] = [eq(series.isHidden, false)];
   if (allowNsfw) {
     conditions.push(eq(series.isNsfw, true));
   } else {
@@ -289,10 +288,9 @@ export async function getPopularSeries(
       views: series.views,
       createdAt: series.createdAt,
       description: series.description,
-      status: series.status,
     })
     .from(series)
-    .where(and(...conditions))
+    .where(and(...conditions.filter(Boolean)))
     .orderBy(desc(series.views))
     .limit(limit)
     .all();
@@ -300,29 +298,29 @@ export async function getPopularSeries(
 
 /**
  * Orion: Obtiene todas las series (Solo para el Sitemap o Admin, NUNCA usar en la Home).
- */
-export async function getAllSeries(
-  db: DrizzleD1Database<typeof schema>,
-  allowNsfw: boolean = false
-) {
-  const conditions = [eq(series.isHidden, false)];
-  if (allowNsfw) {
-    conditions.push(eq(series.isNsfw, true));
-  } else {
-    conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
-  }
+ export async function getAllSeries(
+   db: DrizzleD1Database<typeof schema>,
+   allowNsfw: boolean = false
+ ) {
+   const conditions: any[] = [eq(series.isHidden, false)];
+   if (allowNsfw) {
+     conditions.push(eq(series.isNsfw, true));
+   } else {
+     conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
+   }
 
-  return await db
-    .select({
-      id: series.id,
-      title: series.title,
-      slug: series.slug,
-      coverImageUrl: series.coverImageUrl,
-      views: series.views,
-    })
-    .from(series)
-    .where(and(...conditions))
-    .orderBy(asc(series.title))
+   return await db
+     .select({
+       id: series.id,
+       title: series.title,
+       slug: series.slug,
+       coverImageUrl: series.coverImageUrl,
+       views: series.views,
+     })
+     .from(series)
+     .where(and(...conditions.filter(Boolean)))
+     .all();
+ }
     .all();
 }
 
@@ -334,7 +332,7 @@ export async function getSeriesWithRecentChapters(
   db: DrizzleD1Database<typeof schema>,
   allowNsfw: boolean = false
 ) {
-  const seriesConditions = [eq(series.isHidden, false)];
+  const seriesConditions: any[] = [eq(series.isHidden, false)];
   if (allowNsfw) {
     seriesConditions.push(eq(series.isNsfw, true));
   } else {
@@ -349,7 +347,7 @@ export async function getSeriesWithRecentChapters(
     .where(
       and(
         eq(chapters.status, 'live'),
-        ...seriesConditions,
+        ...seriesConditions.filter(Boolean),
         sql`${chapters.chapterNumber} > 0`
       )
     )
@@ -397,13 +395,13 @@ export async function getSeriesWithRecentChapters(
     }
     const entry = seriesMap.get(row.slug);
     if (entry.recentChapters.length < 3) {
-      entry.recentChapters.push({ 
-        number: row.chapterNumber, 
-        createdAt: row.chapterCreatedAt 
+      entry.recentChapters.push({
+        number: row.chapterNumber,
+        createdAt: row.chapterCreatedAt,
       });
     }
   }
-  
+
   return Array.from(seriesMap.values());
 }
 
@@ -415,11 +413,8 @@ export async function getSeriesByChapterCount(
   allowNsfw: boolean = false,
   limit = 5
 ) {
-  const conditions = [
-    eq(series.isHidden, false),
-    eq(chapters.status, 'live'),
-  ];
-  
+  const conditions: any[] = [eq(series.isHidden, false), eq(chapters.status, 'live')];
+
   if (allowNsfw) {
     conditions.push(eq(series.isNsfw, true));
   } else {
@@ -437,8 +432,8 @@ export async function getSeriesByChapterCount(
       chapterCount: sql<number>`count(${chapters.id})`.as('chapterCount'),
     })
     .from(series)
-    .leftJoin(chapters, eq(series.id, chapters.seriesId))
-    .where(and(...conditions))
+    .innerJoin(chapters, eq(series.id, chapters.seriesId))
+    .where(and(...conditions.filter(Boolean)))
     .groupBy(series.id)
     .orderBy(desc(sql`chapterCount`))
     .limit(limit)
@@ -483,7 +478,7 @@ export async function searchSeries(
   } = options;
 
   const offset = (page - 1) * limit;
-  const conditions = [eq(series.isHidden, false)];
+  const conditions: any[] = [eq(series.isHidden, false)];
   if (allowNsfw) {
     conditions.push(eq(series.isNsfw, true));
   } else {
@@ -518,10 +513,10 @@ export async function searchSeries(
     });
   }
 
-  const totalResult = await countQuery.where(and(...conditions)).get();
+  const totalResult = await countQuery.where(and(...conditions.filter(Boolean))).get();
   const total = totalResult?.count || 0;
 
-  const query = baseQuery.where(and(...conditions));
+  const query = baseQuery.where(and(...conditions.filter(Boolean)));
 
   // Orion: Aplicamos ordenamiento inteligente
   if (sort === 'az') {

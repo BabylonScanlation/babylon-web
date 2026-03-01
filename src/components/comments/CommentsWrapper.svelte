@@ -1,9 +1,9 @@
 <script lang="ts">
 /* eslint-disable */
+import { fade, slide, scale } from 'svelte/transition';
+import { elasticOut, quintOut } from 'svelte/easing';
 import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
-import { elasticOut, quintOut } from 'svelte/easing';
-import { fade, scale, slide } from 'svelte/transition';
 import { toast } from '../../lib/toastStore.svelte';
 import { userStore } from '../../lib/userStore.svelte';
 import { parseToTimestamp, timeAgo } from '../../lib/utils';
@@ -96,7 +96,7 @@ function buildCommentTree(flatComments: Comment[]): Comment[] {
       }
 
       if (!isCycle) {
-        commentMap.get(c.parentId)!.children!.push(processed);
+        commentMap.get(c.parentId)?.children?.push(processed);
       } else {
         roots.push(processed); // Si hay ciclo, lo tratamos como raíz para no perder el dato pero romper el bucle
       }
@@ -148,7 +148,7 @@ let cooldownRemaining = $state(0);
 if (typeof window !== 'undefined') {
   const lastCommentTime = localStorage.getItem(`${siteConfig.storage.prefix}last_comment_ts`);
   if (lastCommentTime) {
-    const elapsed = Math.floor((Date.now() - parseInt(lastCommentTime)) / 1000);
+    const elapsed = Math.floor((Date.now() - parseInt(lastCommentTime, 10)) / 1000);
     if (elapsed < 30) {
       cooldownRemaining = 30 - elapsed;
       const timer = setInterval(() => {
@@ -279,7 +279,7 @@ const getAvatarColor = (identifier: string) => {
 const getInitials = (name: string) => (name || '?').substring(0, 1).toUpperCase();
 
 async function handleSubmit(e: Event, parentId: number | null = null) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   if (!user) return toast.error('Inicia sesión para comentar');
 
   const text = parentId ? replyText : commentText;
@@ -766,23 +766,13 @@ async function handleTogglePin(comment: Comment) {
                                 </button>
                             </div>
                         {/if}
-                        {#if level === 0}
-                            <div class="replies-tree" transition:slide>
-                                {#each node.children as child (child.id)}
-                                    {#if level < 10 && child.id !== node.id}
-                                        {@render commentNode(child, level + 1)}
-                                    {/if}
-                                {/each}
-                            </div>
-                        {:else}
-                            <div class="replies-tree">
-                                {#each node.children as child (child.id)}
-                                    {#if level < 10 && child.id !== node.id}
-                                        {@render commentNode(child, level + 1)}
-                                    {/if}
-                                {/each}
-                            </div>
-                        {/if}
+                        <div class="replies-tree" transition:slide>
+                            {#each node.children as child (child.id)}
+                                {#if level < 10 && child.id !== node.id}
+                                    {@render commentNode(child, level + 1)}
+                                {/if}
+                            {/each}
+                        </div>
                     {/if}
                 {/if}
             </div>

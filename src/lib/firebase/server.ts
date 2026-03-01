@@ -56,7 +56,7 @@ export async function verifyFirebaseToken(token: string, env: Env) {
       async (header: import('jose').JWTHeaderParameters) => {
         const key = kidToKey[header.kid as string];
         if (!key) {
-          throw new Error('No matching JWK found for kid: ' + header.kid);
+          throw new Error(`No matching JWK found for kid: ${header.kid}`);
         }
         return key;
       },

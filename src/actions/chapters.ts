@@ -99,7 +99,7 @@ export const chapterActions = {
   upload: defineAction({
     accept: 'form',
     input: z.object({
-      seriesId: z.string().transform((v) => parseInt(v)),
+      seriesId: z.string().transform((v) => parseInt(v, 10)),
       file: z.instanceof(File),
     }),
     handler: async (input, context) => {
@@ -171,7 +171,7 @@ export const chapterActions = {
         if (!insertResult || insertResult.length === 0 || !insertResult[0]) {
           throw new Error('Error al registrar el capítulo en la base de datos');
         }
-        registeredChapterId = insertResult[0]!.id;
+        registeredChapterId = insertResult[0]?.id;
       } else {
         await db
           .update(chapters)
@@ -271,7 +271,7 @@ export const chapterActions = {
   uploadThumbnail: defineAction({
     accept: 'form',
     input: z.object({
-      chapterId: z.string().transform((v) => parseInt(v)),
+      chapterId: z.string().transform((v) => parseInt(v, 10)),
       thumbnailImage: z.instanceof(File),
     }),
     handler: async (input, context) => {

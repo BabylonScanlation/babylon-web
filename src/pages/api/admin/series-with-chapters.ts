@@ -12,8 +12,8 @@ export const GET: APIRoute = async ({ locals, url }) => {
 
   const limitParam = url.searchParams.get('limit');
   const offsetParam = url.searchParams.get('offset');
-  const limit = limitParam ? parseInt(limitParam) : 12;
-  const offset = offsetParam ? parseInt(offsetParam) : 0;
+  const limit = limitParam ? parseInt(limitParam, 10) : 12;
+  const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
 
   try {
     const drizzleDb = getDB(locals.runtime.env);

@@ -79,7 +79,7 @@ export const userActions = {
           const urlObj = new URL(oldUrl);
           const key = urlObj.pathname.substring(1);
           await env.R2_ASSETS.delete(key);
-        } catch (e) {}
+        } catch (_e) {}
       }
 
       const ext = file.type.split('/')[1] || 'jpg';
@@ -222,7 +222,7 @@ export const userActions = {
           .onConflictDoNothing();
       }
 
-      let existing;
+      let existing: any;
       if (type === 'series') {
         existing = await db
           .select()

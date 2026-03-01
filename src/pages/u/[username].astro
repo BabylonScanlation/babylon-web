@@ -1,10 +1,8 @@
 ---
 import { and, desc, eq, sql } from 'drizzle-orm';
-import MangaCard from '../../components/MangaCard.astro';
 import {
   chapters,
   comments,
-  // newsComments,
   favorites,
   news,
   series,
@@ -13,15 +11,17 @@ import {
   userRoles,
   users,
 } from '../../db/schema';
-import Layout from '../../layouts/Layout.astro';
 import { getDB } from '../../lib/db';
+import Layout from '../../layouts/Layout.astro';
+import MangaCard from '../../components/MangaCard.astro';
+import { siteConfig } from '../../site.config';
 import { timeAgo } from '../../lib/utils';
 
-const { username } = Astro.params;
+const { username: routeUsername } = Astro.params;
 const db = getDB(Astro.locals.runtime.env);
 
 // 1. Fetch Target Profile
-const targetUser = await db.select().from(users).where(eq(users.username, username!)).get();
+const targetUser = await db.select().from(users).where(eq(users.username, routeUsername!)).get();
 
 if (!targetUser) {
   return Astro.redirect('/404');
@@ -117,7 +117,7 @@ if (currentTab === 'news' && isAdmin) {
 }
 
 // Global Stats
-const totalComments =
+const totalCommentsCount =
   (
     await db
       .select({ count: sql`count(*)` })
@@ -125,7 +125,7 @@ const totalComments =
       .where(eq(comments.userId, targetUser.id))
       .get()
   )?.count || 0;
-const totalSeriesComments =
+const totalSeriesCommentsCount =
   (
     await db
       .select({ count: sql`count(*)` })
@@ -133,7 +133,7 @@ const totalSeriesComments =
       .where(eq(seriesComments.userId, targetUser.id))
       .get()
   )?.count || 0;
-const totalActivity = Number(totalComments) + Number(totalSeriesComments);
+const totalActivity = Number(totalCommentsCount) + Number(totalSeriesCommentsCount);
 
 const totalFavs =
   (
@@ -154,8 +154,6 @@ const avgRating = Number(
   )?.avg || 0
 );
 
-import { siteConfig } from '../../site.config';
-
 // Presentation Data
 const avatar =
   targetUser.avatarUrl ||
@@ -168,7 +166,7 @@ const bio = targetUser.bio || 'Este usuario aún no ha escrito una biografía.';
   <div class="profile-page-wrapper">
     <header class="profile-hero">
       <div
-        class={`hero-banner ${!bannerUrl ? 'premium-gradient' : ''}`}
+        class:list={['hero-banner', { 'premium-gradient': !bannerUrl }]}
         style={bannerUrl ? `background-image: url('${bannerUrl}')` : ''}
       >
         {!bannerUrl && <div class="banner-pattern" />}
@@ -385,7 +383,7 @@ const bio = targetUser.bio || 'Este usuario aún no ha escrito una biografía.';
                           <MangaCard
                             title={fav.series.title}
                             url={`/series/${fav.series.slug}`}
-                            coverUrl={fav.series.coverImageUrl}
+                            coverImageUrl={fav.series.coverImageUrl}
                             lastChapter={fav.series.status || 'Ver serie'}
                           />
                         ))}

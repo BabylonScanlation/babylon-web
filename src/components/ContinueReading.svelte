@@ -1,6 +1,6 @@
 <script lang="ts">
-import { onMount } from 'svelte';
 import { fade } from 'svelte/transition';
+import { onMount } from 'svelte';
 import { timeAgo } from '../lib/utils';
 import Swiper from './Swiper.svelte';
 
@@ -12,7 +12,7 @@ async function checkAuthAndLoadProgress() {
     const authRes = await fetch('/api/auth/status');
     const userData = await authRes.json();
 
-    if (userData && userData.uid) {
+    if (userData?.uid) {
       isAuthenticated = true;
       const res = await fetch('/api/user/progress');
       if (res.ok) {
@@ -43,230 +43,188 @@ onMount(() => {
 {#if isAuthenticated && progressList.length > 0}
   <section class="continue-reading-container" in:fade>
     <div class="section-header">
-      <div class="header-line"></div>
-      <h2 class="section-title">
-        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 19l7-7-7-7"></path><path d="M5 19l7-7-7-7"></path></svg>
-        Continuar Leyendo
-      </h2>
+      <div class="header-left">
+        <div class="header-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.5" fill="none">
+            <path d="M12 19l7-7-7-7M5 12h14"></path>
+          </svg>
+        </div>
+        <h2 class="section-title">Continuar Leyendo</h2>
+      </div>
+      <a href="/library" class="view-all">Ir a mi biblioteca →</a>
     </div>
-    
-    <div class="swiper-outer-box">
-      <Swiper options={{
-        slidesPerView: 2.2,
-        spaceBetween: 16,
-        breakpoints: {
-          640: { slidesPerView: 3.2, spaceBetween: 20 },
-          768: { slidesPerView: 4.2, spaceBetween: 20 },
-          1024: { slidesPerView: 5.2, spaceBetween: 24 },
-        },
-        freeMode: true,
-        grabCursor: true
-      }}>
-        {#each progressList as item (item.series.slug)}
-          <div class="swiper-slide">
-            <a href="{item.nextChapter.url}" class="reading-card">
-              <div class="art-frame">
-                <img src="{item.series.cover}" alt={item.series.title} loading="lazy" />
-                <div class="card-glass-overlay"></div>
-              </div>
-              
-              <div class="card-floating-meta">
-                <div class="badge-glass time">
-                  <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="3" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                  {timeAgo(item.nextChapter.createdAt)}
-                </div>
-              </div>
 
-              <div class="card-info-box">
-                <h3 class="series-name">{item.series.title}</h3>
-                <div class="progress-indicator">
-                  <span class="chap-num">CAP {item.nextChapter.number}</span>
-                  <div class="pulse-dot"></div>
-                </div>
-              </div>
-            </a>
+    <Swiper 
+      items={progressList} 
+      slidesPerView={1.2}
+      spaceBetween={16}
+      breakpoints={{
+        640: { slidesPerView: 2.2 },
+        1024: { slidesPerView: 3.2 },
+        1400: { slidesPerView: 4.2 }
+      }}
+    >
+      {#snippet slide(item: any)}
+        <a href={item.nextChapter.url} class="continue-card">
+          <div class="card-image">
+            <img src={item.series.cover} alt={item.series.title} loading="lazy" />
+            <div class="image-overlay"></div>
+            <div class="play-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </div>
           </div>
-        {/each}
-      </Swiper>
-    </div>
+          <div class="card-info-box">
+            <h3 class="series-name">{item.series.title}</h3>
+            <div class="progress-meta">
+              <span class="chap-num">Próximo: Cap {item.nextChapter.number}</span>
+              <span class="dot">•</span>
+              <span class="last-read">{timeAgo(new Date(item.nextChapter.createdAt).getTime())}</span>
+            </div>
+          </div>
+        </a>
+      {/snippet}
+    </Swiper>
   </section>
 {/if}
 
 <style>
   .continue-reading-container {
     margin: 3rem 0 4rem;
-    width: 100%;
+    position: relative;
   }
 
   .section-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
   }
 
-  .header-line {
-    height: 2px;
-    flex: 1;
-    background: linear-gradient(90deg, var(--accent-color), transparent);
-    opacity: 0.3;
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .header-icon {
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
   }
 
   .section-title {
     font-size: 1.5rem;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
     font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: -0.03em;
+    margin: 0;
   }
 
-  .section-title svg {
+  .view-all {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #666;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .view-all:hover {
     color: var(--accent-color);
   }
-  
-  .swiper-outer-box {
-    width: 100%;
-    padding: 0.5rem 0;
-  }
 
-  .reading-card {
+  .continue-card {
     display: block;
-    position: relative;
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 20px;
     overflow: hidden;
-    aspect-ratio: 2 / 3;
-    background: #1a1a1a;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .reading-card:hover {
-    transform: translateY(-10px) scale(1.02);
-    border-color: var(--accent-color);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  .continue-card:hover {
+    transform: translateY(-6px);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
   }
 
-  .art-frame {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
+  .card-image {
+    position: relative;
+    height: 140px;
+    background: #111;
   }
 
-  .art-frame img {
+  .card-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.6s ease;
-  }
-  
-  .reading-card:hover .art-frame img {
-    transform: scale(1.1);
+    opacity: 0.8;
+    transition: transform 0.5s;
   }
 
-  .card-glass-overlay {
+  .continue-card:hover img {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+
+  .image-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, #000 10%, rgba(0,0,0,0.4) 50%, transparent 100%);
-    opacity: 0.8;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
   }
 
-  .card-floating-meta {
+  .play-icon {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
-    z-index: 5;
-  }
-
-  .badge-glass {
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #fff;
-    font-size: 0.7rem;
-    padding: 4px 10px;
-    border-radius: 100px;
-    font-weight: 700;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background: var(--accent-color);
+    color: #000;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
-    gap: 6px;
-    text-transform: uppercase;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 20px rgba(0, 191, 255, 0.4);
+  }
+
+  .continue-card:hover .play-icon {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
 
   .card-info-box {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 1.5rem;
-    z-index: 5;
-    text-align: center;
+    padding: 1.25rem;
   }
 
   .series-name {
     font-size: 1rem;
     font-weight: 800;
     color: #fff;
-    margin-bottom: 0.75rem;
-    line-height: 1.2;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
+    margin: 0 0 0.5rem;
+    white-space: nowrap;
     overflow: hidden;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    text-overflow: ellipsis;
   }
 
-  .progress-indicator {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 6px 12px;
-    display: inline-flex;
+  .progress-meta {
+    display: flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-  }
-
-  .reading-card:hover .progress-indicator {
-    background: var(--accent-color);
-    border-color: var(--accent-color);
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: #666;
   }
 
   .chap-num {
-    font-size: 0.8rem;
-    font-weight: 900;
     color: var(--accent-color);
-    letter-spacing: 0.05em;
+    font-weight: 700;
   }
 
-  .reading-card:hover .chap-num {
-    color: #000;
-  }
-
-  .pulse-dot {
-    width: 6px;
-    height: 6px;
-    background: var(--accent-color);
-    border-radius: 50%;
-    box-shadow: 0 0 10px var(--accent-color);
-    animation: pulse 2s infinite;
-  }
-
-  .reading-card:hover .pulse-dot {
-    background: #000;
-    box-shadow: none;
-  }
-
-  @keyframes pulse {
-    0% { opacity: 0.4; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.2); }
-    100% { opacity: 0.4; transform: scale(1); }
-  }
+  .dot { opacity: 0.3; }
 
   @media (max-width: 768px) {
     .continue-reading-container { margin: 2rem 0 3rem; }

@@ -111,7 +111,7 @@ export const seriesActions = {
   update: defineAction({
     accept: 'form',
     input: z.object({
-      seriesId: z.string().transform((v) => parseInt(v)),
+      seriesId: z.string().transform((v) => parseInt(v, 10)),
       title: z.string().min(1),
       description: z.string().min(1),
       slug: z.string().optional(),

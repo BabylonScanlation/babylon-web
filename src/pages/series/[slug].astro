@@ -1,17 +1,17 @@
 ---
-import AdContainer from '../../components/AdContainer.astro';
-import AdminSeriesNewsForm from '../../components/AdminSeriesNewsForm.astro';
-import FavoriteButton from '../../components/FavoriteButton.svelte';
-import Image from '../../components/Image.astro';
-import NewsFeed from '../../components/NewsFeed.astro';
-import UnifiedComments from '../../components/UnifiedComments.astro';
-import Layout from '../../layouts/Layout.astro';
 import { getCommentsForTarget } from '../../lib/data/comments';
 import { getSeriesDetails } from '../../lib/data/series';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
-import { formatFullDate, getImageUrl, timeAgo } from '../../lib/utils';
+import Layout from '../../layouts/Layout.astro';
+import FavoriteButton from '../../components/FavoriteButton.svelte';
+import UnifiedComments from '../../components/UnifiedComments.astro';
+import NewsFeed from '../../components/NewsFeed.astro';
+import AdminSeriesNewsForm from '../../components/AdminSeriesNewsForm.astro';
+import AdContainer from '../../components/AdContainer.astro';
+import Image from '../../components/Image.astro';
 import { siteConfig } from '../../site.config';
+import { getImageUrl, timeAgo, formatFullDate } from '../../lib/utils';
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/404');
@@ -42,14 +42,8 @@ try {
     }
 
     const rawComments = await getCommentsForTarget(drizzleDb, 'series', series.id, user?.uid);
-    // Orion: Sanitización profunda para evitar errores de serialización en Astro 5
-    comments = rawComments.map((c) => ({
-      ...c,
-      createdAt:
-        c.createdAt instanceof Date && !isNaN(c.createdAt.getTime()) ? c.createdAt.getTime() : null,
-      updatedAt:
-        c.updatedAt instanceof Date && !isNaN(c.updatedAt.getTime()) ? c.updatedAt.getTime() : null,
-    }));
+    // Orion: Los comentarios ya vienen normalizados como timestamps numéricos desde el servicio
+    comments = rawComments;
   } else {
     error = `Serie no encontrada.`;
   }
@@ -165,8 +159,7 @@ const reactions = [
                 <FavoriteButton
                   client:visible
                   seriesId={series.id}
-                  isFavorited={series.stats.isFavorited}
-                  isLoggedIn={!!user}
+                  initialIsFavorite={series.stats.isFavorited}
                 />
 
                 <div class="rating-inline-header">
@@ -293,7 +286,7 @@ const reactions = [
                                   </div>
                                   <div class="meta-item views">
                                     <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                    {chapter.views.toLocaleString()}
+                                    {chapter.views?.toLocaleString()}
                                   </div>
                                 </div>
                               </div>
@@ -380,138 +373,6 @@ const reactions = [
     )
   }
 </Layout>
-
-<script>
-  import { actions } from 'astro:actions';
-
-  function init() {
-    const main = document.querySelector('.series-minimal-page') as HTMLElement;
-    if (!main) return;
-
-    const seriesId = parseInt(main.dataset.seriesId || '0', 10);
-    const stateStr = main.dataset.initialState;
-    const state = stateStr ? JSON.parse(stateStr) : null;
-    
-    if (!state) return;
-
-    const tabs = document.querySelectorAll('.tab-link');
-    const panes = document.querySelectorAll('.tab-pane');
-    tabs.forEach((tab) => {
-      tab.addEventListener('click', () => {
-        tabs.forEach((t) => t.classList.remove('active'));
-        tab.classList.add('active');
-        const target = tab.getAttribute('data-tab');
-        panes.forEach((p) => p.classList.toggle('active', p.id === `${target}-content`));
-      });
-    });
-
-    if (seriesId) {
-      actions.series.registerView({ seriesId }).catch(() => {});
-    }
-
-    const stars = document.querySelector('.stars-row-minimal');
-    if (stars) {
-      if (state.isLoggedIn) {
-        const update = (v: number | null) => stars.querySelectorAll('.star-mini').forEach((s, i) => s.classList.toggle('filled', i < (v || 0)));
-        update(state.userVote);
-        
-        stars.addEventListener('mouseover', (e) => { 
-          const target = e.target as HTMLElement;
-          const s = target.closest('.star-mini') as HTMLElement; 
-          if (s) update(parseInt(s.dataset.value || '0')); 
-        });
-        
-        stars.addEventListener('mouseleave', () => update(state.userVote));
-        
-        stars.addEventListener('click', async (e) => {
-          const target = e.target as HTMLElement;
-          const s = target.closest('.star-mini') as HTMLElement; 
-          if (!s) return;
-          const v = parseInt(s.dataset.value || '0');
-          const nv = state.userVote === v ? null : v;
-          state.userVote = nv; 
-          update(nv);
-          
-          const { data, error } = await actions.user.rateSeries({ seriesId, rating: nv || 0 });
-          if (!error && data) {
-            const avgEl = document.querySelector('.rating-avg');
-            const countEl = document.querySelector('.rating-count');
-            if (avgEl) avgEl.textContent = data.newAverage.toFixed(1);
-            if (countEl) countEl.textContent = `(${data.newCount})`;
-          }
-        });
-      } else {
-        stars.addEventListener('click', () => {
-          document.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }));
-        });
-      }
-    }
-
-    const reacts = document.querySelector('.reactions-top-bar');
-    if (reacts) {
-      if (state.isLoggedIn) {
-        reacts.addEventListener('click', async (e) => {
-          const target = e.target as HTMLElement;
-          const b = target.closest('.react-mini-btn') as HTMLElement; 
-          if (!b) return;
-          const emoji = b.dataset.emoji || ''; 
-          const old = state.userReaction; 
-          const nv = old === emoji ? null : emoji;
-          state.userReaction = nv;
-          
-          reacts.querySelectorAll('.react-mini-btn').forEach(btn => {
-            const btnEl = btn as HTMLElement;
-            btnEl.classList.toggle('selected', btnEl.dataset.emoji === nv);
-          });
-          
-          reacts.querySelectorAll('.react-mini-item').forEach(item => {
-            const itemEl = item as HTMLElement;
-            const btn = itemEl.querySelector('.react-mini-btn') as HTMLElement; 
-            const countEl = itemEl.querySelector('.react-mini-count') as HTMLElement;
-            let c = parseInt(countEl.textContent || '0');
-            if (btn.dataset.emoji === old) c = Math.max(0, c - 1);
-            if (btn.dataset.emoji === nv) c += 1;
-            countEl.textContent = c.toString();
-          });
-          
-          await actions.series.react({ seriesId, emoji: nv });
-        });
-      } else {
-        reacts.addEventListener('click', () => {
-          document.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }));
-        });
-      }
-    }
-
-    const modal = document.getElementById('download-modal');
-    document.getElementById('download-app-btn')?.addEventListener('click', () => {
-      if (modal) modal.style.display = 'flex';
-    });
-    document.getElementById('cancel-download-btn')?.addEventListener('click', () => {
-      if (modal) modal.style.display = 'none';
-    });
-
-    document.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      const trigger = target.closest('.app-locked-trigger');
-      if (trigger && modal) {
-        e.preventDefault();
-        modal.style.display = 'flex';
-      }
-    });
-
-    window.addEventListener('comment-count-change', (e: any) => {
-      const { count, targetId: id, targetType: type } = e.detail;
-      if (type === 'series' && parseInt(id) === seriesId) {
-        const countEl = document.querySelector('.tab-link[data-tab="comments"] .tab-count');
-        if (countEl) countEl.textContent = count.toString();
-      }
-    });
-  }
-
-  init(); 
-  document.addEventListener('astro:page-load', init);
-</script>
 
 <style>
   /* Astra: Ajuste equilibrado para separar contenido del header absolute */

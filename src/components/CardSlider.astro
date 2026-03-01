@@ -22,7 +22,7 @@ const { title, subtitle, mangas = [] } = Astro.props;
       <div class="grid-container">
         {mangas.map((manga) => (
           <MangaCard
-            imageUrl={manga.coverImageUrl}
+            coverImageUrl={manga.coverImageUrl || ''}
             title={manga.title}
             lastChapter={''}
             url={`/series/${manga.slug}`}

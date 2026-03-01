@@ -1,9 +1,6 @@
 ---
 import { deleteNews, getAllNews, getDB } from '../lib/db';
 
-// Removed: import { getSession } from 'auth-astro/server';
-
-// Removed: const session = await getSession(Astro.request);
 const drizzleDb = getDB(Astro.locals.runtime.env);
 
 let newsItems = await getAllNews(drizzleDb);
@@ -26,7 +23,7 @@ if (Astro.request.method === 'POST') {
       <p>No hay noticias aún.</p>
     ) : (
       <ul>
-        {newsItems.map((news) => (
+        {newsItems.map((news: any) => (
           <li class="border-b py-2 flex justify-between items-center">
             <div>
               <h3 class="text-lg font-semibold">{news.title}</h3>

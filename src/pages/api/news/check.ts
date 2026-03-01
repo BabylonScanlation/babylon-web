@@ -53,10 +53,10 @@ export const GET: APIRoute = async ({ locals }) => {
           // Orion: Normalizar formato SQLite (YYYY-MM-DD HH:MM:SS) a ISO para navegadores
           const isoDate = n.createdAt.includes('T')
             ? n.createdAt
-            : n.createdAt.replace(' ', 'T') + 'Z';
+            : `${n.createdAt.replace(' ', 'T')}Z`;
           ts = new Date(isoDate).getTime();
         }
-        return { id: n.id, createdAt: isNaN(ts) ? Date.now() : ts };
+        return { id: n.id, createdAt: Number.isNaN(ts) ? Date.now() : ts };
       } catch {
         return { id: n.id, createdAt: Date.now() };
       }

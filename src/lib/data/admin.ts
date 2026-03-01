@@ -77,9 +77,9 @@ export async function getAdminSeriesWithChapters(
 
     // Orion: Fragmentar la consulta de comentarios para evitar el límite de 1000 parámetros de SQLite
     if (chapterIds.length > 0) {
-      const CHUNK_SIZE = 500;
-      for (let i = 0; i < chapterIds.length; i += CHUNK_SIZE) {
-        const chunk = chapterIds.slice(i, i + CHUNK_SIZE);
+      const ChunkSize = 500;
+      for (let i = 0; i < chapterIds.length; i += ChunkSize) {
+        const chunk = chapterIds.slice(i, i + ChunkSize);
         const results = await db
           .select()
           .from(comments)

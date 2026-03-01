@@ -1,4 +1,5 @@
 <script lang="ts">
+import { fade, fly } from 'svelte/transition';
 import { actions } from 'astro:actions';
 import {
   type AuthCredential,
@@ -9,7 +10,6 @@ import {
   signInWithPopup,
 } from 'firebase/auth';
 import { onMount } from 'svelte';
-import { fade, fly } from 'svelte/transition';
 import { auth } from '../lib/firebase/client';
 import { logError } from '../lib/logError';
 import { authModal } from '../lib/modalStore.svelte';
@@ -197,197 +197,137 @@ async function handleLinkAccount() {
 function togglePassword() {
   showPassword = !showPassword;
 }
-
-// Astra: Sincronizar estado del body con el modal para ocultar el header
-$effect(() => {
-  if (authModal.isOpen) {
-    document.body.setAttribute('data-reader-modal', 'open');
-    document.documentElement.style.overflow = 'hidden';
-  } else {
-    document.body.removeAttribute('data-reader-modal');
-    document.documentElement.style.overflow = '';
-  }
-});
 </script>
 
 {#if authModal.isOpen}
-  <div class="modal-overlay" 
-    onclick={(e) => e.target === e.currentTarget && authModal.close()} 
-    onkeydown={(e) => (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') && authModal.close()}
-    role="button" 
-    aria-label="Cerrar modal" 
-    tabindex="-1"
-    transition:fade={{ duration: 200 }}>
+  <div class="modal-overlay" transition:fade={{ duration: 200 }} 
+       onclick={() => authModal.close()} onkeydown={(e) => e.key === 'Escape' && authModal.close()} role="button" tabindex="-1">
     
     <div class="modal-panel auth-card" transition:fly={{ y: 20, duration: 300 }}>
-      <button class="close-btn" onclick={() => authModal.close()} aria-label="Cerrar">
-        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
+      <button class="close-btn" onclick={() => authModal.close()} aria-label="Cerrar">×</button>
 
-      <div class="auth-content">
-        {#if authModal.view === 'login'}
-          <div in:fly={{ x: -20, duration: 300, delay: 150 }}>
-            <div class="auth-header">
-              <h2>Bienvenido</h2>
-              <p class="subtitle">Ingresa tus credenciales para continuar</p>
+      {#if authModal.view === 'login'}
+        <div class="auth-header">
+          <h2>¡Bienvenido!</h2>
+          <p>Inicia sesión para continuar con tu lectura.</p>
+        </div>
+
+        <div class="auth-body">
+          <div class="social-auth">
+            <button class="btn btn-google" onclick={handleGoogleSignIn} disabled={isLoading}>
+              <img src="https://static.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google" class="google-icon" />
+              <span>Continuar con Google</span>
+            </button>
+          </div>
+
+          <div class="divider">
+            <span>o usa tu correo</span>
+          </div>
+
+          <form onsubmit={(e) => { e.preventDefault(); handleLogin(); }} class="auth-form">
+            <div class="form-group">
+              <label for="login-email">Email</label>
+              <input id="login-email" type="email" bind:value={loginEmail} placeholder="tu@email.com" required />
             </div>
             
-            <div class="message-container">
-              {#if authModal.successMessage}
-                <p class="alert alert-success" transition:fade>{authModal.successMessage}</p>
-              {/if}
-              {#if loginErrorMessage}
-                <p class="alert alert-danger" transition:fade>{loginErrorMessage}</p>
-              {/if}
+            <div class="form-group">
+              <label for="login-pass">Contraseña</label>
+              <div class="password-input-wrapper">
+                <input id="login-pass" type={showPassword ? 'text' : 'password'} bind:value={loginPassword} placeholder="••••••••" required />
+                <button type="button" class="toggle-pass" onclick={togglePassword}>
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
             </div>
 
-            <form onsubmit={(e) => { e.preventDefault(); handleLogin(); }} class="auth-form">
-              <div class="form-group">
-                <label class="form-label" for="login-email">Email</label>
-                <div class="input-wrapper">
-                  <input class="form-control" type="email" id="login-email" placeholder="nombre@ejemplo.com" required bind:value={loginEmail} autocomplete="username" />
-                </div>
-              </div>
-              
-              <div class="form-group">
-                <div class="label-row">
-                  <label class="form-label" for="login-password">Contraseña</label>
-                  <span class="forgot-password" role="button" tabindex="0" onclick={() => toast.info('Funcionalidad de recuperación en desarrollo')} onkeydown={(e) => e.key === 'Enter' && toast.info('Funcionalidad de recuperación en desarrollo')}>¿Olvidaste tu contraseña?</span>
-                </div>
-                <div class="input-wrapper">
-                  <input class="form-control" type={showPassword ? "text" : "password"} id="login-password" placeholder="••••••••" required bind:value={loginPassword} autocomplete="current-password" />
-                  <button type="button" class="password-toggle" onclick={togglePassword}>
-                    {#if showPassword}
-                      <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                    {:else}
-                      <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    {/if}
-                  </button>
-                </div>
-              </div>
+            {#if loginErrorMessage}
+              <p class="error-msg" in:fade>{loginErrorMessage}</p>
+            {/if}
 
-              <button type="submit" class="btn btn-primary btn-submit" disabled={isLoading}>
-                {#if isLoading}
-                  <div class="button-loader"></div>
-                {:else}
-                  <span class="button-text">Iniciar Sesión</span>
-                {/if}
-              </button>
-            </form>
-
-            <div class="divider"></div>
-
-            <button class="btn btn-google" onclick={handleGoogleSignIn} disabled={isLoading}>
-              <img src="https://static.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google" class="google-icon" />
-              Iniciar sesión con Google
+            <button type="submit" class="btn btn-primary btn-submit" disabled={isLoading}>
+              {#if isLoading}
+                <span class="spinner"></span>
+              {:else}
+                Entrar
+              {/if}
             </button>
+          </form>
+        </div>
 
-            <div class="form-footer">
-              <p>¿No tienes una cuenta? <button class="btn-link" onclick={() => authModal.switchTo('register')} disabled={isLoading}>Regístrate gratis</button></p>
+        <div class="auth-footer">
+          ¿No tienes cuenta? 
+          <button class="link-btn" onclick={() => authModal.open('register')}>Regístrate</button>
+        </div>
+
+      {:else if authModal.view === 'register'}
+        <div class="auth-header">
+          <h2>Crear Cuenta</h2>
+          <p>Únete a nuestra comunidad de lectores.</p>
+        </div>
+
+        <div class="auth-body">
+          <form onsubmit={(e) => { e.preventDefault(); handleRegister(); }} class="auth-form">
+            <div class="form-group">
+              <label for="reg-email">Email</label>
+              <input id="reg-email" type="email" bind:value={regEmail} placeholder="tu@email.com" required />
             </div>
-          </div>
-        {/if}
-
-        {#if authModal.view === 'register'}
-          <div in:fly={{ x: 20, duration: 300, delay: 150 }}>
-            <div class="auth-header">
-              <h2>Crear Cuenta</h2>
-              <p class="subtitle">Únete a nuestra comunidad hoy mismo</p>
+            
+            <div class="form-group">
+              <label for="reg-pass">Contraseña</label>
+              <input id="reg-pass" type="password" bind:value={regPassword} placeholder="Mínimo 6 caracteres" required />
             </div>
 
-            <div class="message-container">
-              {#if registerErrorMessage}
-                <p class="alert alert-danger" transition:fade>{registerErrorMessage}</p>
+            <div class="form-group">
+              <label for="reg-pass-conf">Confirmar Contraseña</label>
+              <input id="reg-pass-conf" type="password" bind:value={regConfirmPassword} placeholder="Repite tu contraseña" required />
+            </div>
+
+            {#if registerErrorMessage}
+              <p class="error-msg" in:fade>{registerErrorMessage}</p>
+            {/if}
+
+            <button type="submit" class="btn btn-primary btn-submit" disabled={isLoading}>
+              {#if isLoading}
+                <span class="spinner"></span>
+              {:else}
+                Crear Cuenta
               {/if}
-            </div>
-
-            <form onsubmit={(e) => { e.preventDefault(); handleRegister(); }} class="auth-form">
-              <div class="form-group">
-                <label class="form-label" for="reg-email">Email</label>
-                <div class="input-wrapper">
-                  <input class="form-control" type="email" id="reg-email" placeholder="nombre@ejemplo.com" required bind:value={regEmail} autocomplete="username" />
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label" for="reg-password">Contraseña</label>
-                <div class="input-wrapper">
-                  <input class="form-control" type={showPassword ? "text" : "password"} id="reg-password" placeholder="Mínimo 6 caracteres" required minlength="6" bind:value={regPassword} autocomplete="new-password" />
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label" for="reg-confirm-password">Confirmar Contraseña</label>
-                <div class="input-wrapper">
-                  <input class="form-control" type={showPassword ? "text" : "password"} id="reg-confirm-password" placeholder="Repite tu contraseña" required minlength="6" bind:value={regConfirmPassword} autocomplete="new-password" />
-                </div>
-              </div>
-
-              <button type="submit" class="btn btn-primary btn-submit" disabled={isLoading}>
-                {#if isLoading}
-                  <div class="button-loader"></div>
-                {:else}
-                  <span class="button-text">Crear Cuenta</span>
-                {/if}
-              </button>
-            </form>
-
-            <div class="divider"></div>
-
-            <button class="btn btn-google" onclick={handleGoogleSignIn} disabled={isLoading}>
-              <img src="https://static.cdnlogo.com/logos/g/35/google-icon.svg" alt="Google" class="google-icon" />
-              Iniciar sesión con Google
             </button>
+          </form>
+        </div>
 
-            <div class="form-footer">
-              <p>¿Ya tienes una cuenta? <button class="btn-link" onclick={() => authModal.switchTo('login')} disabled={isLoading}>Inicia sesión</button></p>
+        <div class="auth-footer">
+          ¿Ya tienes cuenta? 
+          <button class="link-btn" onclick={() => authModal.open('login')}>Inicia Sesión</button>
+        </div>
+
+      {:else if authModal.view === 'link-account'}
+        <div class="auth-header">
+          <h2>Vincular Cuentas</h2>
+          <p>Ingresa tu contraseña para vincular <strong>{authModal.linkAccountInfo.email}</strong>.</p>
+        </div>
+
+        <div class="auth-body">
+          <form onsubmit={(e) => { e.preventDefault(); handleLinkAccount(); }} class="auth-form">
+            <div class="form-group">
+              <label for="link-pass">Contraseña</label>
+              <input id="link-pass" type="password" bind:value={linkPassword} placeholder="Tu contraseña actual" required />
             </div>
-          </div>
-        {/if}
 
-        {#if authModal.view === 'link'}
-          <div in:fly={{ y: 20, duration: 300, delay: 150 }}>
-            <div class="auth-header">
-              <h2>Vincular Cuenta</h2>
-              <p class="subtitle">Tu correo ya está registrado. Ingresa tu contraseña para vincular con Google.</p>
-            </div>
+            {#if linkErrorMessage}
+              <p class="error-msg" in:fade>{linkErrorMessage}</p>
+            {/if}
 
-            <div class="message-container">
-              {#if linkErrorMessage}
-                <p class="alert alert-danger" transition:fade>{linkErrorMessage}</p>
+            <button type="submit" class="btn btn-primary btn-submit" disabled={isLoading}>
+              {#if isLoading}
+                <span class="spinner"></span>
+              {:else}
+                Vincular y Continuar
               {/if}
-            </div>
-
-            <form onsubmit={(e) => { e.preventDefault(); handleLinkAccount(); }} class="auth-form">
-              <div class="form-group">
-                <label class="form-label" for="link-email">Email</label>
-                <div class="input-wrapper">
-                  <input class="form-control disabled-input" type="email" id="link-email" readonly value={authModal.linkAccountInfo.email} />
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label" for="link-password">Contraseña</label>
-                <div class="input-wrapper">
-                  <input class="form-control" type={showPassword ? "text" : "password"} id="link-password" placeholder="••••••••" required bind:value={linkPassword} autocomplete="current-password" />
-                </div>
-              </div>
-
-              <button type="submit" class="btn btn-primary btn-submit" disabled={isLoading}>
-                {#if isLoading}
-                  <div class="button-loader"></div>
-                {:else}
-                  <span class="button-text">Vincular y Continuar</span>
-                {/if}
-              </button>
-            </form>
-
-            <div class="form-footer">
-              <button class="btn-link" onclick={authModal.close} disabled={isLoading}>Cancelar</button>
-            </div>
-          </div>
-        {/if}
-      </div>
+            </button>
+          </form>
+        </div>
+      {/if}
     </div>
   </div>
 {/if}
@@ -396,276 +336,223 @@ $effect(() => {
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: #020205;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10000;
-    padding: 1rem;
+    padding: 1.5rem;
   }
 
   .auth-card {
-    position: relative;
-    padding: 2.5rem 2.5rem;
+    background: #15151a;
     width: 100%;
-    max-width: 450px;
-    margin: auto;
-    background: rgba(20, 20, 25, 0.85);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    max-width: 420px;
+    padding: 2.5rem;
+    border-radius: 32px;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 28px;
-    box-shadow: 
-      0 25px 60px -15px rgba(0, 0, 0, 0.6),
-      0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    position: relative;
   }
 
   .close-btn {
     position: absolute;
-    top: 1.25rem;
-    right: 1.25rem;
+    top: 1.5rem;
+    right: 1.5rem;
     background: rgba(255, 255, 255, 0.05);
     border: none;
-    color: #999;
-    padding: 0.4rem;
-    border-radius: 10px;
+    color: #888;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
     cursor: pointer;
-    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10;
+    font-size: 1.2rem;
+    transition: all 0.2s;
   }
 
   .close-btn:hover {
     background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    transform: rotate(90deg);
+    color: white;
   }
 
   .auth-header {
     text-align: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
   }
 
   .auth-header h2 {
     font-size: 1.8rem;
     font-weight: 900;
-    margin: 0 0 0.4rem 0;
-    background: linear-gradient(135deg, #fff 0%, #aaa 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
     letter-spacing: -0.02em;
   }
 
-  .subtitle {
+  .auth-header p {
     color: #888;
-    font-size: 0.85rem;
-    margin: 0;
-  }
-
-  .auth-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-  }
-
-  .label-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .forgot-password {
-    font-size: 0.7rem;
-    color: var(--accent-color);
-    cursor: pointer;
-    font-weight: 500;
-  }
-
-  .forgot-password:hover {
-    text-decoration: underline;
-  }
-
-  .input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-
-  .form-control {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    color: #fff;
     font-size: 0.95rem;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   }
 
-  .form-control:focus {
-    outline: none;
-    border-color: var(--accent-color);
-    background: rgba(255, 255, 255, 0.06);
-    box-shadow: 0 0 0 4px rgba(0, 191, 255, 0.15);
-    transform: translateY(-1px);
-  }
-
-  .disabled-input {
-    background: rgba(255, 255, 255, 0.05);
-    color: #666;
-    cursor: not-allowed;
-  }
-
-  .password-toggle {
-    position: absolute;
-    right: 1rem;
-    background: none;
-    border: none;
-    color: #666;
-    cursor: pointer;
-    padding: 0.25rem;
-    display: flex;
-    align-items: center;
-    transition: color 0.2s;
-  }
-
-  .password-toggle:hover {
-    color: #aaa;
-  }
-
-  .btn-submit {
+  .btn {
     width: 100%;
-    margin-top: 0.5rem;
-    padding: 1.1rem;
-    border-radius: 16px;
-    font-size: 1rem;
-    font-weight: 800;
-    background: var(--accent-color);
-    box-shadow: 0 10px 25px -5px rgba(0, 162, 255, 0.4);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    border: none;
-    color: #000;
-    cursor: pointer;
-  }
-
-  .btn-submit:hover:not(:disabled) {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 15px 35px -5px rgba(0, 162, 255, 0.5);
-  }
-
-  .btn-submit:active:not(:disabled) {
-    transform: translateY(0);
-  }
-
-  .divider {
-    margin: 1.5rem 0;
-    text-align: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    line-height: 0.1em;
-  }
-
-  .btn-google {
-    width: 100%;
-    background: rgba(255, 255, 255, 0.03);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 1.1rem;
-    border-radius: 18px;
+    padding: 0.8rem;
+    border-radius: 14px;
     font-weight: 700;
     font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    transition: all 0.3s ease;
-    cursor: pointer;
+    gap: 0.75rem;
+    border: none;
   }
 
-  .btn-google:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.3);
+  .btn-google {
+    background: white;
+    color: #000;
+  }
+
+  .btn-google:hover {
+    background: #f0f0f0;
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
   }
 
   .google-icon {
-    width: 22px;
-    height: 22px;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    width: 20px;
+    height: 20px;
   }
 
-  .form-footer {
-    margin-top: 2rem;
+  .divider {
+    display: flex;
+    align-items: center;
+    margin: 1.5rem 0;
+    color: #444;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+  }
+
+  .divider::before, .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #222;
+  }
+
+  .divider span {
+    padding: 0 1rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #aaa;
+    margin-bottom: 0.5rem;
+    margin-left: 0.25rem;
+  }
+
+  input {
+    width: 100%;
+    background: #000;
+    border: 1px solid #222;
+    padding: 0.9rem 1.2rem;
+    border-radius: 14px;
+    color: white;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 4px rgba(0, 191, 255, 0.1);
+  }
+
+  .password-input-wrapper {
+    position: relative;
+  }
+
+  .toggle-pass {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+
+  .toggle-pass:hover {
+    opacity: 1;
+  }
+
+  .btn-primary {
+    background: var(--accent-color);
+    color: #000;
+    margin-top: 1rem;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 191, 255, 0.2);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .error-msg {
+    color: #ff4757;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.75rem;
     text-align: center;
-    color: #888;
+  }
+
+  .auth-footer {
+    text-align: center;
+    margin-top: 2rem;
+    color: #666;
     font-size: 0.9rem;
   }
 
-  .btn-link {
-    color: var(--accent-color);
-    font-weight: 600;
-    border: none;
+  .link-btn {
     background: none;
-    padding: 0;
+    border: none;
+    color: var(--accent-color);
+    font-weight: 800;
     cursor: pointer;
-    transition: color 0.2s;
+    padding: 0.25rem;
   }
 
-  .btn-link:hover {
-    color: #33b5ff;
+  .link-btn:hover {
     text-decoration: underline;
   }
 
-  .button-loader {
+  .spinner {
     width: 20px;
     height: 20px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #fff;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #000;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
-    margin: 0 auto;
   }
 
   @keyframes spin {
     to { transform: rotate(360deg); }
-  }
-
-  .message-container {
-    min-height: 0;
-    margin-bottom: 1rem;
-  }
-
-  .alert {
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    text-align: center;
-  }
-
-  .alert-danger {
-    background: rgba(255, 107, 107, 0.15);
-    color: #ff8e8e;
-    border: 1px solid rgba(255, 107, 107, 0.2);
-  }
-
-  .alert-success {
-    background: rgba(46, 204, 113, 0.15);
-    color: #72f1a6;
-    border: 1px solid rgba(46, 204, 113, 0.2);
   }
 
   @media (max-width: 480px) {

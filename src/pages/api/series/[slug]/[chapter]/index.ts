@@ -92,7 +92,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     const manifestObject = await retryGetFromR2(manifestKey);
 
     const acceptHeader = request.headers.get('Accept');
-    const wantsStream = acceptHeader && acceptHeader.includes('text/event-stream');
+    const wantsStream = acceptHeader?.includes('text/event-stream');
 
     if (manifestObject) {
       console.log('[API_CH] Manifest found in R2. Processing content...');
@@ -229,7 +229,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         const timeoutMsg = `event: timeout\ndata: ${JSON.stringify({ payload: obfuscate({ message: 'El procesamiento está tardando más de lo esperado. Por favor, refresca en unos momentos.' }) })}\n\n`;
         await writer.write(encoder.encode(timeoutMsg));
         await writer.close();
-      } catch (streamErr) {
+      } catch (_streamErr) {
         console.warn('[API_CH] SSE Loop: Stream interrupted.');
       }
     };

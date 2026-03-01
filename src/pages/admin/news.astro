@@ -1,15 +1,15 @@
 ---
 import { asc, desc, sql } from 'drizzle-orm';
-import AdminNewsManager from '../../components/AdminNewsManager.svelte';
-import { SITE_TITLE } from '../../consts';
 import { news, series } from '../../db/schema';
-import Layout from '../../layouts/Layout.astro';
 import { getDB } from '../../lib/db';
+import Layout from '../../layouts/Layout.astro';
+import AdminNewsManager from '../../components/AdminNewsManager.svelte';
+import { siteConfig } from '../../site.config';
 
 // Orion: Configuración de paginación
 const limit = 18;
 const offsetParam = Astro.url.searchParams.get('offset');
-const offset = offsetParam ? parseInt(offsetParam) : 0;
+const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
 
 const db = getDB(Astro.locals.runtime.env);
 
@@ -32,13 +32,17 @@ const allSeries = await db
   .all();
 
 // 3. Obtener todas las noticias (solo IDs de serie para el conteo de badges)
-const allNews = await db.select().from(news).orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`)).all();
+const allNews = await db
+  .select()
+  .from(news)
+  .orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`))
+  .all();
 
 const user = Astro.locals.user;
-const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
+const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 ---
 
-<Layout title={`Gestión de Noticias - ${SITE_TITLE}`}>
+<Layout title={`Gestión de Noticias - ${siteConfig.shortName}`}>
   <main class="admin-container">
     <div class="page-header-minimal">
       <a href="/admin" class="back-link-modern">

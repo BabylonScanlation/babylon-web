@@ -4,12 +4,13 @@ import { getRecentSeries } from '../../../lib/data/series';
 import { getDB } from '../../../lib/db';
 import { logError } from '../../../lib/logError';
 
-export const GET: APIRoute = async ({ locals, url }) => {
+export const GET: APIRoute = async ({ locals, url, cookies }) => {
   try {
     const db = getDB(locals.runtime.env);
     const user = locals.user;
-    const nsfwCookieValue = url.searchParams.get('nsfw') || locals.cookies.get('babylon_nsfw')?.value;
-    const allowNsfw = typeof nsfwCookieValue === 'string' ? nsfwCookieValue === 'true' : (user?.isNsfw || false);
+    const nsfwCookieValue = url.searchParams.get('nsfw') || cookies.get('babylon_nsfw')?.value;
+    const allowNsfw =
+      typeof nsfwCookieValue === 'string' ? nsfwCookieValue === 'true' : user?.isNsfw || false;
 
     const results = await getRecentSeries(db, allowNsfw, 1000);
 

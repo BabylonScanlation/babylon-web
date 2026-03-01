@@ -20,7 +20,7 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
   }
 
   try {
-    const rangeDays = range === 'all' ? 365 * 10 : parseInt(range);
+    const rangeDays = range === 'all' ? 365 * 10 : parseInt(range, 10);
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - rangeDays);
     const startTimestamp = startDate.getTime(); // Usar milisegundos reales

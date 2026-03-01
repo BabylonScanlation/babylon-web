@@ -9,8 +9,9 @@ interface Props {
 const { newsItem } = Astro.props;
 
 // Helper to format the date
-function formatDate(date: Date) {
-  return date.toLocaleDateString('es-ES', {
+function formatDate(date: Date | string | number) {
+  const d = new Date(date);
+  return d.toLocaleDateString('es-ES', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

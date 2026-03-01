@@ -15,14 +15,18 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
       // Prioridad 1: Si hay usuario, mandar lo que diga su perfil
       try {
         let prefs = (user as any).preferences;
-        
+
         // Si no vienen en el locals (JWT Fast Path), buscamos en DB
         if (!prefs) {
-          const dbUser = await drizzleDb.select({ preferences: users.preferences }).from(users).where(eq(users.id, user.uid)).get();
+          const dbUser = await drizzleDb
+            .select({ preferences: users.preferences })
+            .from(users)
+            .where(eq(users.id, user.uid))
+            .get();
           prefs = dbUser?.preferences;
         }
 
-        const parsedPrefs = typeof prefs === 'string' ? JSON.parse(prefs) : (prefs || {});
+        const parsedPrefs = typeof prefs === 'string' ? JSON.parse(prefs) : prefs || {};
         lastSeenId = parsedPrefs?.lastSeenNewsId || null;
       } catch (e) {
         console.error('[API News Count Prefs Error]:', e);
@@ -47,7 +51,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
         .get();
 
       return new Response(JSON.stringify({ count: result?.total ?? 0 }), {
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'cf-edge-cache': 'no-cache',
@@ -68,7 +72,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
     if (latestNews && latestNews.length > 0) {
       const lastSeenIdStr = String(lastSeenId).trim();
       const lastSeenIndex = latestNews.findIndex((n) => String(n.id).trim() === lastSeenIdStr);
-      
+
       if (lastSeenIndex === -1) {
         // Fallback al conteo total
         const result = await drizzleDb
@@ -83,7 +87,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
     }
 
     return new Response(JSON.stringify({ count: unreadCount }), {
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'cf-edge-cache': 'no-cache',

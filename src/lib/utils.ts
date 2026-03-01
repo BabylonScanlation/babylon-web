@@ -10,7 +10,7 @@ export function parseToTimestamp(dateInput: any): number {
   }
 
   if (dateInput instanceof Date) {
-    return isNaN(dateInput.getTime()) ? 0 : dateInput.getTime();
+    return Number.isNaN(dateInput.getTime()) ? 0 : dateInput.getTime();
   }
 
   try {
@@ -26,7 +26,7 @@ export function parseToTimestamp(dateInput: any): number {
     if (s.includes('T') && !s.includes('Z') && !s.includes('+')) s += 'Z';
 
     const t = new Date(s).getTime();
-    return isNaN(t) ? 0 : t;
+    return Number.isNaN(t) ? 0 : t;
   } catch {
     return 0;
   }

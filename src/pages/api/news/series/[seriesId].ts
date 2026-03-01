@@ -19,7 +19,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
   try {
     const numericSeriesId = parseInt(seriesId, 10);
-    if (isNaN(numericSeriesId)) {
+    if (Number.isNaN(numericSeriesId)) {
       return new Response('Invalid Series ID', { status: 400 });
     }
 

@@ -14,7 +14,7 @@ const child = spawn('node', [target], {
   stdio: ['inherit', 'pipe', 'pipe'],
 });
 
-function processOutput(stream, label) {
+function processOutput(stream, _label) {
   let buffer = '';
   stream.on('data', (data) => {
     buffer += data.toString();

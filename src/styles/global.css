@@ -13,8 +13,8 @@
 /* Astra: Ruby Red Theme for NSFW Mode (Nuclear Override) */
 :root.nsfw-mode,
 html.nsfw-mode {
-  --accent-color: #900000 !important; /* Rojo Rubí Puro y Oscuro */
-  --accent-glow: rgba(144, 0, 0, 0.6) !important; 
+  --accent-color: #900000; /* Rojo Rubí Puro y Oscuro */
+  --accent-glow: rgba(144, 0, 0, 0.6);
 }
 
 /* Purga global de azul diamante en modo NSFW */
@@ -23,7 +23,7 @@ html.nsfw-mode {
 .nsfw-mode [class*="badge"],
 .nsfw-mode [class*="pill"],
 .nsfw-mode [class*="tag"] {
-  border-color: var(--accent-color) !important;
+  border-color: var(--accent-color);
 }
 
 /* Corregir el bug de la línea horizontal: Aplicar sombra SOLO a contenedores raíz de tarjetas */
@@ -32,22 +32,22 @@ html.nsfw-mode {
 .nsfw-mode .desktop-view,
 .nsfw-mode .manga-card,
 .nsfw-mode .btn-primary {
-  box-shadow: 0 0 20px var(--accent-glow) !important;
-  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 20px var(--accent-glow);
+  border-color: var(--accent-color);
 }
 
 .nsfw-mode .new-chapter-tag,
 .nsfw-mode .action-pill,
 .nsfw-mode .btn-primary {
-  background: var(--accent-color) !important;
-  color: #fff !important;
+  background: var(--accent-color);
+  color: #fff;
 }
 
 .nsfw-mode .badge-new {
-  background: rgba(144, 0, 0, 0.15) !important;
-  color: var(--accent-color) !important;
-  border: 1px solid var(--accent-color) !important;
-  box-shadow: 0 0 15px var(--accent-glow) !important;
+  background: rgba(144, 0, 0, 0.15);
+  color: var(--accent-color);
+  border: 1px solid var(--accent-color);
+  box-shadow: 0 0 15px var(--accent-glow);
 }
 
 .nsfw-mode .nebula-glow {
@@ -59,21 +59,21 @@ html.nsfw-mode {
     rgba(2, 2, 5, 0) 180deg,
     rgba(144, 0, 0, 0.02) 240deg,
     rgba(2, 2, 5, 0) 360deg
-  ) !important;
-  opacity: 0.6 !important;
+  );
+  opacity: 0.6;
 }
 
 .nsfw-mode .shooting-stars span {
-  filter: drop-shadow(0 0 8px var(--accent-color)) !important;
-  background: linear-gradient(-45deg, #fff, var(--accent-color)) !important;
+  filter: drop-shadow(0 0 8px var(--accent-color));
+  background: linear-gradient(-45deg, #fff, var(--accent-color));
 }
 
 /* Astra: Global Scrollbar and Selection Overrides for NSFW */
 .nsfw-mode ::-webkit-scrollbar-thumb {
-  background: var(--accent-color) !important;
+  background: var(--accent-color);
 }
 .nsfw-mode {
-  scrollbar-color: var(--accent-color) transparent !important;
+  scrollbar-color: var(--accent-color) transparent;
 }
 .nsfw-mode ::selection {
   background: var(--accent-color);
@@ -304,8 +304,8 @@ body {
     padding-bottom: 0;
   }
   body[data-reader-active="true"] main.site-main-content {
-    padding-top: 0 !important;
-    margin-top: 0 !important;
+    padding-top: 0;
+    margin-top: 0;
   }
 }
 

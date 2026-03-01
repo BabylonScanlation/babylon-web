@@ -4,7 +4,7 @@ import { timeAgo } from '../lib/utils';
 interface Chapter {
   chapterNumber: number;
   title: string | null;
-  createdAt: string;
+  createdAt: string | number | Date;
   views: number;
   status: string;
 }

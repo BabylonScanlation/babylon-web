@@ -8,6 +8,18 @@ import { verifyFirebaseToken } from '../lib/firebase/server';
 import { deleteSession, setAuthCookie } from '../lib/session';
 import { generateRandomUsername, generateUUID } from '../lib/utils';
 
+async function determineUserRole(db: any, uid: string, superAdminUid: string | undefined) {
+  if (superAdminUid && uid === superAdminUid) {
+    return 'admin';
+  }
+  const userRole = await db
+    .select({ role: userRoles.role })
+    .from(userRoles)
+    .where(eq(userRoles.userId, uid))
+    .get();
+  return userRole?.role === 'admin' ? 'admin' : 'user';
+}
+
 export const authActions = {
   logout: defineAction({
     handler: async (_, context) => {
@@ -163,11 +175,7 @@ export const authActions = {
 
       await db
         .insert(users)
-        .values({
-          id: uid,
-          email: email,
-          username: usernameToUse,
-        })
+        .values({ id: uid, email: email, username: usernameToUse })
         .onConflictDoUpdate({
           target: users.id,
           set: {
@@ -178,24 +186,8 @@ export const authActions = {
         })
         .run();
 
-      let role = 'user';
-      const superAdminUid = env.SUPER_ADMIN_UID;
-
-      if (superAdminUid && uid === superAdminUid) {
-        role = 'admin';
-      } else {
-        const userRole = await db
-          .select({ role: userRoles.role })
-          .from(userRoles)
-          .where(eq(userRoles.userId, uid))
-          .get();
-        if (userRole && userRole.role === 'admin') {
-          role = 'admin';
-        }
-      }
-
+      const role = await determineUserRole(db, uid, env.SUPER_ADMIN_UID);
       const sessionId = generateUUID();
-      const userAgent = request.headers.get('user-agent') || 'unknown';
       const expiresIn = 60 * 60 * 24 * 7;
       const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
 
@@ -204,18 +196,13 @@ export const authActions = {
         .values({
           id: sessionId,
           userId: uid,
-          userAgent: userAgent,
+          userAgent: request.headers.get('user-agent') || 'unknown',
           expiresAt: expiresAt,
         })
         .run();
 
-      const url = new URL(request.url);
-      const isLocalIp =
-        url.hostname.startsWith('192.168.') ||
-        url.hostname.startsWith('10.') ||
-        url.hostname.startsWith('172.');
-      const isProduction = context.locals.runtime.env.PROD || false;
-      const secureFlag = isProduction && !isLocalIp;
+      const isLocal = new URL(request.url).hostname === 'localhost';
+      const secureFlag = (context.locals.runtime.env.PROD || false) && !isLocal;
 
       const cookieOptions = {
         path: '/',

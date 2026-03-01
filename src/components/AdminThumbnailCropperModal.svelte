@@ -21,7 +21,7 @@ const handleOpenModal = (event: Event) => {
   }>;
   const { detail } = customEvent;
 
-  if (detail && detail.chapterId && detail.seriesSlug && detail.chapterNumber) {
+  if (detail?.chapterId && detail.seriesSlug && detail.chapterNumber) {
     chapterId = detail.chapterId;
     seriesSlug = detail.seriesSlug;
     chapterNumber = detail.chapterNumber;

@@ -5,7 +5,7 @@ export const uiActions = {
     handler: async (_, context) => {
       const current = context.cookies.get('babylon_nsfw')?.value === 'true';
       const newValue = !current;
-      
+
       context.cookies.set('babylon_nsfw', newValue.toString(), {
         path: '/',
         maxAge: 60 * 60 * 24 * 365, // 1 year

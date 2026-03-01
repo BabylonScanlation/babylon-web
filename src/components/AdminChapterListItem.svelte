@@ -6,18 +6,17 @@ interface Chapter {
   id: number;
   title: string | null;
   chapterNumber: string | number; // Orion: Migrado a camelCase
-  urlPortada: string | null; // Orion: Migrado a camelCase
+  urlPortada: string | null;
+  messageThreadId: number | null;
 }
 
-let {
-  chapter = $bindable(),
-  seriesSlug,
-  r2PublicUrlAssets,
-} = $props<{
+interface Props {
   chapter: Chapter;
   seriesSlug: string;
   r2PublicUrlAssets: string;
-}>();
+}
+
+let { chapter, seriesSlug, r2PublicUrlAssets }: Props = $props();
 
 let title = $state(chapter.title || '');
 let isLoading = $state(false);
@@ -156,359 +155,197 @@ const finalUrl = $derived.by(() => {
 </script>
 
 <div class="chapter-card" class:selected={isSelected} class:loading={isLoading} data-chapter-id={chapter.id}>
-  <div class="card-cover">
-    <div class="img-container">
-        <img
-            src={finalUrl}
-            alt={`Portada Cap ${chapter.chapterNumber}`}
-            class="cover-img"
-            onerror={(e) => {
-                const img = e.currentTarget as HTMLImageElement;
-                if (img) {
-                    img.onerror = null;  
-                    img.src = `${r2PublicUrlAssets}/covers/placeholder-chapter.jpg`.replace(/([^:]\/)\/+/g, "$1");
-                }
-            }}
+    <div class="card-selection">
+        <input 
+            type="checkbox" 
+            bind:checked={isSelected} 
+            onchange={dispatchSelection}
+            class="chapter-checkbox"
         />
-        <div class="cover-overlay">
-            <button class="overlay-btn" onclick={() => fileInput?.click()} title="Subir imagen">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+    </div>
+
+    <div class="card-thumbnail">
+        <img src={finalUrl} alt={chapter.title || `Cap ${chapter.chapterNumber}`} />
+        <div class="thumb-overlay">
+            <button class="icon-btn" onclick={openCropper} title="Recortar miniatura">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"/><path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"/></svg>
             </button>
-            <button class="overlay-btn" onclick={openCropper} title="Recortar">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"></path><path d="M18 22V8a2 2 0 0 0-2-2H2"></path></svg>
-            </button>
+            <label class="icon-btn" title="Subir miniatura">
+                <input type="file" accept="image/*" onchange={handleThumbnailUpload} hidden />
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </label>
         </div>
     </div>
-    <div class="checkbox-wrapper">
-        <input 
-          type="checkbox" 
-          class="chapter-checkbox" 
-          bind:checked={isSelected} 
-          onchange={dispatchSelection} 
-          aria-label={`Seleccionar capítulo ${chapter.chapterNumber}`}
-        />
-    </div>
-    <input 
-        type="file" 
-        hidden 
-        accept="image/*" 
-        bind:this={fileInput} 
-        onchange={handleThumbnailUpload} 
-        aria-label="Subir miniatura de capítulo"
-    />
-  </div>
 
-  <div class="card-body">
-    <div class="meta-row">
-        <span class="chapter-badge"># {chapter.chapterNumber}</span>
+    <div class="card-main">
+        <div class="chapter-number">Capítulo {chapter.chapterNumber}</div>
+        <div class="title-row">
+            {#if isEditing}
+                <div class="edit-box">
+                    <input 
+                        type="text" 
+                        bind:value={title} 
+                        onkeydown={(e) => e.key === 'Enter' && saveTitle()}
+                        onblur={saveTitle}
+                        autofocus
+                    />
+                </div>
+            {:else}
+                <span 
+                    class="title-display" 
+                    onclick={() => isEditing = true}
+                    role="button"
+                    tabindex="0"
+                    onkeydown={(e) => e.key === 'Enter' && (isEditing = true)}
+                    title={chapter.title || 'Sin título'}
+                >
+                    {chapter.title || 'Sin título'}
+                </span>
+            {/if}
+        </div>
+    </div>
+
+    <div class="card-actions">
+        <a href={`/series/${seriesSlug}/${chapter.chapterNumber}`} class="action-btn" title="Ver capítulo">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </a>
         <button 
-            class="premium-delete-btn" 
+            class="action-btn delete" 
             class:is-confirming={deleteState === 'confirm'}
             class:is-deleting={deleteState === 'deleting'}
-            onclick={handleDelete} 
-            title={deleteState === 'confirm' ? '¿Confirmar eliminación?' : 'Eliminar capítulo'}
-            aria-label="Eliminar capítulo"
+            onclick={handleDelete}
+            title={deleteState === 'confirm' ? '¿Confirmar?' : 'Eliminar'}
         >
-            <div class="btn-icon-stack">
-              {#if deleteState === 'idle'}
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-              {:else if deleteState === 'confirm'}
-                <span class="confirm-label">ELIMINAR?</span>
-              {:else}
-                <div class="mini-loader"></div>
-              {/if}
-            </div>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         </button>
     </div>
 
-    <div class="title-row">
-        {#if isEditing}
-            <div class="edit-box">
-                <input 
-                    type="text" 
-                    bind:value={title} 
-                    class="title-input" 
-                    onkeydown={(e) => e.key === 'Enter' && saveTitle()} 
-                    onblur={() => { if(title === chapter.title) isEditing = false; }}
-                />
-                <button class="save-mini-btn" onmousedown={saveTitle}>OK</button>
-            </div>
-        {:else}
-            <div 
-                class="title-display" 
-                onclick={() => isEditing = true} 
-                title={chapter.title || 'Sin título'}
-                role="button"
-                tabindex="0"
-                onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (isEditing = true)}
-            >
-                {chapter.title || 'Sin título'}
-            </div>
-        {/if}
-    </div>
-    
     {#if message.text}
         <div class="status-toast" class:error={message.type === 'error'}>
             {message.text}
         </div>
     {/if}
-  </div>
 </div>
 
 <style>
   .chapter-card {
-    background: #252525;
+    display: flex;
+    align-items: center;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 14px;
+    padding: 0.75rem;
+    gap: 1rem;
+    position: relative;
+    transition: all 0.2s;
+  }
+
+  .chapter-card:hover { border-color: #444; background: #161616; }
+  .chapter-card.selected { border-color: var(--accent-color); background: rgba(0, 191, 255, 0.05); }
+  .chapter-card.loading { opacity: 0.6; pointer-events: none; }
+
+  .card-selection input { width: 18px; height: 18px; cursor: pointer; }
+
+  .card-thumbnail {
+    width: 60px;
+    height: 80px;
+    background: #000;
     border-radius: 8px;
     overflow: hidden;
     position: relative;
-    border: 1px solid rgba(255,255,255,0.05);
-    transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    height: 180px; 
+    flex-shrink: 0;
   }
 
-  .chapter-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    border-color: rgba(255,255,255,0.1);
-  }
+  .card-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
 
-  .chapter-card.selected {
-    border-color: #4facfe;
-    background: rgba(79, 172, 254, 0.05);
-  }
-
-  .chapter-card.loading {
-    opacity: 0.6;
-    pointer-events: none;
-  }
-
-  .card-cover {
-    height: 100px;
-    position: relative;
-    background: #000;
-    overflow: hidden;
-  }
-
-  .img-container {
-    width: 100%;
-    height: 100%;
-    position: relative;
-  }
-
-  .cover-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s;
-  }
-
-  .chapter-card:hover .cover-img {
-    transform: scale(1.05);
-  }
-
-  .cover-overlay {
+  .thumb-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.7);
     display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
     opacity: 0;
     transition: opacity 0.2s;
   }
 
-  .card-cover:hover .cover-overlay {
-    opacity: 1;
-  }
+  .card-thumbnail:hover .thumb-overlay { opacity: 1; }
 
-  .overlay-btn {
-    background: rgba(255,255,255,0.2);
+  .icon-btn {
+    background: rgba(255,255,255,0.1);
     border: none;
     color: #fff;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(4px);
-    transition: background 0.2s;
-  }
-
-  .overlay-btn:hover {
-    background: #4facfe;
-  }
-
-  .checkbox-wrapper {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    z-index: 10;
-  }
-
-  .chapter-checkbox {
-    width: 16px;
-    height: 16px;
     cursor: pointer;
-    accent-color: #4facfe;
+    transition: all 0.2s;
   }
 
-  .card-body {
-    padding: 0.8rem;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
+  .icon-btn:hover { background: var(--accent-color); color: #000; }
 
-  .meta-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.4rem;
-  }
+  .card-main { flex: 1; min-width: 0; }
+  .chapter-number { font-size: 0.75rem; font-weight: 800; color: var(--accent-color); text-transform: uppercase; margin-bottom: 0.25rem; }
+  
+  .title-row { font-size: 0.95rem; font-weight: 600; color: #eee; }
+  .title-display { cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .title-display:hover { color: #fff; text-decoration: underline; }
 
-  .chapter-badge {
-    font-size: 0.75rem;
-    font-weight: 800;
-    color: #aaa;
-    background: rgba(255,255,255,0.05);
+  .edit-box input {
+    background: #000;
+    border: 1px solid var(--accent-color);
+    color: #fff;
     padding: 2px 6px;
     border-radius: 4px;
-    text-transform: uppercase;
-  }
-
-  .premium-delete-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #666;
-    height: 28px;
-    padding: 0 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    opacity: 0;
-  }
-
-  .chapter-card:hover .premium-delete-btn {
-    opacity: 1;
-  }
-
-  .premium-delete-btn:hover {
-    color: #ff4757;
-    background: rgba(255, 71, 87, 0.1);
-    border-color: rgba(255, 71, 87, 0.2);
-  }
-
-  .premium-delete-btn.is-confirming {
-    opacity: 1;
-    background: #ff4757;
-    color: #fff;
-    border-color: #ff4757;
-    box-shadow: 0 0 15px rgba(255, 71, 87, 0.4);
-    animation: quick-shake 0.3s ease-in-out;
-  }
-
-  .confirm-label {
-    font-size: 0.65rem;
-    font-weight: 900;
-    letter-spacing: 0.05em;
-  }
-
-  .mini-loader {
-    width: 14px;
-    height: 14px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes quick-shake {
-    0% { transform: translateX(0); }
-    25% { transform: translateX(-4px); }
-    50% { transform: translateX(4px); }
-    75% { transform: translateX(-4px); }
-    100% { transform: translateX(0); }
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .title-row {
-    flex-grow: 1;
-    display: flex;
-    align-items: center;
-  }
-
-  .title-display {
+    width: 100%;
     font-size: 0.9rem;
-    font-weight: 500;
-    color: #e0e0e0;
-    line-height: 1.3;
-    cursor: text;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    width: 100%;
-  }
-
-  .title-display:hover {
-    color: #fff;
-    text-decoration: underline;
-    text-decoration-color: #444;
-  }
-
-  .edit-box {
-    display: flex;
-    gap: 4px;
-    width: 100%;
-  }
-
-  .title-input {
-    width: 100%;
-    background: #111;
-    border: 1px solid #4facfe;
-    color: #fff;
-    font-size: 0.85rem;
-    padding: 4px 6px;
-    border-radius: 4px;
     outline: none;
   }
 
-  .save-mini-btn {
-    background: #4facfe;
-    color: #000;
+  .card-actions { display: flex; gap: 0.5rem; }
+  .action-btn {
+    background: #222;
     border: none;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: bold;
-    padding: 0 6px;
+    color: #888;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
   }
+
+  .action-btn:hover { background: #333; color: #fff; }
+  .action-btn.delete:hover { background: #ff4757; color: #fff; }
+  .action-btn.delete.is-confirming { background: #ffa502; color: #000; animation: pulse 1s infinite; }
+  .action-btn.delete.is-deleting { background: #2f3542; cursor: wait; }
+
+  @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
   .status-toast {
     position: absolute;
-    bottom: 8px;
-    right: 8px;
-    background: #2ecc71;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2ed573;
     color: #000;
     font-size: 0.7rem;
-    font-weight: bold;
+    font-weight: 800;
     padding: 2px 6px;
     border-radius: 4px;
     animation: popIn 0.2s;
+    z-index: 10;
   }
 
   .status-toast.error { background: #ff4757; color: #fff; }
 
-  @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes popIn { from { transform: scale(0.8) translateX(-50%); opacity: 0; } to { transform: scale(1) translateX(-50%); opacity: 1; } }
 </style>

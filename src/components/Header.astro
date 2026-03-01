@@ -16,11 +16,15 @@ if (user) {
 
     // Si las preferencias no están en locals (JWT path), intentamos un fetch rápido de DB
     if (!prefs && db) {
-      const dbUser = await db.select({ preferences: users.preferences }).from(users).where(eq(users.id, user.uid)).get();        
+      const dbUser = await db
+        .select({ preferences: users.preferences })
+        .from(users)
+        .where(eq(users.id, user.uid))
+        .get();
       prefs = dbUser?.preferences;
     }
 
-    const parsedPrefs = typeof prefs === 'string' ? JSON.parse(prefs) : (prefs || {});
+    const parsedPrefs = typeof prefs === 'string' ? JSON.parse(prefs) : prefs || {};
     lastSeenId = parsedPrefs?.lastSeenNewsId || null;
   } catch (e) {
     console.error('[Header Prefs Error]:', e);
@@ -56,7 +60,7 @@ if (db) {
       if (latestNews && latestNews.length > 0) {
         const lastSeenIdStr = String(lastSeenId).trim();
         const lastSeenIndex = latestNews.findIndex((n) => String(n.id).trim() === lastSeenIdStr);
-        
+
         if (lastSeenIndex === -1) {
           const result = await db
             .select({ total: count() })

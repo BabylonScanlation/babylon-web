@@ -4,8 +4,8 @@ import { chapterActions } from './chapters';
 import { commentActions } from './comments';
 import { newsActions } from './news';
 import { seriesActions } from './series';
-import { userActions } from './user';
 import { uiActions } from './ui';
+import { userActions } from './user';
 
 export const server = {
   admin: adminActions,

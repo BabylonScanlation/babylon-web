@@ -72,7 +72,7 @@ export async function authFlow(context: any, next: MiddlewareNext) {
           )
           .get();
 
-        if (result && result.session) {
+        if (result?.session) {
           const uid = result.session.userId;
           const userObj = {
             uid,
@@ -87,7 +87,7 @@ export async function authFlow(context: any, next: MiddlewareNext) {
             preferences: result.user.preferences || '{}',
           };
           locals.user = userObj;
-          
+
           // Guardar en cache para evitar la query en el próximo clic
           sessionCache.set(sessionId, { user: userObj, expires: Date.now() + SESSION_CACHE_TTL });
         } else {

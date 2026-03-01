@@ -28,7 +28,7 @@ export class NewsService {
     this.syncWithServer();
 
     window.addEventListener('new-news-created', () => {
-      const current = parseInt(localStorage.getItem(KEYS.COUNT) || '0');
+      const current = parseInt(localStorage.getItem(KEYS.COUNT) || '0', 10);
       localStorage.setItem(KEYS.COUNT, (current + 1).toString());
       this.updateUI();
     });
@@ -60,7 +60,7 @@ export class NewsService {
           localStorage.setItem(KEYS.COUNT, data.count.toString());
           this.updateUI();
         }
-      } catch (e) {
+      } catch (_e) {
         // Silencioso en producción
       }
     }
@@ -77,7 +77,7 @@ export class NewsService {
       return;
     }
 
-    const count = parseInt(localStorage.getItem(KEYS.COUNT) || '0');
+    const count = parseInt(localStorage.getItem(KEYS.COUNT) || '0', 10);
     badges.forEach((el) => {
       if (count > 0) {
         el.textContent = count > 9 ? '+9' : count.toString();

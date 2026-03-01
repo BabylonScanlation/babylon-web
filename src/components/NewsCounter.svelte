@@ -1,6 +1,5 @@
 <script lang="ts">
 import { onMount } from 'svelte';
-import { fade, scale } from 'svelte/transition';
 import { newsStore } from '../lib/newsStore.svelte';
 
 interface Props {

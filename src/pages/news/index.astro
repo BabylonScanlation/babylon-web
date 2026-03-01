@@ -1,19 +1,18 @@
 ---
 import { eq } from 'drizzle-orm';
-import { SITE_TITLE } from '../../consts';
 import { users } from '../../db/schema';
-import Layout from '../../layouts/Layout.astro';
 import { getNewsList } from '../../lib/data/news';
 import { getDB } from '../../lib/db';
+import Layout from '../../layouts/Layout.astro';
+import { siteConfig } from '../../site.config';
 
 const drizzleDb = getDB(Astro.locals.runtime.env);
 const { user } = Astro.locals;
 
 // Astra: El modo NSFW ahora es global vía cookies (logo del header)
 const nsfwCookieValue = Astro.cookies.get('babylon_nsfw')?.value;
-const allowNsfw = typeof nsfwCookieValue === 'string' 
-  ? nsfwCookieValue === 'true' 
-  : (user?.isNsfw || false);
+const allowNsfw =
+  typeof nsfwCookieValue === 'string' ? nsfwCookieValue === 'true' : user?.isNsfw || false;
 
 const newsItems = (await getNewsList(drizzleDb, 'published', undefined, allowNsfw)) || [];
 
@@ -34,7 +33,10 @@ if (newsItems.length > 0 && newsItems[0]) {
   if (user?.uid) {
     try {
       const dbUser = await drizzleDb.select().from(users).where(eq(users.id, user.uid)).get();
-      const currentPrefs = typeof dbUser?.preferences === 'string' ? JSON.parse(dbUser.preferences) : (dbUser?.preferences || {});
+      const currentPrefs =
+        typeof dbUser?.preferences === 'string'
+          ? JSON.parse(dbUser.preferences)
+          : dbUser?.preferences || {};
       const newPrefs = JSON.stringify({ ...currentPrefs, lastSeenNewsId: latestId });
 
       await drizzleDb
@@ -49,7 +51,7 @@ if (newsItems.length > 0 && newsItems[0]) {
 }
 ---
 
-<Layout title={`Noticias - ${SITE_TITLE}`}>
+<Layout title={`Noticias - ${siteConfig.shortName}`}>
   <script is:inline>
     // LIMPIEZA ATÓMICA DE NOTICIAS
     function clearNewsStatus() {
@@ -93,7 +95,7 @@ if (newsItems.length > 0 && newsItems[0]) {
       {
         newsItems.length === 0 ? (
           <div class="empty-news">
-            <div class="news-image-placeholder">{SITE_TITLE} News</div>
+            <div class="news-image-placeholder">{siteConfig.shortName} News</div>
             <p>No hay noticias publicadas aún.</p>
           </div>
         ) : (
@@ -117,7 +119,7 @@ if (newsItems.length > 0 && newsItems[0]) {
                       loading="lazy"
                     />
                   ) : (
-                    <div class="news-image-placeholder">{SITE_TITLE} News</div>
+                    <div class="news-image-placeholder">{siteConfig.shortName} News</div>
                   )}
                   <div class="read-overlay">
                     <span>¿Leer noticia?</span>

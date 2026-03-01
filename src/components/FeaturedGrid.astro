@@ -41,7 +41,7 @@ const displayMangas = mangas.slice(0, 6);
 
             <div class="card-badge-vistas">
               <div class="glass-tag">
-                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="3" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="3" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"/></svg>
                 <span>{manga.views?.toLocaleString() || 0}</span>
               </div>
             </div>
@@ -284,7 +284,6 @@ const displayMangas = mangas.slice(0, 6);
       line-height: 1.3;
     } 
     .section-title { font-size: 1.2rem; }
-    .card-footer-action { display: none; } /* Simplify card footer */
     .glass-tag { padding: 2px 6px; font-size: 0.65rem; }
   }
 </style>

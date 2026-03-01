@@ -1,7 +1,7 @@
 <script lang="ts">
-import { navigate } from 'astro:transitions/client';
-import { onDestroy, onMount, untrack } from 'svelte';
 import { fade, slide } from 'svelte/transition';
+import { navigate } from 'astro:transitions/client';
+import { onDestroy, onMount } from 'svelte';
 
 const sortOptions = [
   { value: 'relevance', label: 'Relevancia' },
@@ -49,13 +49,13 @@ let activeFilters = $state({
 
 // Orion: Calculamos si hay filtros activos de forma reactiva con $derived
 const hasActiveFilters = $derived(
-  activeFilters.genres.length > 0 || 
-  activeFilters.type !== 'all' || 
-  activeFilters.author !== '' || 
-  activeFilters.artist !== '' ||
-  activeFilters.publisher !== '' ||
-  activeFilters.magazine !== '' ||
-  activeFilters.status !== 'all'
+  activeFilters.genres.length > 0 ||
+    activeFilters.type !== 'all' ||
+    activeFilters.author !== '' ||
+    activeFilters.artist !== '' ||
+    activeFilters.publisher !== '' ||
+    activeFilters.magazine !== '' ||
+    activeFilters.status !== 'all'
 );
 
 // Estado temporal (mientras el usuario edita)
@@ -151,425 +151,297 @@ function apply() {
 }
 </script>
 
-<div class="filter-system-container">
-  <div class="controls-bar">
-    <button type="button" class="filter-icon-btn" class:active={isAdvancedOpen} onclick={toggleAdvanced}>
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5">
-        <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>
-        <line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>
-        <line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>
-        <line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line>
-      </svg>
-      {#if activeFilters.genres.length > 0 || activeFilters.type !== 'all' || activeFilters.author || activeFilters.artist}
-        <span class="active-dot"></span>
+<div class="search-filters-bar">
+  <div class="filters-container">
+    <div class="quick-filters">
+      <div class="select-wrapper">
+        <select bind:value={activeFilters.sort} onchange={apply}>
+          {#each sortOptions as opt}
+            <option value={opt.value}>{opt.label}</option>
+          {/each}
+        </select>
+      </div>
+
+      <div class="select-wrapper">
+        <select bind:value={activeFilters.type} onchange={apply}>
+          {#each typeOptions as opt}
+            <option value={opt.value}>{opt.label}</option>
+          {/each}
+        </select>
+      </div>
+    </div>
+
+    <button class="advanced-toggle" class:has-filters={hasActiveFilters} onclick={toggleAdvanced}>
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <span>Filtros avanzados</span>
+      {#if hasActiveFilters}
+        <span class="indicator"></span>
       {/if}
     </button>
   </div>
+</div>
 
-  {#if isAdvancedOpen}
-    <div class="filter-overlay full-screen-overlay" 
-      onclick={cancel} 
+{#if isAdvancedOpen}
+  <div class="modal-overlay" transition:fade={{ duration: 200 }} 
+      onclick={cancel}
       onkeydown={(e) => e.key === 'Escape' && cancel()}
       role="button"
       tabindex="-1"
-      aria-label="Cerrar filtros"
-      in:fade={{ duration: 200 }}></div>
-    
-    <div class="floating-panel" in:slide={{ axis: 'y' }} out:fade>
-      <!-- HEADER -->
-      <div class="panel-header">
+  >
+    <div class="modal-panel" transition:slide={{ axis: 'y', duration: 400 }} onclick={(e) => e.stopPropagation()} role="presentation">
+      <div class="modal-header">
         <h3>Filtros</h3>
         <button type="button" class="reset-link" onclick={resetFilters}>Limpiar</button>
       </div>
 
-      <!-- BODY -->
-      <div class="panel-body">
-        <!-- FORMAT SECTION -->
-        <div class="filter-group full-width">
-          <span class="filter-label">Formato</span>
-          <div class="pills-grid">
-            {#each typeOptions as t (t.value)}
-              <button 
-                type="button"
-                class:active={stagingFilters.type === t.value} 
-                onclick={() => stagingFilters.type = t.value}
-              >{t.label}</button>
-            {/each}
-          </div>
-        </div>
-
-        <div class="input-grid">
-          <div class="filter-group">
-            <label class="filter-label" for="f-author">Autor</label>
-            <input type="text" id="f-author" bind:value={stagingFilters.author} placeholder="Nombre..." />
-          </div>
-          <div class="filter-group">
-            <label class="filter-label" for="f-artist">Artista</label>
-            <input type="text" id="f-artist" bind:value={stagingFilters.artist} placeholder="Nombre..." />
-          </div>
-        </div>
-
-        <div class="input-grid">
-          <div class="filter-group">
-            <label class="filter-label" for="f-pub">Editorial</label>
-            <input type="text" id="f-pub" bind:value={stagingFilters.publisher} placeholder="Editorial..." />
-          </div>
-          <div class="filter-group">
-            <label class="filter-label" for="f-mag">Revista</label>
-            <input type="text" id="f-mag" bind:value={stagingFilters.magazine} placeholder="Revista..." />
-          </div>
-        </div>
-
-        <!-- GENRES SECTION -->
-        <div class="filter-group full-width">
-          <div class="label-with-badge">
-            <span class="filter-label">Géneros</span>
-            {#if stagingFilters.genres.length > 0}
-              <span class="count-badge" in:fade>{stagingFilters.genres.length}</span>
-            {/if}
-          </div>
+      <div class="modal-body">
+        <section class="filter-section">
+          <h4>Géneros</h4>
           <div class="genres-grid">
-            {#each commonGenres as g (g)}
+            {#each commonGenres as genre}
               <button 
                 type="button"
                 class="genre-chip" 
-                class:active={stagingFilters.genres.includes(g)}
-                onclick={() => toggleGenre(g)}
-              >{g}</button>
+                class:active={stagingFilters.genres.includes(genre)}
+                onclick={() => toggleGenre(genre)}
+              >
+                {genre}
+              </button>
             {/each}
           </div>
-        </div>
+        </section>
 
-        <div class="input-grid">
-          <div class="filter-group">
-            <label class="filter-label" for="f-sort">Orden</label>
-            <select id="f-sort" bind:value={stagingFilters.sort}>
-              {#each sortOptions as opt (opt.value)}
-                <option value={opt.value}>{opt.label}</option>
-              {/each}
-            </select>
+        <section class="filter-section">
+          <h4>Estado de publicación</h4>
+          <div class="pills-grid">
+            {#each ['all', 'Ongoing', 'Completed', 'Hiatus', 'Dropped'] as st}
+              <button 
+                type="button"
+                class:active={stagingFilters.status === st}
+                onclick={() => stagingFilters.status = st}
+              >
+                {st === 'all' ? 'Cualquiera' : st}
+              </button>
+            {/each}
           </div>
-          <div class="filter-group">
-            <label class="filter-label" for="f-status">Estado</label>
-            <select id="f-status" bind:value={stagingFilters.status}>
-              <option value="all">Todo</option>
-              <option value="En emisión">En emisión</option>
-              <option value="Finalizado">Finalizado</option>
-            </select>
+        </section>
+
+        <div class="inputs-row">
+          <div class="input-group">
+            <label for="author">Autor</label>
+            <input id="author" type="text" bind:value={stagingFilters.author} placeholder="Nombre del autor..." />
+          </div>
+          <div class="input-group">
+            <label for="artist">Artista</label>
+            <input id="artist" type="text" bind:value={stagingFilters.artist} placeholder="Nombre del artista..." />
           </div>
         </div>
       </div>
 
-      <!-- FOOTER -->
-      <div class="panel-footer">
+      <div class="modal-footer">
         <button type="button" class="btn-cancel" onclick={cancel}>Cancelar</button>
-        <button type="button" class="btn-apply" onclick={apply}>Aplicar</button>
+        <button type="button" class="btn-apply" onclick={apply}>Aplicar Filtros</button>
       </div>
     </div>
-  {/if}
-</div>
+  </div>
+{/if}
 
 <style>
-  .filter-system-container { position: relative; }
-  
-  .filter-icon-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #fff;
-    width: 46px;
-    height: 46px;
-    border-radius: 12px;
+  .search-filters-bar {
+    margin-bottom: 2rem;
+    position: sticky;
+    top: 70px;
+    z-index: 100;
+    background: rgba(10, 10, 15, 0.8);
+    backdrop-filter: blur(12px);
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .filters-container {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    position: relative;
-    transition: all 0.2s;
-  }
-  .filter-icon-btn.active { background: var(--accent-color); color: #000; border-color: var(--accent-color); }
-  
-  .active-dot { 
-    position: absolute; 
-    top: 8px; 
-    right: 8px; 
-    width: 8px; 
-    height: 8px; 
-    background: #ff4444; 
-    border: 2px solid #000; 
-    border-radius: 50%; 
-  }
-
-  .filter-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 7000; }
-
-  .floating-panel {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #111;
-    border-radius: 24px 24px 0 0;
-    z-index: 7001;
-    display: flex;
-    flex-direction: column;
-    max-height: 80vh;
-    box-shadow: 0 -15px 50px rgba(0,0,0,0.8);
-  }
-
-  .panel-header { 
-    padding: 1.25rem 1.5rem; 
-    border-bottom: 1px solid rgba(255,255,255,0.05); 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center;
-  }
-  .panel-header h3 { margin: 0; font-size: 1rem; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; }
-  .reset-link { background: none; border: none; color: #666; font-weight: 700; font-size: 0.75rem; cursor: pointer; }
-
-  .panel-body { 
-    overflow-y: auto; 
-    padding: 1.5rem; 
-    flex: 1; 
-    overscroll-behavior: contain;
-  }
-  .panel-body::-webkit-scrollbar { width: 4px; }
-  .panel-body::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-
-  .filter-group { margin-bottom: 1.5rem; }
-  .filter-group.full-width { grid-column: span 2; }
-  
-  .filter-label { 
-    display: block; 
-    text-align: center;
-    font-size: 0.7rem; 
-    font-weight: 800; 
-    text-transform: uppercase; 
-    color: var(--accent-color); 
-    letter-spacing: 0.1em;
-    margin-bottom: 0.75rem; 
-    opacity: 0.9;
-  }
-
-  .label-with-badge {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-  }
-  .label-with-badge .filter-label { margin-bottom: 0; }
-  
-  .count-badge {
-    background: var(--accent-color);
-    color: #000;
-    font-size: 0.6rem;
-    font-weight: 900;
-    padding: 2px 8px;
-    border-radius: 6px;
-    box-shadow: 0 0 15px rgba(0, 191, 255, 0.3);
-  }
-
-  .input-grid { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 1rem; 
-    margin-bottom: 0.5rem; 
-  }
-
-  input[type="text"], select {
-    width: 100%;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #fff;
-    padding: 0.8rem 1rem;
-    border-radius: 14px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    outline: none;
-    transition: all 0.3s;
-    appearance: none; /* Reset standard styling */
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 1rem center;
-    background-size: 1em;
-  }
-
-  option {
-    background-color: #111;
-    color: #fff;
-    padding: 10px;
-  }
-
-  input:focus, select:focus { 
-    background-color: rgba(255, 255, 255, 0.06);
-    border-color: var(--accent-color); 
-    box-shadow: 0 0 0 4px rgba(0, 191, 255, 0.1);
-  }
-
-  .pills-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
-  .pills-grid button {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #999;
-    padding: 0.7rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .pills-grid button.active { 
-    background: #fff; 
-    color: #000; 
-    border-color: #fff;
-    box-shadow: 0 5px 15px rgba(255,255,255,0.1);
-  }
-
-  .genres-grid { 
-    display: flex; 
-    flex-wrap: wrap; 
-    gap: 0.6rem; 
-    background: rgba(255, 255, 255, 0.02);
-    padding: 1rem;
-    border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-  .genre-chip {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #aaa;
-    padding: 0.5rem 1rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .genre-chip:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
-  .genre-chip.active { 
-    background: var(--accent-color); 
-    border-color: var(--accent-color); 
-    color: #000; 
-    font-weight: 800;
-    box-shadow: 0 4px 12px rgba(0, 191, 255, 0.2);
-  }
-
-  .panel-footer {
-    padding: 1.2rem 1.5rem 2rem;
-    background: #161616;
-    border-top: 1px solid rgba(255,255,255,0.05);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
     gap: 1rem;
   }
 
-  .btn-cancel { background: transparent; border: 1px solid #333; color: #888; padding: 0.9rem; border-radius: 12px; font-weight: 700; cursor: pointer; }
-  .btn-apply { background: #fff; color: #000; border: none; padding: 0.9rem; border-radius: 12px; font-weight: 800; cursor: pointer; text-transform: uppercase; }
+  .quick-filters { display: flex; gap: 0.75rem; }
 
-  @media (min-width: 1024px) {
-    /* --- MODAL PANORÁMICO PC (Flex Denso) --- */
-    .floating-panel {
-        position: fixed !important;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 1000px; 
-        max-width: 95vw;
-        min-height: 600px;
-        border-radius: 32px;
-        border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(10, 10, 15, 0.98);
-        box-shadow: 0 50px 100px rgba(0,0,0,0.9);
-        z-index: 20000 !important;
-        max-height: 85vh;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
+  .select-wrapper {
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0 0.5rem;
+  }
+
+  select {
+    background: transparent;
+    border: none;
+    color: #fff;
+    padding: 0.6rem 1.5rem 0.6rem 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+  }
+
+  .select-wrapper::after {
+    content: "↓";
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
+  .advanced-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #aaa;
+    padding: 0.6rem 1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .advanced-toggle:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+  .advanced-toggle.has-filters { border-color: var(--accent-color); color: var(--accent-color); }
+
+  .indicator {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 10px;
+    height: 10px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent-color);
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 5vh;
+  }
+
+  .modal-panel {
+    background: #15151a;
+    width: 95%;
+    max-width: 600px;
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-header {
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .modal-header h3 { margin: 0; font-size: 1.25rem; font-weight: 900; }
+  .reset-link { background: none; border: none; color: #666; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
+  .reset-link:hover { color: var(--accent-color); }
+
+  .modal-body { padding: 2rem; overflow-y: auto; max-height: 60vh; }
+
+  .filter-section { margin-bottom: 2rem; }
+  .filter-section h4 { font-size: 0.85rem; color: #555; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; font-weight: 800; }
+
+  .genres-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .genre-chip {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #888;
+    padding: 0.6rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .genre-chip:hover { border-color: #444; color: #fff; }
+  .genre-chip.active { background: var(--accent-color); color: #000; border-color: var(--accent-color); font-weight: 800; }
+
+  .pills-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .pills-grid button {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #888;
+    padding: 0.6rem 1.2rem;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .pills-grid button.active { background: #fff; color: #000; }
+
+  .inputs-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem; }
+  .input-group { display: flex; flex-direction: column; gap: 0.5rem; }
+  .input-group label { font-size: 0.8rem; font-weight: 700; color: #555; }
+  input {
+    background: #000;
+    border: 1px solid #222;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    color: #fff;
+    outline: none;
+  }
+  input:focus { border-color: var(--accent-color); }
+
+  .modal-footer {
+    padding: 1.5rem 2rem;
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    gap: 1rem;
+  }
+
+  .btn-cancel { flex: 1; background: transparent; border: 1px solid #333; color: #888; padding: 0.8rem; border-radius: 14px; font-weight: 700; cursor: pointer; }
+  .btn-apply { flex: 2; background: var(--accent-color); color: #000; border: none; padding: 0.8rem; border-radius: 14px; font-weight: 800; cursor: pointer; }
+
+  @media (max-width: 640px) {
+    .search-filters-bar { top: 60px; }
+    .inputs-row { grid-template-columns: 1fr; }
+    .advanced-toggle span { display: none; }
+    .advanced-toggle { padding: 0.6rem; }
+    
+    .modal-panel { 
+        position: fixed;
+        bottom: 0;
+        border-radius: 28px 28px 0 0;
+        max-height: 90vh;
     }
     
-    .panel-body {
-        padding: 2.5rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem; /* Separación vertical eliminada/minimizada */
-        overflow-y: auto;
-    }
-
-    /* Convertir Grids a Flex Wrap Denso */
-    .input-grid, .pills-grid { 
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center; 
-        gap: 0.5rem;
-        width: 100%;
-    }
-
-    /* Inputs que se expanden para llenar huecos */
-    .filter-group {
-        flex: 1 1 180px; 
-        min-width: 160px;
-        max-width: 100%;
-    }
-
-    .pills-grid button, .genre-chip {
-        flex: 1 1 auto; 
-        text-align: center;
-        padding: 0.6rem 1rem;
-    }
-
-    /* Corrección de alineación de etiquetas a la IZQUIERDA */
-    .filter-label {
-        text-align: left !important;
-        margin-left: 0.5rem;
-        font-size: 0.65rem;
-        margin-bottom: 0.25rem;
-    }
-
-    .label-with-badge {
-        justify-content: flex-start !important;
-        padding-left: 0.5rem;
-        margin-bottom: 0.25rem;
-    }
-
-    .panel-footer {
-        padding: 1rem 3.5rem;
-        justify-content: flex-end;
-        display: flex;
-        gap: 1rem;
-        border-top: 1px solid rgba(255,255,255,0.05);
-    }
-
-    /* Botones de Acción Mini */
-    .btn-cancel, .btn-apply {
-        width: auto;
-        padding: 0.6rem 1.5rem; 
-        font-size: 0.75rem;
-        border-radius: 100px;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-weight: 800;
-    }
-
-    .btn-cancel { border-color: rgba(255,255,255,0.1); background: transparent; color: #666; }
-    .btn-cancel:hover { color: #fff; background: rgba(255,255,255,0.05); }
-    .btn-apply { min-width: 120px; }
-
-    /* Botón PC Refinado (64px) */
-    .filter-icon-btn {
-        width: 64px;
-        height: 64px;
-        padding: 0;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-shrink: 0;
-    }
-
-    .filter-icon-btn::after { display: none; } 
-
-    .filter-icon-btn:hover {
+    .genre-chip:active {
         background: rgba(255, 255, 255, 0.1);
         border-color: var(--accent-color);
         transform: translateY(-2px);

@@ -44,7 +44,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const { type } = body;
     const id = Number(body.id); // Ensure numeric ID
 
-    if (!['series', 'chapter'].includes(type) || isNaN(id)) {
+    if (!['series', 'chapter'].includes(type) || Number.isNaN(id)) {
       return new Response(JSON.stringify({ error: 'Invalid parameters' }), { status: 400 });
     }
 

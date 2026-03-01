@@ -1,17 +1,16 @@
 ---
-import AdminSeriesManager from '../../components/AdminSeriesManager.astro';
-import AdminThumbnailCropperModalSvelte from '../../components/AdminThumbnailCropperModal.svelte';
-// src/pages/admin/series.astro
-import Layout from '../../layouts/Layout.astro';
 import { getAdminSeriesWithChapters } from '../../lib/data/admin';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
+import Layout from '../../layouts/Layout.astro';
+import AdminSeriesManager from '../../components/AdminSeriesManager.astro';
+import AdminThumbnailCropperModalSvelte from '../../components/AdminThumbnailCropperModal.svelte';
 
-const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
+const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 
 const limit = 12;
 const offsetParam = Astro.url.searchParams.get('offset');
-const offset = offsetParam ? parseInt(offsetParam) : 0;
+const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
 const searchQuery = Astro.url.searchParams.get('q') || '';
 
 let allSeries: any[] = [];

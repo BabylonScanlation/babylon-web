@@ -1,9 +1,8 @@
 ---
 import { getAllNews, getDB, getNewsImages, type NewsImageItem, type NewsItem } from '../lib/db';
 import { logError } from '../lib/logError';
-import { siteConfig } from '../site.config';
-// src/components/NewsFeed.astro
 import type { User } from '../types';
+import { siteConfig } from '../site.config';
 
 interface Props {
   seriesId?: number | null;

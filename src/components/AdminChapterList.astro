@@ -1,26 +1,6 @@
 ---
-// src/components/AdminChapterList.astro
 import AdminChapterListItem from './AdminChapterListItem.svelte';
-
-interface Chapter {
-  id: number;
-  seriesId: number;
-  chapterNumber: number;
-  title: string | null;
-  telegramFileId: string;
-  urlPortada: string | null;
-  status: string;
-  views: number | null;
-  createdAt: string | null;
-}
-
-interface Series {
-  id: number;
-  title: string;
-  slug: string;
-  chapters: Chapter[];
-  isAppSeries: boolean | null;
-}
+import type { Series } from '../types';
 
 interface Props {
   series: Series;
@@ -28,13 +8,14 @@ interface Props {
 }
 
 const { series, r2PublicUrlAssets } = Astro.props;
+const chapters = series.chapters || [];
 ---
 
 <chapter-manager class="chapters-manager">
   <div class="manager-header">
     <div class="header-title">
       <h3>Capítulos</h3>
-      <span class="counter-badge chapter-count">{series.chapters.length}</span>
+      <span class="counter-badge chapter-count">{chapters.length}</span>
     </div>
 
     <!-- Acciones en Lote (Ocultas por defecto) -->
@@ -84,8 +65,8 @@ const { series, r2PublicUrlAssets } = Astro.props;
   <div class="chapters-scroll-area">
     <div class="chapters-grid table-body">
       {
-        series.chapters.length > 0 ? (
-          series.chapters.map((chapter) => (
+        chapters.length > 0 ? (
+          chapters.map((chapter: any) => (
             <AdminChapterListItem
               client:load
               chapter={chapter}
@@ -400,11 +381,11 @@ const { series, r2PublicUrlAssets } = Astro.props;
           targetTotal: targetChapter,
         });
 
-        if (!error) {
+        if (!error && data) {
           toast.success(`¡Éxito! Se añadieron ${data.added} capítulos.`);
           setTimeout(() => window.location.reload(), 1500);
         } else {
-          toast.error(`Error: ${error.message}`);
+          toast.error(`Error: ${error?.message || 'Error desconocido'}`);
           this.fillChaptersBtn.textContent = originalText;
           (this.fillChaptersBtn as HTMLButtonElement).disabled = false;
           this.fillChaptersInput.disabled = false;

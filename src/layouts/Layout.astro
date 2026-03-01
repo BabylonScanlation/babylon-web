@@ -1,16 +1,15 @@
 ---
 import '../styles/global.css';
 import '../styles/components.css';
-import AdblockWall from '../components/AdblockWall.astro';
-import AgeGate from '../components/AgeGate.svelte';
-import AppBanner from '../components/AppBanner.svelte';
-import AuthModal from '../components/AuthModal.svelte';
-import BottomNav from '../components/BottomNav.astro';
-import Footer from '../components/Footer.astro';
-import Header from '../components/Header.astro';
-import Skeletons from '../components/Skeletons.astro';
-import ToastContainer from '../components/ToastContainer.svelte';
 import { siteConfig } from '../site.config';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import BottomNav from '../components/BottomNav.astro';
+import AuthModal from '../components/AuthModal.svelte';
+import AgeGate from '../components/AgeGate.svelte';
+import ToastContainer from '../components/ToastContainer.svelte';
+import AppBanner from '../components/AppBanner.svelte';
+import AdblockWall from '../components/AdblockWall.astro';
 
 const {
   title: pageTitle,
@@ -35,11 +34,10 @@ const isVerified = Astro.cookies.get('site_verified')?.value === 'true';
 const isBot = (Astro.locals as any).isBot;
 const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage && !isBot;
 
-// Astra: Detección de modo NSFW. 
+// Astra: Detección de modo NSFW.
 // Prioridad: 1. Prop de la página (para forzar color en series específicas) -> 2. Cookie Global
-const isNsfw = isNsfwContent !== undefined 
-  ? isNsfwContent 
-  : (Astro.cookies.get('babylon_nsfw')?.value === 'true');
+const isNsfw =
+  isNsfwContent !== undefined ? isNsfwContent : Astro.cookies.get('babylon_nsfw')?.value === 'true';
 
 // Orion: URL Base para metadatos absolutos
 const siteUrl = siteConfig.url;
@@ -179,11 +177,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     
     <script>
       // Astra: Motor de Física Estelar (Paralaje 2.0)
-      const cleanupCosmos: any = null;
-
       const initCosmos = () => {
-        if (cleanupCosmos) cleanupCosmos();
-
         const bg = document.querySelector('.cosmos-bg');
         if (!bg) return;
 
@@ -213,13 +207,11 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         const D_NEBULA = 0.01; // Ambiente
 
         const onMouseMove = (e: MouseEvent) => {
-          // Normalizamos el centro de la pantalla usando valores cacheados
           mouseX = (e.clientX - winW / 2);
           mouseY = (e.clientY - winH / 2);
         };
 
         const onScroll = () => {
-          // Orion: Lectura optimizada
           scrollY = window.pageYOffset || document.documentElement.scrollTop;
         };
 
@@ -233,27 +225,18 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         window.addEventListener('resize', onResize, { passive: true });
 
         const animate = () => {
-          // Suavizado cinemático (Lerp)
           targetX += (mouseX - targetX) * 0.04;
           targetY += (mouseY - targetY) * 0.04;
 
-          // 1. Capa Base (Lejana, borrosa)
           if (layers.base) {
             layers.base.style.transform = `translate3d(${-targetX * D_BASE}px, ${-scrollY * D_BASE - targetY * D_BASE}px, 0)`;
           }
-
-          // 2. Capa Media (Nítida, estrellas principales)
           if (layers.mid) {
             layers.mid.style.transform = `translate3d(${-targetX * D_MID}px, ${-scrollY * D_MID - targetY * D_MID}px, 0)`;
           }
-
-          // 3. Polvo Cósmico (Cerca de la cámara, movimiento notable)
           if (layers.dust) {
             layers.dust.style.transform = `translate3d(${-targetX * D_DUST}px, ${-scrollY * D_DUST - targetY * D_DUST}px, 0)`;
           }
-
-          // 4. Nebulosa (Rotación ambiental)
-          // La nebulosa ya rota por CSS, aquí solo añadimos un leve desplazamiento para que no parezca un sticker
           if (layers.nebula) {
              layers.nebula.style.transform = `translate3d(${-targetX * D_NEBULA}px, ${-targetY * D_NEBULA}px, 0) scale(1.2)`;
           }
@@ -271,41 +254,16 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         };
       };
 
-      document.addEventListener('astro:page-load', () => {
-        // Astra: Detener cualquier animación previa para evitar fugas de memoria/CPU
-        if (typeof (window as any).cleanupCosmos === 'function') {
-          (window as any).cleanupCosmos();
-        }
+      let cleanup: (() => void) | undefined;
 
-        // Astra: Solo inicializar si la física está habilitada en el data-attribute del body
+      document.addEventListener('astro:page-load', () => {
+        if (cleanup) cleanup();
+
         const physicsEnabled = document.body.getAttribute('data-cosmos-physics') === 'true';
         if (!physicsEnabled) return;
 
-        if ('requestIdleCallback' in window) {
-          (window as any).requestIdleCallback(() => {
-            const cleanup = initCosmos();
-            (window as any).cleanupCosmos = cleanup;
-          }, { timeout: 1000 });
-        } else {
-          setTimeout(() => {
-            const cleanup = initCosmos();
-            (window as any).cleanupCosmos = cleanup;
-          }, 200);
-        }
+        cleanup = initCosmos();
       });
-
-            </script>
-
-            <script is:inline>
-
-              // Astra: Limpiar imports no usados en el servidor
-
-              console.debug('Babylon Layout Initialized');
-
-            </script>
-
-          </body>
-
-        </html>
-
-        
+    </script>
+  </body>
+</html>

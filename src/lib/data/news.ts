@@ -17,7 +17,7 @@ export async function getNewsList(
 
   // Astra: Filtrar noticias de series NSFW si no se permiten
   if (!allowNsfw) {
-    // Si la noticia tiene una serie asociada, la serie no debe ser NSFW. 
+    // Si la noticia tiene una serie asociada, la serie no debe ser NSFW.
     // Si no tiene serie asociada, se muestra (noticia general).
     // Nota: Esto requiere que el join esté presente en la consulta principal.
   }

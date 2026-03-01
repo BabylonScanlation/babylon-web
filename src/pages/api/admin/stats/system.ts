@@ -56,7 +56,7 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
       if (country) {
         stats.country[country] = (stats.country[country] || 0) + 1;
       } else {
-        stats.country['Desconocido'] = (stats.country['Desconocido'] || 0) + 1;
+        stats.country.Desconocido = (stats.country.Desconocido || 0) + 1;
       }
 
       if (!ua) return;

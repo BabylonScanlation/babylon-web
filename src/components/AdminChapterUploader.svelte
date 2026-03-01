@@ -2,10 +2,12 @@
 import { actions } from 'astro:actions';
 import { toast } from '../lib/toastStore.svelte';
 
-let { seriesId, seriesTitle } = $props<{
+interface Props {
   seriesId: number;
   seriesTitle: string;
-}>();
+}
+
+let { seriesId, seriesTitle }: Props = $props();
 
 let fileInput: HTMLInputElement | undefined = $state();
 let isUploading = $state(false);
@@ -79,144 +81,104 @@ async function uploadChapters() {
 }
 </script>
 
-<div class="quick-uploader">
-  <div class="uploader-header">
-    <h5>📤 Subida Rápida (Bulk)</h5>
-    <span class="target-badge">{seriesTitle}</span>
+<div class="uploader-card">
+  <div class="header">
+    <h3>Subir Capítulos</h3>
+    <p>Arrastra archivos ZIP o selecciónalos. El nombre del archivo debe ser el número del capítulo (ej: 1.zip, 2.5.zip).</p>
   </div>
 
-  <div class="compact-form">
-    <div class="file-row">
-        <input 
-          type="file" 
-          id="zip-upload-{seriesId}" 
-          accept=".zip" 
-          multiple
-          onchange={handleFileChange} 
-          bind:this={fileInput}
-          hidden 
-        />
-        <label for="zip-upload-{seriesId}" class="file-btn" class:has-file={!!selectedFiles}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            <span class="file-label text-truncate">
-                {#if isUploading}
-                    {progressText}
-                {:else if selectedFiles && selectedFiles.length > 0}
-                    {selectedFiles.length} archivos seleccionados
-                {:else}
-                    Seleccionar ZIPs
-                {/if}
-            </span>
-        </label>
-    </div>
+  <div class="upload-area" class:active={selectedFiles}>
+    <input 
+      type="file" 
+      multiple 
+      accept=".zip" 
+      onchange={handleFileChange}
+      bind:this={fileInput}
+      id="file-upload"
+      disabled={isUploading}
+    />
+    <label for="file-upload">
+      <div class="upload-icon">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      {#if selectedFiles}
+        <span class="file-count">{selectedFiles.length} archivos seleccionados</span>
+      {:else}
+        <span class="hint">Click para seleccionar o soltar archivos ZIP</span>
+      {/if}
+    </label>
+  </div>
 
-    <div class="meta-row">
-        <button 
+  {#if selectedFiles && !isUploading}
+    <div class="file-list">
+      {#each Array.from(selectedFiles) as file}
+        <div class="file-item">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+          {file.name}
+        </div>
+      {/each}
+    </div>
+  {/if}
+
+  <div class="actions">
+    {#if isUploading}
+      <div class="progress-container">
+        <div class="spinner">
+          <svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
+        </div>
+        <span class="progress-label">{progressText}</span>
+      </div>
+    {:else}
+      <button 
           class="action-btn full-width" 
           onclick={uploadChapters}
           disabled={isUploading || !selectedFiles}
-        >
-          {#if isUploading}
-            <svg class="spinner" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="4"></circle></svg>
-            <span>Procesando...</span>
-          {:else}
-            <span>Subir Seleccionados</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-          {/if}
-        </button>
-    </div>
+      >
+        Subir a {seriesTitle}
+      </button>
+    {/if}
   </div>
 </div>
 
 <style>
-  .quick-uploader {
-    background: #111;
-    border: 1px solid #333;
+  .uploader-card { background: #111; border: 1px solid #222; border-radius: 20px; padding: 1.5rem; }
+  .header h3 { margin: 0 0 0.5rem; color: #fff; }
+  .header p { font-size: 0.8rem; color: #666; margin-bottom: 1.5rem; }
+
+  .upload-area {
+    border: 2px dashed #333;
     border-radius: 16px;
-    padding: 1.25rem;
-    margin-top: 1rem;
-  }
-
-  .uploader-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-
-  .uploader-header h5 {
-    margin: 0;
-    color: #888;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-  }
-
-  .target-badge {
-    font-size: 0.7rem;
-    color: #555;
-    background: #1a1a1a;
-    padding: 2px 8px;
-    border-radius: 4px;
-    max-width: 150px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .compact-form { display: flex; flex-direction: column; gap: 0.8rem; }
-
-  .file-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    background: #1a1a1a;
-    border: 1px dashed #444;
-    padding: 0.8rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
+    position: relative;
+    padding: 2rem;
+    text-align: center;
     transition: all 0.2s;
-    color: #888;
-    font-size: 0.9rem;
-    font-weight: 600;
-    justify-content: center;
   }
 
-  .file-btn:hover { border-color: #666; color: #ccc; }
-  .file-btn.has-file { border-style: solid; border-color: rgba(46, 204, 113, 0.3); background: rgba(46, 204, 113, 0.05); color: #2ecc71; }
+  .upload-area:hover, .upload-area.active { border-color: var(--accent-color); background: rgba(0, 191, 255, 0.03); }
 
-  .text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  
+  .upload-icon { color: #444; margin-bottom: 1rem; transition: color 0.2s; }
+  .upload-area:hover .upload-icon { color: var(--accent-color); }
 
-  .meta-row { display: flex; }
+  .hint { font-size: 0.9rem; font-weight: 600; color: #666; }
+  .file-count { color: var(--accent-color); font-weight: 800; font-size: 1rem; }
 
-  .action-btn {
-    height: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    background: #fff;
-    color: #000;
-    border: none;
-    border-radius: 16px;
-    cursor: pointer;
-    transition: transform 0.1s, background 0.2s, box-shadow 0.2s;
-    font-weight: 700;
-    font-size: 0.95rem;
-  }
+  .file-list { margin-top: 1rem; max-height: 150px; overflow-y: auto; background: #000; border-radius: 10px; padding: 0.5rem; }
+  .file-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #888; padding: 0.4rem; border-bottom: 1px solid #111; }
 
-  .action-btn.full-width { width: 100%; }
-
-  .action-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    background: #4facfe;
-    color: #fff;
-    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
-  }
+  .actions { margin-top: 1.5rem; }
+  .action-btn { background: var(--accent-color); color: #000; border: none; padding: 1rem; border-radius: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s; }
+  .action-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 191, 255, 0.3); }
   .action-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #444; color: #888; }
 
-  .spinner { width: 18px; height: 18px; animation: spin 1s linear infinite; }
-  .spinner circle { opacity: 0.25; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .progress-container { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 1rem; background: #1a1a1a; border-radius: 12px; }
+  .progress-label { font-size: 0.9rem; font-weight: 700; color: #fff; }
+
+  .spinner { width: 24px; height: 24px; animation: rotate 2s linear infinite; }
+  .spinner svg { width: 100%; height: 100%; }
+  .spinner circle { stroke: var(--accent-color); stroke-linecap: round; animation: dash 1.5s ease-in-out infinite; }
+
+  @keyframes rotate { 100% { transform: rotate(360deg); } }
+  @keyframes dash { 0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; } 50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; } 100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; } }
 </style>

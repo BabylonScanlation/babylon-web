@@ -1,42 +1,9 @@
 ---
 // src/components/AdminSeriesManager.astro
-
+import AdminSeriesForm from './AdminSeriesForm.astro';
 import AdminChapterList from './AdminChapterList.astro';
 import AdminChapterUploader from './AdminChapterUploader.svelte';
-import AdminSeriesForm from './AdminSeriesForm.astro';
-
-interface Chapter {
-  id: number;
-  seriesId: number;
-  chapterNumber: number;
-  title: string | null;
-  telegramFileId: string;
-  urlPortada: string | null;
-  status: string;
-  views: number | null;
-  createdAt: string | null;
-}
-interface Series {
-  id: number;
-  title: string;
-  description: string;
-  coverImageUrl: string;
-  slug: string;
-  chapters: Chapter[];
-  status: string | null;
-  type: string | null;
-  genres: string | null;
-  author: string | null;
-  artist: string | null;
-  publishedBy: string | null;
-  alternativeNames: string | null;
-  serializedBy: string | null;
-  demographic: string | null;
-  isHidden: boolean;
-  isNsfw: boolean;
-  isAppSeries: boolean;
-  chapterCount?: number;
-}
+import type { Series } from '../types';
 
 interface Props {
   series: Series;
@@ -46,8 +13,6 @@ interface Props {
 const { series, r2PublicUrlAssets } = Astro.props;
 
 // Orion: Construcción robusta de URL.
-// Si empieza por http, es absoluta.
-// En DEV, forzamos el proxy local para rutas relativas para ver lo que acabamos de subir.
 const isDev = import.meta.env.DEV;
 const assetsBase = isDev ? '/api/assets/proxy' : r2PublicUrlAssets || '/api/assets/proxy';
 
@@ -75,18 +40,18 @@ const coverUrl = series.coverImageUrl?.startsWith('http')
             <h3 class="series-title" data-series-id-title={series.id}>{series.title}</h3>
             <div class="badges-row" data-series-id-badges={series.id}>
               <span
-                class={`badge badge-visibility ${series.isHidden ? 'is-hidden' : 'is-visible'}`}
+                class:list={['badge badge-visibility', { 'is-hidden': series.isHidden, 'is-visible': !series.isHidden }]}
               >
                 {series.isHidden ? 'Oculto' : 'Visible'}
               </span>
               <span
-                class={`badge badge-platform ${series.isAppSeries ? 'is-app' : 'is-web'}`}
+                class:list={['badge badge-platform', { 'is-app': series.isAppSeries, 'is-web': !series.isAppSeries }]}
               >
                 {series.isAppSeries ? 'APP' : 'WEB'}
               </span>
-              <span class={`badge badge-nsfw is-nsfw ${series.isNsfw ? '' : 'hidden-badge'}`}>+18</span>
+              <span class:list={['badge badge-nsfw is-nsfw', { 'hidden-badge': !series.isNsfw }]}>+18</span>
               <span class="badge is-count">{series.chapterCount ?? 0} Caps</span>
-              <span class={`badge badge-status is-status ${series.status ? '' : 'hidden-badge'}`}>
+              <span class:list={['badge badge-status is-status', { 'hidden-badge': !series.status }]}>
                 {series.status || ''}
               </span>
             </div>
@@ -114,7 +79,7 @@ const coverUrl = series.coverImageUrl?.startsWith('http')
     <div class="series-expanded-panel">
       <div class="panel-layout">
         <div class="panel-column">
-          <AdminSeriesForm series={series} />
+          <AdminSeriesForm series={series as any} />
         </div>
         <div class="panel-column">
           <AdminChapterList series={series} r2PublicUrlAssets={r2PublicUrlAssets} />

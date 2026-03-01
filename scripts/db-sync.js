@@ -11,7 +11,7 @@ async function main() {
   console.log('⬇️  Descargando backup de producción...');
   try {
     execSync('npm run db:pull', { stdio: 'inherit' });
-  } catch (e) {
+  } catch (_e) {
     console.error('❌ Error en db:pull');
     process.exit(1);
   }
@@ -20,7 +20,7 @@ async function main() {
   console.log('🧹 Reseteando base de datos local...');
   try {
     execSync('npm run db:reset:local', { stdio: 'inherit' });
-  } catch (e) {
+  } catch (_e) {
     console.warn('⚠️  No se pudo resetear la DB local. Continuando...');
   }
 

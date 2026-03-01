@@ -5,7 +5,7 @@ import { series } from '../../db/schema';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
 
-export const GET: APIRoute = async ({ url, locals }) => {
+export const GET: APIRoute = async ({ url, locals, cookies }) => {
   try {
     const drizzleDb = getDB(locals.runtime.env);
 
@@ -19,13 +19,16 @@ export const GET: APIRoute = async ({ url, locals }) => {
     const magazine = url.searchParams.get('magazine')?.trim();
     const genresRaw = url.searchParams.get('genres');
     const sort = url.searchParams.get('sort') || 'az';
-    const page = parseInt(url.searchParams.get('page') || '1');
-    const pageSize = parseInt(url.searchParams.get('pageSize') || '18');
+    const page = parseInt(url.searchParams.get('page') || '1', 10);
+    const pageSize = parseInt(url.searchParams.get('pageSize') || '18', 10);
     const offset = (page - 1) * pageSize;
 
     // Auth-based NSFW filter
-    const nsfwCookieValue = url.searchParams.get('nsfw') || locals.cookies.get('babylon_nsfw')?.value;
-    const allowNsfw = typeof nsfwCookieValue === 'string' ? nsfwCookieValue === 'true' : (locals.user?.isNsfw || false);
+    const nsfwCookieValue = url.searchParams.get('nsfw') || cookies.get('babylon_nsfw')?.value;
+    const allowNsfw =
+      typeof nsfwCookieValue === 'string'
+        ? nsfwCookieValue === 'true'
+        : locals.user?.isNsfw || false;
 
     // Base Selection
     let baseQuery = drizzleDb
@@ -46,7 +49,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
       .from(series);
 
     // Dynamic Conditions
-    const conditions = [eq(series.isHidden, false)];
+    const conditions: any[] = [eq(series.isHidden, false)];
 
     if (allowNsfw) {
       conditions.push(eq(series.isNsfw, true));
@@ -86,7 +89,7 @@ export const GET: APIRoute = async ({ url, locals }) => {
     }
 
     // Apply Filters
-    let finalQuery = (baseQuery as any).where(and(...conditions));
+    let finalQuery = (baseQuery as any).where(and(...conditions.filter(Boolean)));
 
     // Get Total Count for pagination
     let countBase = drizzleDb.select({ count: sql`count(*)` }).from(series);
@@ -94,7 +97,9 @@ export const GET: APIRoute = async ({ url, locals }) => {
       countBase = countBase.innerJoin(sql`series_fts`, eq(series.id, sql`series_fts.rowid`)) as any;
     }
 
-    const [totalResult] = (await (countBase as any).where(and(...conditions)).all()) as any;
+    const [totalResult] = (await (countBase as any)
+      .where(and(...conditions.filter(Boolean)))
+      .all()) as any;
 
     const total = totalResult?.count || 0;
 
@@ -109,7 +114,6 @@ export const GET: APIRoute = async ({ url, locals }) => {
       case 'az':
         finalQuery = finalQuery.orderBy(asc(series.isNsfw), asc(series.title));
         break;
-      case 'relevance':
       default:
         if (query) {
           finalQuery = finalQuery.orderBy(sql`rank`);

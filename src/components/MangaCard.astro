@@ -1,6 +1,13 @@
 ---
-// src/components/MangaCard.astro
 import Image from './Image.astro';
+
+interface Props {
+  coverImageUrl: string | null;
+  title: string;
+  lastChapter: string;
+  url: string;
+  loading?: 'lazy' | 'eager';
+}
 
 const { coverImageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props;
 ---
@@ -10,7 +17,7 @@ const { coverImageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props
   <div class="card desktop-view">
     <div class="image-container">
       <Image
-        src={coverImageUrl}
+        src={coverImageUrl || ''}
         alt={`Portada de ${title}`}
         loading={loading}
         width={200}
@@ -33,7 +40,7 @@ const { coverImageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props
   <div class="card mobile-view">
     <div class="mobile-thumb">
       <Image
-        src={coverImageUrl}
+        src={coverImageUrl || ''}
         alt={`Portada de ${title}`}
         loading={loading}
         width={80}

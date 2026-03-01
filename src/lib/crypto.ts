@@ -64,8 +64,8 @@ export async function verifySignature(
   signature: string,
   secret: string
 ): Promise<boolean> {
-  const expiresNum = parseInt(expires);
-  if (isNaN(expiresNum) || Date.now() > expiresNum) {
+  const expiresNum = parseInt(expires, 10);
+  if (Number.isNaN(expiresNum) || Date.now() > expiresNum) {
     return false;
   }
 

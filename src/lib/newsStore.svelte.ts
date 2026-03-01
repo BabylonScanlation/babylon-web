@@ -9,7 +9,7 @@ class NewsStore {
     // Inicializar desde localStorage si existe (para evitar parpadeos)
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('babylon_news_count');
-      if (saved) this.#count = parseInt(saved) || 0;
+      if (saved) this.#count = parseInt(saved, 10) || 0;
     }
   }
 
@@ -31,7 +31,11 @@ class NewsStore {
 
   async refreshCount(fetchFn: typeof fetch) {
     // Orion: Si hay un bloqueo activo (acabamos de ver las noticias), ignorar refresco
-    if (typeof window !== 'undefined' && (window as any).news_lock && Date.now() < (window as any).news_lock) {
+    if (
+      typeof window !== 'undefined' &&
+      (window as any).news_lock &&
+      Date.now() < (window as any).news_lock
+    ) {
       this.setCount(0);
       return;
     }
@@ -43,7 +47,7 @@ class NewsStore {
         const data = await res.json();
         // Orion: Conversión robusta a número (maneja strings o numbers del JSON)
         const countValue = Number(data.count);
-        if (!isNaN(countValue)) {
+        if (!Number.isNaN(countValue)) {
           this.setCount(countValue);
         }
       }

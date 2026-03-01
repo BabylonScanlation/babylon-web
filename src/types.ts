@@ -1,38 +1,51 @@
 // src/types.ts
 
-// ✅ CORRECCIÓN: Se añade la propiedad opcional 'chapters'
-interface ChapterInfo {
-  id: number; // Assuming chapterId is available
-  number: number;
-  title?: string; // Chapter title is optional
-  thumbnailUrl?: string; // New field for thumbnail
-  views?: number; // New field for views
-  createdAt: string;
+export interface Chapter {
+  id: number;
+  seriesId: number;
+  chapterNumber: number;
+  title: string | null;
+  telegramFileId: string;
+  urlPortada: string | null;
+  status: string;
+  views: number | null;
+  createdAt: string | null;
+  messageThreadId: number | null;
 }
 
-// Definimos una única interfaz para una Serie que usaremos en todo el proyecto.
 export interface Series {
+  id: number;
   slug: string;
   title: string;
-  coverImageUrl?: string; // Drizzle format
-  urlPortada?: string; // DB specific
-  description?: string; // La descripción es opcional
-  demographic?: string; // New field for demographic (shojo, seinen, etc.)
-  views?: number; // Conteo de vistas
+  coverImageUrl?: string | null;
+  urlPortada?: string | null;
+  description?: string;
+  demographic?: string | null;
+  status?: string | null;
+  type?: string | null;
+  genres?: string | null;
+  author?: string | null;
+  artist?: string | null;
+  publishedBy?: string | null;
+  alternativeNames?: string | null;
+  serializedBy?: string | null;
+  views?: number | null;
   lastChapter?: string;
   lastChapterCreatedAt?: string;
-  chapters?: ChapterInfo[];
-  isHidden?: boolean; // Added for visibility control
+  chapters?: Chapter[];
+  isHidden?: boolean;
   isNsfw?: boolean;
+  isAppSeries?: boolean;
+  chapterCount?: number;
 }
 
 export interface User {
   uid: string;
   email?: string | null;
-  username?: string | null; // Added username
+  username?: string | null;
   displayName?: string | null;
   photoUrl?: string | null;
-  avatarUrl?: string | null; // Added for comments
+  avatarUrl?: string | null;
   isAdmin?: boolean;
   emailVerified?: boolean;
   isNsfw?: boolean;
