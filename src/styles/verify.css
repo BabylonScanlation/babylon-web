@@ -1,0 +1,101 @@
+:root {
+  --background-color: #020205;
+  --accent-color: #00bfff;
+  --accent-glow: rgba(0, 191, 255, 0.3);
+  --font-color: #e0e0e0;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #000;
+  color: var(--font-color);
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.age-gate-active {
+  overflow: hidden;
+}
+
+/* Estilos de AgeGate movidos aquí para optimizar carga */
+.age-gate-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.95);
+  background-image:
+    radial-gradient(circle at 50% -20%, rgba(0, 191, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 0% 100%, rgba(0, 191, 255, 0.05) 0%, transparent 40%);
+  z-index: 10000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+  backdrop-filter: blur(8px);
+}
+
+.gate-card {
+  background: rgba(30, 30, 30, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 3rem 2.5rem;
+  border-radius: 32px;
+  width: 100%;
+  max-width: 520px;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+.logo-wrapper {
+  background: rgba(255, 255, 255, 0.03);
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 2rem;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transform: rotate(-5deg);
+}
+
+.gate-card h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 0.75rem;
+  background: linear-gradient(to bottom, #fff, #999);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle { color: #888; margin-bottom: 2.5rem; font-size: 1rem; }
+
+.checks-area { display: flex; flex-direction: column; gap: 1.25rem; text-align: left; margin-bottom: 2rem; }
+
+.checkbox-container { display: grid; grid-template-columns: auto 1fr; align-items: flex-start; gap: 1rem; cursor: pointer; color: #ccc; }
+
+.custom-checkbox {
+  width: 24px; height: 24px; border: 2px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2); border-radius: 8px; display: flex; justify-content: center; align-items: center;
+}
+
+.checkbox-container input:checked + .custom-checkbox {
+  background-color: var(--accent-color); border-color: var(--accent-color);
+}
+
+.enter-btn {
+  background: linear-gradient(135deg, var(--accent-color) 0%, #0077ff 100%);
+  color: #fff; border: none; padding: 1.1rem; width: 100%; border-radius: 16px; font-weight: 700; cursor: pointer;
+}
+
+.enter-btn:disabled { background: rgba(255, 255, 255, 0.05); color: #555; }

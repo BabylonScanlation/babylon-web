@@ -1,0 +1,117 @@
+---
+const { title = "Verificación" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#00bfff" />
+    <title>{title} | Babylon</title>
+    <meta name="robots" content="noindex, nofollow" />
+
+    <!-- Orion: Conexión anticipada a Cloudflare -->
+    <link rel="preconnect" href="https://challenges.cloudflare.com" crossorigin />
+    <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
+
+    <script is:inline>
+      // Astra: Callback Global llamado por Cloudflare
+      window.onloadTurnstileCallback = function () {
+        if (window.turnstile) {
+          window.turnstile.render('#turnstile-container', {
+            sitekey: '1x00000000000000000000AA', 
+            theme: 'dark',
+            appearance: 'always', // Astra: Visible para dar feedback al usuario
+            callback: (token) => {
+              window.captchaToken = token;
+              if (window.validateCaptcha) window.validateCaptcha();
+            }
+          });
+        }
+      };
+    </script>
+
+    <!-- Orion: Script único con prioridad alta -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onloadTurnstileCallback" async fetchpriority="high"></script>
+
+    <style is:inline>
+      :root {
+        --background-color: #020205;
+        --accent-color: #00bfff;
+        --accent-glow: rgba(0, 191, 255, 0.3);
+        --font-color: #e0e0e0;
+      }
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        background-color: #000;
+        color: var(--font-color);
+        font-family: system-ui, -apple-system, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+      .age-gate-overlay {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.95);
+        z-index: 10000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 1.5rem;
+        backdrop-filter: blur(8px);
+      }
+      .gate-card {
+        background: rgba(30, 30, 30, 0.8);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 3rem 2.5rem;
+        border-radius: 32px;
+        width: 100%;
+        max-width: 520px;
+        text-align: center;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      }
+      .logo-wrapper {
+        background: rgba(255, 255, 255, 0.03);
+        width: 120px; height: 120px;
+        margin: 0 auto 2rem;
+        border-radius: 30px;
+        display: flex; align-items: center; justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transform: rotate(-5deg);
+      }
+      .gate-card h1 {
+        font-size: 2.2rem; font-weight: 800; color: #fff; margin-bottom: 0.75rem;
+        background: linear-gradient(to bottom, #fff, #999);
+        -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+      }
+      .subtitle { color: #888; margin-bottom: 2.5rem; font-size: 1rem; }
+      .checks-area { display: flex; flex-direction: column; gap: 1.25rem; text-align: left; margin-bottom: 2rem; }
+      .captcha-area { margin-bottom: 2.5rem; min-height: 65px; display: flex; justify-content: center; }
+      .checkbox-container { display: grid; grid-template-columns: auto 1fr; align-items: flex-start; gap: 1rem; cursor: pointer; color: #ccc; }
+      .checkbox-container input { display: none; }
+      .custom-checkbox {
+        width: 24px; height: 24px; border: 2px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.2); border-radius: 8px; display: flex; justify-content: center; align-items: center;
+      }
+      .custom-checkbox svg { width: 14px; height: 14px; color: #000; display: none; }
+      input:checked + .custom-checkbox { background-color: var(--accent-color); border-color: var(--accent-color); }
+      input:checked + .custom-checkbox svg { display: block; }
+      .label-text a { color: var(--accent-color); text-decoration: none; font-weight: 600; }
+      .label-text a:hover { text-decoration: underline; }
+      .enter-btn {
+        background: linear-gradient(135deg, var(--accent-color) 0%, #0077ff 100%);
+        color: #fff; border: none; padding: 1.1rem; width: 100%; border-radius: 16px; font-weight: 700; cursor: pointer;
+      }
+      .enter-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    </style>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

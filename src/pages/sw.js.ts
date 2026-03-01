@@ -5,7 +5,6 @@ export const GET: APIRoute = async () => {
   const swContent = `
 const CACHE_NAME = '${siteConfig.storage.cacheName}';
 const STATIC_ASSETS = [
-  '/',
   '${siteConfig.assets.favicon}',
   '/manifest.json'
 ];

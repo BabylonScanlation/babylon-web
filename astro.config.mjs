@@ -8,7 +8,10 @@ import { siteConfig } from './src/site.config';
 export default defineConfig({
   site: siteConfig.url,
   output: 'server',
-
+  prefetch: false,
+  devToolbar: {
+    enabled: false, // Astra: Apagar la toolbar para limpieza total de recursos
+  },
   adapter: cloudflare({
     platformProxy: {
       enabled: true,

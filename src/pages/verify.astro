@@ -1,19 +1,73 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import AgeGate from '../components/AgeGate.svelte';
-import { siteConfig } from '../site.config';
+import LayoutVerify from '../layouts/LayoutVerify.astro';
 ---
 
-<Layout title={`Verificación de Seguridad - ${siteConfig.shortName}`}>
-  <main>
-    <AgeGate client:load isVerificationPage={true} />
-  </main>
-</Layout>
+<LayoutVerify title="Verificación de Seguridad">
+  <div class="age-gate-overlay" id="overlay">
+    <div class="gate-card">
+      <div class="logo-area">
+        <div class="logo-wrapper">
+          <img src="/favicon.svg" alt="Babylon Logo" width="80" height="80" />
+        </div>
+      </div>
 
-<style>
-  main {
-    width: 100%;
-    min-height: 100vh;
-    background: #000;
-  }
-</style>
+      <div class="content-area">
+        <h1>Bienvenido a Babylon</h1>
+        <p class="subtitle">Confirma que eres mayor de edad y aceptas nuestros términos para continuar.</p>
+
+        <div class="checks-area">
+          <label class="checkbox-container">
+            <input type="checkbox" id="check-age" />
+            <div class="custom-checkbox">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <span class="label-text">Soy mayor de 18 años</span>
+          </label>
+
+          <label class="checkbox-container">
+            <input type="checkbox" id="check-terms" />
+            <div class="custom-checkbox">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <span class="label-text">Acepto los <a href="/terms">Términos y Condiciones</a></span>
+          </label>
+        </div>
+
+        <div class="captcha-area">
+          <div id="turnstile-container"></div>
+        </div>
+
+        <button class="enter-btn" id="enter-btn" disabled>
+          Entrar al Sitio
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    // Orion: Vanilla JS puro para evitar bundles pesados
+    const ageCheck = document.getElementById('check-age');
+    const termsCheck = document.getElementById('check-terms');
+    const enterBtn = document.getElementById('enter-btn');
+
+    // Astra: Función de validación expuesta globalmente para el callback de Turnstile
+    window.validateCaptcha = function() {
+      enterBtn.disabled = !(ageCheck.checked && termsCheck.checked && window.captchaToken);
+    }
+
+    ageCheck.addEventListener('change', window.validateCaptcha);
+    termsCheck.addEventListener('change', window.validateCaptcha);
+
+    enterBtn.onclick = async () => {
+      try {
+        const res = await fetch('/_actions/auth.verifyAge', { method: 'POST' });
+        if (res.ok) {
+          sessionStorage.setItem('site_access_granted', 'true');
+          window.location.href = '/';
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+  </script>
+</LayoutVerify>
