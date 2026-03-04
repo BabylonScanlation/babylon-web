@@ -14,11 +14,11 @@ export const siteConfig = {
 
   // Branding Assets (Usar URLs relativas o absolutas de R2 si es necesario)
   assets: {
-    logo: '/favicon.svg',
+    logo: '/favicon.png',
     logoHeader: '/iconpage/babylon-logo-2.webp',
     logoEmpty: '/iconpage/babylon-logo-3.webp',
     ogImage: '/og-image.webp',
-    favicon: '/favicon.svg',
+    favicon: '/favicon.png',
     placeholderCover: '/covers/placeholder-cover.jpg',
     placeholderChapter: '/covers/placeholder-chapter.jpg',
   },

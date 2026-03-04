@@ -1,9 +1,7 @@
 ---
+import '../styles/components.css';
 import type { Series } from '../types';
 import UpdateCard from './UpdateCard.astro';
-import 'swiper/css';
-import 'swiper/css/free-mode';
-import 'swiper/css/scrollbar';
 
 interface Props {
   mangas: Series[];
@@ -46,183 +44,37 @@ const { mangas = [], title = 'Últimos Capítulos Publicados' } = Astro.props;
   }
 </section>
 
-<script>
-  import Swiper from 'swiper';
-  import { FreeMode, Mousewheel, Scrollbar } from 'swiper/modules';
-
+<script is:inline>
   const initRecentUpdatesSwiper = () => {
-    const swiperEl = document.querySelector('.recent-updates-swiper') as HTMLElement;
-    if (!swiperEl || (swiperEl as any).swiper) return;
+    const swiperEl = document.querySelector('.recent-updates-swiper');
+    // @ts-ignore
+    if (!swiperEl || swiperEl.swiper || !window.Swiper) return;
 
-    // Orion: Inicialización perezosa (Solo cuando sea visible) para ahorrar CPU al inicio
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          setupSwiper(swiperEl);
-          observer.unobserve(swiperEl);
-        }
-      });
+      if (entries[0].isIntersecting) {
+        // @ts-ignore
+        new window.Swiper(swiperEl, {
+          init: true,
+          slidesPerView: 'auto',
+          spaceBetween: 15,
+          freeMode: true,
+          grabCursor: true,
+          scrollbar: {
+            el: '.premium-scrollbar',
+            draggable: true,
+            snapOnRelease: true
+          },
+          breakpoints: {
+            768: { spaceBetween: 25 }
+          }
+        });
+        observer.disconnect();
+      }
     }, { rootMargin: '100px' });
-
     observer.observe(swiperEl);
   };
 
-  const setupSwiper = (swiperEl: HTMLElement) => {
-    // Orion: init: false permite instanciar el objeto sin disparar el reflow inmediatamente
-    const swiper = new Swiper(swiperEl, {
-      modules: [FreeMode, Mousewheel, Scrollbar],
-      init: false, 
-      slidesPerView: 'auto',
-      spaceBetween: 15,
-      slidesOffsetBefore: 10,
-      slidesOffsetAfter: 20,
-      passiveListeners: true,
-      observer: true,
-      observeParents: true,
-      freeMode: {
-        enabled: true,
-        sticky: true,
-        momentumBounce: false,
-      },
-      mousewheel: {
-        // Orion: Eliminamos forceToAxis para permitir que el listener sea 100% pasivo nativo
-        sensitivity: 1,
-      },
-      grabCursor: true,
-      scrollbar: {
-        el: '.swiper-scrollbar',
-        draggable: true,
-        hide: false,
-      },
-      breakpoints: {
-        768: {
-          spaceBetween: 25,
-          slidesOffsetBefore: 0,
-        }
-      }
-    });
-
-    // Astra: Ejecutar la inicialización en el siguiente frame libre para suavidad total
-    requestAnimationFrame(() => {
-      swiper.init();
-    });
-  };
-
-  // Punto de entrada único compatible con View Transitions
   document.addEventListener('astro:page-load', initRecentUpdatesSwiper);
-  
-  // Fallback si no hay View Transitions
-  if (document.readyState !== 'loading') {
-    initRecentUpdatesSwiper();
-  } else {
-    document.addEventListener('DOMContentLoaded', initRecentUpdatesSwiper);
-  }
+  if (document.readyState !== 'loading') initRecentUpdatesSwiper();
+  else document.addEventListener('DOMContentLoaded', initRecentUpdatesSwiper);
 </script>
-
-<style>
-  .updates-premium-section {
-    width: 100%;
-    margin: 0; /* Astra: Espaciado controlado por el padre */
-    position: relative;
-  }
-
-  /* Astra: Título centrado simétrico con Grid */
-  .section-header.centered {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: 2rem;
-    margin-bottom: 1.5rem; /* Astra: Título más cerca del contenido */
-    width: 100%;
-  }
-
-  .header-line {
-    height: 1px;
-    width: 100%;
-    background: linear-gradient(90deg, transparent, var(--accent-color));
-    opacity: 0.2;
-  }
-
-  .header-line.reversed {
-    background: linear-gradient(90deg, var(--accent-color), transparent);
-  }
-
-  .section-title {
-    font-size: 1.6rem;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    white-space: nowrap;
-  }
-
-  .section-title svg {
-    color: var(--accent-color);
-    filter: drop-shadow(0 0 8px var(--accent-color));
-  }
-  
-  .swiper-outer-container {
-    position: relative;
-    width: 100%;
-    padding: 0;
-  }
-
-  .recent-updates-swiper {
-    width: 100%;
-    height: auto;
-    overflow: visible;
-    padding-bottom: 0.5rem; /* Astra: Reducido al mínimo para eliminar el hueco */
-  }
-
-  .custom-slide {
-    width: 190px; /* Tamaño optimizado para móviles */
-    height: auto;
-  }
-
-  @media (min-width: 768px) {
-    .custom-slide {
-      width: 240px; /* Tamaño premium para escritorio */
-    }
-  }
-
-  /* Scrollbar Estilizada */
-  :global(.recent-updates-swiper .premium-scrollbar) {
-    bottom: 0 !important;
-    left: 0;
-    width: 100%;
-    height: 3px !important;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border-radius: 100px !important;
-  }
-
-  :global(.recent-updates-swiper .swiper-scrollbar-drag) {
-    background: var(--accent-color) !important;
-    box-shadow: 0 0 10px var(--accent-glow);
-  }
-
-  /* Astra: NSFW Scrollbar fix */
-  :global(.nsfw-mode .recent-updates-swiper .swiper-scrollbar-drag) {
-    background: var(--accent-color) !important;
-    box-shadow: 0 0 10px var(--accent-glow) !important;
-  }
-
-  .empty-updates {
-    text-align: center;
-    padding: 4rem;
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 24px;
-    color: #444;
-    font-weight: 700;
-  }
-
-  @media (max-width: 768px) {
-    .section-title { font-size: 1.1rem; letter-spacing: 0.1em; }
-    .header-line { display: none; }
-    .updates-premium-section { margin: 2.5rem 0; }
-    .swiper-fade-left, .swiper-fade-right { width: 30px; }
-  }
-</style>

@@ -7,7 +7,15 @@ import LayoutVerify from '../layouts/LayoutVerify.astro';
     <div class="gate-card">
       <div class="logo-area">
         <div class="logo-wrapper">
-          <img src="/favicon.svg" alt="Babylon Logo" width="80" height="80" />
+          <img 
+            src="/favicon.png" 
+            alt="Babylon Logo" 
+            width="80" 
+            height="80" 
+            fetchpriority="high"
+            loading="eager"
+            decoding="async"
+          />
         </div>
       </div>
 

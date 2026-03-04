@@ -261,7 +261,7 @@ function processWithWorker() {
     transform: translate(-50%, -50%);
     width: 24px;
     height: 24px;
-    background: url('/favicon.svg') no-repeat center;
+    background: url('/favicon.png') no-repeat center;
     background-size: contain;
     opacity: 0.2;
     animation: pulse 2s ease-in-out infinite;

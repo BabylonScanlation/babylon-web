@@ -1,4 +1,5 @@
 ---
+import '../styles/components.css';
 import { count, desc, eq, sql } from 'drizzle-orm';
 import { news, users } from '../db/schema';
 import { siteConfig } from '../site.config';
@@ -112,7 +113,9 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
         <a href="/search" class="nav-link-pc"><span>EXPLORAR</span></a>
         <a href="/news" class="nav-link-pc news-link">
           <span>NOTICIAS</span>
-          <NewsCounter client:load initialCount={unreadNewsCount} />
+          <div id="news-badge" class="news-badge-dot hidden">
+            <span id="news-count-text">0</span>
+          </div>
         </a>
         <a href="/library" class="nav-link-pc"><span>BIBLIOTECA</span></a>
       </div>
@@ -197,155 +200,6 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
   document.addEventListener('astro:page-load', initHeader);
 </script>
 
-<style>
-  .news-link {
-    position: relative;
-    overflow: visible !important; /* Vital para que el badge no se corte */
-  }
+<style is:global></style>
 
-  .news-badge-dot {
-    position: absolute;
-    top: -8px;
-    right: -12px;
-    background: #ff4444;
-    color: white;
-    font-size: 0.6rem;
-    font-weight: 900;
-    min-width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px;
-    box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
-    border: 2px solid #050505;
-    z-index: 10;
-  }
 
-  .news-badge-dot.hidden {
-    display: none;
-  }
-
-  /* --- MUNDO PC: Diseño de Escritorio (No te sigue al scrollear) --- */
-  @media (min-width: 1024px) {
-    .site-header {
-      width: 100%;
-      position: absolute; /* Astra: Se queda anclado arriba de la página */
-      top: 0;
-      left: 0;
-      z-index: 5000; /* Astra: Elevado para ser interactivo, pero debajo de modales */
-      height: 90px; /* Astra: Incrementado para dar aire al logo de 60px */
-      display: flex;
-      align-items: center;
-      background: transparent;
-    }
-
-    .header-container {
-      width: 100%;
-      max-width: 1600px;
-      margin: 0 auto;
-      padding: 0 3rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .header-logo {
-      height: 60px; /* Astra: Reducido para dar más aire y elegancia */
-      filter: drop-shadow(0 0 25px var(--accent-glow));
-    }
-
-    .desktop-nav {
-      display: flex;
-      align-items: center;
-      gap: 2rem; /* Espacio entre navegación y perfil */
-    }
-
-    .main-nav-links {
-      display: flex;
-      gap: 2rem;
-      align-items: center;
-    }
-    .nav-link-pc {
-      color: #fff;
-      font-weight: 800;
-      font-size: 0.85rem;
-      letter-spacing: 0.1em;
-      opacity: 0.7;
-      text-decoration: none;
-      transition: opacity 0.2s;
-      display: flex;
-      align-items: center;
-    }
-    .nav-link-pc:hover {
-      opacity: 1;
-    }
-
-    .user-actions {
-      display: flex;
-      align-items: center;
-    }
-  }
-
-  /* --- MUNDO MÓVIL: Diseño de App (Se integra con el lector) --- */
-  @media (max-width: 1023px) {
-    .site-header {
-      width: 100%;
-      position: relative; /* Astra: Ahora ocupa espacio real y empuja el contenido */
-      height: auto;
-      min-height: 80px;
-      background: #020205;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 5000;
-      transition: all 0.3s ease;
-      padding: 15px 0;
-    }
-
-    /* Astra: Ocultar header totalmente si hay un modal abierto para liberar espacio */
-    :global(body[data-reader-modal='open']) .site-header {
-      display: none !important;
-      z-index: -1 !important;
-    }
-
-    .header-container {
-      display: flex;
-      justify-content: center;
-      padding: 0;
-    }
-
-    .header-logo {
-      height: 80px; /* Astra: Recuperamos el tamaño premium */
-      filter: drop-shadow(0 0 15px var(--accent-glow));
-    }
-
-    .desktop-nav {
-      display: none !important;
-    }
-  }
-
-  /* Astra: NSFW Mode Styles (Minimalist Ruby) */
-  .site-header.nsfw-active {
-    background: transparent !important;
-    border-bottom: 1px solid rgba(255, 0, 0, 0.1);
-  }
-
-  .site-header.nsfw-active .logo-link {
-    position: relative;
-    display: inline-flex;
-  }
-
-  .site-header.nsfw-active .header-logo {
-    filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.3)) !important;
-  }
-
-  .logo-link:active {
-    transform: scale(0.9);
-  }
-  .site-header.nsfw-active .news-badge-dot {
-    background: var(--accent-color);
-    box-shadow: 0 0 10px var(--accent-glow);
-  }
-</style>

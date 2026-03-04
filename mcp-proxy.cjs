@@ -1,7 +1,13 @@
 const { spawn } = require('node:child_process');
 const path = require('node:path');
+const fs = require('node:fs');
 
 const target = path.join(__dirname, 'node_modules', '@upstash', 'context7-mcp', 'dist', 'index.js');
+
+if (!fs.existsSync(target)) {
+  process.stderr.write(`[PROXY ERROR] Target not found: ${target}\n`);
+  process.exit(1);
+}
 
 const env = {
   ...process.env,
@@ -9,38 +15,21 @@ const env = {
   CLIENT_IP_ENCRYPTION_KEY: 'silence-warning-fix',
 };
 
-const child = spawn('node', [target], {
+// Forzamos el transporte stdio para MCP
+const child = spawn('node', [target, '--transport', 'stdio'], {
   env,
   stdio: ['inherit', 'pipe', 'pipe'],
 });
 
-function processOutput(stream, _label) {
-  let buffer = '';
-  stream.on('data', (data) => {
-    buffer += data.toString();
-    const lines = buffer.split('\n');
-    buffer = lines.pop();
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-        process.stdout.write(`${trimmed}\n`);
-      } else if (trimmed !== '') {
-        process.stderr.write(`[PROXY LOG]: ${trimmed}\n`);
-      }
-    }
-  });
-}
-
-processOutput(child.stdout, 'STDOUT');
+child.stdout.on('data', (data) => {
+  process.stdout.write(data);
+});
 
 child.stderr.on('data', (data) => {
-  const lines = data.toString().split('\n');
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed !== '') {
-      process.stderr.write(`[SERVER ERR]: ${trimmed}\n`);
-    }
+  const msg = data.toString();
+  // Solo logueamos si no es ruido
+  if (msg.trim()) {
+    process.stderr.write(`[SERVER]: ${msg}`);
   }
 });
 

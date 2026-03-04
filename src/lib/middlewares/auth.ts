@@ -47,14 +47,16 @@ export async function authFlow(context: any, next: MiddlewareNext) {
   }
 
   // 2. SLOW-PATH: Verificación de sesión en D1 (Si el JWT no existe o no es admin y necesitamos check extra)
-  // Orion: Solo consultamos D1 si no es un asset y tenemos sessionId
-  const isAssetPath =
-    currentPath.startsWith('/api/r2-cache/') ||
-    currentPath.startsWith('/api/assets/') ||
+  // Orion: Solo consultamos D1 si no es un asset, no es una ruta crítica y tenemos sessionId
+  const isCriticalPath =
+    currentPath === '/verify' ||
+    currentPath === '/terms' ||
+    currentPath.startsWith('/_actions/') ||
+    currentPath.startsWith('/api/') ||
     currentPath.startsWith('/js/') ||
     currentPath.startsWith('/_astro');
 
-  if (!locals.user && sessionId && db && !isAssetPath && !locals.isBot) {
+  if (!locals.user && sessionId && db && !isCriticalPath && !locals.isBot) {
     // 2.1 Verificar Cache en memoria
     const cached = sessionCache.get(sessionId);
     if (cached && cached.expires > Date.now()) {

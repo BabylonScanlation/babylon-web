@@ -52,7 +52,7 @@ export async function shield(context: any, next: any) {
     currentPath.startsWith('/_actions/') ||
     currentPath.startsWith('/js/') ||
     currentPath.startsWith('/_astro') ||
-    currentPath.startsWith('/favicon.svg');
+    currentPath.startsWith('/favicon.png');
 
   if (!isVerified && !isPublicPath && !isGoogle) {
     return context.redirect('/verify');

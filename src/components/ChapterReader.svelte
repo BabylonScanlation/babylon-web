@@ -552,7 +552,7 @@ import { siteConfig } from '../site.config';
       <div class="loader-overlay" in:fade>
         <div class="glass-loader">
           <div class="loader-visual">
-            <img src="/favicon.svg" alt={seriesTitle || 'Logo'} class="loader-logo" />
+            <img src="/favicon.png" alt={seriesTitle || 'Logo'} class="loader-logo" />
             <div class="loader-ring"></div>
           </div>
           <div class="loader-info">

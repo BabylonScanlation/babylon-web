@@ -21,6 +21,12 @@ const r2Base = runtime?.env?.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 let finalSrc = src;
 if (src && !src.startsWith('http') && !src.startsWith('/')) {
   finalSrc = `${r2Base}/${src}`.replace(/([^:]\/)\/+/g, '$1');
+  
+  // Astra: Añadir parámetros de optimización si tenemos el ancho
+  if (width) {
+    const separator = finalSrc.includes('?') ? '&' : '?';
+    finalSrc = `${finalSrc}${separator}w=${width}&q=60`;
+  }
 }
 ---
 

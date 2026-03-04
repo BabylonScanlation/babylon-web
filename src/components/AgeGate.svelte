@@ -118,23 +118,4 @@ async function enterSite() {
   </div>
 {/if}
 
-<style>
-  /* Astra: Animaciones CSS puras para ahorrar runtime de Svelte */
-  .age-gate-overlay {
-    animation: fadeIn 0.4s ease-out;
-  }
 
-  .gate-card {
-    animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; backdrop-filter: blur(0px); }
-    to { opacity: 1; backdrop-filter: blur(8px); }
-  }
-
-  @keyframes slideUp {
-    from { transform: translateY(40px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-</style>

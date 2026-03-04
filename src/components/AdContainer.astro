@@ -1,4 +1,5 @@
 ---
+import '../styles/components.css';
 // src/components/AdContainer.astro
 import { siteConfig } from '../site.config';
 
@@ -10,12 +11,10 @@ interface Props {
 
 const { type, id, className = '' } = Astro.props;
 
-// Orion: Determinar el ID del anuncio según el tipo
 const adKey =
   siteConfig.ads.adsterra[type as keyof typeof siteConfig.ads.adsterra] ||
   siteConfig.ads.adsterra.banner;
 
-// Dimensiones estándar para Adsterra
 const dimensions = {
   banner: { w: 728, h: 90 },
   bannerLarge: { w: 728, h: 90 },
@@ -25,27 +24,64 @@ const dimensions = {
 };
 
 const dim = dimensions[type as keyof typeof dimensions] || dimensions.banner;
-
-// Orion: Mostrar anuncios si están habilitados globalmente
 const shouldShowAds = siteConfig.ads.enabled;
+
+// Generar un ID único para esta instancia de anuncio
+const instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}`;
 ---
 
 {shouldShowAds && (
-  <div class:list={["ad-container-root", type, className]} id={id}>
+  <div class:list={["ad-container-root", type, className]} id={instanceId}>
     <div class="ad-inner-wrapper">
-      <div class="ad-content-slot">
-        {/* Adsterra Logic Centralized */}
-        <script is:inline set:html={`
-          window.atOptions = {
-            'key' : '${adKey}',
-            'format' : 'iframe',
-            'height' : ${dim.h},
-            'width' : ${dim.w},
-            'params' : {}
-          };
-        `} />
-        <script is:inline data-cfasync="false" src={`https://crowdsubsequentadmire.com/${adKey}/invoke.js`} onerror="window.isAdsterraBlocked = true;"></script>
+      <div class="ad-content-slot" id={`slot-${instanceId}`}>
         <div id={`container-${adKey}`}></div>
+        
+        <script is:inline define:vars={{ adKey, dim, instanceId }}>
+          // Función para registrar el anuncio en la cola
+          const registerAd = () => {
+            if (window[`loaded_${instanceId}`]) return;
+            window[`loaded_${instanceId}`] = true;
+
+            window.babylonAdQueue = window.babylonAdQueue || [];
+            window.babylonAdQueue.push({ key: adKey, h: dim.h, w: dim.w, id: instanceId });
+
+            if (!window.babylonAdRunnerActive) {
+              window.babylonAdRunnerActive = true;
+              const runNextAd = () => {
+                const ad = window.babylonAdQueue.shift();
+                if (!ad) {
+                  window.babylonAdRunnerActive = false;
+                  return;
+                }
+                const slot = document.getElementById(`slot-${ad.id}`);
+                if (!slot) { runNextAd(); return; }
+
+                window.atOptions = { 'key' : ad.key, 'format' : 'iframe', 'height' : ad.h, 'width' : ad.w, 'params' : {} };
+                const s = document.createElement('script');
+                s.type = 'text/javascript'; s.src = `https://crowdsubsequentadmire.com/${ad.key}/invoke.js`; s.async = true;
+                s.onload = () => setTimeout(runNextAd, 1000);
+                s.onerror = () => setTimeout(runNextAd, 500);
+                slot.appendChild(s);
+              };
+              setTimeout(runNextAd, 100);
+            }
+          };
+
+          // Astra: Usar IntersectionObserver para carga perezosa real
+          const el = document.getElementById(instanceId);
+          if (el && 'IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries) => {
+              if (entries[0].isIntersecting) {
+                registerAd();
+                observer.disconnect();
+              }
+            }, { rootMargin: '400px' }); // Cargar 400px antes de llegar
+            observer.observe(el);
+          } else {
+            // Fallback para navegadores antiguos
+            setTimeout(registerAd, 5000);
+          }
+        </script>
       </div>
       
       <div class="ad-info-overlay">
@@ -55,67 +91,4 @@ const shouldShowAds = siteConfig.ads.enabled;
   </div>
 )}
 
-<style>
-  .ad-container-root {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    line-height: 0;
-  }
 
-  .ad-inner-wrapper {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    background: #080808;
-    border: none; /* Astra: Eliminado borde para evitar líneas */
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-    max-width: 100%;
-    min-width: 300px; /* Ancho mínimo para banners estándar */
-    min-height: 50px;  /* Altura mínima para que el script pueda inicializarse */
-    transition: all 0.3s ease;
-  }
-
-  .ad-content-slot {
-    padding: 0;
-    margin: 0;
-    display: block;
-    width: 100%;
-    /* Devolvemos la normalidad para que los scripts lean bien el DOM */
-    line-height: normal;
-    font-size: 1rem;
-  }
-
-  /* Astra: Centrado de los anuncios inyectados */
-  :global(.ad-content-slot > div),
-  :global(.ad-content-slot iframe),
-  :global(.ad-content-slot ins) {
-    margin: 0 auto !important;
-    display: block !important;
-    max-width: 100% !important;
-  }
-
-  .ad-info-overlay {
-    position: absolute;
-    top: 0;
-    right: 0;
-    background: rgba(0, 0, 0, 0.6);
-    padding: 2px 6px;
-    border-bottom-left-radius: 8px;
-    z-index: 10;
-    pointer-events: none;
-  }
-
-  .ad-info-overlay span {
-    font-family: system-ui, sans-serif;
-    font-size: 7px;
-    font-weight: 900;
-    color: #444;
-    letter-spacing: 1px;
-  }
-</style>
