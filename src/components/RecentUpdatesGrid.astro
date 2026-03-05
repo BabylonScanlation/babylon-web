@@ -9,6 +9,7 @@ interface Props {
 }
 
 const { mangas = [], title = 'Últimos Capítulos Publicados' } = Astro.props;
+const displayMangas = mangas.slice(0, 20);
 ---
 
 <section class="updates-premium-section">
@@ -22,17 +23,20 @@ const { mangas = [], title = 'Últimos Capítulos Publicados' } = Astro.props;
   </div>
 
   {
-    mangas && mangas.length > 0 ? (
+    displayMangas && displayMangas.length > 0 ? (
       <div class="swiper-outer-container">
         <div class="swiper recent-updates-swiper">
           <div class="swiper-wrapper">
-            {mangas.map((manga) => (
+            {displayMangas.map((manga) => (
               <div class="swiper-slide custom-slide">
                 <UpdateCard series={manga} />
               </div>
             ))}
           </div>
-          <!-- Barra de progreso minimalista -->
+        </div>
+        
+        <!-- Contenedor externo para la scrollbar -->
+        <div class="premium-scrollbar-external-box">
           <div class="swiper-scrollbar premium-scrollbar"></div>
         </div>
       </div>
@@ -47,22 +51,24 @@ const { mangas = [], title = 'Últimos Capítulos Publicados' } = Astro.props;
 <script is:inline>
   const initRecentUpdatesSwiper = () => {
     const swiperEl = document.querySelector('.recent-updates-swiper');
-    // @ts-ignore
+    const scrollbarEl = document.querySelector('.premium-scrollbar');
+    
     if (!swiperEl || swiperEl.swiper || !window.Swiper) return;
 
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
-        // @ts-ignore
         new window.Swiper(swiperEl, {
           init: true,
           slidesPerView: 'auto',
           spaceBetween: 15,
           freeMode: true,
           grabCursor: true,
+          roundLengths: true, // Evita textos borrosos al redondear coordenadas
           scrollbar: {
-            el: '.premium-scrollbar',
+            el: scrollbarEl,
             draggable: true,
-            snapOnRelease: true
+            dragSize: 100,
+            hide: false,
           },
           breakpoints: {
             768: { spaceBetween: 25 }
@@ -70,7 +76,7 @@ const { mangas = [], title = 'Últimos Capítulos Publicados' } = Astro.props;
         });
         observer.disconnect();
       }
-    }, { rootMargin: '100px' });
+    }, { rootMargin: '200px' });
     observer.observe(swiperEl);
   };
 

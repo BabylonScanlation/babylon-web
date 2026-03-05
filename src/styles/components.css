@@ -864,19 +864,35 @@
 .hero-title {
   font-size: 3.5rem; /* Astra: Reducido ligeramente de 4rem para mayor seguridad */
   font-weight: 900;
-  color: #fff;
   margin: 0;
-  line-height: 1.1;
+  line-height: 1.2;
+  padding-bottom: 0.1em;
   letter-spacing: -0.02em;
-  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  background: linear-gradient(to bottom, #fff, #ccc);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  /* Solución al filtro oscuro: usar drop-shadow en vez de text-shadow sobre texto transparente */
+  filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.6));
   /* Astra: Control de desbordamiento para títulos largos */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.hero-title-text {
+  /* Degradado metálico aplicado por cada línea individualmente */
+  background: linear-gradient(
+    to bottom,
+    #ffffff 0%,
+    #ffffff 15%,
+    #dcdcdc 50%,
+    #aaaaaa 85%,
+    #888888 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  /* La magia definitiva: el degradado envuelve perfectamente cada línea sin importar los descenders */
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  display: inline;
 }
 
 .hero-description {
@@ -966,10 +982,10 @@
 }
 
 .prev {
-  left: 2rem;
+  left: 2rem !important;
 }
 .next {
-  right: 2rem;
+  right: 2rem !important;
 }
 
 /* Mobile Adjustments - Cinematic Style */
@@ -1026,7 +1042,7 @@
 
   .hero-title {
     font-size: 2.2rem;
-    line-height: 1.1;
+    line-height: 1.2;
   }
 
   .hero-description {
@@ -1128,51 +1144,84 @@
 .recent-updates-swiper {
   width: 100%;
   height: auto;
-  overflow: hidden; /* Astra: Crucial para el slider */
-  padding-bottom: 0.5rem;
+  overflow: visible !important;
+  padding-bottom: 3.5rem !important; /* Espacio para la scrollbar sin cajas feas */
   position: relative;
   display: block;
 }
 
-.recent-updates-swiper .swiper-wrapper {
-  display: flex; /* Astra: Fuerza el layout horizontal */
-  flex-direction: row;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-}
-
+/* Astra: Reset de nitidez absoluta para textos */
 .custom-slide {
-  flex-shrink: 0; /* Astra: Evita que las tarjetas se encogan */
+  flex-shrink: 0;
   width: 240px !important;
   height: auto;
+  transform: none;
+  -webkit-font-smoothing: antialiased;
+  backface-visibility: hidden;
 }
 
-@media (min-width: 768px) {
-  .custom-slide {
-    width: 240px; /* Tamaño premium para escritorio */
-  }
+.series-name-title {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #fff;
+  margin: 0;
+  line-height: 1.3;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 1);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transform: none;
 }
 
-/* Scrollbar Estilizada */
-:global(.recent-updates-swiper .premium-scrollbar) {
-  bottom: 0 !important;
-  left: 0;
-  width: 100%;
-  height: 3px !important;
-  background: rgba(255, 255, 255, 0.03) !important;
-  border-radius: 100px !important;
+/* La barra de recorrido: Estilo Glassmorphism expandido */
+.premium-scrollbar-external-box .premium-scrollbar {
+  position: relative;
+  width: 95%; /* Expandida casi al total */
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 0 auto;
+  overflow: visible;
+  opacity: 1;
+  display: block;
 }
 
-:global(.recent-updates-swiper .swiper-scrollbar-drag) {
-  background: var(--accent-color) !important;
+/* El tirador: Siempre azul y con iluminación dinámica */
+.premium-scrollbar-external-box .swiper-scrollbar-drag {
+  background: var(--accent-color); /* Siempre azul */
+  border-radius: 100px;
+  height: 100%;
+  opacity: 1;
+  cursor: grab;
+  z-index: 100;
+  /* Brillo sutil en reposo, SIN bordes blancos */
   box-shadow: 0 0 10px var(--accent-glow);
+  border: none !important; /* Eliminamos el borde */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
 
-/* Astra: NSFW Scrollbar fix */
-:global(.nsfw-mode .recent-updates-swiper .swiper-scrollbar-drag) {
-  background: var(--accent-color) !important;
-  box-shadow: 0 0 10px var(--accent-glow) !important;
+/* Efecto de foco encendido al interactuar (100% AZUL) */
+.premium-scrollbar-external-box .swiper-scrollbar-drag:active {
+  cursor: grabbing;
+  background: var(--accent-color); /* Se mantiene del color original */
+  /* Capas de luz esparcida imitando un foco azul puro */
+  box-shadow: 
+    0 0 20px var(--accent-color), /* Brillo cercano intenso */
+    0 0 40px var(--accent-glow), /* Halo principal */
+    0 0 80px var(--accent-glow), /* Halo secundario extendido */
+    0 0 120px var(--accent-glow); /* Iluminación masiva del entorno */
+  transform: scaleY(1.5); /* Se expande ligeramente al activarse para más presencia */
+}
+
+@media (max-width: 768px) {
+  .premium-scrollbar-external-box .premium-scrollbar {
+    width: 92%;
+  }
 }
 
 .empty-updates {
@@ -1219,13 +1268,12 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   isolation: isolate;
-  will-change: transform;
 }
 
 .premium-update-card-wrapper:hover .premium-update-card-inner {
-  transform: translateY(-10px) scale(1.02);
+  transform: translateY(-8px);
   border-color: var(--accent-color);
-  box-shadow: 0 20px 40px var(--accent-glow);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
 }
 
 .cover-link {
@@ -1292,6 +1340,10 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* Astra: Fix para nitidez */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transform: translateZ(0);
 }
 
 .recent-chapters-stack {
@@ -1299,6 +1351,8 @@
   flex-direction: column;
   gap: 0.4rem;
   pointer-events: auto;
+  /* Astra: Evitar jitter en animaciones */
+  transform: translateZ(0);
 }
 
 .chapter-pill {
@@ -1313,6 +1367,10 @@
   border-radius: 12px;
   text-decoration: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Astra: Fix para nitidez */
+  -webkit-font-smoothing: antialiased;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 .chapter-pill:hover {
@@ -2017,7 +2075,9 @@
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 28px;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  box-shadow:
+    0 25px 60px -15px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
   overflow: hidden;
 }
 
@@ -2197,13 +2257,13 @@
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
 }
 
 .google-icon {
   width: 22px;
   height: 22px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .form-footer {
@@ -2239,7 +2299,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .message-container {
@@ -2269,7 +2331,7 @@
 @media (max-width: 480px) {
   .modal-overlay {
     padding: 1rem;
-    align-items: center; 
+    align-items: center;
   }
   .auth-card {
     padding: 2.5rem 1.5rem;
@@ -2332,17 +2394,33 @@
   flex-shrink: 0;
 }
 
-.toast-success::before { background: #2ed573; }
-.toast-success .toast-icon { color: #2ed573; }
+.toast-success::before {
+  background: #2ed573;
+}
+.toast-success .toast-icon {
+  color: #2ed573;
+}
 
-.toast-error::before { background: #ff4757; }
-.toast-error .toast-icon { color: #ff4757; }
+.toast-error::before {
+  background: #ff4757;
+}
+.toast-error .toast-icon {
+  color: #ff4757;
+}
 
-.toast-info::before { background: var(--accent-color); }
-.toast-info .toast-icon { color: var(--accent-color); }
+.toast-info::before {
+  background: var(--accent-color);
+}
+.toast-info .toast-icon {
+  color: var(--accent-color);
+}
 
-.toast-warning::before { background: #ffa502; }
-.toast-warning .toast-icon { color: #ffa502; }
+.toast-warning::before {
+  background: #ffa502;
+}
+.toast-warning .toast-icon {
+  color: #ffa502;
+}
 
 .toast-content {
   flex: 1;
@@ -2362,7 +2440,9 @@
   transition: color 0.2s;
 }
 
-.toast-close:hover { color: #fff; }
+.toast-close:hover {
+  color: #fff;
+}
 
 @media (max-width: 480px) {
   .toast-container {
@@ -2521,8 +2601,16 @@
   inset: 0;
   background-color: rgba(0, 0, 0, 0.95);
   background-image:
-    radial-gradient(circle at 50% -20%, rgba(0, 191, 255, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 0% 100%, rgba(0, 191, 255, 0.05) 0%, transparent 40%);
+    radial-gradient(
+      circle at 50% -20%,
+      rgba(0, 191, 255, 0.15) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 0% 100%,
+      rgba(0, 191, 255, 0.05) 0%,
+      transparent 40%
+    );
   z-index: 10000;
   display: flex;
   justify-content: center;
@@ -2567,26 +2655,57 @@
   -webkit-text-fill-color: transparent;
 }
 
-.subtitle { color: #888; margin-bottom: 2.5rem; font-size: 1rem; }
+.subtitle {
+  color: #888;
+  margin-bottom: 2.5rem;
+  font-size: 1rem;
+}
 
-.checks-area { display: flex; flex-direction: column; gap: 1.25rem; text-align: left; margin-bottom: 2rem; }
+.checks-area {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  text-align: left;
+  margin-bottom: 2rem;
+}
 
-.checkbox-container { display: grid; grid-template-columns: auto 1fr; align-items: flex-start; gap: 1rem; cursor: pointer; color: #ccc; }
+.checkbox-container {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: flex-start;
+  gap: 1rem;
+  cursor: pointer;
+  color: #ccc;
+}
 
 .custom-checkbox {
-  width: 24px; height: 24px; border: 2px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.2); border-radius: 8px; display: flex; justify-content: center; align-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .checkbox-container input:checked + .custom-checkbox {
-  background-color: var(--accent-color); border-color: var(--accent-color);
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
 }
 
 .enter-btn {
   background: linear-gradient(135deg, var(--accent-color) 0%, #0077ff 100%);
-  color: #fff; border: none; padding: 1.1rem; width: 100%; border-radius: 16px; font-weight: 700; cursor: pointer;
+  color: #fff;
+  border: none;
+  padding: 1.1rem;
+  width: 100%;
+  border-radius: 16px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
-.enter-btn:disabled { background: rgba(255, 255, 255, 0.05); color: #555; }
-
-
+.enter-btn:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  color: #555;
+}
