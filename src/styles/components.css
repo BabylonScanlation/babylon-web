@@ -1076,7 +1076,7 @@
   }
 
   .premium-nav {
-    display: none;
+    display: none !important;
   }
 
   .slide-overlay-master {
@@ -1219,8 +1219,12 @@
 }
 
 @media (max-width: 768px) {
-  .premium-scrollbar-external-box .premium-scrollbar {
-    width: 92%;
+  .premium-scrollbar-external-box {
+    display: none !important; /* Ocultar scrollbar en móviles donde se puede deslizar con el dedo */
+  }
+  
+  .recent-updates-swiper {
+    padding-bottom: 0.5rem !important; /* Eliminar el espacio vacío dejado por la barra oculta */
   }
 }
 
@@ -1992,12 +1996,14 @@
 /* --- Ad Container --- */
 .ad-container-root {
   width: 100%;
+  max-width: 100vw;
   margin: 0;
   padding: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   line-height: 0;
+  overflow: hidden; /* Evitar scroll horizontal global */
 }
 
 .ad-inner-wrapper {
@@ -2006,9 +2012,9 @@
   flex-direction: column;
   background: #080808;
   border-radius: 16px;
-  overflow: hidden;
+  /* overflow: hidden; -> Removido porque bloqueaba algunos scripts de ads */
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-  max-width: 100%;
+  max-width: 100vw; /* Asegurar que pueda expandirse en móvil */
   min-width: 300px;
   min-height: 50px;
   transition: all 0.3s ease;
@@ -2021,6 +2027,7 @@
   width: 100%;
   line-height: normal;
   font-size: 1rem;
+  overflow: visible !important; /* Adsterra scripts fallan si están en un overflow:hidden muy estricto en móvil */
 }
 
 :global(.ad-content-slot > div),
@@ -2028,7 +2035,7 @@
 :global(.ad-content-slot ins) {
   margin: 0 auto !important;
   display: block !important;
-  max-width: 100% !important;
+  max-width: 100vw !important; /* Permitir iframe nativo superar bloqueos de padding parent */
 }
 
 .ad-info-overlay {
