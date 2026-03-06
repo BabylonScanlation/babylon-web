@@ -55,34 +55,37 @@ onMount(() => {
     </div>
 
     <Swiper 
-      items={progressList} 
-      slidesPerView={1.2}
-      spaceBetween={16}
-      breakpoints={{
-        640: { slidesPerView: 2.2 },
-        1024: { slidesPerView: 3.2 },
-        1400: { slidesPerView: 4.2 }
+      options={{
+        slidesPerView: 1.2,
+        spaceBetween: 16,
+        breakpoints: {
+          640: { slidesPerView: 2.2 },
+          1024: { slidesPerView: 3.2 },
+          1400: { slidesPerView: 4.2 }
+        }
       }}
     >
-      {#snippet slide(item: any)}
-        <a href={item.nextChapter.url} class="continue-card">
-          <div class="card-image">
-            <img src={item.series.cover} alt={item.series.title} loading="lazy" />
-            <div class="image-overlay"></div>
-            <div class="play-icon">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      {#each progressList as item}
+        <div class="swiper-slide">
+          <a href={item.nextChapter.url} class="continue-card">
+            <div class="card-image">
+              <img src={item.series.cover} alt={item.series.title} loading="lazy" />
+              <div class="image-overlay"></div>
+              <div class="play-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              </div>
             </div>
-          </div>
-          <div class="card-info-box">
-            <h3 class="series-name">{item.series.title}</h3>
-            <div class="progress-meta">
-              <span class="chap-num">Próximo: Cap {item.nextChapter.number}</span>
-              <span class="dot">•</span>
-              <span class="last-read">{timeAgo(new Date(item.nextChapter.createdAt).getTime())}</span>
+            <div class="card-info-box">
+              <h3 class="series-name">{item.series.title}</h3>
+              <div class="progress-meta">
+                <span class="chap-num">Próximo: Cap {item.nextChapter.number}</span>
+                <span class="dot">•</span>
+                <span class="last-read">{timeAgo(new Date(item.nextChapter.createdAt).getTime())}</span>
+              </div>
             </div>
-          </div>
-        </a>
-      {/snippet}
+          </a>
+        </div>
+      {/each}
     </Swiper>
   </section>
 {/if}

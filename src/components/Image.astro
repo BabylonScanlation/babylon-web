@@ -7,12 +7,13 @@ interface Props {
   alt: string;
   class?: string;
   loading?: 'lazy' | 'eager';
+  fetchpriority?: 'high' | 'low' | 'auto';
   width: number;
   height: number;
   [key: string]: any;
 }
 
-const { src, alt, class: className, loading = 'lazy', width, height, ...rest } = Astro.props;
+const { src, alt, class: className, loading = 'lazy', fetchpriority = 'auto', width, height, ...rest } = Astro.props;
 
 const { runtime } = Astro.locals;
 const r2Base = runtime?.env?.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
@@ -35,6 +36,7 @@ if (src && !src.startsWith('http') && !src.startsWith('/')) {
   alt={alt}
   class:list={['img-skeleton', className]}
   loading={loading}
+  fetchpriority={fetchpriority}
   decoding="async"
   width={width}
   height={height}

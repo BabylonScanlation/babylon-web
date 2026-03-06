@@ -42,7 +42,7 @@ async function toggleFavorite() {
   isLoading = true;
 
   try {
-    const { error } = await actions.series.toggleFavorite({ seriesId });
+    const { error } = await actions.user.toggleFavorite({ type: 'series', id: seriesId });
 
     if (error) throw new Error(error.message);
 

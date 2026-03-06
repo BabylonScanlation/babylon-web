@@ -6,7 +6,6 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import BottomNav from '../components/BottomNav.astro';
 import GlobalUtilities from '../components/GlobalUtilities.svelte';
-import AgeGate from '../components/AgeGate.svelte';
 import AdblockWall from '../components/AdblockWall.astro';
 
 const {
@@ -101,8 +100,8 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="preconnect" href="https://crowdsubsequentadmire.com" crossorigin />
 
-    <!-- Astra: Swiper (Carga No Bloqueante) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" media="print" onload="this.media='all'" />
+    <!-- Astra: Swiper (Carga Crítica para Hero) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js" defer></script>
 
     <slot name="head" />
@@ -168,14 +167,12 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           <BottomNav />
         )}
         {!isVerifyPage && <Footer />}
-        <GlobalUtilities client:load isVerifyPage={isVerifyPage} shouldShowAgeGate={false} />
+        <GlobalUtilities client:idle isVerifyPage={isVerifyPage} shouldShowAgeGate={false} />
         {!isAdminPage && <AdblockWall />}
       </>
     )}
     
     <script>
-      import { NewsService } from '../lib/news-service';
-      
       // Astra: Motor de Física Estelar (Paralaje 2.0)
       const initCosmos = () => {
         const bg = document.querySelector('.cosmos-bg');
@@ -256,17 +253,14 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       let cleanup: (() => void) | undefined;
 
       const startAll = () => {
-        // Inicializar NewsService
-        NewsService.getInstance();
-
         // Inicializar Cosmos
         if (cleanup) cleanup();
         const physicsEnabled = document.body.getAttribute('data-cosmos-physics') === 'true';
         if (physicsEnabled) cleanup = initCosmos();
       };
 
+      // Orion: astro:page-load se dispara tanto en la carga inicial como en transiciones
       document.addEventListener('astro:page-load', startAll);
-      if (document.readyState !== 'loading') startAll();
     </script>
   </body>
 </html>

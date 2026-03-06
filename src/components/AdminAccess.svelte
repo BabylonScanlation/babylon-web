@@ -1,12 +1,9 @@
 <script lang="ts">
-let isHovered = $state(false);
 </script>
 
 <a 
   href="/admin" 
   class="admin-access-card" 
-  onmouseenter={() => isHovered = true}
-  onmouseleave={() => isHovered = false}
 >
   <div class="card-glow"></div>
   <div class="icon-area">

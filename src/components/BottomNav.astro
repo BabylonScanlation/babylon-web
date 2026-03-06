@@ -86,6 +86,28 @@ const navItems = [
     }
   });
 
+  // Astra: Sincronización de Noticias (Reactividad para Astro)
+  const updateMobileBadge = (count: number) => {
+    const badge = document.querySelector('[data-news-badge]');
+    if (!badge) return;
+
+    if (count > 0) {
+      badge.textContent = count > 9 ? '+9' : count.toString();
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  };
+
+  // Inicialización desde localStorage
+  const savedCount = parseInt(localStorage.getItem('babylon_news_count') || '0', 10);
+  updateMobileBadge(savedCount);
+
+  // Escuchar actualizaciones globales del newsStore
+  window.addEventListener('news-count-updated', (e: any) => {
+    updateMobileBadge(e.detail.count);
+  });
+
   // Astra: Smart Hide on Scroll
   let lastScrollY = window.scrollY;
   const bottomNav = document.getElementById('mobile-bottom-nav');

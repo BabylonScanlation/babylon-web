@@ -1,84 +1,10 @@
 ---
 import '../styles/components.css';
-import { count, desc, eq, sql } from 'drizzle-orm';
-import { news, users } from '../db/schema';
 import { siteConfig } from '../site.config';
 import NewsCounter from './NewsCounter.svelte';
 
-const { user, db, runtime } = Astro.locals;
-
-// Orion: Sistema de Noticias encapsulado (La cuenta manda sobre el navegador)
-let lastSeenId: string | null = null;
+const { user, runtime } = Astro.locals;
 const isNsfwActive = Astro.cookies.get('babylon_nsfw')?.value === 'true';
-
-if (user) {
-  try {
-    let prefs = (user as any).preferences;
-
-    // Si las preferencias no están en locals (JWT path), intentamos un fetch rápido de DB
-    if (!prefs && db) {
-      const dbUser = await db
-        .select({ preferences: users.preferences })
-        .from(users)
-        .where(eq(users.id, user.uid))
-        .get();
-      prefs = dbUser?.preferences;
-    }
-
-    const parsedPrefs = typeof prefs === 'string' ? JSON.parse(prefs) : prefs || {};
-    lastSeenId = parsedPrefs?.lastSeenNewsId || null;
-  } catch (e) {
-    console.error('[Header Prefs Error]:', e);
-    lastSeenId = null;
-  }
-} else {
-  lastSeenId = Astro.cookies.get('last_news_id')?.value || null;
-}
-
-// Orion: Limpieza de valores nulos/undefined en string
-if (lastSeenId === 'undefined' || lastSeenId === 'null' || !lastSeenId) {
-  lastSeenId = null;
-}
-let unreadNewsCount = 0;
-if (db) {
-  try {
-    if (!lastSeenId) {
-      const result = await db
-        .select({ total: count() })
-        .from(news)
-        .where(eq(news.status, 'published'))
-        .get();
-      unreadNewsCount = result?.total ?? 0;
-    } else {
-      const latestNews = await db
-        .select({ id: news.id })
-        .from(news)
-        .where(eq(news.status, 'published'))
-        .orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`))
-        .limit(50)
-        .all();
-
-      if (latestNews && latestNews.length > 0) {
-        const lastSeenIdStr = String(lastSeenId).trim();
-        const lastSeenIndex = latestNews.findIndex((n) => String(n.id).trim() === lastSeenIdStr);
-
-        if (lastSeenIndex === -1) {
-          const result = await db
-            .select({ total: count() })
-            .from(news)
-            .where(eq(news.status, 'published'))
-            .get();
-          unreadNewsCount = result?.total ?? 0;
-        } else {
-          unreadNewsCount = lastSeenIndex;
-        }
-      }
-    }
-  } catch (e) {
-    console.error('[Header News Error]:', e);
-  }
-}
-
 const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 ---
 
@@ -113,9 +39,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
         <a href="/search" class="nav-link-pc"><span>EXPLORAR</span></a>
         <a href="/news" class="nav-link-pc news-link">
           <span>NOTICIAS</span>
-          <div id="news-badge" class="news-badge-dot hidden">
-            <span id="news-count-text">0</span>
-          </div>
+          <NewsCounter client:idle />
         </a>
         <a href="/library" class="nav-link-pc"><span>BIBLIOTECA</span></a>
       </div>

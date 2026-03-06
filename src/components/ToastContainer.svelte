@@ -13,7 +13,7 @@ const icons = {
 </script>
 
 <div class="toast-container" aria-live="polite">
-  {#each toast.toasts as t (t.id)}
+  {#each toast.messages as t (t.id)}
     <div
       class="toast toast-{t.type}"
       in:fly={{ x: 100, duration: 300 }}

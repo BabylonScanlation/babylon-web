@@ -67,19 +67,20 @@ const instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}`
             }
           };
 
-          // Astra: Usar IntersectionObserver para carga perezosa real
+          // Astra: Usar IntersectionObserver para carga perezosa real (Conservador)
           const el = document.getElementById(instanceId);
           if (el && 'IntersectionObserver' in window) {
             const observer = new IntersectionObserver((entries) => {
               if (entries[0].isIntersecting) {
-                registerAd();
+                // Orion: Retraso extra de 2s tras aparecer en pantalla para priorizar imágenes del sitio
+                setTimeout(registerAd, 2000);
                 observer.disconnect();
               }
-            }, { rootMargin: '400px' }); // Cargar 400px antes de llegar
+            }, { rootMargin: '100px' }); // Cargar solo cuando esté casi en pantalla
             observer.observe(el);
           } else {
-            // Fallback para navegadores antiguos
-            setTimeout(registerAd, 5000);
+            // Fallback para navegadores antiguos (Diferido 8s)
+            setTimeout(registerAd, 8000);
           }
         </script>
       </div>

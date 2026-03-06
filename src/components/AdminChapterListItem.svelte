@@ -26,7 +26,6 @@ let deleteState = $state<'idle' | 'confirm' | 'deleting'>('idle');
 let message = $state({ type: '', text: '' });
 
 let deleteTimeout: ReturnType<typeof setTimeout> | undefined;
-let fileInput: HTMLInputElement | undefined = $state();
 
 onMount(() => {
   const handleGlobalToggle = (e: Event) => {

@@ -44,7 +44,7 @@ const joinedDate = userProfile?.createdAt
 
 <Layout title={`Perfil de ${username} - ${siteConfig.shortName}`}>
   <div class="profile-page-wrapper">
-    <ProfileMediaHandler client:idle currentAvatar={avatar} currentBanner={bannerUrl} username={username} />
+    <ProfileMediaHandler client:idle />
 
     <!-- HEADER & HERO -->
     <header class="profile-hero">

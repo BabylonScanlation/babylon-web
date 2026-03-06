@@ -163,25 +163,7 @@ export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsf
   }
 
   // Orion: Ejecutamos absolutamente todas las queries en paralelo
-  const [recent, popular, byChapters, recentChaptersData] = await Promise.all([
-    // Recientes
-    db
-      .select({
-        id: series.id,
-        title: series.title,
-        slug: series.slug,
-        coverImageUrl: series.coverImageUrl,
-        views: series.views,
-        createdAt: series.createdAt,
-        description: series.description,
-        status: series.status,
-      })
-      .from(series)
-      .where(and(...commonConditions.filter(Boolean)))
-      .orderBy(desc(series.createdAt))
-      .limit(20)
-      .all(),
-
+  const [popular, byChapters, recentChaptersData] = await Promise.all([
     // Populares
     db
       .select({
@@ -197,7 +179,7 @@ export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsf
       .from(series)
       .where(and(...commonConditions.filter(Boolean)))
       .orderBy(desc(series.views))
-      .limit(20)
+      .limit(6)
       .all(),
 
     // Por cantidad de capítulos
@@ -224,11 +206,10 @@ export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsf
   ]);
 
   return {
-    recentSeries: recent,
     popularSeries: popular,
     seriesByChapterCount: byChapters,
     seriesWithRecentChapters: recentChaptersData,
-    hasContent: recent.length > 0 || popular.length > 0 || (recentChaptersData as any[]).length > 0,
+    hasContent: popular.length > 0 || (recentChaptersData as any[]).length > 0,
   };
 }
 
@@ -353,13 +334,13 @@ export async function getSeriesWithRecentChapters(
     )
     .groupBy(chapters.seriesId)
     .orderBy(desc(sql`MAX(${chapters.createdAt})`))
-    .limit(25)
+    .limit(20)
     .all();
 
   const targetIds = recentSeriesIds.map((r) => r.seriesId).filter(Boolean) as number[];
   if (targetIds.length === 0) return [];
 
-  // 2. Traer los capítulos de esas 25 series y agrupar en JS (solo campos necesarios)
+  // 2. Traer los capítulos de esas 20 series y agrupar en JS (solo campos necesarios)
   const rawData = await db
     .select({
       seriesId: series.id,
