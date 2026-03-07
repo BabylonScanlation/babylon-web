@@ -1,4 +1,4 @@
----
+﻿---
 import Layout from '../layouts/Layout.astro';
 import HeroCarousel from '../components/HeroCarousel.astro';
 import FeaturedGrid from '../components/FeaturedGrid.astro';
@@ -16,7 +16,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
 const nsfwCookieValue = Astro.cookies.get('babylon_nsfw')?.value;
 // Si la cookie existe (true o false), usamos su valor. Si no existe, usamos el perfil.
 const allowNsfw =
-  typeof nsfwCookieValue === 'string' ? nsfwCookieValue === 'true' : (user as any)?.isNsfw || false;  
+  typeof nsfwCookieValue === 'string' ? nsfwCookieValue === 'true' : (user as any)?.isNsfw || false;
 
 let popularSeries: any[] = [];
 let seriesByChapterCount: any[] = [];
@@ -44,18 +44,18 @@ const featuredGridData = [...popularSeries]
   .slice(0, 6);
 ---
 
-<Layout
+<Layout 
   title={`${siteConfig.name} - Leer Manga, Manhwa y Manhua Online Gratis`}
-  description={`La mejor plataforma para leer Manga, Manhwa y Manhua online en español. Capítulos diarios, alta calidad visual y la mejor comunidad. ¡Lee gratis ahora en ${siteConfig.shortName}!`}        
+  description={`La mejor plataforma para leer Manga, Manhwa y Manhua online en español. Capítulos diarios, alta calidad visual y la mejor comunidad. ¡Lee gratis ahora en ${siteConfig.shortName}!`}
 >
   <h1 class="sr-only">{siteConfig.name} - Tu plataforma premium para leer Manga, Manhwa y Manhua online gratis</h1>
   {
     hasContent ? (
       <div class="main-content-wrapper">
           {seriesByChapterCount.length > 0 && (
-            <HeroCarousel
-              slides={seriesByChapterCount}
-              r2PublicUrlAssets={r2PublicUrlAssets}
+            <HeroCarousel 
+              slides={seriesByChapterCount} 
+              r2PublicUrlAssets={r2PublicUrlAssets} 
             />
           )}
 
@@ -64,7 +64,7 @@ const featuredGridData = [...popularSeries]
           <AdContainer type="bannerLarge" />
 
           {featuredGridData.length > 0 && (
-            <FeaturedGrid mangas={featuredGridData.map((m, i) => ({...m, loading: i < 2 ? 'eager' : 'lazy'}))} />
+            <FeaturedGrid mangas={featuredGridData.map((m) => ({...m, loading: 'lazy'}))} />
           )}
 
           <AdContainer type="bannerSmall" />
@@ -127,40 +127,3 @@ const featuredGridData = [...popularSeries]
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 1.5rem;
-    text-align: center;
-    padding: 1rem;
-  }
-
-  .empty-state-logo {
-    max-width: 500px;
-    width: 80%;
-    opacity: 0.8;
-    filter: drop-shadow(0 0 30px rgba(0, 191, 255, 0.2));
-    animation: pulse-logo 4s ease-in-out infinite;
-  }
-
-  @keyframes pulse-logo {
-    0%, 100% { transform: scale(1); opacity: 0.8; }
-    50% { transform: scale(1.05); opacity: 1; }
-  }
-
-  .empty-state-text {
-    color: #aaa;
-    font-size: 1.1rem;
-    max-width: 400px;
-    line-height: 1.6;
-  }
-
-  @media (max-width: 768px) {
-    .main-sections-container { gap: 1.5rem; }
-    .library-reveal-section { margin: 0; }
-    .premium-reveal-btn { padding: 1rem 2rem; font-size: 0.8rem; }
-    .reveal-line { display: none; }
-    .reveal-control-box { justify-content: center; }
-  }
-
-  :global(body.no-scroll) {
-    overflow: hidden !important;
-  }
-</style>

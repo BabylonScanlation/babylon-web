@@ -20,11 +20,14 @@ const { coverImageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props
         src={coverImageUrl || ''}
         alt={`Portada de ${title}`}
         loading={loading}
+        decoding="async"
         width={200}
         height={300}
         class="card-image"
         style={`transition-name: cover-${url.split('/').pop()}`}
         fetchpriority={loading === 'eager' ? 'high' : 'auto'}
+        quality={50}
+        format="avif"
       />
       <div class="gradient-overlay"></div>
       <div class="new-chapter-tag">NUEVO</div>
@@ -43,10 +46,13 @@ const { coverImageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props
         src={coverImageUrl || ''}
         alt={`Portada de ${title}`}
         loading={loading}
+        decoding="async"
         width={80}
         height={110}
         class="thumb-image"
         style={`transition-name: cover-${url.split('/').pop()}`}
+        quality={50}
+        format="avif"
       />
     </div>
     <div class="mobile-details">

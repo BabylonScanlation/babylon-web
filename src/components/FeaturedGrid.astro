@@ -1,5 +1,4 @@
-﻿---
-import '../styles/components.css';
+---
 import type { Series } from '../types';
 import Image from './Image.astro';
 
@@ -34,8 +33,11 @@ const displayMangas = mangas.slice(0, 6);
                 width={300}
                 height={210}
                 loading={(manga as any).loading || "lazy"}
+                decoding="async"
                 style={`transition-name: cover-${manga.slug}`}
                 fetchpriority={(manga as any).loading === 'eager' ? 'high' : 'auto'}
+                quality={50}
+                format="avif"
               />
               <div class="card-overlay-gradient"></div>
             </div>
@@ -66,3 +68,7 @@ const displayMangas = mangas.slice(0, 6);
     }
   </div>
 </section>
+
+<style is:global></style>
+
+

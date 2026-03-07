@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { newsStore } from '../newsStore.svelte';
+import { newsStore } from '../stores.svelte';
 
 describe('NewsStore (Svelte 5 Runes)', () => {
   beforeEach(() => {

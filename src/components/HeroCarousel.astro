@@ -1,5 +1,4 @@
-﻿---
-import '../styles/components.css';
+---
 // src/components/HeroCarousel.astro
 import type { Series } from '../types';
 import { getImageUrl } from '../lib/utils';
@@ -15,7 +14,8 @@ const { slides = [], title, r2PublicUrlAssets } = Astro.props;
 // Orion: Optimización quirúrgica de URL (Solo red, no diseño)
 const getOptUrl = (path: any) => {
   const url = getImageUrl(path, r2PublicUrlAssets, 'series');
-  return url.includes('?') ? `${url}&w=280&q=60` : `${url}?w=280&q=60`;
+  const params = 'w=280&q=50&format=avif';
+  return url.includes('?') ? `${url}&${params}` : `${url}?${params}`;
 };
 
 // Duplicar slides si son pocos
@@ -33,7 +33,7 @@ if (renderSlides.length > 0 && renderSlides.length < 3) {
   <div class="carousel-outer-frame">
     <div class="swiper hero-swiper">
       <div class="swiper-wrapper">
-        {renderSlides.map((slide) => (
+        {renderSlides.map((slide, index) => (
           <div class="swiper-slide">
             <a href={`/series/${slide.slug}`} class="slide-main-link" draggable="false" data-astro-prefetch="false">
               <!-- Background layer -->
@@ -52,7 +52,9 @@ if (renderSlides.length > 0 && renderSlides.length < 3) {
                       src={getOptUrl(slide.coverImageUrl)}
                       alt={slide.title}
                       class="hero-poster"
-                      loading="lazy"
+                      loading={index === 0 ? "eager" : "lazy"}
+                      fetchpriority={index === 0 ? "high" : "auto"}
+                      decoding="async"
                       draggable="false"
                     />
                   </div>
@@ -79,11 +81,74 @@ if (renderSlides.length > 0 && renderSlides.length < 3) {
     
     <!-- Premium Controls -->
     <div class="swiper-pagination premium-pagination"></div>
-    <div class="swiper-button-prev premium-nav prev">
-      <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="3" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    <!-- Botones Premium con Flecha 'Heavy Delta' Centrada -->
+    <div class="premium-nav prev" aria-label="Previous">
+      <svg viewBox="0 0 24 24" fill="currentColor" style="overflow: visible !important;">
+        <path d="M18 5l-12 7 12 7-3-7 3-7z"></path>
+      </svg>
     </div>
-    <div class="swiper-button-next premium-nav next">
-      <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="3" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    
+    <div class="premium-nav next" aria-label="Next">
+      <svg viewBox="0 0 24 24" fill="currentColor" style="overflow: visible !important;">
+        <path d="M6 5l12 7-12 7 3-7-3-7z"></path>
+      </svg>
     </div>
   </div>
 </section>
+
+<style is:global>
+  .premium-nav {
+    position: absolute !important;
+    width: 56px !important;
+    height: 56px !important;
+    background: rgba(10, 10, 15, 0.5) !important;
+    backdrop-filter: blur(15px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(15px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 50% !important;
+    color: #fff !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 100 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important; /* Astra: Eliminar padding para centrado real */
+    margin: 0 !important;
+    cursor: pointer !important;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) !important;
+    line-height: 0 !important;
+  }
+
+  .premium-nav svg {
+    width: 32px !important; 
+    height: 32px !important;
+    display: block !important;
+    margin: 0 !important;
+    flex-shrink: 0 !important;
+    transition: color 0.3s ease, transform 0.3s ease !important;
+    filter: none !important;
+  }
+
+  .premium-nav:hover {
+    background: rgba(10, 10, 15, 0.5) !important;
+    border-color: var(--accent-color) !important;
+    transform: translateY(-50%) scale(1.1) !important;
+    /* Resplandor Externo del Círculo Reducido */
+    box-shadow: 0 0 10px var(--accent-color), 0 0 20px var(--accent-glow) !important;
+  }
+
+  .premium-nav:hover svg {
+    color: var(--accent-color) !important;
+    animation: none !important; /* Eliminado pulso interno */
+  }
+
+  .premium-nav::after { display: none !important; }
+
+  .prev { left: 2rem !important; }
+  .next { right: 2rem !important; }
+
+  @media (max-width: 900px) {
+    .premium-nav { display: none !important; }
+  }
+</style>

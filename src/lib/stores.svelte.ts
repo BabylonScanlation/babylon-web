@@ -1,5 +1,4 @@
 // src/lib/stores.svelte.ts
-import { actions } from 'astro:actions';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase/client';
 import { generateUUID } from './utils';
@@ -29,6 +28,7 @@ class ToastStore {
   remove(id: string) { this.#toasts = this.#toasts.filter(t => t.id !== id); }
   success(m: string) { this.add('success', m); }
   error(m: string) { this.add('error', m); }
+  warning(m: string) { this.add('warning', m); }
 }
 export const toast = new ToastStore();
 

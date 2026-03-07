@@ -1,7 +1,7 @@
 <script lang="ts">
-import { slide } from 'svelte/transition';
+import { fade, slide } from 'svelte/transition';
 import { actions } from 'astro:actions';
-import { toast } from '../lib/toastStore.svelte';
+import { toast } from '../lib/stores.svelte';
 
 interface Props {
   commentId: number;

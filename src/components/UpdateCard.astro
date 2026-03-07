@@ -24,6 +24,9 @@ const recentChapters = (series as any).recentChapters || [];
           width={300}
           height={450}
           loading="lazy"
+          decoding="async"
+          quality={50}
+          format="avif"
           class="main-cover"
         />
         <div class="glass-gradient-overlay"></div>

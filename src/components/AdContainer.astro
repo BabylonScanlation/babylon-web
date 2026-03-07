@@ -1,5 +1,4 @@
 ---
-import '../styles/components.css';
 // src/components/AdContainer.astro
 import { siteConfig } from '../site.config';
 
@@ -39,7 +38,7 @@ const instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}`
   >
     <div class="ad-inner-wrapper">
       <div class="ad-content-slot" id={`slot-${instanceId}`}>
-        <div id={`container-${adKey}`}></div>
+        <div id={`container-${instanceId}`}></div>
       </div>
       
       <div class="ad-info-overlay">

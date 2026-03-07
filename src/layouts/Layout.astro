@@ -1,35 +1,43 @@
 ---
 import '../styles/global.css';
-import '../styles/components.css';
 import { siteConfig } from '../site.config';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import BottomNav from '../components/BottomNav.astro';
-import AdblockWall from '../components/AdblockWall.astro';
 import GlobalUtilities from '../components/GlobalUtilities.svelte';
+import AdblockWall from '../components/AdblockWall.astro';
 
 const {
   title: pageTitle,
   description = siteConfig.description,
   ogImage = siteConfig.assets.ogImage,
   canonicalURL = Astro.url.href,
-  isNsfwContent,
+  isNsfwContent, // Orion: Prop para forzar la temática según el contenido actual
 } = Astro.props;
 
-const { user, runtime } = Astro.locals;
+const { user } = Astro.locals;
+
+// Orion: Detección de dispositivo para evitar carga de componentes móviles en Desktop
 const ua = Astro.request.headers.get('user-agent') || '';
 const isMobile = /mobile|iphone|ipad|android|blackberry|opera mini|iemobile|wpdesktop/i.test(ua);
+
 const title = pageTitle ? `${pageTitle} | ${siteConfig.shortName}` : siteConfig.name;
+
 const isAdminPage = Astro.url.pathname.startsWith('/admin');
 const isVerifyPage = Astro.url.pathname === '/verify';
+
 const isVerified = Astro.cookies.get('site_verified')?.value === 'true';
 const isBot = (Astro.locals as any).isBot;
 const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage && !isBot;
-const isNsfw = isNsfwContent !== undefined ? isNsfwContent : Astro.cookies.get('babylon_nsfw')?.value === 'true';
+
+// Astra: Detección de modo NSFW.
+// Prioridad: 1. Prop de la página (para forzar color en series específicas) -> 2. Cookie Global
+const isNsfw =
+  isNsfwContent !== undefined ? isNsfwContent : Astro.cookies.get('babylon_nsfw')?.value === 'true';
+
+// Orion: URL Base para metadatos absolutos
 const siteUrl = siteConfig.url;
 const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
-const r2PublicUrlAssets = runtime?.env?.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
-const currentYear = new Date().getFullYear();
 ---
 
 <!doctype html>
@@ -40,50 +48,143 @@ const currentYear = new Date().getFullYear();
     <link rel="icon" type="image/svg+xml" href={siteConfig.assets.favicon} />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content={siteConfig.theme.accent} />
+    <meta name="google-site-verification" content="p13-r-hLZ82o8n9SUSdk_-bOPDu6aqYAvk8jf8ihFvw" />
+    
+    <!-- Primary Meta Tags -->
     <title>{title}</title>
+    <meta name="title" content={title} />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+    <!-- Googlebot Priority -->
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+
+    <!-- Breadcrumbs JSON-LD -->
+    <script type="application/ld+json" is:inline set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Inicio",
+          "item": siteUrl
+        },
+        ...Astro.url.pathname.split('/').filter(Boolean).map((part, i, arr) => ({
+          "@type": "ListItem",
+          "position": i + 2,
+          "name": part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' '),
+          "item": `${siteUrl}/${arr.slice(0, i + 1).join('/')}`
+        }))
+      ]
+    })} />
+
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content={Astro.url.href} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={fullOgImage} />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={Astro.url.href} />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={fullOgImage} />
+
+    <!-- Orion: Preconexiones Críticas (Optimización Extrema) -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <link rel="dns-prefetch" href="https://crowdsubsequentadmire.com" />
+
+    <!-- Astra: Swiper (Carga NO bloqueante) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" media="print" onload="this.media='all'" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js" defer></script>
-    <style is:global set:html={`:root{--accent-color:${siteConfig.theme.accent};--accent-glow:${siteConfig.theme.accentGlow};--bg-color:${siteConfig.theme.background};--bg-alt:${siteConfig.theme.backgroundAlt};}html.nsfw-mode{--accent-color:#900000!important;--accent-glow:rgba(144,0,0,0.6)!important;}`}></style>
+
+    <slot name="head" />
+
+    <script is:inline>
+      // Astra: Silenciador de errores de Privacy Sandbox/Permissions-Policy
+      (function() {
+        const originalError = console.error;
+        console.error = function(...args) {
+          if (args[0] && typeof args[0] === 'string' && (
+              args[0].includes('browsing-topics') || 
+              args[0].includes('run-ad-auction') || 
+              args[0].includes('join-ad-interest-group')
+          )) return;
+          originalError.apply(console, args);
+        };
+      })();
+    </script>
+    
+    <style is:global set:html={`
+      :root {
+        --accent-color: ${siteConfig.theme.accent};
+        --accent-glow: ${siteConfig.theme.accentGlow};
+        --bg-color: ${siteConfig.theme.background};
+        --bg-alt: ${siteConfig.theme.backgroundAlt};
+      }
+      
+      html.nsfw-mode {
+        --accent-color: #900000 !important;
+        --accent-glow: rgba(144, 0, 0, 0.6) !important;
+      }
+    `}>
+    </style>
   </head>
-  <body class="cosmos-theme" data-user-id={user?.uid || 'guest'} data-cosmos-physics={siteConfig.theme.cosmos.physicsEnabled ? 'true' : 'false'}>
-    {siteConfig.theme.cosmos.enabled && (<div class="cosmos-bg"><div class="stars-layer base"></div><div class="stars-layer mid"></div><div class="stars-layer dust"></div><div class="nebula-glow"></div></div>)}
+  <body 
+    class="cosmos-theme" 
+    data-user-id={user?.uid || 'guest'}
+    data-cosmos-physics={siteConfig.theme.cosmos.physicsEnabled ? 'true' : 'false'}
+  >
+    {siteConfig.theme.cosmos.enabled && (
+      <div class="cosmos-bg">
+        <div class="stars-layer base"></div>
+        <div class="stars-layer mid"></div>
+        <div class="stars-layer dust"></div>
+        <div class="nebula-glow"></div>
+        <div class="shooting-stars">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    )}
 
     {shouldBlockContent ? (<div class="content-blocked-placeholder"></div>) : (
       <>
         {!isVerifyPage && (
           <Header />
         )}
-        <main class="site-main-content"><slot /></main>
+        <main class="site-main-content">
+          <slot />
+        </main>
         {!isVerifyPage && isMobile && (
           <BottomNav />
         )}
-        {!isVerifyPage && (
-          <Footer />
-        )}
+        {!isVerifyPage && <Footer />}
       </>
     )}
 
-    <GlobalUtilities client:visible isVerifyPage={isVerifyPage} shouldShowAgeGate={shouldBlockContent} />        
-    {!isAdminPage && (
-      <AdblockWall />
-    )}
+    <GlobalUtilities 
+      client:visible 
+      isVerifyPage={isVerifyPage} 
+      shouldShowAgeGate={shouldBlockContent} 
+    />        
+    {!isAdminPage && <AdblockWall />}
     
     <script>
       const initAll = async () => {
+        // 0. Instant NSFW
         const htmlHasMode = document.documentElement.classList.contains('nsfw-mode');
         const isNsfwCookie = document.cookie.split(';').some(c => c.trim().startsWith('babylon_nsfw=true'));
         if (isNsfwCookie || htmlHasMode) {
           const header = document.getElementById('main-header');
           if (header) header.classList.add('nsfw-active');
         }
+
+        // 1. Cosmos Physics
         const physicsEnabled = document.body.getAttribute('data-cosmos-physics') === 'true';
         if (physicsEnabled) {
           const layers = { base: document.querySelector('.stars-layer.base') as HTMLElement, mid: document.querySelector('.stars-layer.mid') as HTMLElement, dust: document.querySelector('.stars-layer.dust') as HTMLElement, nebula: document.querySelector('.nebula-glow') as HTMLElement };
@@ -95,25 +196,133 @@ const currentYear = new Date().getFullYear();
             animate();
           }
         }
+
+        // 2. Header & NSFW Toggle
         const logo = document.getElementById('header-logo-toggle');
-        if (logo) logo.onclick = async (e) => { e.preventDefault(); const { actions } = await import('astro:actions'); const { data } = await actions.ui.toggleNsfw(); if (data?.success) window.location.assign('/'); };
-        const updateBadges = (count: number) => { document.querySelectorAll('[data-news-badge]').forEach(b => { if (count > 0) { b.textContent = count > 9 ? '+9' : count.toString(); b.classList.remove('hidden'); (b as HTMLElement).style.display = 'flex'; } else { b.classList.add('hidden'); (b as HTMLElement).style.display = 'none'; } }); };
+        if (logo) {
+          logo.onclick = async (e) => {
+            e.preventDefault();
+            const { actions } = await import('astro:actions');
+            const { data } = await actions.ui.toggleNsfw();
+            if (data?.success) window.location.assign('/');
+          };
+        }
+
+        // 3. News Badges
+        const updateBadges = (count: number) => {
+          document.querySelectorAll('[data-news-badge]').forEach(b => {
+            if (count > 0) {
+              b.textContent = count > 9 ? '+9' : count.toString();
+              b.classList.remove('hidden');
+              (b as HTMLElement).style.display = 'flex';
+            } else {
+              b.classList.add('hidden');
+              (b as HTMLElement).style.display = 'none';
+            }
+          });
+        };
         updateBadges(parseInt(localStorage.getItem('babylon_news_count') || '0', 10));
         window.addEventListener('news-count-updated', (e: any) => updateBadges(e.detail.count));
-        const initSwipers = () => { // @ts-ignore
-          const S = window.Swiper; if (!S) return;
-          const hero = document.querySelector('.hero-swiper'); if (hero && !(hero as any).swiper) new S(hero, { slidesPerView: 1, loop: true, effect: 'fade', speed: 800, autoplay: { delay: 6000 }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } });
-          const updates = document.querySelector('.recent-updates-swiper'); if (updates && !(updates as any).swiper) { const obs = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { new S(updates, { slidesPerView: 'auto', spaceBetween: 15, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true } }); obs.disconnect(); } }); }, { rootMargin: '100px' }); obs.observe(updates); }
+
+        // 4. Swiper Initialization
+        const initSwipers = () => {
+          // @ts-ignore
+          const S = window.Swiper;
+          if (!S) return;
+          const hero = document.querySelector('.hero-swiper');
+          if (hero && !(hero as any).swiper) new S(hero, { slidesPerView: 1, loop: true, effect: 'fade', speed: 800, autoplay: { delay: 6000, disableOnInteraction: false }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } });
+          const updates = document.querySelector('.recent-updates-swiper');
+          if (updates && !(updates as any).swiper) {
+            const obs = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { new S(updates, { slidesPerView: 'auto', spaceBetween: 15, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true }, breakpoints: { 768: { spaceBetween: 25 } } }); obs.disconnect(); } }); }, { rootMargin: '100px' });
+            obs.observe(updates);
+          }
         };
         initSwipers();
+
+        // 5. Adsterra Runner (Optimizado para Carga Instantánea)
         const initAds = () => {
-          const ads = Array.from(document.querySelectorAll('.ad-container-root')); if (ads.length === 0) return;
-          const obs = new IntersectionObserver((entries) => { entries.forEach(entry => { if (entry.isIntersecting) { const el = entry.target as HTMLElement; if (el.getAttribute('data-loaded')) return; el.setAttribute('data-loaded', 'true'); const keys = JSON.parse(el.getAttribute('data-ad-keys') || '{}'); const dims = JSON.parse(el.getAttribute('data-ad-dims') || '{}'); const type = el.getAttribute('data-ad-type'); let currentType = type, currentDim = dims[currentType!] || { w: 728, h: 90 }; if (window.innerWidth < currentDim.w) { currentType = window.innerWidth >= 468 && type !== 'square' ? 'bannerSmall' : 'square'; currentDim = dims[currentType!] || { w: 300, h: 250 }; } const finalKey = keys[currentType!] || keys.banner; if (finalKey) { // @ts-ignore
-            window.atOptions = { 'key': finalKey, 'format': 'iframe', 'height': currentDim.h, 'width': currentDim.w, 'params': {} }; const s = document.createElement('script'); s.type = 'text/javascript'; s.src = `https://crowdsubsequentadmire.com/${finalKey}/invoke.js`; document.getElementById(`slot-${el.id}`)!.appendChild(s); } obs.unobserve(el); } }); }, { rootMargin: '100px' }); ads.forEach(ad => obs.observe(ad));
+          const ads = Array.from(document.querySelectorAll('.ad-container-root'));
+          if (ads.length === 0) return;
+          const obs = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                const el = entry.target as HTMLElement;
+                if (el.getAttribute('data-loaded')) return;
+                el.setAttribute('data-loaded', 'true');
+                const type = el.getAttribute('data-ad-type');
+                const keys = JSON.parse(el.getAttribute('data-ad-keys') || '{}');
+                const dims = JSON.parse(el.getAttribute('data-ad-dims') || '{}');
+                let currentType = type, currentDim = dims[currentType!] || { w: 728, h: 90 };
+                if (window.innerWidth < currentDim.w) { currentType = window.innerWidth >= 468 && type !== 'square' ? 'bannerSmall' : 'square'; currentDim = dims[currentType!] || { w: 300, h: 250 }; }
+                const finalKey = keys[currentType!] || keys.banner;
+                if (finalKey) {
+                  const adId = el.id;
+                  const adKey = finalKey;
+                  const adDim = currentDim;
+                  
+                  // Orion: Usamos un iframe para aislar la variable atOptions y evitar conflictos entre múltiples anuncios
+                  const iframe = document.createElement('iframe');
+                  iframe.style.width = adDim.w + 'px';
+                  iframe.style.height = adDim.h + 'px';
+                  iframe.style.border = 'none';
+                  iframe.style.overflow = 'hidden';
+                  iframe.scrolling = 'no';
+                  
+                  const slot = document.getElementById(`slot-${adId}`);
+                  if (slot) {
+                    slot.innerHTML = '';
+                    slot.appendChild(iframe);
+                    
+                    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+                    if (doc) {
+                      doc.open();
+                      doc.write(`
+                        <body style="margin:0;padding:0;">
+                          <script type="text/javascript">
+                            atOptions = {
+                              'key' : '${adKey}',
+                              'format' : 'iframe',
+                              'height' : ${adDim.h},
+                              'width' : ${adDim.w},
+                              'params' : {}
+                            };
+                          <\/script>
+                          <script type="text/javascript" src="https://crowdsubsequentadmire.com/${adKey}/invoke.js"><\/script>
+                        </body>
+                      `);
+                      doc.close();
+                    }
+                  }
+                }
+                obs.unobserve(el);
+              }
+            });
+          }, { rootMargin: '600px' }); // Aumentado a 600px para una precarga más agresiva
+          ads.forEach(ad => obs.observe(ad));
         };
-        setTimeout(initAds, 1000);
-        setTimeout(async () => { const check = async () => { const network = await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' }).catch(() => null); if (network === null) return true; const bait = document.getElementById('tester-wrap'); if (bait && (bait.offsetParent === null || bait.offsetHeight === 0)) return true; return false; }; if (await check()) { if (window.location.pathname.includes('/series/')) { const wall = document.getElementById('adblock-wall'); if (wall) { wall.style.display = 'flex'; document.body.style.overflow = 'hidden'; } } else { const toast = document.getElementById('adblock-toast'); if (toast) toast.style.display = 'flex'; } } }, 2000);
+        initAds(); // Ejecutar inmediatamente sin esperas
+
+        // 6. Adblock Detection (Minimal)
+        setTimeout(async () => {
+          const check = async () => {
+            const network = await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' }).catch(() => null);
+            if (network === null) return true;
+            const bait = document.getElementById('tester-wrap');
+            if (bait && (bait.offsetParent === null || bait.offsetHeight === 0)) return true;
+            return false;
+          };
+          if (await check()) {
+            if (window.location.pathname.includes('/series/') && window.location.pathname.split('/').length >= 4) {
+              const wall = document.getElementById('adblock-wall');
+              if (wall) { wall.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+            } else {
+              const toast = document.getElementById('adblock-toast');
+              if (toast) toast.style.display = 'flex';
+            }
+          }
+        }, 2000);
       };
+
       document.addEventListener('astro:page-load', initAll);
       if (document.readyState !== 'loading') initAll();
     </script>

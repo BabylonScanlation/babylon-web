@@ -1179,7 +1179,7 @@ const joinedDate = userProfile?.createdAt
 
 <script>
   import { actions } from 'astro:actions';
-  import { toast } from '../lib/toastStore.svelte.ts';
+  import { toast } from '../lib/stores.svelte';
   import { auth } from '../lib/firebase/client';
   import { sendPasswordResetEmail, onAuthStateChanged } from 'firebase/auth';
 

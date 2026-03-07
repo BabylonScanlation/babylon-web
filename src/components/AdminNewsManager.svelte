@@ -1,7 +1,7 @@
 <script lang="ts">
 import { fade, fly, slide } from 'svelte/transition';
 import { actions } from 'astro:actions';
-import { toast } from '../lib/toastStore.svelte';
+import { toast } from '../lib/stores.svelte';
 
 // Tipos
 interface Series {
