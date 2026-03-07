@@ -1,6 +1,6 @@
 ---
 // src/components/Image.astro
-// VERSIÓN FINAL CORREGIDA
+// Astra: Componente híbrido. Usa src real para el Hero y data-src para el resto.
 
 interface Props {
   src: string;
@@ -8,58 +8,48 @@ interface Props {
   class?: string;
   loading?: 'lazy' | 'eager';
   fetchpriority?: 'high' | 'low' | 'auto';
-  width: number;
-  height: number;
-  [key: string]: any;
+  width?: number;
+  height?: number;
+  style?: string;
+  // Si es true, la imagen no cargará hasta que el scroll llegue (Zona Fantasma)
+  forceLazy?: boolean;
 }
 
-const { src, alt, class: className, loading = 'lazy', fetchpriority = 'auto', width, height, ...rest } = Astro.props;
+const { 
+  src, alt, class: className, 
+  loading = 'lazy', 
+  fetchpriority = 'auto', 
+  width = 300, height = 450, 
+  style = '',
+  forceLazy = false
+} = Astro.props;
 
 const { runtime } = Astro.locals;
 const r2Base = runtime?.env?.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 
-// Normalización de la URL: Si es relativa y no empieza por /, le ponemos el prefijo de R2
-let finalSrc = src;
-if (src && !src.startsWith('http') && !src.startsWith('/')) {
-  finalSrc = `${r2Base}/${src}`.replace(/([^:]\/)\/+/g, '$1');
-  
-  // Astra: Añadir parámetros de optimización si tenemos el ancho
-  if (width) {
-    const separator = finalSrc.includes('?') ? '&' : '?';
-    finalSrc = `${finalSrc}${separator}w=${width}&q=60`;
-  }
+function buildFinalUrl(inputSrc: string) {
+  if (!inputSrc) return '';
+  if (inputSrc.includes('fmt=webp')) return inputSrc;
+  const base = r2Base.replace(/\/$/, '');
+  const path = inputSrc.startsWith('/') ? inputSrc : `/${inputSrc}`;
+  const url = inputSrc.startsWith('http') ? inputSrc : `${base}${path}`;
+  return `${url}${url.includes('?') ? '&' : '?'}w=300&q=60&fmt=webp`;
 }
+
+const finalUrl = buildFinalUrl(src);
+// Una imagen es "Ghost" si forzamos el lazy y no es crítica
+const isGhost = forceLazy && loading !== 'eager';
 ---
 
 <img
-  src={finalSrc}
+  src={isGhost ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : finalUrl}
+  data-src={isGhost ? finalUrl : undefined}
   alt={alt}
-  class:list={['img-skeleton', className]}
+  class:list={[className, { 'lazy-ghost': isGhost }]}
   loading={loading}
   fetchpriority={fetchpriority}
   decoding="async"
   width={width}
   height={height}
-  {...rest}
-  style={`width: 100%; height: 100%; aspect-ratio: ${width} / ${height}; object-fit: cover; display: block; ${rest.style || ''}`}
-  onload="this.classList.remove('img-skeleton')"
+  style={`aspect-ratio: ${width} / ${height}; object-fit: cover; display: block; ${style}`}
 />
-
-<style>
-  .img-skeleton {
-    background: linear-gradient(
-      110deg,
-      rgba(255, 255, 255, 0.03) 8%,
-      rgba(255, 255, 255, 0.08) 18%,
-      rgba(255, 255, 255, 0.03) 33%
-    );
-    background-size: 200% 100%;
-    animation: skeleton-shine 1.5s linear infinite;
-  }
-
-  @keyframes skeleton-shine {
-    to {
-      background-position-x: -200%;
-    }
-  }
-</style>

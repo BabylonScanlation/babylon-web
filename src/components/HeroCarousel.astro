@@ -1,7 +1,7 @@
 ---
 // src/components/HeroCarousel.astro
 import type { Series } from '../types';
-import { getImageUrl } from '../lib/utils';
+import Image from './Image.astro';
 
 interface Props {
   slides: Series[];
@@ -9,14 +9,7 @@ interface Props {
   r2PublicUrlAssets?: string;
 }
 
-const { slides = [], title, r2PublicUrlAssets } = Astro.props;
-
-// Orion: Optimización quirúrgica de URL (Solo red, no diseño)
-const getOptUrl = (path: any) => {
-  const url = getImageUrl(path, r2PublicUrlAssets, 'series');
-  const params = 'w=280&q=50&format=avif';
-  return url.includes('?') ? `${url}&${params}` : `${url}?${params}`;
-};
+const { slides = [], title } = Astro.props;
 
 // Duplicar slides si son pocos
 let renderSlides = [...slides];
@@ -36,11 +29,17 @@ if (renderSlides.length > 0 && renderSlides.length < 3) {
         {renderSlides.map((slide, index) => (
           <div class="swiper-slide">
             <a href={`/series/${slide.slug}`} class="slide-main-link" draggable="false" data-astro-prefetch="false">
-              <!-- Background layer -->
-              <div
-                class="slide-bg-art"
-                style={`background-image: url(${getOptUrl(slide.coverImageUrl)})`}
-              />
+              <!-- Background layer (Optimized: Using same Image component for cache hit) -->
+              <div class="slide-bg-container">
+                <Image 
+                  src={slide.coverImageUrl || ''} 
+                  alt="" 
+                  class="slide-bg-art-optimized"
+                  loading={index === 0 ? "eager" : "lazy"}
+                  width={300}
+                  height={450}
+                />
+              </div>
               <div class="slide-overlay-master" />
               
               <!-- Content layer -->
@@ -48,14 +47,14 @@ if (renderSlides.length > 0 && renderSlides.length < 3) {
                 <div class="content-grid-hero">
                   <div class="hero-art-box">
                     <div class="art-shimmer"></div>
-                    <img
-                      src={getOptUrl(slide.coverImageUrl)}
+                    <Image
+                      src={slide.coverImageUrl || ''}
                       alt={slide.title}
                       class="hero-poster"
+                      width={300}
+                      height={450}
                       loading={index === 0 ? "eager" : "lazy"}
                       fetchpriority={index === 0 ? "high" : "auto"}
-                      decoding="async"
-                      draggable="false"
                     />
                   </div>
                   

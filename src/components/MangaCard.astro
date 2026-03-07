@@ -13,8 +13,8 @@ const { coverImageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props
 ---
 
 <a href={url} class="card-wrapper">
-  <!-- DESKTOP CARD (Poster Style) -->
-  <div class="card desktop-view">
+  <!-- SHARED IMAGE COMPONENT (Single Request) -->
+  <div class="card-container-adaptive">
     <div class="image-container">
       <Image
         src={coverImageUrl || ''}
@@ -23,43 +23,30 @@ const { coverImageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props
         decoding="async"
         width={200}
         height={300}
-        class="card-image"
+        class="main-card-image"
         style={`transition-name: cover-${url.split('/').pop()}`}
         fetchpriority={loading === 'eager' ? 'high' : 'auto'}
         quality={50}
         format="avif"
       />
-      <div class="gradient-overlay"></div>
-      <div class="new-chapter-tag">NUEVO</div>
+      <div class="gradient-overlay desktop-only"></div>
+      <div class="new-chapter-tag desktop-only">NUEVO</div>
+    </div>
 
-      <div class="card-content">
+    <div class="card-details-adaptive">
+      <!-- Desktop Layout -->
+      <div class="desktop-content desktop-only">
         <h3 class="title">{title}</h3>
         <p class="chapter">{lastChapter}</p>
       </div>
-    </div>
-  </div>
 
-  <!-- MOBILE CARD (List Style) -->
-  <div class="card mobile-view">
-    <div class="mobile-thumb">
-      <Image
-        src={coverImageUrl || ''}
-        alt={`Portada de ${title}`}
-        loading={loading}
-        decoding="async"
-        width={80}
-        height={110}
-        class="thumb-image"
-        style={`transition-name: cover-${url.split('/').pop()}`}
-        quality={50}
-        format="avif"
-      />
-    </div>
-    <div class="mobile-details">
-      <h3 class="mobile-title">{title}</h3>
-      <div class="mobile-meta">
-        <span class="chapter-pill">{lastChapter}</span>
-        <span class="read-action">LEER ›</span>
+      <!-- Mobile Layout -->
+      <div class="mobile-content mobile-only">
+        <h3 class="mobile-title">{title}</h3>
+        <div class="mobile-meta">
+          <span class="chapter-pill">{lastChapter}</span>
+          <span class="read-action">LEER ›</span>
+        </div>
       </div>
     </div>
   </div>
@@ -76,27 +63,31 @@ const { coverImageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props
     transform: translateY(-5px);
   }
 
-  /* --- DESKTOP VIEW --- */
-  .desktop-view {
-    display: block;
+  /* --- ADAPTIVE CONTAINER --- */
+  .card-container-adaptive {
+    display: flex;
+    flex-direction: column;
     border-radius: 12px;
     overflow: hidden;
     position: relative;
     background: #1a1a1a;
-    aspect-ratio: 2/3;
   }
 
   .image-container {
     position: relative;
     width: 100%;
-    height: 100%;
+    aspect-ratio: 2/3;
   }
 
-  .card-image {
+  .main-card-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
+
+  /* --- DESKTOP SPECIFIC --- */
+  .desktop-only { display: block; }
+  .mobile-only { display: none; }
 
   .gradient-overlay {
     position: absolute;
@@ -124,7 +115,7 @@ const { coverImageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
   }
 
-  .card-content {
+  .desktop-content {
     position: absolute;
     bottom: 0;
     left: 0;
@@ -154,68 +145,64 @@ const { coverImageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props
     letter-spacing: 0.05em;
   }
 
-  /* --- MOBILE VIEW --- */
-  .mobile-view {
-    display: none;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    padding: 0.75rem;
-    gap: 1rem;
-    align-items: center;
-  }
-
-  .mobile-thumb {
-    width: 80px;
-    height: 110px;
-    flex-shrink: 0;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #111;
-  }
-
-  .mobile-details {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .mobile-title {
-    color: #fff;
-    font-size: 0.95rem;
-    font-weight: 700;
-    margin: 0 0 0.5rem 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .mobile-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .chapter-pill {
-    background: var(--accent-glow);
-    color: var(--accent-color);
-    font-size: 0.7rem;
-    font-weight: 800;
-    padding: 2px 8px;
-    border-radius: 6px;
-  }
-
-  .read-action {
-    color: #555;
-    font-size: 0.7rem;
-    font-weight: 800;
-  }
-
+  /* --- MOBILE SPECIFIC --- */
   @media (max-width: 640px) {
-    .desktop-view {
-      display: none;
+    .desktop-only { display: none !important; }
+    .mobile-only { display: block !important; }
+
+    .card-container-adaptive {
+      flex-direction: row;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 0.75rem;
+      gap: 1rem;
+      align-items: center;
+      aspect-ratio: auto;
     }
-    .mobile-view {
+
+    .image-container {
+      width: 80px;
+      height: 110px;
+      flex-shrink: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      aspect-ratio: auto;
+    }
+
+    .card-details-adaptive {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .mobile-title {
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mobile-meta {
       display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chapter-pill {
+      background: var(--accent-glow);
+      color: var(--accent-color);
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .read-action {
+      color: #555;
+      font-size: 0.7rem;
+      font-weight: 800;
     }
   }
 </style>

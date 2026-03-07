@@ -28,7 +28,7 @@ const displayMangas = mangas.slice(0, 20);
           <div class="swiper-wrapper">
             {displayMangas.map((manga) => (
               <div class="swiper-slide custom-slide">
-                <UpdateCard series={manga} />
+                <UpdateCard series={manga} loading="lazy" />
               </div>
             ))}
           </div>

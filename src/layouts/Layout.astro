@@ -98,9 +98,9 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="dns-prefetch" href="https://crowdsubsequentadmire.com" />
 
-    <!-- Astra: Swiper (Carga NO bloqueante) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" media="print" onload="this.media='all'" />
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js" defer></script>
+    <!-- Astra: Swiper (Carga Única desde CDN para evitar fragmentación de Vite) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <script is:inline src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
     <slot name="head" />
 
@@ -251,22 +251,66 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         updateBadges(parseInt(localStorage.getItem('babylon_news_count') || '0', 10));
         window.addEventListener('news-count-updated', (e: any) => updateBadges(e.detail.count));
 
-        // 4. Swiper Initialization
+        // 3.5 Ghost Loader (Astra Orion)
+        const initGhostLoader = () => {
+          const obs = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                const img = entry.target as HTMLImageElement;
+                const ds = img.getAttribute('data-src');
+                if (ds) {
+                  img.src = ds;
+                  img.removeAttribute('data-src');
+                  img.classList.remove('lazy-ghost');
+                }
+                obs.unobserve(img);
+              }
+            });
+          }, { rootMargin: '300px' });
+          document.querySelectorAll('.lazy-ghost').forEach(el => obs.observe(el));
+        };
+        initGhostLoader();
+
+        // 4. Swiper Initialization (Fixed for CDN Bundle)
         const initSwipers = () => {
-          // @ts-ignore
+          // @ts-ignore - Swiper viene del CDN bundle global
           const S = window.Swiper;
           if (!S) return;
           
           const hero = document.querySelector('.hero-swiper');
           if (hero && !(hero as any).swiper) {
-            new S(hero, { slidesPerView: 1, loop: true, effect: 'fade', speed: 800, autoplay: { delay: 6000, disableOnInteraction: false }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } });
+            new S(hero, { 
+              slidesPerView: 1, 
+              loop: true, 
+              effect: 'fade', 
+              speed: 1000,
+              autoplay: { delay: 6000, disableOnInteraction: false }, 
+              pagination: { el: '.premium-pagination', clickable: true }, 
+              navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } 
+            });
           }
 
           // Deferimos la segunda parte para no saturar el idle
           setTimeout(() => {
             const updates = document.querySelector('.recent-updates-swiper');
             if (updates && !(updates as any).swiper) {
-              const obs = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { new S(updates, { slidesPerView: 'auto', spaceBetween: 15, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true }, breakpoints: { 768: { spaceBetween: 25 } } }); obs.disconnect(); } }); }, { rootMargin: '100px' });
+              const obs = new IntersectionObserver((es) => { 
+                es.forEach(e => { 
+                  if (e.isIntersecting) { 
+                    new S(updates as HTMLElement, { 
+                      slidesPerView: 'auto', 
+                      spaceBetween: 20, // Astra: Espaciado recuperado
+                      freeMode: true, 
+                      scrollbar: { el: '.premium-scrollbar', draggable: true }, 
+                      breakpoints: { 
+                        768: { spaceBetween: 30 },
+                        1024: { spaceBetween: 40 }
+                      } 
+                    }); 
+                    obs.disconnect(); 
+                  } 
+                }); 
+              }, { rootMargin: '100px' });
               obs.observe(updates);
             }
           }, 50);
@@ -279,105 +323,83 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           setTimeout(initSwipers, 100);
         }
 
-        // 5. Adsterra Runner (Carga en Segunda Ola para no saturar el inicio)
-        const initAds = async () => {
+        // 5. Adsterra Runner (IntersectionObserver - Solo carga cuando es visible)
+        const initAds = () => {
           const ads = Array.from(document.querySelectorAll('.ad-container-root'));
           if (ads.length === 0) return;
-          
-          const currentWinW = window.innerWidth;
-          for (const el of ads) {
-            if (el.getAttribute('data-loaded')) continue;
-            el.setAttribute('data-loaded', 'true');
-            
-            // Pausa entre anuncios si el hilo está ocupado
-            if (('requestIdleCallback' in window)) {
-               await new Promise(r => (window as any).requestIdleCallback(r));
-            }
 
-            const type = el.getAttribute('data-ad-type');
-            const keys = JSON.parse(el.getAttribute('data-ad-keys') || '{}');
-            const dims = JSON.parse(el.getAttribute('data-ad-dims') || '{}');
-            
-            let currentType = type, currentDim = dims[currentType!] || { w: 728, h: 90 };
-            if (currentWinW < currentDim.w) { 
-              currentType = currentWinW >= 468 && type !== 'square' ? 'bannerSmall' : 'square'; 
-              currentDim = dims[currentType!] || { w: 300, h: 250 }; 
-            }
-            
-            const finalKey = keys[currentType!] || keys.banner;
-            if (finalKey) {
-              const adId = el.id;
-              const adKey = finalKey;
-              const adDim = currentDim;
-              
-              const iframe = document.createElement('iframe');
-              iframe.style.width = adDim.w + 'px';
-              iframe.style.height = adDim.h + 'px';
-              iframe.style.border = 'none';
-              iframe.style.overflow = 'hidden';
-              iframe.loading = 'lazy';
-              iframe.scrolling = 'no';
-              
-              const slot = document.getElementById(`slot-${adId}`);
-              if (slot) {
-                slot.innerHTML = '';
-                slot.appendChild(iframe);
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach(async (entry) => {
+              if (entry.isIntersecting) {
+                const el = entry.target as HTMLElement;
+                if (el.getAttribute('data-loaded')) return;
+                el.setAttribute('data-loaded', 'true');
+                observer.unobserve(el);
+
+                const type = el.getAttribute('data-ad-type');
+                const keys = JSON.parse(el.getAttribute('data-ad-keys') || '{}');
+                const dims = JSON.parse(el.getAttribute('data-ad-dims') || '{}');
+                const currentWinW = window.innerWidth;
                 
-                const doc = iframe.contentWindow?.document || iframe.contentDocument;
-                if (doc) {
-                  doc.open();
-                  doc.write(`
-                    <body style="margin:0;padding:0;">
-                      <div id="container-${adKey}"></div>
-                      <script type="text/javascript">
-                        atOptions = { 'key' : '${adKey}', 'format' : 'iframe', 'height' : ${adDim.h}, 'width' : ${adDim.w}, 'params' : {} };
-                      <\/script>
-                      <script type="text/javascript" src="https://crowdsubsequentadmire.com/${adKey}/invoke.js"><\/script>
-                    </body>
-                  `);
-                  doc.close();
+                let currentType = type, currentDim = dims[currentType!] || { w: 728, h: 90 };
+                if (currentWinW < currentDim.w) { 
+                  currentType = currentWinW >= 468 && type !== 'square' ? 'bannerSmall' : 'square'; 
+                  currentDim = dims[currentType!] || { w: 300, h: 250 }; 
+                }
+                
+                const finalKey = keys[currentType!] || keys.banner;
+                if (finalKey) {
+                  const adId = el.id;
+                  const adKey = finalKey;
+                  const adDim = currentDim;
+                  
+                  const iframe = document.createElement('iframe');
+                  iframe.style.width = adDim.w + 'px';
+                  iframe.style.height = adDim.h + 'px';
+                  iframe.style.border = 'none';
+                  iframe.style.overflow = 'hidden';
+                  iframe.loading = 'lazy';
+                  iframe.scrolling = 'no';
+                  
+                  const slot = document.getElementById(`slot-${adId}`);
+                  if (slot) {
+                    slot.innerHTML = '';
+                    slot.appendChild(iframe);
+                    
+                    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+                    if (doc) {
+                      doc.open();
+                      doc.write(`
+                        <body style="margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:${adDim.h}px;">
+                          <div id="container-${adKey}"></div>
+                          <script type="text/javascript">
+                            atOptions = { 'key' : '${adKey}', 'format' : 'iframe', 'height' : ${adDim.h}, 'width' : ${adDim.w}, 'params' : {} };
+                          <\/script>
+                          <script type="text/javascript" src="https://crowdsubsequentadmire.com/${adKey}/invoke.js"><\/script>
+                        </body>
+                      `);
+                      doc.close();
+                    }
+                  }
                 }
               }
-            }
-          }
+            });
+          }, { rootMargin: '250px' }); // Astra: Cargamos 250px antes de que lleguen
+
+          ads.forEach(ad => observer.observe(ad));
         };
         
-        // Orion: Esperamos 2.5s para que la Home clave las 36 llamadas, luego cargamos todo el sistema de anuncios
-        setTimeout(initAds, 2500); 
-
-        // 6. Adblock Detection (Minimal)
-        const runAdblockCheck = () => {
-          setTimeout(async () => {
-            const check = async () => {
-              try {
-                const network = await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' });
-                const bait = document.getElementById('tester-wrap');
-                if (bait && (bait.offsetParent === null || bait.offsetHeight === 0)) return true;
-                return false;
-              } catch (e) {
-                return true;
-              }
-            };
-            if (await check()) {
-              if (window.location.pathname.includes('/series/') && window.location.pathname.split('/').length >= 4) {
-                const wall = document.getElementById('adblock-wall');
-                if (wall) { wall.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-              } else {
-                const toast = document.getElementById('adblock-toast');
-                if (toast) toast.style.display = 'flex';
-              }
-            }
-          }, 2000);
-        };
-
+        // Orion: Usamos Idle para Ads y Adblock
         if ('requestIdleCallback' in window) {
           (window as any).requestIdleCallback(() => {
-            setTimeout(initAds, 2500);
+            initAds();
             runAdblockCheck();
           });
         } else {
-          setTimeout(initAds, 2500);
-          runAdblockCheck();
+          setTimeout(() => {
+            initAds();
+            runAdblockCheck();
+          }, 2000);
         }
       };
 

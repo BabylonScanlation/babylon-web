@@ -22,7 +22,7 @@ const displayMangas = mangas.slice(0, 6);
 
   <div class="featured-grid-3x2">
     {
-      displayMangas.map((manga) => (
+      displayMangas.map((manga, index) => (
         <div class="featured-card-wrapper">
           <a href={`/series/${manga.slug}`} class="featured-card-premium" data-astro-prefetch="false">
             <div class="card-art-box">
@@ -31,13 +31,12 @@ const displayMangas = mangas.slice(0, 6);
                 alt={manga.title}
                 class="card-image"
                 width={300}
-                height={210}
-                loading={(manga as any).loading || "lazy"}
+                height={450}
+                loading={index < 2 ? "eager" : "lazy"}
                 decoding="async"
                 style={`transition-name: cover-${manga.slug}`}
-                fetchpriority={(manga as any).loading === 'eager' ? 'high' : 'auto'}
-                quality={50}
-                format="avif"
+                fetchpriority={index < 2 ? 'high' : 'auto'}
+                forceLazy={true}
               />
               <div class="card-overlay-gradient"></div>
             </div>

@@ -5,9 +5,10 @@ import { timeAgo } from '../lib/utils';
 
 interface Props {
   series: Series;
+  loading?: 'lazy' | 'eager';
 }
 
-const { series } = Astro.props;
+const { series, loading = 'lazy' } = Astro.props;
 
 // Astra: Normalizamos el acceso a los capítulos recientes (ya vienen agrupados por Orion)
 const recentChapters = (series as any).recentChapters || [];
@@ -23,11 +24,10 @@ const recentChapters = (series as any).recentChapters || [];
           alt={series.title}
           width={300}
           height={450}
-          loading="lazy"
+          loading={loading}
           decoding="async"
-          quality={50}
-          format="avif"
           class="main-cover"
+          forceLazy={true}
         />
         <div class="glass-gradient-overlay"></div>
       </div>
