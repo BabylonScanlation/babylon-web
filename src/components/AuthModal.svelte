@@ -1,10 +1,8 @@
 <script lang="ts">
 import { actions } from 'astro:actions';
-import { onMount } from 'svelte';
 import { fade, fly } from 'svelte/transition';
 import { logError } from '../lib/logError';
-import { authModal } from '../lib/modalStore.svelte';
-import { toast } from '../lib/toastStore.svelte';
+import { authModal, toast } from '../lib/stores.svelte';
 
 let loginEmail = $state('');
 let loginPassword = $state('');
@@ -26,27 +24,6 @@ async function getAuthDependencies() {
   const firebaseAuth = await import('firebase/auth');
   return { auth, ...firebaseAuth };
 }
-
-onMount(() => {
-  const handleOpenModal = (event: Event) => {
-    const customEvent = event as CustomEvent;
-    const { view, message } = customEvent.detail || {};
-    authModal.open(view || 'login', message);
-  };
-
-  window.addEventListener('open-auth-modal', handleOpenModal);
-
-  // Global helper for non-Svelte components
-  (
-    window as Window & typeof globalThis & { openAuthModal: (view?: 'login' | 'register') => void }   
-  ).openAuthModal = (view: 'login' | 'register' = 'login') => {
-    authModal.open(view);
-  };
-
-  return () => {
-    window.removeEventListener('open-auth-modal', handleOpenModal);
-  };
-});
 
 async function handleLogin() {
   isLoading = true;
@@ -196,12 +173,14 @@ function togglePassword() {
 
 // Astra: Sincronizar estado del body con el modal para ocultar el header
 $effect(() => {
-  if (authModal.isOpen) {
-    document.body.setAttribute('data-reader-modal', 'open');
-    document.documentElement.style.overflow = 'hidden';
-  } else {
-    document.body.removeAttribute('data-reader-modal');
-    document.documentElement.style.overflow = '';
+  if (typeof document !== 'undefined') {
+    if (authModal.isOpen) {
+      document.body.setAttribute('data-reader-modal', 'open');
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.removeAttribute('data-reader-modal');
+      document.documentElement.style.overflow = '';
+    }
   }
 });
 </script>

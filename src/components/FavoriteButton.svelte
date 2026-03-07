@@ -1,7 +1,7 @@
 <script lang="ts">
 import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
-import { toast } from '../lib/toastStore.svelte';
+import { toast } from '../lib/stores.svelte';
 
 interface Props {
   seriesId: number;

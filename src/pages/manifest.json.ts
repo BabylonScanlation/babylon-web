@@ -14,8 +14,6 @@ export const GET: APIRoute = async () => {
       {
         src: siteConfig.assets.favicon,
         sizes: 'any',
-        type: 'image/svg+xml',
-        purpose: 'any maskable',
       },
     ],
   };
@@ -23,6 +21,7 @@ export const GET: APIRoute = async () => {
   return new Response(JSON.stringify(manifest), {
     headers: {
       'Content-Type': 'application/manifest+json',
+      'Cache-Control': 'public, max-age=86400, stale-while-revalidate=86400',
     },
   });
 };

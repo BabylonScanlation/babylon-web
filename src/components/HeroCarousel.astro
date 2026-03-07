@@ -1,4 +1,4 @@
----
+﻿---
 import '../styles/components.css';
 // src/components/HeroCarousel.astro
 import type { Series } from '../types';
@@ -87,47 +87,3 @@ if (renderSlides.length > 0 && renderSlides.length < 3) {
     </div>
   </div>
 </section>
-
-<script is:inline>
-  const initHeroSwiper = () => {
-    const swiperEl = document.querySelector('.hero-swiper');
-    if (!swiperEl || swiperEl.swiper || !window.Swiper) return;
-
-    const paginationEl = document.querySelector('.premium-pagination');
-    const prevEl = document.querySelector('.premium-nav.prev');
-    const nextEl = document.querySelector('.premium-nav.next');
-
-    const swiper = new window.Swiper(swiperEl, {
-      init: false,
-      slidesPerView: 1,
-      loop: true,
-      effect: 'fade',
-      fadeEffect: { crossFade: true },
-      allowTouchMove: true,
-      speed: 800,
-      autoplay: {
-        delay: 6000,
-        disableOnInteraction: false,
-        pauseOnMouseEnter: true,
-      },
-      pagination: {
-        el: paginationEl,
-        clickable: true,
-      },
-      navigation: {
-        prevEl: prevEl,
-        nextEl: nextEl,
-      },
-    });
-
-    requestAnimationFrame(() => {
-      swiper.init();
-    });
-  };
-
-  document.addEventListener('astro:page-load', initHeroSwiper);
-  if (document.readyState !== 'loading') initHeroSwiper();
-  else document.addEventListener('DOMContentLoaded', initHeroSwiper);
-</script>
-
-

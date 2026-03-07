@@ -1,4 +1,4 @@
----
+﻿---
 import '../styles/components.css';
 import type { Series } from '../types';
 import UpdateCard from './UpdateCard.astro';
@@ -47,40 +47,3 @@ const displayMangas = mangas.slice(0, 20);
     )
   }
 </section>
-
-<script is:inline>
-  const initRecentUpdatesSwiper = () => {
-    const swiperEl = document.querySelector('.recent-updates-swiper');
-    const scrollbarEl = document.querySelector('.premium-scrollbar');
-    
-    if (!swiperEl || swiperEl.swiper || !window.Swiper) return;
-
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        new window.Swiper(swiperEl, {
-          init: true,
-          slidesPerView: 'auto',
-          spaceBetween: 15,
-          freeMode: true,
-          grabCursor: true,
-          roundLengths: true, // Evita textos borrosos al redondear coordenadas
-          scrollbar: {
-            el: scrollbarEl,
-            draggable: true,
-            dragSize: 100,
-            hide: false,
-          },
-          breakpoints: {
-            768: { spaceBetween: 25 }
-          }
-        });
-        observer.disconnect();
-      }
-    }, { rootMargin: '200px' });
-    observer.observe(swiperEl);
-  };
-
-  document.addEventListener('astro:page-load', initRecentUpdatesSwiper);
-  if (document.readyState !== 'loading') initRecentUpdatesSwiper();
-  else document.addEventListener('DOMContentLoaded', initRecentUpdatesSwiper);
-</script>

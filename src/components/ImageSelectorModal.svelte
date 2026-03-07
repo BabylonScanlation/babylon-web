@@ -1,7 +1,7 @@
 <script lang="ts">
 import { fade, scale } from 'svelte/transition';
 import { onMount } from 'svelte';
-import { toast } from '../lib/toastStore.svelte';
+import { toast } from '../lib/stores.svelte';
 
 interface Props {
   isOpen?: boolean;

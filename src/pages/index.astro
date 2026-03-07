@@ -16,7 +16,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
 const nsfwCookieValue = Astro.cookies.get('babylon_nsfw')?.value;
 // Si la cookie existe (true o false), usamos su valor. Si no existe, usamos el perfil.
 const allowNsfw =
-  typeof nsfwCookieValue === 'string' ? nsfwCookieValue === 'true' : (user as any)?.isNsfw || false;
+  typeof nsfwCookieValue === 'string' ? nsfwCookieValue === 'true' : (user as any)?.isNsfw || false;  
 
 let popularSeries: any[] = [];
 let seriesByChapterCount: any[] = [];
@@ -44,18 +44,18 @@ const featuredGridData = [...popularSeries]
   .slice(0, 6);
 ---
 
-<Layout 
+<Layout
   title={`${siteConfig.name} - Leer Manga, Manhwa y Manhua Online Gratis`}
-  description={`La mejor plataforma para leer Manga, Manhwa y Manhua online en español. Capítulos diarios, alta calidad visual y la mejor comunidad. ¡Lee gratis ahora en ${siteConfig.shortName}!`}
+  description={`La mejor plataforma para leer Manga, Manhwa y Manhua online en español. Capítulos diarios, alta calidad visual y la mejor comunidad. ¡Lee gratis ahora en ${siteConfig.shortName}!`}        
 >
   <h1 class="sr-only">{siteConfig.name} - Tu plataforma premium para leer Manga, Manhwa y Manhua online gratis</h1>
   {
     hasContent ? (
       <div class="main-content-wrapper">
           {seriesByChapterCount.length > 0 && (
-            <HeroCarousel 
-              slides={seriesByChapterCount} 
-              r2PublicUrlAssets={r2PublicUrlAssets} 
+            <HeroCarousel
+              slides={seriesByChapterCount}
+              r2PublicUrlAssets={r2PublicUrlAssets}
             />
           )}
 

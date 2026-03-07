@@ -1,6 +1,5 @@
 <script lang="ts">
 import { onMount } from 'svelte';
-import { scale, fade } from 'svelte/transition';
 import { newsStore } from '../lib/newsStore.svelte';
 
 interface Props {
@@ -10,27 +9,20 @@ interface Props {
 let { initialCount = 0 }: Props = $props();
 let isNewsPage = $state(false);
 
-// Astra: Reactividad para el conteo inicial (Server Islands)
-$effect(() => {
+onMount(() => {
   if (initialCount > 0) {
     newsStore.setCount(initialCount);
   }
-});
 
-onMount(() => {
-  if (typeof window !== 'undefined') {
-    isNewsPage = window.location.pathname.startsWith('/news');
-  }
+  isNewsPage = window.location.pathname.startsWith('/news');
 
   if (isNewsPage) {
     newsStore.setCount(0);
     return;
   }
 
-  // Refrescar conteo asíncronamente
   void newsStore.refreshCount(fetch);
 
-  // Auto-actualizar cada 5 minutos
   const interval = setInterval(() => {
     if (!window.location.pathname.startsWith('/news')) {
       void newsStore.refreshCount(fetch);
@@ -45,8 +37,6 @@ onMount(() => {
   {#if !isNewsPage && newsStore.count > 0}
     <div 
       class="badge" 
-      in:scale={{ duration: 300, start: 0.5 }} 
-      out:fade={{ duration: 200 }}
       style="display: flex !important; z-index: 9999 !important; visibility: visible !important; opacity: 1 !important;"
     >
       {newsStore.count > 99 ? '99+' : newsStore.count}
@@ -57,8 +47,8 @@ onMount(() => {
 <style>
   .news-counter-wrapper {
     position: absolute;
-    top: -12px; /* Un poco más arriba */
-    right: -15px; /* Un poco más a la derecha */
+    top: -12px;
+    right: -15px;
     display: flex !important;
     align-items: center;
     justify-content: center;
@@ -67,7 +57,7 @@ onMount(() => {
   }
 
   .badge {
-    background: #ff4444 !important; /* Rojo puro garantizado */
+    background: #ff4444 !important;
     color: white !important;
     font-size: 0.7rem;
     font-weight: 900;
@@ -79,9 +69,14 @@ onMount(() => {
     justify-content: center;
     align-items: center;
     box-shadow: 0 0 15px rgba(255, 68, 68, 0.6);
-    border: 2px solid #fff; /* Borde blanco para que resalte más */
-    animation: pulse-glow 2s infinite ease-in-out;
+    border: 2px solid #fff;
+    animation: pulse-glow 2s infinite ease-in-out, badge-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     line-height: 1;
+  }
+
+  @keyframes badge-pop {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
   }
 
   @keyframes pulse-glow {

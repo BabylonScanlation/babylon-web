@@ -5,40 +5,31 @@ import { siteConfig } from '../site.config';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import BottomNav from '../components/BottomNav.astro';
-import GlobalUtilities from '../components/GlobalUtilities.svelte';
 import AdblockWall from '../components/AdblockWall.astro';
+import GlobalUtilities from '../components/GlobalUtilities.svelte';
 
 const {
   title: pageTitle,
   description = siteConfig.description,
   ogImage = siteConfig.assets.ogImage,
   canonicalURL = Astro.url.href,
-  isNsfwContent, // Orion: Prop para forzar la temática según el contenido actual
+  isNsfwContent,
 } = Astro.props;
 
-const { user } = Astro.locals;
-
-// Orion: Detección de dispositivo para evitar carga de componentes móviles en Desktop
+const { user, runtime } = Astro.locals;
 const ua = Astro.request.headers.get('user-agent') || '';
 const isMobile = /mobile|iphone|ipad|android|blackberry|opera mini|iemobile|wpdesktop/i.test(ua);
-
 const title = pageTitle ? `${pageTitle} | ${siteConfig.shortName}` : siteConfig.name;
-
 const isAdminPage = Astro.url.pathname.startsWith('/admin');
 const isVerifyPage = Astro.url.pathname === '/verify';
-
 const isVerified = Astro.cookies.get('site_verified')?.value === 'true';
 const isBot = (Astro.locals as any).isBot;
 const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage && !isBot;
-
-// Astra: Detección de modo NSFW.
-// Prioridad: 1. Prop de la página (para forzar color en series específicas) -> 2. Cookie Global
-const isNsfw =
-  isNsfwContent !== undefined ? isNsfwContent : Astro.cookies.get('babylon_nsfw')?.value === 'true';
-
-// Orion: URL Base para metadatos absolutos
+const isNsfw = isNsfwContent !== undefined ? isNsfwContent : Astro.cookies.get('babylon_nsfw')?.value === 'true';
 const siteUrl = siteConfig.url;
 const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
+const r2PublicUrlAssets = runtime?.env?.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
+const currentYear = new Date().getFullYear();
 ---
 
 <!doctype html>
@@ -49,218 +40,82 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     <link rel="icon" type="image/svg+xml" href={siteConfig.assets.favicon} />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content={siteConfig.theme.accent} />
-    <meta name="google-site-verification" content="p13-r-hLZ82o8n9SUSdk_-bOPDu6aqYAvk8jf8ihFvw" />
-    
-    <!-- Primary Meta Tags -->
     <title>{title}</title>
-    <meta name="title" content={title} />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-
-    <!-- Googlebot Priority -->
-    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-    <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-
-    <!-- Breadcrumbs JSON-LD -->
-    <script type="application/ld+json" is:inline set:html={JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Inicio",
-          "item": siteUrl
-        },
-        ...Astro.url.pathname.split('/').filter(Boolean).map((part, i, arr) => ({
-          "@type": "ListItem",
-          "position": i + 2,
-          "name": part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' '),
-          "item": `${siteUrl}/${arr.slice(0, i + 1).join('/')}`
-        }))
-      ]
-    })} />
-
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content={Astro.url.href} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={fullOgImage} />
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content={Astro.url.href} />
-    <meta property="twitter:title" content={title} />
-    <meta property="twitter:description" content={description} />
-    <meta property="twitter:image" content={fullOgImage} />
-
-    <!-- Orion: Preconexiones Críticas -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-    <link rel="preconnect" href="https://crowdsubsequentadmire.com" crossorigin />
-
-    <!-- Astra: Swiper (Carga Crítica para Hero) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js" defer></script>
-
-    <slot name="head" />
-
-    <script is:inline>
-      // Astra: Silenciador de errores de Privacy Sandbox/Permissions-Policy
-      (function() {
-        const originalError = console.error;
-        console.error = function(...args) {
-          if (args[0] && typeof args[0] === 'string' && (
-              args[0].includes('browsing-topics') || 
-              args[0].includes('run-ad-auction') || 
-              args[0].includes('join-ad-interest-group')
-          )) return;
-          originalError.apply(console, args);
-        };
-      })();
-    </script>
-    
-    <style is:global set:html={`
-      :root {
-        --accent-color: ${siteConfig.theme.accent};
-        --accent-glow: ${siteConfig.theme.accentGlow};
-        --bg-color: ${siteConfig.theme.background};
-        --bg-alt: ${siteConfig.theme.backgroundAlt};
-      }
-      
-      html.nsfw-mode {
-        --accent-color: #900000 !important;
-        --accent-glow: rgba(144, 0, 0, 0.6) !important;
-      }
-    `}>
-    </style>
+    <style is:global set:html={`:root{--accent-color:${siteConfig.theme.accent};--accent-glow:${siteConfig.theme.accentGlow};--bg-color:${siteConfig.theme.background};--bg-alt:${siteConfig.theme.backgroundAlt};}html.nsfw-mode{--accent-color:#900000!important;--accent-glow:rgba(144,0,0,0.6)!important;}`}></style>
   </head>
-  <body 
-    class="cosmos-theme" 
-    data-user-id={user?.uid || 'guest'}
-    data-cosmos-physics={siteConfig.theme.cosmos.physicsEnabled ? 'true' : 'false'}
-  >
-    {siteConfig.theme.cosmos.enabled && (
-      <div class="cosmos-bg">
-        <div class="stars-layer base"></div>
-        <div class="stars-layer mid"></div>
-        <div class="stars-layer dust"></div>
-        <div class="nebula-glow"></div>
-        <div class="shooting-stars">
-          <span></span><span></span><span></span>
-        </div>
-      </div>
-    )}
+  <body class="cosmos-theme" data-user-id={user?.uid || 'guest'} data-cosmos-physics={siteConfig.theme.cosmos.physicsEnabled ? 'true' : 'false'}>
+    {siteConfig.theme.cosmos.enabled && (<div class="cosmos-bg"><div class="stars-layer base"></div><div class="stars-layer mid"></div><div class="stars-layer dust"></div><div class="nebula-glow"></div></div>)}
 
-    {shouldBlockContent ? (
-      <GlobalUtilities client:load isVerifyPage={false} shouldShowAgeGate={true} />
-    ) : (
+    {shouldBlockContent ? (<div class="content-blocked-placeholder"></div>) : (
       <>
         {!isVerifyPage && (
           <Header />
         )}
-        <main class="site-main-content">
-          <slot />
-        </main>
+        <main class="site-main-content"><slot /></main>
         {!isVerifyPage && isMobile && (
           <BottomNav />
         )}
-        {!isVerifyPage && <Footer />}
-        <GlobalUtilities client:idle isVerifyPage={isVerifyPage} shouldShowAgeGate={false} />
-        {!isAdminPage && <AdblockWall />}
+        {!isVerifyPage && (
+          <Footer />
+        )}
       </>
+    )}
+
+    <GlobalUtilities client:visible isVerifyPage={isVerifyPage} shouldShowAgeGate={shouldBlockContent} />        
+    {!isAdminPage && (
+      <AdblockWall />
     )}
     
     <script>
-      // Astra: Motor de Física Estelar (Paralaje 2.0)
-      const initCosmos = () => {
-        const bg = document.querySelector('.cosmos-bg');
-        if (!bg) return;
-
-        const layers = {
-          base: document.querySelector('.stars-layer.base') as HTMLElement,
-          mid: document.querySelector('.stars-layer.mid') as HTMLElement,
-          dust: document.querySelector('.stars-layer.dust') as HTMLElement,
-          nebula: document.querySelector('.nebula-glow') as HTMLElement
-        };
-
-        if (!layers.base) return;
-
-        let mouseX = 0;
-        let mouseY = 0;
-        let scrollY = window.scrollY;
-        let targetX = 0;
-        let targetY = 0;
-        let animationFrameId: number;
-        
-        let winW = window.innerWidth;
-        let winH = window.innerHeight;
-
-        const D_BASE = 0.02;   
-        const D_MID = 0.06;    
-        const D_DUST = 0.12;   
-        const D_NEBULA = 0.01; 
-
-        const onMouseMove = (e: MouseEvent) => {
-          mouseX = (e.clientX - winW / 2);
-          mouseY = (e.clientY - winH / 2);
-        };
-
-        const onScroll = () => {
-          scrollY = window.pageYOffset || document.documentElement.scrollTop;
-        };
-
-        const onResize = () => {
-          winW = window.innerWidth;
-          winH = window.innerHeight;
-        };
-
-        document.addEventListener('mousemove', onMouseMove, { passive: true });
-        window.addEventListener('scroll', onScroll, { passive: true });
-        window.addEventListener('resize', onResize, { passive: true });
-
-        const animate = () => {
-          targetX += (mouseX - targetX) * 0.04;
-          targetY += (mouseY - targetY) * 0.04;
-
-          if (layers.base) {
-            layers.base.style.transform = `translate3d(${-targetX * D_BASE}px, ${-scrollY * D_BASE - targetY * D_BASE}px, 0)`;
-          }
-          if (layers.mid) {
-            layers.mid.style.transform = `translate3d(${-targetX * D_MID}px, ${-scrollY * D_MID - targetY * D_MID}px, 0)`;
-          }
-          if (layers.dust) {
-            layers.dust.style.transform = `translate3d(${-targetX * D_DUST}px, ${-scrollY * D_DUST - targetY * D_DUST}px, 0)`;
-          }
-          if (layers.nebula) {
-             layers.nebula.style.transform = `translate3d(${-targetX * D_NEBULA}px, ${-targetY * D_NEBULA}px, 0) scale(1.2)`;
-          }
-
-          animationFrameId = requestAnimationFrame(animate);
-        };
-
-        animate();
-
-        return () => {
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            document.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('scroll', onScroll);
-            window.removeEventListener('resize', onResize);
-        };
-      };
-
-      let cleanup: (() => void) | undefined;
-
-      const startAll = () => {
-        // Inicializar Cosmos
-        if (cleanup) cleanup();
+      const initAll = async () => {
+        const htmlHasMode = document.documentElement.classList.contains('nsfw-mode');
+        const isNsfwCookie = document.cookie.split(';').some(c => c.trim().startsWith('babylon_nsfw=true'));
+        if (isNsfwCookie || htmlHasMode) {
+          const header = document.getElementById('main-header');
+          if (header) header.classList.add('nsfw-active');
+        }
         const physicsEnabled = document.body.getAttribute('data-cosmos-physics') === 'true';
-        if (physicsEnabled) cleanup = initCosmos();
+        if (physicsEnabled) {
+          const layers = { base: document.querySelector('.stars-layer.base') as HTMLElement, mid: document.querySelector('.stars-layer.mid') as HTMLElement, dust: document.querySelector('.stars-layer.dust') as HTMLElement, nebula: document.querySelector('.nebula-glow') as HTMLElement };
+          if (layers.base) {
+            let mouseX = 0, mouseY = 0, scrollY = window.scrollY, targetX = 0, targetY = 0, winW = window.innerWidth;
+            document.addEventListener('mousemove', (e) => { mouseX = (e.clientX - winW / 2); mouseY = (e.clientY - window.innerHeight / 2); }, { passive: true });
+            window.addEventListener('scroll', () => { scrollY = window.pageYOffset; }, { passive: true });
+            const animate = () => { targetX += (mouseX - targetX) * 0.04; targetY += (mouseY - targetY) * 0.04; layers.base.style.transform = `translate3d(${-targetX * 0.02}px, ${-scrollY * 0.02 - targetY * 0.02}px, 0)`; if (layers.mid) layers.mid.style.transform = `translate3d(${-targetX * 0.06}px, ${-scrollY * 0.06 - targetY * 0.06}px, 0)`; if (layers.dust) layers.dust.style.transform = `translate3d(${-targetX * 0.12}px, ${-scrollY * 0.12 - targetY * 0.12}px, 0)`; if (layers.nebula) layers.nebula.style.transform = `translate3d(${-targetX * 0.01}px, ${-targetY * 0.01}px, 0) scale(1.2)`; requestAnimationFrame(animate); };
+            animate();
+          }
+        }
+        const logo = document.getElementById('header-logo-toggle');
+        if (logo) logo.onclick = async (e) => { e.preventDefault(); const { actions } = await import('astro:actions'); const { data } = await actions.ui.toggleNsfw(); if (data?.success) window.location.assign('/'); };
+        const updateBadges = (count: number) => { document.querySelectorAll('[data-news-badge]').forEach(b => { if (count > 0) { b.textContent = count > 9 ? '+9' : count.toString(); b.classList.remove('hidden'); (b as HTMLElement).style.display = 'flex'; } else { b.classList.add('hidden'); (b as HTMLElement).style.display = 'none'; } }); };
+        updateBadges(parseInt(localStorage.getItem('babylon_news_count') || '0', 10));
+        window.addEventListener('news-count-updated', (e: any) => updateBadges(e.detail.count));
+        const initSwipers = () => { // @ts-ignore
+          const S = window.Swiper; if (!S) return;
+          const hero = document.querySelector('.hero-swiper'); if (hero && !(hero as any).swiper) new S(hero, { slidesPerView: 1, loop: true, effect: 'fade', speed: 800, autoplay: { delay: 6000 }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } });
+          const updates = document.querySelector('.recent-updates-swiper'); if (updates && !(updates as any).swiper) { const obs = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { new S(updates, { slidesPerView: 'auto', spaceBetween: 15, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true } }); obs.disconnect(); } }); }, { rootMargin: '100px' }); obs.observe(updates); }
+        };
+        initSwipers();
+        const initAds = () => {
+          const ads = Array.from(document.querySelectorAll('.ad-container-root')); if (ads.length === 0) return;
+          const obs = new IntersectionObserver((entries) => { entries.forEach(entry => { if (entry.isIntersecting) { const el = entry.target as HTMLElement; if (el.getAttribute('data-loaded')) return; el.setAttribute('data-loaded', 'true'); const keys = JSON.parse(el.getAttribute('data-ad-keys') || '{}'); const dims = JSON.parse(el.getAttribute('data-ad-dims') || '{}'); const type = el.getAttribute('data-ad-type'); let currentType = type, currentDim = dims[currentType!] || { w: 728, h: 90 }; if (window.innerWidth < currentDim.w) { currentType = window.innerWidth >= 468 && type !== 'square' ? 'bannerSmall' : 'square'; currentDim = dims[currentType!] || { w: 300, h: 250 }; } const finalKey = keys[currentType!] || keys.banner; if (finalKey) { // @ts-ignore
+            window.atOptions = { 'key': finalKey, 'format': 'iframe', 'height': currentDim.h, 'width': currentDim.w, 'params': {} }; const s = document.createElement('script'); s.type = 'text/javascript'; s.src = `https://crowdsubsequentadmire.com/${finalKey}/invoke.js`; document.getElementById(`slot-${el.id}`)!.appendChild(s); } obs.unobserve(el); } }); }, { rootMargin: '100px' }); ads.forEach(ad => obs.observe(ad));
+        };
+        setTimeout(initAds, 1000);
+        setTimeout(async () => { const check = async () => { const network = await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' }).catch(() => null); if (network === null) return true; const bait = document.getElementById('tester-wrap'); if (bait && (bait.offsetParent === null || bait.offsetHeight === 0)) return true; return false; }; if (await check()) { if (window.location.pathname.includes('/series/')) { const wall = document.getElementById('adblock-wall'); if (wall) { wall.style.display = 'flex'; document.body.style.overflow = 'hidden'; } } else { const toast = document.getElementById('adblock-toast'); if (toast) toast.style.display = 'flex'; } } }, 2000);
       };
-
-      // Orion: astro:page-load se dispara tanto en la carga inicial como en transiciones
-      document.addEventListener('astro:page-load', startAll);
+      document.addEventListener('astro:page-load', initAll);
+      if (document.readyState !== 'loading') initAll();
     </script>
   </body>
 </html>

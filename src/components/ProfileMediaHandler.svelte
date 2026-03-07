@@ -1,8 +1,7 @@
 <script lang="ts">
 import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
-import { toast } from '../lib/toastStore.svelte';
-import { userStore } from '../lib/userStore.svelte';
+import { toast, userStore } from '../lib/stores.svelte';
 import ImageSelectorModal from './ImageSelectorModal.svelte';
 
 let showModal = $state(false);

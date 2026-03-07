@@ -1,7 +1,6 @@
 ---
 import '../styles/components.css';
 import { siteConfig } from '../site.config';
-import NewsCounter from './NewsCounter.svelte';
 
 const { user, runtime } = Astro.locals;
 const isNsfwActive = Astro.cookies.get('babylon_nsfw')?.value === 'true';
@@ -9,19 +8,6 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
 ---
 
 <header class:list={['site-header', { 'nsfw-active': isNsfwActive }]} id="main-header">
-  <script is:inline>
-    // Astra: Aplicar modo NSFW instantáneamente en el cliente, respetando si la página forzó el estado en el HTML
-    (function() {
-      // Si el HTML tiene explícitamente nsfw-mode (forzado por el Layout), el header debe coincidir
-      const htmlHasMode = document.documentElement.classList.contains('nsfw-mode');
-      const isNsfwCookie = document.cookie.split(';').some(c => c.trim().startsWith('babylon_nsfw=true'));
-      
-      // Si estamos en una página que fuerza NO ser roja (ej. serie SFW), no pintamos el header de rojo
-      if (isNsfwCookie || htmlHasMode) {
-        document.getElementById('main-header')?.classList.add('nsfw-active');
-      }
-    })();
-  </script>
   <div class="header-container">
     <div class="logo-section">
       <a href="/" class="logo-link" id="header-logo-toggle">
@@ -39,7 +25,7 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
         <a href="/search" class="nav-link-pc"><span>EXPLORAR</span></a>
         <a href="/news" class="nav-link-pc news-link">
           <span>NOTICIAS</span>
-          <NewsCounter client:idle />
+          <span data-news-badge class="news-badge-pc hidden">0</span>
         </a>
         <a href="/library" class="nav-link-pc"><span>BIBLIOTECA</span></a>
       </div>
@@ -57,72 +43,6 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
     </nav>
   </div>
 </header>
-
-<script>
-  import { actions } from 'astro:actions';
-
-  let headerObserver: MutationObserver | null = null;
-
-  function initHeader() {
-    const header = document.querySelector('.site-header') as HTMLElement;
-    const logoToggle = document.getElementById('header-logo-toggle');
-    
-    if (!header || !logoToggle) return;
-
-    // Orion: Limpiar observador previo
-    if (headerObserver) headerObserver.disconnect();
-
-    headerObserver = new MutationObserver(() => {
-      const isModalOpen = document.body.getAttribute('data-reader-modal') === 'open' || 
-                          document.body.classList.contains('modal-open');
-      header.style.opacity = isModalOpen ? '0' : '';
-      header.style.pointerEvents = isModalOpen ? 'none' : '';
-      header.style.zIndex = isModalOpen ? '-1' : '5000';
-    });
-
-    headerObserver.observe(document.body, { attributes: true, attributeFilter: ['data-reader-modal', 'class'] });
-
-    // Astra: NSFW Toggle sincronizado vía Actions
-    let isToggling = false;
-    logoToggle.onclick = async (e) => {
-      if (isToggling) return;
-      isToggling = true;
-
-      e.preventDefault();
-      e.stopPropagation();
-      
-      // Feedback visual inmediato
-      (logoToggle as HTMLElement).style.opacity = '0.5';
-      
-      try {
-        // Orion: Cambiar estado en el servidor (100% fiable)
-        const { data, error } = await actions.ui.toggleNsfw();
-        
-        if (!error && data?.success) {
-          // Aplicar clases localmente antes de recargar
-          if (data.newValue) {
-            header.classList.add('nsfw-active');
-            document.documentElement.classList.add('nsfw-mode');
-          } else {
-            header.classList.remove('nsfw-active');
-            document.documentElement.classList.remove('nsfw-mode');
-          }
-          
-          // Forzar navegación limpia
-          window.location.assign('/'); 
-        }
-      } catch (err) {
-        console.error('[NSFW Toggle Error]:', err);
-        isToggling = false;
-        (logoToggle as HTMLElement).style.opacity = '';
-      }
-    };
-  }
-
-  // Inicializar
-  initHeader();
-  document.addEventListener('astro:page-load', initHeader);
-</script>
 
 <style is:global></style>
 
