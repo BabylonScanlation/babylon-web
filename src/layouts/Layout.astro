@@ -44,8 +44,8 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="icon" type="image/svg+xml" href={siteConfig.assets.favicon} />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" href={siteConfig.assets.favicon} />
+    <link rel="manifest" href="/manifest.json?v=2" />
     <meta name="theme-color" content={siteConfig.theme.accent} />
     <meta name="google-site-verification" content="p13-r-hLZ82o8n9SUSdk_-bOPDu6aqYAvk8jf8ihFvw" />
     
@@ -256,98 +256,129 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           // @ts-ignore
           const S = window.Swiper;
           if (!S) return;
+          
           const hero = document.querySelector('.hero-swiper');
-          if (hero && !(hero as any).swiper) new S(hero, { slidesPerView: 1, loop: true, effect: 'fade', speed: 800, autoplay: { delay: 6000, disableOnInteraction: false }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } });
-          const updates = document.querySelector('.recent-updates-swiper');
-          if (updates && !(updates as any).swiper) {
-            const obs = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { new S(updates, { slidesPerView: 'auto', spaceBetween: 15, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true }, breakpoints: { 768: { spaceBetween: 25 } } }); obs.disconnect(); } }); }, { rootMargin: '100px' });
-            obs.observe(updates);
+          if (hero && !(hero as any).swiper) {
+            new S(hero, { slidesPerView: 1, loop: true, effect: 'fade', speed: 800, autoplay: { delay: 6000, disableOnInteraction: false }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } });
           }
-        };
-        initSwipers();
 
-        // 5. Adsterra Runner (Optimizado para Carga Instantánea)
-        const initAds = () => {
+          // Deferimos la segunda parte para no saturar el idle
+          setTimeout(() => {
+            const updates = document.querySelector('.recent-updates-swiper');
+            if (updates && !(updates as any).swiper) {
+              const obs = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { new S(updates, { slidesPerView: 'auto', spaceBetween: 15, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true }, breakpoints: { 768: { spaceBetween: 25 } } }); obs.disconnect(); } }); }, { rootMargin: '100px' });
+              obs.observe(updates);
+            }
+          }, 50);
+        };
+        
+        // Orion: Usamos Idle para Swipers
+        if ('requestIdleCallback' in window) {
+          (window as any).requestIdleCallback(initSwipers);
+        } else {
+          setTimeout(initSwipers, 100);
+        }
+
+        // 5. Adsterra Runner (Carga en Segunda Ola para no saturar el inicio)
+        const initAds = async () => {
           const ads = Array.from(document.querySelectorAll('.ad-container-root'));
           if (ads.length === 0) return;
-          const obs = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-              if (entry.isIntersecting) {
-                const el = entry.target as HTMLElement;
-                if (el.getAttribute('data-loaded')) return;
-                el.setAttribute('data-loaded', 'true');
-                const type = el.getAttribute('data-ad-type');
-                const keys = JSON.parse(el.getAttribute('data-ad-keys') || '{}');
-                const dims = JSON.parse(el.getAttribute('data-ad-dims') || '{}');
-                let currentType = type, currentDim = dims[currentType!] || { w: 728, h: 90 };
-                if (window.innerWidth < currentDim.w) { currentType = window.innerWidth >= 468 && type !== 'square' ? 'bannerSmall' : 'square'; currentDim = dims[currentType!] || { w: 300, h: 250 }; }
-                const finalKey = keys[currentType!] || keys.banner;
-                if (finalKey) {
-                  const adId = el.id;
-                  const adKey = finalKey;
-                  const adDim = currentDim;
-                  
-                  // Orion: Usamos un iframe para aislar la variable atOptions y evitar conflictos entre múltiples anuncios
-                  const iframe = document.createElement('iframe');
-                  iframe.style.width = adDim.w + 'px';
-                  iframe.style.height = adDim.h + 'px';
-                  iframe.style.border = 'none';
-                  iframe.style.overflow = 'hidden';
-                  iframe.scrolling = 'no';
-                  
-                  const slot = document.getElementById(`slot-${adId}`);
-                  if (slot) {
-                    slot.innerHTML = '';
-                    slot.appendChild(iframe);
-                    
-                    const doc = iframe.contentWindow?.document || iframe.contentDocument;
-                    if (doc) {
-                      doc.open();
-                      doc.write(`
-                        <body style="margin:0;padding:0;">
-                          <script type="text/javascript">
-                            atOptions = {
-                              'key' : '${adKey}',
-                              'format' : 'iframe',
-                              'height' : ${adDim.h},
-                              'width' : ${adDim.w},
-                              'params' : {}
-                            };
-                          <\/script>
-                          <script type="text/javascript" src="https://crowdsubsequentadmire.com/${adKey}/invoke.js"><\/script>
-                        </body>
-                      `);
-                      doc.close();
-                    }
-                  }
-                }
-                obs.unobserve(el);
-              }
-            });
-          }, { rootMargin: '600px' }); // Aumentado a 600px para una precarga más agresiva
-          ads.forEach(ad => obs.observe(ad));
-        };
-        initAds(); // Ejecutar inmediatamente sin esperas
+          
+          const currentWinW = window.innerWidth;
+          for (const el of ads) {
+            if (el.getAttribute('data-loaded')) continue;
+            el.setAttribute('data-loaded', 'true');
+            
+            // Pausa entre anuncios si el hilo está ocupado
+            if (('requestIdleCallback' in window)) {
+               await new Promise(r => (window as any).requestIdleCallback(r));
+            }
 
-        // 6. Adblock Detection (Minimal)
-        setTimeout(async () => {
-          const check = async () => {
-            const network = await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' }).catch(() => null);
-            if (network === null) return true;
-            const bait = document.getElementById('tester-wrap');
-            if (bait && (bait.offsetParent === null || bait.offsetHeight === 0)) return true;
-            return false;
-          };
-          if (await check()) {
-            if (window.location.pathname.includes('/series/') && window.location.pathname.split('/').length >= 4) {
-              const wall = document.getElementById('adblock-wall');
-              if (wall) { wall.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-            } else {
-              const toast = document.getElementById('adblock-toast');
-              if (toast) toast.style.display = 'flex';
+            const type = el.getAttribute('data-ad-type');
+            const keys = JSON.parse(el.getAttribute('data-ad-keys') || '{}');
+            const dims = JSON.parse(el.getAttribute('data-ad-dims') || '{}');
+            
+            let currentType = type, currentDim = dims[currentType!] || { w: 728, h: 90 };
+            if (currentWinW < currentDim.w) { 
+              currentType = currentWinW >= 468 && type !== 'square' ? 'bannerSmall' : 'square'; 
+              currentDim = dims[currentType!] || { w: 300, h: 250 }; 
+            }
+            
+            const finalKey = keys[currentType!] || keys.banner;
+            if (finalKey) {
+              const adId = el.id;
+              const adKey = finalKey;
+              const adDim = currentDim;
+              
+              const iframe = document.createElement('iframe');
+              iframe.style.width = adDim.w + 'px';
+              iframe.style.height = adDim.h + 'px';
+              iframe.style.border = 'none';
+              iframe.style.overflow = 'hidden';
+              iframe.loading = 'lazy';
+              iframe.scrolling = 'no';
+              
+              const slot = document.getElementById(`slot-${adId}`);
+              if (slot) {
+                slot.innerHTML = '';
+                slot.appendChild(iframe);
+                
+                const doc = iframe.contentWindow?.document || iframe.contentDocument;
+                if (doc) {
+                  doc.open();
+                  doc.write(`
+                    <body style="margin:0;padding:0;">
+                      <div id="container-${adKey}"></div>
+                      <script type="text/javascript">
+                        atOptions = { 'key' : '${adKey}', 'format' : 'iframe', 'height' : ${adDim.h}, 'width' : ${adDim.w}, 'params' : {} };
+                      <\/script>
+                      <script type="text/javascript" src="https://crowdsubsequentadmire.com/${adKey}/invoke.js"><\/script>
+                    </body>
+                  `);
+                  doc.close();
+                }
+              }
             }
           }
-        }, 2000);
+        };
+        
+        // Orion: Esperamos 2.5s para que la Home clave las 36 llamadas, luego cargamos todo el sistema de anuncios
+        setTimeout(initAds, 2500); 
+
+        // 6. Adblock Detection (Minimal)
+        const runAdblockCheck = () => {
+          setTimeout(async () => {
+            const check = async () => {
+              try {
+                const network = await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' });
+                const bait = document.getElementById('tester-wrap');
+                if (bait && (bait.offsetParent === null || bait.offsetHeight === 0)) return true;
+                return false;
+              } catch (e) {
+                return true;
+              }
+            };
+            if (await check()) {
+              if (window.location.pathname.includes('/series/') && window.location.pathname.split('/').length >= 4) {
+                const wall = document.getElementById('adblock-wall');
+                if (wall) { wall.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+              } else {
+                const toast = document.getElementById('adblock-toast');
+                if (toast) toast.style.display = 'flex';
+              }
+            }
+          }, 2000);
+        };
+
+        if ('requestIdleCallback' in window) {
+          (window as any).requestIdleCallback(() => {
+            setTimeout(initAds, 2500);
+            runAdblockCheck();
+          });
+        } else {
+          setTimeout(initAds, 2500);
+          runAdblockCheck();
+        }
       };
 
       document.addEventListener('astro:page-load', initAll);
