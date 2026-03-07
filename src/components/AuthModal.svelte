@@ -1,5 +1,4 @@
 <script lang="ts">
-import { actions } from 'astro:actions';
 import { fade, fly } from 'svelte/transition';
 import { logError } from '../lib/logError';
 import { authModal, toast } from '../lib/stores.svelte';
@@ -18,11 +17,15 @@ let linkErrorMessage = $state('');
 
 let showPassword = $state(false);
 
-// Orion: Carga diferida de Firebase SDK para no penalizar el LCP de la Home
-async function getAuthDependencies() {
-  const { auth } = await import('../lib/firebase/client');
-  const firebaseAuth = await import('firebase/auth');
-  return { auth, ...firebaseAuth };
+// Orion: Carga ultra-perezosa. Nada se baja hasta el clic.
+async function getFullAuthStack() {
+  const [{ getClientAuth }, firebaseAuth, { actions }] = await Promise.all([
+    import('../lib/firebase/client'),
+    import('firebase/auth'),
+    import('astro:actions')
+  ]);
+  const auth = await getClientAuth();
+  return { auth, actions, ...firebaseAuth };
 }
 
 async function handleLogin() {
@@ -36,7 +39,7 @@ async function handleLogin() {
   }
 
   try {
-    const { auth, signInWithEmailAndPassword } = await getAuthDependencies();
+    const { auth, actions, signInWithEmailAndPassword } = await getFullAuthStack();
     const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
     const idToken = await userCredential.user.getIdToken();
 
@@ -48,11 +51,11 @@ async function handleLogin() {
       authModal.close();
       setTimeout(() => window.location.reload(), 500);
     } else {
-      throw new Error(error.message || 'Error del servidor al crear la sesión.');
+      throw new Error(error.message || 'Error del servidor');
     }
   } catch (error: any) {
-    logError(error, 'Error durante el inicio de sesión con email/contraseña');
-    loginErrorMessage = 'Credenciales incorrectas o usuario no encontrado.';
+    logError(error, 'Login error');
+    loginErrorMessage = 'Credenciales incorrectas.';
     toast.error(loginErrorMessage);
   } finally {
     isLoading = false;
@@ -63,35 +66,15 @@ async function handleRegister() {
   isLoading = true;
   registerErrorMessage = '';
 
-  if (!regEmail || !regPassword || !regConfirmPassword) {
-    registerErrorMessage = 'Por favor, completa todos los campos.';
-    isLoading = false;
-    return;
-  }
-  if (regPassword !== regConfirmPassword) {
-    registerErrorMessage = 'Las contraseñas no coinciden.';
-    isLoading = false;
-    return;
-  }
-
   try {
-    const { auth, createUserWithEmailAndPassword } = await getAuthDependencies();
+    const { auth, createUserWithEmailAndPassword } = await getFullAuthStack();
     await createUserWithEmailAndPassword(auth, regEmail, regPassword);
-    toast.success('¡Cuenta creada exitosamente! Por favor, inicia sesión.');
-    authModal.open('login');
-  } catch (error) {
-    const err = error as { code?: string };
-    logError(error, 'Error durante el registro de cuenta');
-    let msg = '';
-    if (err.code === 'auth/email-already-in-use') {
-      msg = 'Este email ya está registrado.';
-    } else if (err.code === 'auth/weak-password') {
-      msg = 'La contraseña debe tener al menos 6 caracteres.';
-    } else {
-      msg = 'Error al registrar la cuenta.';
-    }
-    registerErrorMessage = msg;
-    toast.error(msg);
+    toast.success('Cuenta creada. Inicia sesión.');
+    authModal.switchTo('login');
+  } catch (error: any) {
+    logError(error, 'Register error');
+    registerErrorMessage = 'Error al registrar.';
+    toast.error(registerErrorMessage);
   } finally {
     isLoading = false;
   }
@@ -100,32 +83,21 @@ async function handleRegister() {
 async function handleGoogleSignIn() {
   isLoading = true;
   try {
-    const { auth, GoogleAuthProvider, signInWithPopup } = await getAuthDependencies();
+    const { auth, actions, GoogleAuthProvider, signInWithPopup } = await getFullAuthStack();
     const googleProvider = new GoogleAuthProvider();
-
     const result = await signInWithPopup(auth, googleProvider);
     const idToken = await result.user.getIdToken();
     const { error } = await actions.auth.login({ idToken });
 
     if (!error) {
       window.dispatchEvent(new CustomEvent('auth-success'));
-      toast.success('¡Sesión iniciada con Google!');
+      toast.success('¡Sesión iniciada!');
       authModal.close();
       setTimeout(() => window.location.reload(), 500);
-    } else {
-      throw new Error(error.message || 'Error del servidor al crear sesión.');
     }
   } catch (error: any) {
-    logError(error, 'Error durante el inicio de sesión con Google');
-    if (error.code === 'auth/account-exists-with-different-credential') {
-      const { email } = error.customData || {};
-      const pendingCredential = error.credential;
-      toast.info(`Ya existe una cuenta para ${email}. Vinculala para continuar.`);
-      authModal.openForLinking(email, pendingCredential);
-    } else if (error.code !== 'auth/cancelled-popup-request') {
-      loginErrorMessage = `Error al iniciar sesión con Google: ${error.code}`;   
-      toast.error(loginErrorMessage);
-    }
+    logError(error, 'Google error');
+    toast.error('Error con Google');
   } finally {
     isLoading = false;
   }
@@ -144,7 +116,7 @@ async function handleLinkAccount() {
   }
 
   try {
-    const { auth, signInWithEmailAndPassword, linkWithCredential } = await getAuthDependencies();
+    const { auth, actions, signInWithEmailAndPassword, linkWithCredential } = await getFullAuthStack();
     const userCredential = await signInWithEmailAndPassword(auth, email, linkPassword);
     await linkWithCredential(userCredential.user, pendingCredential);
     const idToken = await userCredential.user.getIdToken();

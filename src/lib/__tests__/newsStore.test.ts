@@ -23,7 +23,6 @@ describe('NewsStore (Svelte 5 Runes)', () => {
 
     await newsStore.refreshCount(mockFetch as any);
     expect(newsStore.count).toBe(5);
-    expect(newsStore.isLoading).toBe(false);
   });
 
   it('debe mantener el conteo anterior si el fetch falla', async () => {

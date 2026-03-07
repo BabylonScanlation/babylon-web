@@ -1180,26 +1180,33 @@ const joinedDate = userProfile?.createdAt
 <script>
   import { actions } from 'astro:actions';
   import { toast } from '../lib/stores.svelte';
-  import { auth } from '../lib/firebase/client';
+  import { getClientAuth } from '../lib/firebase/client';
   import { sendPasswordResetEmail, onAuthStateChanged } from 'firebase/auth';
 
-  // Auth Provider Detection
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      const isPasswordUser = user.providerData.some(
-        (p) => p.providerId === 'password'
-      );
-      const resetContainer = document.getElementById(
-        'password-reset-container'
-      );
-      const googleInfo = document.getElementById('google-managed-info');
+  let auth: any;
 
-      if (!isPasswordUser) {
-        if (resetContainer) resetContainer.style.display = 'none';
-        if (googleInfo) googleInfo.style.display = 'flex';
+  // Orion: Inicialización asíncrona para perfil
+  (async () => {
+    auth = await getClientAuth();
+
+    // Auth Provider Detection
+    onAuthStateChanged(auth, (user: any) => {
+      if (user) {
+        const isPasswordUser = user.providerData.some(
+          (p: any) => p.providerId === 'password'
+        );
+        const resetContainer = document.getElementById(
+          'password-reset-container'
+        );
+        const googleInfo = document.getElementById('google-managed-info');
+
+        if (!isPasswordUser) {
+          if (resetContainer) resetContainer.style.display = 'none';
+          if (googleInfo) googleInfo.style.display = 'flex';
+        }
       }
-    }
-  });
+    });
+  })();
 
   // Tabs Logic
   const navBtns = document.querySelectorAll('.nav-item[data-target]');

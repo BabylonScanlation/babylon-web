@@ -4,7 +4,6 @@ import { siteConfig } from '../site.config';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import BottomNav from '../components/BottomNav.astro';
-import GlobalUtilities from '../components/GlobalUtilities.svelte';
 import AdblockWall from '../components/AdblockWall.astro';
 
 const {
@@ -138,6 +137,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
   <body 
     class="cosmos-theme" 
     data-user-id={user?.uid || 'guest'}
+    data-user-state={user ? JSON.stringify({ uid: user.uid, email: user.email, isAdmin: user.isAdmin }) : 'null'}
     data-cosmos-physics={siteConfig.theme.cosmos.physicsEnabled ? 'true' : 'false'}
   >
     {siteConfig.theme.cosmos.enabled && (
@@ -167,12 +167,39 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       </>
     )}
 
-    <GlobalUtilities 
-      client:visible 
-      isVerifyPage={isVerifyPage} 
-      shouldShowAgeGate={shouldBlockContent} 
-    />        
+    <div id="global-utilities-root"></div>
     {!isAdminPage && <AdblockWall />}
+    
+    <script>
+      // Orion: Inyección Dinámica Manual (36 llamadas exactas garantizadas)
+      const handleTrigger = async (e: any) => {
+        if (window._babylonUtilsInjected) return;
+        window._babylonUtilsInjected = true;
+
+        // Guardamos la intención del usuario
+        window._babylonPendingEvent = { type: e.type, detail: e.detail };
+
+        // 1. Cargamos el motor de Svelte y el componente bajo demanda
+        const [{ mount }, { default: GlobalUtilities }] = await Promise.all([
+          import('svelte'),
+          import('../components/GlobalUtilities.svelte')
+        ]);
+
+        const container = document.getElementById('global-utilities-root');
+        if (container) {
+          mount(GlobalUtilities, {
+            target: container,
+            props: { 
+              isVerifyPage: window.location.pathname === '/verify',
+              shouldShowAgeGate: document.documentElement.classList.contains('age-gate-active')
+            }
+          });
+        }
+      };
+
+      window.addEventListener('open-auth-modal', handleTrigger);
+      window.addEventListener('show-toast', handleTrigger);
+    </script>
     
     <script>
       const initAll = async () => {

@@ -1,11 +1,18 @@
 // src/lib/stores.svelte.ts
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebase/client';
 import { generateUUID } from './utils';
 
 // 1. AUTH MODAL STORE
 class AuthModalStore {
-  #state = $state({ isOpen: false, view: 'login' as any, successMessage: '', linkAccountInfo: { email: null, pendingCredential: undefined } });
+  #state = $state({ isOpen: false, view: 'login' as any, successMessage: '', linkAccountInfo: { email: null as string | null, pendingCredential: undefined as any } });
+  
+  constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('open-auth-modal', (e: any) => {
+        this.open(e.detail?.view || 'login', e.detail?.message || '');
+      });
+    }
+  }
+
   get isOpen() { return this.#state.isOpen; }
   get view() { return this.#state.view; }
   get successMessage() { return this.#state.successMessage; }
@@ -13,6 +20,11 @@ class AuthModalStore {
   open(view: any = 'login', msg = '') { this.#state.isOpen = true; this.#state.view = view; this.#state.successMessage = msg; }
   close() { this.#state.isOpen = false; }
   switchTo(v: any) { this.#state.view = v; }
+  openForLinking(email: string, pendingCredential: any) {
+    this.#state.isOpen = true;
+    this.#state.view = 'link';
+    this.#state.linkAccountInfo = { email, pendingCredential };
+  }
 }
 export const authModal = new AuthModalStore();
 
@@ -32,23 +44,51 @@ class ToastStore {
 }
 export const toast = new ToastStore();
 
-// 3. USER STORE
+// 3. USER STORE (Strictly Reactive - No automatic Firebase init)
 class UserStore {
   user = $state<any>(null);
   loading = $state(true);
-  constructor() { if (typeof window !== 'undefined') this.init(); }
-  private init() {
-    onAuthStateChanged(auth, async (fb) => {
-      if (fb) { this.user = { uid: fb.uid, email: fb.email }; await this.sync(); }
-      else { this.user = null; this.loading = false; }
-    });
+  
+  constructor() { 
+    if (typeof window !== 'undefined') {
+      // Sincronizar estado inicial desde el servidor (inyectado en el body)
+      const serverState = document.body.getAttribute('data-user-state');
+      if (serverState && serverState !== 'null') {
+        try {
+          this.user = JSON.parse(serverState);
+        } catch (e) {
+          console.error('Error parsing server user state');
+        }
+      }
+      this.loading = false;
+    } 
   }
+
+  // Orion: Solo llamamos a esto después de un login exitoso o acción explícita
+  async initFirebaseListener() {
+    try {
+      const { getClientAuth } = await import('./firebase/client');
+      const auth = await getClientAuth();
+      const { onAuthStateChanged } = await import('firebase/auth');
+
+      onAuthStateChanged(auth, async (fb) => {
+        if (fb) { 
+          this.user = { uid: fb.uid, email: fb.email }; 
+          await this.sync(); 
+        } else { 
+          this.user = null; 
+        }
+      });
+    } catch (e) {
+      console.error('Firebase lazy init error:', e);
+    }
+  }
+
   async sync() {
     try {
       const res = await fetch(`/api/auth/status?t=${Date.now()}`);
       if (res.ok) { this.user = await res.json(); }
     } catch (e) { console.error(e); }
-    finally { this.loading = false; }
   }
 }
 export const userStore = new UserStore();

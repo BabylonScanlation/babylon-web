@@ -1,6 +1,5 @@
 // src/lib/firebase/client.ts
 import { getApp, getApps, initializeApp } from 'firebase/app';
-import { browserLocalPersistence, getAuth, setPersistence } from 'firebase/auth';
 import { logError } from '../logError';
 
 const firebaseConfig = {
@@ -12,15 +11,17 @@ const firebaseConfig = {
   appId: import.meta.env.PUBLIC_FIREBASE_APP_ID,
 };
 
-// Inicializar app si no existe
+// Inicializar app si no existe (Ligero)
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Obtener instancia de autenticación
-export const auth = getAuth(app);
-
-// Configurar persistencia de sesión solo en el cliente
-if (typeof window !== 'undefined') {
-  setPersistence(auth, browserLocalPersistence).catch((error) => {
+// Orion: Función para obtener Auth de forma perezosa
+export const getClientAuth = async () => {
+  const { getAuth, setPersistence, browserLocalPersistence } = await import('firebase/auth');
+  const auth = getAuth(app);
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+  } catch (error) {
     logError(error, 'Error configurando persistencia de Firebase');
-  });
-}
+  }
+  return auth;
+};
