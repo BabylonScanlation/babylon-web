@@ -1,6 +1,6 @@
 ---
 // src/components/Image.astro
-// Astra: Componente híbrido. Usa src real para el Hero y data-src para el resto.
+// Astra: Componente de imagen responsivo y blindado contra desbordamientos.
 
 interface Props {
   src: string;
@@ -11,12 +11,11 @@ interface Props {
   width?: number;
   height?: number;
   style?: string;
-  // Si es true, la imagen no cargará hasta que el scroll llegue (Zona Fantasma)
   forceLazy?: boolean;
 }
 
 const { 
-  src, alt, class: className, 
+  src, alt, class: className = '', 
   loading = 'lazy', 
   fetchpriority = 'auto', 
   width = 300, height = 450, 
@@ -37,19 +36,21 @@ function buildFinalUrl(inputSrc: string) {
 }
 
 const finalUrl = buildFinalUrl(src);
-// Una imagen es "Ghost" si forzamos el lazy y no es crítica
 const isGhost = forceLazy && loading !== 'eager';
+
+// Astra: Construimos la clase manualmente para evitar errores de tipo en Astro
+const finalClass = `${className} ${isGhost ? 'lazy-ghost' : ''}`.trim();
 ---
 
 <img
   src={isGhost ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : finalUrl}
   data-src={isGhost ? finalUrl : undefined}
   alt={alt}
-  class:list={[className, { 'lazy-ghost': isGhost }]}
+  class={finalClass}
   loading={loading}
   fetchpriority={fetchpriority}
   decoding="async"
   width={width}
   height={height}
-  style={`aspect-ratio: ${width} / ${height}; object-fit: cover; display: block; ${style}`}
+  style={`width: 100%; height: 100%; aspect-ratio: ${width} / ${height}; object-fit: cover; display: block; ${style}`}
 />

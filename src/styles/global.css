@@ -799,6 +799,18 @@ body a.nav-btn-modern {
   }
 }
 
+/* --- Card Image Fix (Astra Orion Global) --- */
+.library-card-wrapper img,
+.manga-card img,
+.featured-card-premium img,
+.premium-update-card-inner img,
+.card-container-adaptive img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
 /* --- Performance: Ghost Zones (Astra Orion) --- */
 .featured-premium-section,
 .updates-premium-section {
@@ -1424,6 +1436,24 @@ body a.nav-btn-modern {
   padding-bottom: 3.5rem !important; /* Espacio para la scrollbar sin cajas feas */
   position: relative;
   display: block;
+}
+
+/* Astra: Espaciado proactivo antes de que Swiper despierte */
+.recent-updates-swiper:not(.swiper-initialized) .swiper-wrapper {
+  display: flex;
+  gap: 20px;
+}
+
+@media (min-width: 768px) {
+  .recent-updates-swiper:not(.swiper-initialized) .swiper-wrapper {
+    gap: 30px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .recent-updates-swiper:not(.swiper-initialized) .swiper-wrapper {
+    gap: 40px;
+  }
 }
 
 /* Astra: Reset de nitidez absoluta para textos */

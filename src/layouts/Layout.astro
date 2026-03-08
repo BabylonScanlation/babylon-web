@@ -251,7 +251,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         updateBadges(parseInt(localStorage.getItem('babylon_news_count') || '0', 10));
         window.addEventListener('news-count-updated', (e: any) => updateBadges(e.detail.count));
 
-        // 3.5 Ghost Loader (Astra Orion)
+        // 3.5 Ghost Loader (Astra Orion - Ultra Reactive)
         const initGhostLoader = () => {
           const obs = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -266,8 +266,17 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                 obs.unobserve(img);
               }
             });
-          }, { rootMargin: '300px' });
-          document.querySelectorAll('.lazy-ghost').forEach(el => obs.observe(el));
+          }, { rootMargin: '500px' }); // Astra: Cargamos 500px antes para fluidez total
+
+          const observeExisting = () => {
+            document.querySelectorAll('.lazy-ghost').forEach(el => obs.observe(el));
+          };
+
+          // Orion: Observar cambios en el DOM para resultados dinámicos
+          const mut = new MutationObserver(() => observeExisting());
+          mut.observe(document.body, { childList: true, subtree: true });
+          
+          observeExisting();
         };
         initGhostLoader();
 
@@ -310,7 +319,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                     obs.disconnect(); 
                   } 
                 }); 
-              }, { rootMargin: '100px' });
+              }, { rootMargin: '400px' });
               obs.observe(updates);
             }
           }, 50);
@@ -389,6 +398,31 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           ads.forEach(ad => observer.observe(ad));
         };
         
+        // 6. Adblock Detection (Minimal)
+        const runAdblockCheck = () => {
+          setTimeout(async () => {
+            const check = async () => {
+              try {
+                const network = await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' });
+                const bait = document.getElementById('tester-wrap');
+                if (bait && (bait.offsetParent === null || bait.offsetHeight === 0)) return true;
+                return false;
+              } catch (e) {
+                return true;
+              }
+            };
+            if (await check()) {
+              if (window.location.pathname.includes('/series/') && window.location.pathname.split('/').length >= 4) {
+                const wall = document.getElementById('adblock-wall');
+                if (wall) { wall.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+              } else {
+                const toast = document.getElementById('adblock-toast');
+                if (toast) toast.style.display = 'flex';
+              }
+            }
+          }, 2000);
+        };
+
         // Orion: Usamos Idle para Ads y Adblock
         if ('requestIdleCallback' in window) {
           (window as any).requestIdleCallback(() => {

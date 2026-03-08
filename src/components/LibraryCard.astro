@@ -18,10 +18,11 @@ const finalCoverUrl = manga.urlPortada || manga.coverImageUrl || '';
       <Image
         src={finalCoverUrl}
         alt={`Portada de ${manga.title}`}
-        width={400}
-        height={600}
+        width={300}
+        height={450}
         loading="lazy"
         class="card-img"
+        forceLazy={true}
       />
     </div>
     <div class="card-overlay">
