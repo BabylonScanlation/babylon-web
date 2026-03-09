@@ -36,7 +36,10 @@ export async function shield(context: any, next: any) {
   // 3. BOT-SHIELD (IA & Scrapers)
   const blockedBots = siteConfig.security.blockedBots;
   const isAssetPath =
-    currentPath.startsWith('/api/r2-cache/') || currentPath.startsWith('/api/assets/');
+    currentPath.startsWith('/api/r2-cache/') ||
+    currentPath.startsWith('/api/assets/') ||
+    currentPath === '/index.json' ||
+    currentPath.startsWith('/repo/');
 
   if (!isAssetPath && blockedBots.some((bot) => lowerUa.includes(bot))) {
     return new Response(getBlockedHtml('Automated Traffic Detected', 'Security System'), {
@@ -50,6 +53,8 @@ export async function shield(context: any, next: any) {
   const isPublicPath =
     currentPath === '/verify' ||
     currentPath === '/terms' ||
+    currentPath === '/index.json' ||
+    currentPath.startsWith('/repo/') ||
     currentPath.startsWith('/api/') ||
     currentPath.startsWith('/_actions/') ||
     currentPath.startsWith('/js/') ||
