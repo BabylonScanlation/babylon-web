@@ -15,6 +15,8 @@ export async function shield(context: any, next: any) {
     currentPath.endsWith('.xml') ||
     currentPath.includes('sitemap') ||
     currentPath === '/manifest.json' ||
+    currentPath === '/index.json' ||
+    currentPath.startsWith('/repo/') ||
     currentPath === '/sw.js'
   ) {
     return next();
