@@ -6,16 +6,16 @@ export const GET: APIRoute = async () => {
   const siteUrl = siteConfig.url;
 
   const content = `/* eslint-disable */
-// ==MiruExtension==
+// ==MangayomiExtension==
 // @name         Hitomi.la
-// @version      1.0.0
-// @author       Tu Nombre
+// @version      1.0.5
+// @author       Lucas Goldteins
 // @lang         es
 // @license      MIT
 // @type         manga
 // @icon         https://hitomi.la/favicon.ico
 // @webSite      ${siteUrl}
-// ==/MiruExtension==
+// ==/MangayomiExtension==
 
 // Variables globales para la lógica de gg.js
 let m_default = 0;
