@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { siteConfig } from '../../site.config';
+import { siteConfig } from '../../../site.config';
 
 export const GET: APIRoute = async () => {
   // Aquí usamos siteUrl correctamente

@@ -6,6 +6,7 @@ export const GET: APIRoute = async () => {
     meta: {
       name: siteConfig.name,
       website: siteConfig.url,
+      icon: `${siteConfig.url}${siteConfig.assets.favicon}`,
       signingKeyFingerprint: "",
     }
   };

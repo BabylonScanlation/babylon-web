@@ -1,6 +1,0 @@
-import type { APIRoute } from 'astro';
-import { GET as getRepoMeta } from './repo/repo.json';
-
-export const GET: APIRoute = async (context) => {
-  return getRepoMeta(context);
-};
