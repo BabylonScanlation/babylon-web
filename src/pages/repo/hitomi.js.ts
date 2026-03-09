@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { siteConfig } from '../site.config';
+import { siteConfig } from '../../site.config';
 
 export const GET: APIRoute = async () => {
   const siteUrl = siteConfig.url;
@@ -8,7 +8,7 @@ export const GET: APIRoute = async () => {
     {
       id: 'hitomi-001',
       name: 'Hitomi.la',
-      version: '1.0.1',
+      version: '1.0.5', // Ajustado a la versión de tu encabezado
       lang: 'es',
       site: 'https://hitomi.la',
       apiUrl: '',
@@ -22,7 +22,12 @@ export const GET: APIRoute = async () => {
     },
   ];
 
-  return new Response(JSON.stringify(extensions), {
+  const formattedExtensions = extensions.map((ext) => ({
+    ...ext,
+    id: String(ext.id),
+  }));
+
+  return new Response(JSON.stringify(formattedExtensions), {
     headers: {
       'Content-Type': 'application/json',
     },
