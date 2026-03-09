@@ -4,27 +4,42 @@ import { siteConfig } from '../site.config';
 export const GET: APIRoute = async () => {
   const siteUrl = siteConfig.url;
 
-  const extensions = [
-    {
-      id: 'hitomi-001',
-      name: 'Hitomi.la',
-      version: '1.0.1',
-      lang: 'es',
-      site: 'https://hitomi.la',
-      apiUrl: '',
-      iconUrl: 'https://hitomi.la/favicon.ico',
-      url: `${siteUrl}/repo/hitomi.js`,
-      typeSource: 'single',
-      nsfw: true,
-      itemType: 0,
-      sourceCodeLanguage: 1,
-      appMinVerReq: '0.1.0',
-    },
-  ];
+  const repoData = {
+    name: siteConfig.name,
+    author: siteConfig.author,
+    description: `Repositorio oficial de ${siteConfig.name}`,
+    version: "1.1.0",
+    website: siteUrl,
+    extensions: [
+      {
+        name: siteConfig.name,
+        pkgName: `com.${siteConfig.shortName.toLowerCase()}.scanlation`,
+        version: "0.2.1",
+        lang: "es",
+        type: "manga",
+        sourceUrl: `${siteUrl}/repo/extension.js`,
+        apiUrl: siteUrl,
+        iconUrl: `${siteUrl}${siteConfig.assets.favicon}`,
+        nsfw: false
+      },
+      {
+        name: "Hitomi.la",
+        pkgName: "com.hitomi.la.extension",
+        version: "1.0.1",
+        lang: "es",
+        type: "manga",
+        sourceUrl: `${siteUrl}/repo/hitomi.js`,
+        apiUrl: "",
+        iconUrl: "https://hitomi.la/favicon.ico",
+        nsfw: true
+      }
+    ]
+  };
 
-  return new Response(JSON.stringify(extensions), {
+  return new Response(JSON.stringify(repoData), {
     headers: {
       'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
     },
   });
 };
