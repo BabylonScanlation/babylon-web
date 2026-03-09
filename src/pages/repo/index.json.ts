@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { GET as getRepoMeta } from './repo/repo.json';
+import { GET as getIndexMin } from './index.min.json';
 
 export const GET: APIRoute = async (context) => {
-  return getRepoMeta(context);
+  return getIndexMin(context);
 };
