@@ -33,6 +33,7 @@ const { title = "Verificación" } = Astro.props;
             sitekey: siteKey, 
             theme: 'dark',
             appearance: 'always', // Astra: Visible para dar feedback al usuario
+            'refresh-expired': 'manual',
             callback: (token) => {
               window.captchaToken = token;
               if (window.validateCaptcha) window.validateCaptcha();

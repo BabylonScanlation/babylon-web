@@ -32,6 +32,7 @@ function renderWidget() {
   window.turnstile.render(`#${containerId}`, {
     sitekey: sitekey,
     theme: theme,
+    'refresh-expired': 'manual',
     callback: (token: string) => onVerify(token),
     'expired-callback': () => onVerify(''),
   });
