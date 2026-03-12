@@ -25,12 +25,12 @@ const { title = "Verificación" } = Astro.props;
     <link rel="preconnect" href="https://challenges.cloudflare.com" crossorigin />
     <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
 
-    <script is:inline>
+    <script define:vars={{ siteKey: import.meta.env.DEV ? '1x00000000000000000000AA' : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY }}>
       // Astra: Callback Global llamado por Cloudflare
       window.onloadTurnstileCallback = function () {
         if (window.turnstile) {
           window.turnstile.render('#turnstile-container', {
-            sitekey: '1x00000000000000000000AA', 
+            sitekey: siteKey, 
             theme: 'dark',
             appearance: 'always', // Astra: Visible para dar feedback al usuario
             callback: (token) => {
