@@ -9,6 +9,7 @@ interface Props {
 }
 
 const { type, id, className = '' } = Astro.props;
+const { user } = Astro.locals;
 
 const adKeys = siteConfig.ads.adsterra;
 const adKey = adKeys[type as keyof typeof adKeys] || adKeys.banner;
@@ -21,7 +22,7 @@ const dimensions = {
   native: { w: 0, h: 0 },
 };
 
-const shouldShowAds = siteConfig.ads.enabled;
+const shouldShowAds = siteConfig.ads.enabled && !user?.isAdmin;
 
 // Generar un ID único para esta instancia de anuncio
 const instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}`;

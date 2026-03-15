@@ -187,9 +187,11 @@ if (error && currentChapterIndex !== -1) {
   </div>
 
   <main class="reader-container" id="reader-container">
-    <div class="reader-top-ad">
-      <AdContainer type="banner" />
-    </div>
+    {siteConfig.ads.enabled && !user?.isAdmin && (
+      <div class="reader-top-ad">
+        <AdContainer type="banner" />
+      </div>
+    )}
 
     {error ? (
         <div class="full-screen-error">

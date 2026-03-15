@@ -339,9 +339,11 @@ const reactions = [
               </div>
             </div>
 
-            <div class="series-bottom-ad-wrapper">
-              <AdContainer type="banner" className="series-mid-ad" />
-            </div>
+            {siteConfig.ads.enabled && !user?.isAdmin && (
+              <div class="series-bottom-ad-wrapper">
+                <AdContainer type="banner" className="series-mid-ad" />
+              </div>
+            )}
           </div>
         </div>
 
