@@ -4,7 +4,8 @@ import { logError } from '../logError';
 
 const firebaseConfig = {
   apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
-  authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN,
+  authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN || 
+              (import.meta.env.PUBLIC_FIREBASE_PROJECT_ID ? `${import.meta.env.PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com` : ''),
   projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
@@ -12,7 +13,7 @@ const firebaseConfig = {
 };
 
 if (import.meta.env.PROD && !firebaseConfig.authDomain) {
-  console.error('CRITICAL: PUBLIC_FIREBASE_AUTH_DOMAIN is missing in production environment');
+  console.error('CRITICAL: PUBLIC_FIREBASE_AUTH_DOMAIN and fallback are missing in production environment');
 }
 
 // Inicializar app si no existe (Ligero)
