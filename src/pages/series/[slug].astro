@@ -276,7 +276,9 @@ const reactions = [
                                   <span class="chapter-label">CAPÍTULO</span>
                                   <h3 class="chapter-num">{chapter.chapterNumber}</h3>
                                   <h4 class="chapter-title">
-                                    {chapter.title ? chapter.title : 'Sin título'}
+                                    {chapter.title && chapter.title !== 'null' && chapter.title !== '' 
+                                      ? chapter.title 
+                                      : `Capítulo ${chapter.chapterNumber}`}
                                   </h4>
                                 </div>
                                 <div class="chapter-meta-row">

@@ -16,6 +16,7 @@ export const GET: APIRoute = async (context) => {
         title: series.title,
         coverImageUrl: series.coverImageUrl,
         chapterNumber: chapters.chapterNumber,
+        chapterTitle: chapters.title,
         createdAt: chapters.createdAt,
       })
       .from(chapters)
@@ -44,6 +45,7 @@ export const GET: APIRoute = async (context) => {
       if (seriesEntry.chapters.length < 2) {
         seriesEntry.chapters.push({
           number: chapter.chapterNumber, // Usar chapterNumber de Drizzle
+          title: chapter.chapterTitle,
           createdAt: chapter.createdAt,
         });
       }

@@ -8,7 +8,17 @@ interface Props {
 }
 
 const { series, r2PublicUrlAssets } = Astro.props;
-const chapters = series.chapters || [];
+const rawChapters = series.chapters || [];
+
+// Orion: Saneamos los capítulos para evitar el bug de serialización de Astro
+const chapters = rawChapters.map(ch => ({
+  ...ch,
+  createdAt: (ch.createdAt instanceof Date && !isNaN(ch.createdAt.getTime()))
+    ? ch.createdAt.toISOString()
+    : (typeof ch.createdAt === 'string' || typeof ch.createdAt === 'number')
+      ? ch.createdAt
+      : new Date().toISOString()
+}));
 ---
 
 <chapter-manager class="chapters-manager">

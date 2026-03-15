@@ -59,11 +59,13 @@ if (isSuperAdmin) {
 
 <Layout title={`Panel de Administración - ${siteConfig.shortName}`}>
   <main class="admin-dashboard-container">
-    
     <header class="admin-header">
       <div class="welcome-section">
         <h1>Panel de Administración</h1>
-        <p class="subtitle">Bienvenido al centro de control de {siteConfig.shortName}. Selecciona una zona para comenzar.</p>
+        <p class="subtitle">
+          Bienvenido al centro de control de {siteConfig.shortName}. Selecciona
+          una zona para comenzar.
+        </p>
       </div>
     </header>
 
@@ -71,25 +73,39 @@ if (isSuperAdmin) {
     {error && <div class="alert error">{error}</div>}
 
     <div class="admin-grid">
-      {adminCards.map((card) => (
-        <div class="admin-card-wrapper">
-          <a href={card.href} class="admin-card">
-            <div class="card-glow" style={`background: ${card.color}`}></div>
-            <div class="card-content">
-              <div class="card-icon-wrapper" style={`color: ${card.color}; background: ${card.color}15`}>
-                <Fragment set:html={card.icon} />
+      {
+        adminCards.map((card) => (
+          <div class="admin-card-wrapper">
+            <a href={card.href} class="admin-card">
+              <div class="card-glow" style={`background: ${card.color}`} />
+              <div class="card-content">
+                <div
+                  class="card-icon-wrapper"
+                  style={`color: ${card.color}; background: ${card.color}15`}
+                >
+                  <Fragment set:html={card.icon} />
+                </div>
+                <div class="card-text">
+                  <h2>{card.title}</h2>
+                  <p>{card.desc}</p>
+                </div>
+                <div class="card-arrow">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="20"
+                    height="20"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    fill="none"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
               </div>
-              <div class="card-text">
-                <h2>{card.title}</h2>
-                <p>{card.desc}</p>
-              </div>
-              <div class="card-arrow">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="3" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
-              </div>
-            </div>
-          </a>
-        </div>
-      ))}
+            </a>
+          </div>
+        ))
+      }
     </div>
   </main>
 </Layout>
@@ -98,12 +114,11 @@ if (isSuperAdmin) {
   .admin-dashboard-container {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 0 2rem;
     color: #fff;
     min-height: calc(100vh - 80px);
     display: flex;
     flex-direction: column;
-    /* Astra: Asegurar espacio para el header fijo */
     margin-top: 20px;
     /* Astra: Forzar que todo el contenido del panel esté en una capa inferior al Header */
     position: relative;
@@ -114,40 +129,29 @@ if (isSuperAdmin) {
   /* Header Section */
   .admin-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 3rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding-bottom: 2rem;
-  }
-
-  .badge-admin {
-    display: inline-block;
-    background: rgba(0, 191, 255, 0.1);
-    color: var(--accent-color);
-    padding: 4px 12px;
-    border-radius: 100px;
-    font-size: 0.7rem;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    margin-bottom: 1rem;
-    border: 1px solid rgba(0, 191, 255, 0.2);
+    justify-content: center;
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
   }
 
   .admin-header h1 {
-    font-size: 3rem;
-    font-weight: 800;
-    margin: 0 0 0.5rem 0;
+    font-size: 2.5rem;
+    font-weight: 900;
+    margin: 0 0 0.2rem 0;
     background: linear-gradient(135deg, #fff 0%, #888 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
 
   .subtitle {
-    color: #666;
-    font-size: 1.1rem;
+    color: #888;
+    font-size: 1.15rem;
     margin: 0;
+    width: 100%;
+    line-height: 1.5;
   }
 
   .status-item {
@@ -177,9 +181,15 @@ if (isSuperAdmin) {
   }
 
   @keyframes pulse {
-    0% { opacity: 0.5; }
-    50% { opacity: 1; }
-    100% { opacity: 0.5; }
+    0% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0.5;
+    }
   }
 
   /* Grid Layout */
@@ -192,9 +202,9 @@ if (isSuperAdmin) {
 
   /* Admin Card Glassmorphism */
   .admin-card-wrapper {
-    padding: 15px 0; /* Buffer aumentado para el movimiento de 8px */
+    padding: 0;
     display: flex;
-    background: transparent; /* Asegura que capture eventos en toda su área */
+    background: transparent;
   }
 
   .admin-card {
@@ -305,21 +315,49 @@ if (isSuperAdmin) {
   }
 
   @keyframes slideIn {
-    from { transform: translateY(-10px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+      transform: translateY(-10px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 
-  .alert.success { background: rgba(46, 204, 113, 0.1); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.2); }
-  .alert.error { background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.2); }
+  .alert.success {
+    background: rgba(46, 204, 113, 0.1);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.2);
+  }
+  .alert.error {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.2);
+  }
 
   @media (max-width: 900px) {
-    .admin-dashboard-container { padding: 1rem; margin-top: 10px; }
-    .admin-header { flex-direction: column; align-items: flex-start; gap: 1.5rem; margin-bottom: 2rem; }
-    .admin-header h1 { font-size: 2rem; }
-    .subtitle { font-size: 0.95rem; }
+    .admin-dashboard-container {
+      padding: 1rem;
+      margin-top: 10px;
+    }
+    .admin-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .admin-header h1 {
+      font-size: 2rem;
+    }
+    .subtitle {
+      font-size: 0.95rem;
+    }
   }
 
   @media (max-width: 768px) {
-    .admin-grid { grid-template-columns: 1fr; }
+    .admin-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

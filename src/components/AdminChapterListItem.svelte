@@ -190,16 +190,17 @@ const finalUrl = $derived.by(() => {
                     />
                 </div>
             {:else}
-                <span 
-                    class="title-display" 
+                <span
+                    class="title-display"
                     onclick={() => isEditing = true}
                     role="button"
                     tabindex="0"
                     onkeydown={(e) => e.key === 'Enter' && (isEditing = true)}
-                    title={chapter.title || 'Sin título'}
+                    title={chapter.title && chapter.title !== 'null' ? chapter.title : `Capítulo ${chapter.chapterNumber}`}
                 >
-                    {chapter.title || 'Sin título'}
+                    {chapter.title && chapter.title !== 'null' ? chapter.title : `Capítulo ${chapter.chapterNumber}`}
                 </span>
+
             {/if}
         </div>
     </div>

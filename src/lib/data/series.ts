@@ -314,9 +314,7 @@ export async function getSeriesWithRecentChapters(
   allowNsfw: boolean = false
 ) {
   const seriesConditions: any[] = [eq(series.isHidden, false)];
-  if (allowNsfw) {
-    seriesConditions.push(eq(series.isNsfw, true));
-  } else {
+  if (!allowNsfw) {
     seriesConditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
   }
 
@@ -348,6 +346,7 @@ export async function getSeriesWithRecentChapters(
       title: series.title,
       coverImageUrl: series.coverImageUrl,
       chapterNumber: chapters.chapterNumber,
+      chapterTitle: chapters.title,
       chapterCreatedAt: chapters.createdAt,
     })
     .from(chapters)
@@ -359,7 +358,7 @@ export async function getSeriesWithRecentChapters(
         sql`${chapters.chapterNumber} > 0`
       )
     )
-    .orderBy(desc(chapters.createdAt))
+    .orderBy(desc(chapters.chapterNumber)) // Prioridad absoluta al número de capítulo
     .all();
 
   const seriesMap = new Map();
@@ -371,19 +370,35 @@ export async function getSeriesWithRecentChapters(
         title: row.title,
         coverImageUrl: row.coverImageUrl,
         recentChapters: [],
-        lastUpdate: row.chapterCreatedAt,
+        lastUpdate: row.chapterCreatedAt, // Se actualizará con la fecha más reciente encontrada
       });
     }
+    
     const entry = seriesMap.get(row.slug);
+    
+    // Actualizamos la fecha de la serie si este capítulo (aunque tenga número menor) es más nuevo en tiempo
+    const rowTime = new Date(row.chapterCreatedAt).getTime();
+    const entryTime = new Date(entry.lastUpdate).getTime();
+    if (rowTime > entryTime) {
+      entry.lastUpdate = row.chapterCreatedAt;
+    }
+
+    // Orion: Como vienen ordenados por número DESC, los primeros 3 son los más altos
     if (entry.recentChapters.length < 3) {
-      entry.recentChapters.push({
-        number: row.chapterNumber,
-        createdAt: row.chapterCreatedAt,
-      });
+      if (!entry.recentChapters.some((c: any) => c.number === row.chapterNumber)) {
+        entry.recentChapters.push({
+          number: row.chapterNumber,
+          title: row.chapterTitle,
+          createdAt: row.chapterCreatedAt,
+        });
+      }
     }
   }
 
-  return Array.from(seriesMap.values());
+  // Ordenamos las series finales por su actualización más reciente en el tiempo
+  return Array.from(seriesMap.values()).sort((a: any, b: any) => {
+    return new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime();
+  });
 }
 
 /**
