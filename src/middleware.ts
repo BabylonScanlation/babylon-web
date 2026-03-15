@@ -25,7 +25,7 @@ function applyOptimizedHeaders(response: Response, context: any) {
 
   if (contentType?.includes('text/html')) {
     response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+    response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-Robots-Tag', 'index, follow, max-image-preview:large');
 
     // Orion: Si hay un usuario logueado, desactivamos el cacheo en el Edge

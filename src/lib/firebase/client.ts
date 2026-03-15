@@ -12,10 +12,6 @@ const firebaseConfig = {
   appId: import.meta.env.PUBLIC_FIREBASE_APP_ID,
 };
 
-if (import.meta.env.PROD && !firebaseConfig.authDomain) {
-  console.error('CRITICAL: PUBLIC_FIREBASE_AUTH_DOMAIN and fallback are missing in production environment');
-}
-
 // Inicializar app si no existe (Ligero)
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
