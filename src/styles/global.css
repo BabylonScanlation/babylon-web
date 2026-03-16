@@ -1354,11 +1354,14 @@ body a.nav-btn-modern {
 /* Controls */
 .premium-pagination {
   bottom: 40px !important;
-  left: auto !important;
-  right: 4rem !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
   width: auto !important;
   display: flex;
+  justify-content: center;
   gap: 10px;
+  z-index: 10;
 }
 
 :global(.premium-pagination .swiper-pagination-bullet) {

@@ -4,19 +4,29 @@ import { siteConfig } from '../site.config';
 const { user, runtime } = Astro.locals;
 const isNsfwActive = Astro.cookies.get('babylon_nsfw')?.value === 'true';
 const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
+
+const currentLogo = isNsfwActive ? siteConfig.assets.logoHeaderNsfw : siteConfig.assets.logoHeader;
+const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo}` : currentLogo;
 ---
 
 <header class:list={['site-header', { 'nsfw-active': isNsfwActive }]} id="main-header">
-  <script is:inline>
+  <script is:inline define:vars={{ logoNormal: siteConfig.assets.logoHeader, logoNsfw: siteConfig.assets.logoHeaderNsfw, r2Url: r2PublicUrlAssets }}>
     // Astra: Aplicar modo NSFW instantáneamente en el cliente, respetando si la página forzó el estado en el HTML
     (function() {
       // Si el HTML tiene explícitamente nsfw-mode (forzado por el Layout), el header debe coincidir
       const htmlHasMode = document.documentElement.classList.contains('nsfw-mode');
       const isNsfwCookie = document.cookie.split(';').some(c => c.trim().startsWith('babylon_nsfw=true'));
       
+      const header = document.getElementById('main-header');
+      const logoImg = document.getElementById('header-logo-img');
+      
       // Si estamos en una página que fuerza NO ser roja (ej. serie SFW), no pintamos el header de rojo
       if (isNsfwCookie || htmlHasMode) {
-        document.getElementById('main-header')?.classList.add('nsfw-active');
+        header?.classList.add('nsfw-active');
+        if (logoImg) {
+          const newLogo = logoNsfw.startsWith('/') ? `${r2Url}${logoNsfw}` : logoNsfw;
+          logoImg.src = newLogo;
+        }
       }
     })();
   </script>
@@ -24,9 +34,10 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
     <div class="logo-section">
       <a href="/" class="logo-link" id="header-logo-toggle">
         <img
-          src={siteConfig.assets.logoHeader.startsWith('/') ? `${r2PublicUrlAssets}${siteConfig.assets.logoHeader}` : siteConfig.assets.logoHeader}
+          src={logoUrl}
           alt={`${siteConfig.name} Logo`}
           class="header-logo"
+          id="header-logo-img"
         />
       </a>
     </div>

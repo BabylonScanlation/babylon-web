@@ -15,11 +15,11 @@ export async function getNewsList(
     conditions.push(seriesId === null ? isNull(news.seriesId) : eq(news.seriesId, seriesId));
   }
 
-  // Astra: Filtrar noticias de series NSFW si no se permiten
-  if (!allowNsfw) {
-    // Si la noticia tiene una serie asociada, la serie no debe ser NSFW.
-    // Si no tiene serie asociada, se muestra (noticia general).
-    // Nota: Esto requiere que el join esté presente en la consulta principal.
+  // Orion: Modo Estricto para Noticias
+  if (allowNsfw) {
+    conditions.push(eq(series.isNsfw, true));
+  } else {
+    conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
   }
 
   try {
@@ -42,10 +42,6 @@ export async function getNewsList(
       .from(news)
       .leftJoin(series, eq(news.seriesId, series.id))
       .leftJoin(users, eq(news.publishedBy, users.id));
-
-    if (!allowNsfw) {
-      conditions.push(sql`(Series.is_nsfw IS NULL OR Series.is_nsfw = 0)`);
-    }
 
     const results = await query
       .where(and(...conditions))
@@ -99,12 +95,20 @@ export async function getNewsList(
   }
 }
 
-export async function getLatestNewsId(db: DrizzleD1Database<typeof schema>) {
+export async function getLatestNewsId(db: DrizzleD1Database<typeof schema>, allowNsfw: boolean = false) {
   try {
+    const conditions: any[] = [eq(news.status, 'published')];
+    if (allowNsfw) {
+      conditions.push(eq(series.isNsfw, true));
+    } else {
+      conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
+    }
+
     const result = await db
       .select({ id: news.id, createdAt: news.createdAt })
       .from(news)
-      .where(eq(news.status, 'published'))
+      .leftJoin(series, eq(news.seriesId, series.id))
+      .where(and(...conditions))
       .orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`))
       .limit(1)
       .get();

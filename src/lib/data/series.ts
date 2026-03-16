@@ -314,7 +314,9 @@ export async function getSeriesWithRecentChapters(
   allowNsfw: boolean = false
 ) {
   const seriesConditions: any[] = [eq(series.isHidden, false)];
-  if (!allowNsfw) {
+  if (allowNsfw) {
+    seriesConditions.push(eq(series.isNsfw, true));
+  } else {
     seriesConditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
   }
 

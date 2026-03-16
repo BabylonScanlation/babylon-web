@@ -16,6 +16,7 @@ export const siteConfig = {
   assets: {
     logo: '/favicon.png',
     logoHeader: '/iconpage/babylon-logo-2.webp',
+    logoHeaderNsfw: '/iconpage/babylon-logo-4.webp',
     logoEmpty: '/iconpage/babylon-logo-3.webp',
     ogImage: '/og-image.webp',
     favicon: '/favicon.png',

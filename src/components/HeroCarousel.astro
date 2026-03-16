@@ -10,14 +10,6 @@ interface Props {
 }
 
 const { slides = [], title } = Astro.props;
-
-// Duplicar slides si son pocos
-let renderSlides = [...slides];
-if (renderSlides.length > 0 && renderSlides.length < 3) {
-  while (renderSlides.length < 4) {
-    renderSlides = [...renderSlides, ...slides];
-  }
-}
 ---
 
 <section class="hero-carousel-section">
@@ -26,7 +18,7 @@ if (renderSlides.length > 0 && renderSlides.length < 3) {
   <div class="carousel-outer-frame">
     <div class="swiper hero-swiper">
       <div class="swiper-wrapper">
-        {renderSlides.map((slide, index) => (
+        {slides.map((slide, index) => (
           <div class="swiper-slide">
             <a href={`/series/${slide.slug}`} class="slide-main-link" draggable="false" data-astro-prefetch="false">
               <!-- Background layer (Optimized: Using same Image component for cache hit) -->
