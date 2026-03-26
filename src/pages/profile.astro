@@ -1,11 +1,11 @@
 ---
 import { eq } from 'drizzle-orm';
+import AdminAccess from '../components/AdminAccess.svelte';
+import ProfileMediaHandler from '../components/ProfileMediaHandler.svelte';
 import { userRoles, users } from '../db/schema';
+import Layout from '../layouts/Layout.astro';
 import { getDB } from '../lib/db';
 import { getSession } from '../lib/session';
-import Layout from '../layouts/Layout.astro';
-import ProfileMediaHandler from '../components/ProfileMediaHandler.svelte';
-import AdminAccess from '../components/AdminAccess.svelte';
 import { siteConfig } from '../site.config';
 
 // 1. Auth Check

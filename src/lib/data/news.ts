@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, or, sql } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 import { news, newsImage, series, users } from '../../db/schema';
@@ -9,7 +9,7 @@ export async function getNewsList(
   seriesId?: number | null,
   allowNsfw: boolean = false
 ) {
-  const conditions = [eq(news.status, status)];
+  const conditions: any[] = [eq(news.status, status)];
 
   if (seriesId !== undefined) {
     conditions.push(seriesId === null ? isNull(news.seriesId) : eq(news.seriesId, seriesId));

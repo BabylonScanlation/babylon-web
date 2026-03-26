@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { authModal } from '../lib/stores.svelte';
 
   let { isVerifyPage = false, shouldShowAgeGate = false } = $props();
   let GlobalUtilities = $state<any>(null);

@@ -1,17 +1,17 @@
 ---
+import AdContainer from '../../components/AdContainer.astro';
+import AdminSeriesNewsForm from '../../components/AdminSeriesNewsForm.astro';
+import FavoriteButton from '../../components/FavoriteButton.svelte';
+import Image from '../../components/Image.astro';
+import NewsFeed from '../../components/NewsFeed.astro';
+import UnifiedComments from '../../components/UnifiedComments.astro';
+import Layout from '../../layouts/Layout.astro';
 import { getCommentsForTarget } from '../../lib/data/comments';
 import { getSeriesDetails } from '../../lib/data/series';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
-import Layout from '../../layouts/Layout.astro';
-import FavoriteButton from '../../components/FavoriteButton.svelte';
-import UnifiedComments from '../../components/UnifiedComments.astro';
-import NewsFeed from '../../components/NewsFeed.astro';
-import AdminSeriesNewsForm from '../../components/AdminSeriesNewsForm.astro';
-import AdContainer from '../../components/AdContainer.astro';
-import Image from '../../components/Image.astro';
+import { formatFullDate, getImageUrl, timeAgo } from '../../lib/utils';
 import { siteConfig } from '../../site.config';
-import { getImageUrl, timeAgo, formatFullDate } from '../../lib/utils';
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/404');

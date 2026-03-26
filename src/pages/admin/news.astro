@@ -1,9 +1,9 @@
 ---
 import { asc, desc, sql } from 'drizzle-orm';
-import { news, series } from '../../db/schema';
-import { getDB } from '../../lib/db';
-import Layout from '../../layouts/Layout.astro';
 import AdminNewsManager from '../../components/AdminNewsManager.svelte';
+import { news, series } from '../../db/schema';
+import Layout from '../../layouts/Layout.astro';
+import { getDB } from '../../lib/db';
 import { siteConfig } from '../../site.config';
 
 // Orion: Configuración de paginación

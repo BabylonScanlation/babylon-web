@@ -39,6 +39,7 @@ class ToastStore {
   }
   remove(id: string) { this.#toasts = this.#toasts.filter(t => t.id !== id); }
   success(m: string) { this.add('success', m); }
+  info(m: string) { this.add('info', m); }
   error(m: string) { this.add('error', m); }
   warning(m: string) { this.add('warning', m); }
 }

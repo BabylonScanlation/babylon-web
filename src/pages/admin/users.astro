@@ -1,8 +1,8 @@
 ---
+import Layout from '../../layouts/Layout.astro';
 import { getAdmins } from '../../lib/data/admin';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
-import Layout from '../../layouts/Layout.astro';
 
 const { user, runtime } = Astro.locals;
 const superAdminUid = runtime.env.SUPER_ADMIN_UID;

@@ -1,9 +1,9 @@
 ---
 import { eq } from 'drizzle-orm';
 import { users } from '../../db/schema';
+import Layout from '../../layouts/Layout.astro';
 import { getNewsList } from '../../lib/data/news';
 import { getDB } from '../../lib/db';
-import Layout from '../../layouts/Layout.astro';
 import { siteConfig } from '../../site.config';
 
 const drizzleDb = getDB(Astro.locals.runtime.env);

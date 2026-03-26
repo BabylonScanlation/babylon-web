@@ -1,5 +1,6 @@
 ---
 import { and, desc, eq, sql } from 'drizzle-orm';
+import MangaCard from '../../components/MangaCard.astro';
 import {
   chapters,
   comments,
@@ -11,11 +12,10 @@ import {
   userRoles,
   users,
 } from '../../db/schema';
-import { getDB } from '../../lib/db';
 import Layout from '../../layouts/Layout.astro';
-import MangaCard from '../../components/MangaCard.astro';
-import { siteConfig } from '../../site.config';
+import { getDB } from '../../lib/db';
 import { timeAgo } from '../../lib/utils';
+import { siteConfig } from '../../site.config';
 
 const { username: routeUsername } = Astro.params;
 const db = getDB(Astro.locals.runtime.env);

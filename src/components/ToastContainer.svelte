@@ -1,6 +1,6 @@
 <script lang="ts">
-import { fade, fly } from 'svelte/transition';
 import { flip } from 'svelte/animate';
+import { fade, fly } from 'svelte/transition';
 import { toast } from '../lib/stores.svelte';
 
 // Íconos SVG simples

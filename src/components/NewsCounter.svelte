@@ -1,6 +1,6 @@
 <script lang="ts">
 import { onMount } from 'svelte';
-import { newsStore } from '../lib/newsStore.svelte';
+import { newsStore } from '../lib/stores.svelte';
 
 interface Props {
   initialCount?: number;

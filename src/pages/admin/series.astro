@@ -1,10 +1,10 @@
 ---
+import AdminSeriesManager from '../../components/AdminSeriesManager.astro';
+import AdminThumbnailCropperModalSvelte from '../../components/AdminThumbnailCropperModal.svelte';
+import Layout from '../../layouts/Layout.astro';
 import { getAdminSeriesWithChapters } from '../../lib/data/admin';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
-import Layout from '../../layouts/Layout.astro';
-import AdminSeriesManager from '../../components/AdminSeriesManager.astro';
-import AdminThumbnailCropperModalSvelte from '../../components/AdminThumbnailCropperModal.svelte';
 
 const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-import { fade } from 'svelte/transition';
 import { onMount } from 'svelte';
+import { fade } from 'svelte/transition';
 import { timeAgo } from '../lib/utils';
 import Swiper from './Swiper.svelte';
 

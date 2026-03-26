@@ -25,7 +25,7 @@ const { title = "Verificación" } = Astro.props;
     <link rel="preconnect" href="https://challenges.cloudflare.com" crossorigin />
     <link rel="dns-prefetch" href="https://challenges.cloudflare.com" />
 
-    <script define:vars={{ siteKey: import.meta.env.DEV ? '1x00000000000000000000AA' : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY }}>
+    <script is:inline define:vars={{ siteKey: import.meta.env.DEV ? '1x00000000000000000000AA' : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY }}>
       // Astra: Callback Global llamado por Cloudflare
       window.onloadTurnstileCallback = function () {
         if (window.turnstile) {
@@ -44,7 +44,7 @@ const { title = "Verificación" } = Astro.props;
     </script>
 
     <!-- Orion: Script único con prioridad alta -->
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onloadTurnstileCallback" async fetchpriority="high"></script>
+    <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onloadTurnstileCallback" async fetchpriority="high"></script>
 
     <style is:inline>
       :root {

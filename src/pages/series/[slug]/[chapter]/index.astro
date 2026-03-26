@@ -1,13 +1,13 @@
 ---
+import AdContainer from '../../../../components/AdContainer.astro';
+import ChapterReader from '../../../../components/ChapterReader.svelte';
+import UnifiedComments from '../../../../components/UnifiedComments.astro';
+import Layout from '../../../../layouts/Layout.astro';
 import { getChapterPayload } from '../../../../lib/data/chapters';
 import { getCommentsForTarget } from '../../../../lib/data/comments';
 import { getSeriesDetails } from '../../../../lib/data/series';
 import { getDB } from '../../../../lib/db';
 import { logError } from '../../../../lib/logError';
-import Layout from '../../../../layouts/Layout.astro';
-import AdContainer from '../../../../components/AdContainer.astro';
-import ChapterReader from '../../../../components/ChapterReader.svelte';
-import UnifiedComments from '../../../../components/UnifiedComments.astro';
 import { siteConfig } from '../../../../site.config';
 
 const { slug, chapter } = Astro.params;

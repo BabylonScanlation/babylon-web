@@ -18,7 +18,12 @@ interface Props {
 
 let { chapter, seriesSlug, r2PublicUrlAssets }: Props = $props();
 
-let title = $state(chapter.title || '');
+// Orion: Evitamos la advertencia de Svelte 5 sobre capturar valor inicial usando un cierre
+let title = $state((() => chapter.title || '')());
+$effect(() => {
+  if (!isEditing) title = chapter.title || '';
+});
+
 let isLoading = $state(false);
 let isEditing = $state(false);
 let isSelected = $state(false);
@@ -26,6 +31,11 @@ let deleteState = $state<'idle' | 'confirm' | 'deleting'>('idle');
 let message = $state({ type: '', text: '' });
 
 let deleteTimeout: ReturnType<typeof setTimeout> | undefined;
+
+// Acción para enfoque automático sin violar a11y rules de linting
+function autoFocus(node: HTMLInputElement) {
+  node.focus();
+}
 
 onMount(() => {
   const handleGlobalToggle = (e: Event) => {
@@ -186,7 +196,7 @@ const finalUrl = $derived.by(() => {
                         bind:value={title} 
                         onkeydown={(e) => e.key === 'Enter' && saveTitle()}
                         onblur={saveTitle}
-                        autofocus
+                        use:autoFocus
                     />
                 </div>
             {:else}

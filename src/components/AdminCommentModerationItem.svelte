@@ -1,6 +1,6 @@
 <script lang="ts">
-import { fade, slide } from 'svelte/transition';
 import { actions } from 'astro:actions';
+import { slide } from 'svelte/transition';
 import { toast } from '../lib/stores.svelte';
 
 interface Props {

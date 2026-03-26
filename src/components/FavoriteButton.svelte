@@ -10,7 +10,10 @@ interface Props {
 
 let { seriesId, initialIsFavorite = false }: Props = $props();
 
-let isFavorite = $state(initialIsFavorite);
+let isFavorite = $state((() => initialIsFavorite)());
+$effect(() => {
+  isFavorite = initialIsFavorite;
+});
 let isLoading = $state(false);
 let isLoggedIn = $state(false);
 

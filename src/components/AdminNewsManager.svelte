@@ -1,6 +1,6 @@
 <script lang="ts">
-import { fade, fly, slide } from 'svelte/transition';
 import { actions } from 'astro:actions';
+import { fade, fly, slide } from 'svelte/transition';
 import { toast } from '../lib/stores.svelte';
 
 // Tipos
@@ -38,7 +38,10 @@ let {
 }: Props = $props();
 
 // Estado local reactivo para las noticias (Svelte 5)
-let newsItems = $state<NewsItem[]>(initialNews);
+let newsItems = $state<NewsItem[]>((() => initialNews)());
+$effect(() => {
+  newsItems = initialNews;
+});
 
 // Orion: Normalizador de imágenes
 const getImageUrl = (path: string | null) => {

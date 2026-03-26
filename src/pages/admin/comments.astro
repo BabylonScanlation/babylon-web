@@ -1,9 +1,9 @@
 ---
+import AdminCommentModerationItem from '../../components/AdminCommentModerationItem.svelte';
+import Layout from '../../layouts/Layout.astro';
 import { getAdminSeriesWithChapters } from '../../lib/data/admin';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
-import Layout from '../../layouts/Layout.astro';
-import AdminCommentModerationItem from '../../components/AdminCommentModerationItem.svelte';
 
 let allSeries: any[] = [];
 let hasAnyComments = false;

@@ -47,5 +47,7 @@ declare global {
     handleEdit?: (id: string) => void;
     saveEdit?: (id: string) => Promise<void>;
     handleToggleStatus?: (id: string, currentStatus: string) => Promise<void>;
+    _babylonPendingEvent?: { type: string; detail: any };
+    _babylonUtilsInjected?: boolean;
   }
 }

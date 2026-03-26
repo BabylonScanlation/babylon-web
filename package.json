@@ -8,7 +8,9 @@
     "fast-xml-parser": "^5.3.4",
     "lodash": "^4.17.23",
     "undici": "^7.19.2",
-    "wrangler": "^4.61.1"
+    "wrangler": "^4.61.1",
+    "@tootallnate/once": "^3.0.1",
+    "yaml": "^2.8.3"
   },
   "scripts": {
     "dev": "astro dev",
@@ -85,6 +87,7 @@
     "eslint-plugin-astro": "^1.5.0",
     "eslint-plugin-svelte": "^3.14.0",
     "husky": "^9.1.7",
+    "jsdom": "^29.0.1",
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.1",
     "prettier-plugin-astro": "^0.14.1",

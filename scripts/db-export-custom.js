@@ -7,8 +7,11 @@ const DB_NAME = 'babylon-scanlation-prod';
 
 function runCommand(command) {
   try {
-    return execSync(command, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] });
-  } catch (_error) {
+    // Astra: Usamos un buffer más grande y capturamos stdout
+    return execSync(command, { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 });
+  } catch (error) {
+    console.error(`❌ Error ejecutando comando: ${command}`);
+    if (error.stderr) console.error(error.stderr);
     return null;
   }
 }

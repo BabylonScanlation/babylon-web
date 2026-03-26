@@ -1,6 +1,6 @@
 <script lang="ts">
-import { fade, slide } from 'svelte/transition';
 import { onMount } from 'svelte';
+import { fade, slide } from 'svelte/transition';
 import { siteConfig } from '../site.config';
 
 let isVisible = $state(false);

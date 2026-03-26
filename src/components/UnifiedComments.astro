@@ -14,8 +14,8 @@ const { targetType, targetId, comments: initialComments = [], user = null } = As
 // Orion: Saneamos las fechas para evitar el bug de "Invalid time value" de Astro
 const safeComments = initialComments.map(c => ({
   ...c,
-  createdAt: (c.createdAt instanceof Date && !isNaN(c.createdAt.getTime())) 
-    ? c.createdAt.toISOString() 
+  createdAt: (c.createdAt && typeof c.createdAt === 'object' && (c.createdAt as any) instanceof Date && !isNaN((c.createdAt as any).getTime())) 
+    ? (c.createdAt as any).toISOString() 
     : (typeof c.createdAt === 'string' || typeof c.createdAt === 'number') 
       ? c.createdAt 
       : new Date().toISOString()

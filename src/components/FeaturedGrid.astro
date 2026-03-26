@@ -33,7 +33,6 @@ const displayMangas = mangas.slice(0, 6);
                 width={300}
                 height={450}
                 loading={index < 2 ? "eager" : "lazy"}
-                decoding="async"
                 style={`transition-name: cover-${manga.slug}`}
                 fetchpriority={index < 2 ? 'high' : 'auto'}
                 forceLazy={true}

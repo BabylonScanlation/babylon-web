@@ -1,7 +1,7 @@
 ---
+import { timeAgo } from '../lib/utils';
 import type { Series } from '../types';
 import Image from './Image.astro';
-import { timeAgo } from '../lib/utils';
 
 interface Props {
   series: Series;
@@ -25,7 +25,6 @@ const recentChapters = (series as any).recentChapters || [];
           width={300}
           height={450}
           loading={loading}
-          decoding="async"
           class="main-cover"
           forceLazy={true}
         />

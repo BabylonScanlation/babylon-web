@@ -1,6 +1,6 @@
 <script lang="ts">
-import { fade } from 'svelte/transition';
 import { onMount } from 'svelte';
+import { fade } from 'svelte/transition';
 import { timeAgo } from '../lib/utils';
 
 // Types
@@ -374,6 +374,7 @@ onMount(() => {
     margin: 0 0 0.5rem; 
     display: -webkit-box;
     -webkit-line-clamp: 1;
+    line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis; 
@@ -426,7 +427,7 @@ onMount(() => {
 
   .rating-badge { background: var(--accent-color); color: #000; }
 
-  .card-info h3 { font-size: 0.9rem; font-weight: 800; margin: 0 0 0.2rem; color: #fff; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; }
+  .card-info h3 { font-size: 0.9rem; font-weight: 800; margin: 0 0 0.2rem; color: #fff; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; }
   .added-date { font-size: 0.7rem; color: #555; font-weight: 600; }
 
   .ratings-filter {
