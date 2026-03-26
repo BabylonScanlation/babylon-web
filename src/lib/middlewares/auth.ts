@@ -1,24 +1,16 @@
 // src/lib/middlewares/auth.ts
-import type { MiddlewareNext } from 'astro';
+import type { APIContext, MiddlewareNext } from 'astro';
 import { and, eq, gt } from 'drizzle-orm';
 import { sessions, userRoles, users } from '../../db/schema';
 import { getDB } from '../db-client';
 import { logError } from '../logError';
-import { deleteSession, verifyToken } from '../session';
-
-// Orion: Cache de sesiones en memoria del Worker (TTL: 1 min)
-const sessionCache = new Map<string, { user: any; expires: number }>();
-const SESSION_CACHE_TTL = 60000;
+import { deleteSession, setAuthCookie, verifyToken } from '../session';
 
 export function clearSessionCache(sessionId?: string) {
-  if (sessionId) {
-    sessionCache.delete(sessionId);
-  } else {
-    sessionCache.clear();
-  }
+  // Legacy stub: session cache removed to prevent memory leaks in isolates
 }
 
-export async function authFlow(context: any, next: MiddlewareNext) {
+export async function authFlow(context: APIContext, next: MiddlewareNext) {
   const { cookies, locals, request, url } = context;
   const currentPath = url.pathname;
   const runtime = locals.runtime;
@@ -31,7 +23,7 @@ export async function authFlow(context: any, next: MiddlewareNext) {
   const authCookie = cookies.get('user_auth')?.value;
   const sessionId = cookies.get('user_session')?.value;
 
-  // 1. FAST-PATH: Verificación JWT (Zero D1 Reads)
+  // 1. FAST-PATH: Verificación JWT (Zero D1 Reads - 15 min expiración)
   if (authCookie && runtime?.env?.JWT_SECRET) {
     const payload = await verifyToken(authCookie, runtime.env.JWT_SECRET);
     if (payload) {
@@ -46,8 +38,7 @@ export async function authFlow(context: any, next: MiddlewareNext) {
     }
   }
 
-  // 2. SLOW-PATH: Verificación de sesión en D1 (Si el JWT no existe o no es admin y necesitamos check extra)
-  // Orion: Solo consultamos D1 si no es un asset, no es una ruta crítica y tenemos sessionId
+  // 2. SLOW-PATH: Verificación de sesión en D1 (Si el JWT expiró, no existe, o necesitamos revalidar)
   const isCriticalPath =
     currentPath === '/verify' ||
     currentPath === '/terms' ||
@@ -57,57 +48,57 @@ export async function authFlow(context: any, next: MiddlewareNext) {
     currentPath.startsWith('/_astro');
 
   if (!locals.user && sessionId && db && !isCriticalPath && !locals.isBot) {
-    // 2.1 Verificar Cache en memoria
-    const cached = sessionCache.get(sessionId);
-    if (cached && cached.expires > Date.now()) {
-      locals.user = cached.user;
-    } else {
-      try {
-        const userAgent = request.headers.get('user-agent') || 'unknown';
-        const result = await db
-          .select({
-            session: sessions,
-            user: users,
-            role: userRoles.role,
-          })
-          .from(sessions)
-          .innerJoin(users, eq(sessions.userId, users.id))
-          .leftJoin(userRoles, eq(sessions.userId, userRoles.userId))
-          .where(
-            and(
-              eq(sessions.id, sessionId),
-              gt(sessions.expiresAt, Math.floor(Date.now() / 1000)),
-              eq(sessions.userAgent, userAgent)
-            )
+    try {
+      const result = await db
+        .select({
+          session: sessions,
+          user: users,
+          role: userRoles.role,
+        })
+        .from(sessions)
+        .innerJoin(users, eq(sessions.userId, users.id))
+        .leftJoin(userRoles, eq(sessions.userId, userRoles.userId))
+        .where(
+          and(
+            eq(sessions.id, sessionId),
+            gt(sessions.expiresAt, Math.floor(Date.now() / 1000))
           )
-          .get();
+        )
+        .get();
 
-        if (result?.session) {
-          const uid = result.session.userId;
-          const userObj = {
-            uid,
-            email: result.user.email,
-            username: result.user.username || undefined,
-            displayName: result.user.displayName || undefined,
-            avatarUrl: result.user.avatarUrl || undefined,
-            isAdmin:
-              (runtime.env.SUPER_ADMIN_UID && uid === runtime.env.SUPER_ADMIN_UID) ||
-              result.role === 'admin',
-            isNsfw: result.user.isNsfw ?? false,
-            preferences: result.user.preferences || '{}',
-          };
-          locals.user = userObj;
+      if (result?.session) {
+        const uid = result.session.userId;
+        const role = (runtime.env.SUPER_ADMIN_UID && uid === runtime.env.SUPER_ADMIN_UID) ? 'admin' : (result.role || 'user');
+        const userObj = {
+          uid,
+          email: result.user.email,
+          username: result.user.username || undefined,
+          displayName: result.user.displayName || undefined,
+          avatarUrl: result.user.avatarUrl || undefined,
+          isAdmin: role === 'admin',
+          isNsfw: result.user.isNsfw ?? false,
+          preferences: result.user.preferences || '{}',
+        };
+        locals.user = userObj;
 
-          // Guardar en cache para evitar la query en el próximo clic
-          sessionCache.set(sessionId, { user: userObj, expires: Date.now() + SESSION_CACHE_TTL });
-        } else {
-          deleteSession(context);
-          sessionCache.delete(sessionId);
+        // Auto-refresh: Emitimos un nuevo JWT válido por 15 mins ya que la sesión D1 es válida
+        if (runtime?.env?.JWT_SECRET) {
+          await setAuthCookie(context, {
+            uid: userObj.uid,
+            email: userObj.email,
+            username: userObj.username || null,
+            displayName: userObj.displayName || null,
+            role: role,
+            isNsfw: userObj.isNsfw
+          }, runtime.env.JWT_SECRET);
         }
-      } catch (error) {
-        logError(error, 'Auth Middleware Error');
+      } else {
+        // Sesión no válida en D1 (ej. expirada o usuario baneado/sesión borrada)
         deleteSession(context);
       }
+    } catch (error) {
+      logError(error, 'Auth Middleware Error');
+      deleteSession(context);
     }
   }
 
@@ -116,7 +107,7 @@ export async function authFlow(context: any, next: MiddlewareNext) {
     return context.redirect('/');
   }
 
-  // Orion: Sincronización de estado NSFW (Solo si la cookie no existe para evitar reversiones molestas)
+  // Orion: Sincronización de estado NSFW
   if (locals.user) {
     const hasNsfwCookie = cookies.has('babylon_nsfw');
     if (!hasNsfwCookie) {
