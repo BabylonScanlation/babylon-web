@@ -1,5 +1,11 @@
 import type { APIRoute } from 'astro';
-import { getAllNews, getDB, getNewsImages, type NewsImageItem } from '../../../lib/db';
+import {
+  getAllNews,
+  getDB,
+  getNewsImages,
+  type NewsImageItem,
+  type NewsWithDetails,
+} from '../../../lib/db';
 import { logError } from '../../../lib/logError';
 
 export const GET: APIRoute = async ({ locals }) => {
@@ -9,7 +15,7 @@ export const GET: APIRoute = async ({ locals }) => {
 
     // For each news item, fetch its associated images
     const newsWithImages = await Promise.all(
-      publishedNews.map(async (newsItem: any) => {
+      publishedNews.map(async (newsItem: NewsWithDetails) => {
         const images = await getNewsImages(drizzleDb, newsItem.id);
         const imageUrls = images.map((img: NewsImageItem) => {
           if (!locals.runtime.env.R2_PUBLIC_URL_ASSETS) {

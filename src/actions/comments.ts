@@ -28,8 +28,8 @@ export const commentActions = {
       const { targetType, targetId, parentId, text } = input;
       const db = getDB(context.locals.runtime.env);
 
-      let table: any;
-      let targetField: string;
+      let table: typeof comments | typeof seriesComments | typeof newsComments;
+      let targetField: 'chapterId' | 'seriesId' | 'newsId';
 
       if (targetType === 'chapter') {
         table = comments;
@@ -78,7 +78,7 @@ export const commentActions = {
       const { targetType, commentId } = input;
       const db = getDB(context.locals.runtime.env);
 
-      let table: any;
+      let table: typeof comments | typeof seriesComments | typeof newsComments;
       if (targetType === 'chapter') table = comments;
       else if (targetType === 'series') table = seriesComments;
       else table = newsComments;
@@ -105,7 +105,7 @@ export const commentActions = {
       const { targetType, commentId, voteType } = input;
       const db = getDB(context.locals.runtime.env);
 
-      let voteTable: any;
+      let voteTable: typeof commentVotes | typeof seriesCommentVotes | typeof newsCommentVotes;
       if (targetType === 'chapter') voteTable = commentVotes;
       else if (targetType === 'series') voteTable = seriesCommentVotes;
       else voteTable = newsCommentVotes;
@@ -142,7 +142,7 @@ export const commentActions = {
       const { targetType, commentId, text } = input;
       const db = getDB(context.locals.runtime.env);
 
-      let table: any;
+      let table: typeof comments | typeof seriesComments | typeof newsComments;
       if (targetType === 'chapter') table = comments;
       else if (targetType === 'series') table = seriesComments;
       else table = newsComments;
@@ -177,7 +177,7 @@ export const commentActions = {
       const { targetType, commentId, isPinned } = input;
       const db = getDB(context.locals.runtime.env);
 
-      let table: any;
+      let table: typeof comments | typeof seriesComments | typeof newsComments;
       if (targetType === 'chapter') table = comments;
       else if (targetType === 'series') table = seriesComments;
       else table = newsComments;

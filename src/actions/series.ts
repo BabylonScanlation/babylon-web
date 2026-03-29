@@ -84,7 +84,15 @@ export const seriesActions = {
         }),
       });
 
-      const tgData: any = await tgResponse.json();
+      interface TelegramForumTopicResponse {
+        ok: boolean;
+        description?: string;
+        result: {
+          message_thread_id: number;
+        };
+      }
+
+      const tgData = (await tgResponse.json()) as TelegramForumTopicResponse;
 
       if (!tgResponse.ok || !tgData.ok) {
         logError(tgData, 'Error al crear el topic en Telegram');
@@ -212,7 +220,7 @@ export const seriesActions = {
         let cursor: string | undefined;
         while (truncated) {
           const list = await r2Cache.list({ prefix: `${seriesData.slug}/`, cursor });
-          const keys = list.objects.map((obj: any) => obj.key);
+          const keys = list.objects.map((obj) => obj.key);
           if (keys.length > 0) await r2Cache.delete(keys);
           truncated = list.truncated;
           cursor = list.truncated ? list.cursor : undefined;

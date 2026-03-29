@@ -31,12 +31,13 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
         commentCount: sql<number>`COUNT(*)`,
       })
       .from(comments)
-      .leftJoin(users, eq(comments.userId, users.id));
+      .leftJoin(users, eq(comments.userId, users.id))
+      .$dynamic();
 
     if (days > 0 && range !== 'all') {
       commentersQuery = commentersQuery.where(
         sql`${comments.createdAt} >= datetime('now', '-' || ${days} || ' days')`
-      ) as any;
+      );
     }
 
     const topCommenters = await commentersQuery

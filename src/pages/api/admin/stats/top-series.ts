@@ -27,13 +27,14 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
       })
       .from(series)
       .leftJoin(chapters, eq(series.id, chapters.seriesId))
-      .leftJoin(chapterViews, eq(chapters.id, chapterViews.chapterId));
+      .leftJoin(chapterViews, eq(chapters.id, chapterViews.chapterId))
+      .$dynamic();
 
     if (range && range !== 'all') {
       const days = parseInt(range, 10);
       query = query.where(
         sql`${chapterViews.viewedAt} >= datetime('now', '-' || ${days} || ' days')`
-      ) as any;
+      );
     }
 
     const topSeries = await query

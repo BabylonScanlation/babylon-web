@@ -222,7 +222,7 @@ export const userActions = {
           .onConflictDoNothing();
       }
 
-      let existing: any;
+      let existing: typeof favorites.$inferSelect | undefined;
       if (type === 'series') {
         existing = await db
           .select()

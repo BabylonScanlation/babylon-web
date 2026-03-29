@@ -17,12 +17,13 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
       })
       .from(chapterViews)
       .innerJoin(chapters, eq(chapterViews.chapterId, chapters.id))
-      .innerJoin(series, eq(chapters.seriesId, series.id));
+      .innerJoin(series, eq(chapters.seriesId, series.id))
+      .$dynamic();
 
     if (days)
       typeQuery = typeQuery.where(
         sql`${chapterViews.viewedAt} >= datetime('now', '-' || ${days} || ' days')`
-      ) as any;
+      );
     const statsByType = await typeQuery.groupBy(series.type).orderBy(desc(sql`views`)).all();
 
     // 2. Stats by Demographic (Shonen, Seinen, etc.)
@@ -33,12 +34,13 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
       })
       .from(chapterViews)
       .innerJoin(chapters, eq(chapterViews.chapterId, chapters.id))
-      .innerJoin(series, eq(chapters.seriesId, series.id));
+      .innerJoin(series, eq(chapters.seriesId, series.id))
+      .$dynamic();
 
     if (days)
       demoQuery = demoQuery.where(
         sql`${chapterViews.viewedAt} >= datetime('now', '-' || ${days} || ' days')`
-      ) as any;
+      );
     const statsByDemo = await demoQuery.groupBy(series.demographic).orderBy(desc(sql`views`)).all();
 
     // 3. Stats by Genre (Requires more processing because it's a comma-separated string)
@@ -48,12 +50,13 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, request })
       })
       .from(chapterViews)
       .innerJoin(chapters, eq(chapterViews.chapterId, chapters.id))
-      .innerJoin(series, eq(chapters.seriesId, series.id));
+      .innerJoin(series, eq(chapters.seriesId, series.id))
+      .$dynamic();
 
     if (days)
       genreRawQuery = genreRawQuery.where(
         sql`${chapterViews.viewedAt} >= datetime('now', '-' || ${days} || ' days')`
-      ) as any;
+      );
     const rawGenres = await genreRawQuery.all();
 
     const genreCounts: Record<string, number> = {};

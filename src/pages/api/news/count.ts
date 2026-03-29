@@ -14,7 +14,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
     if (user) {
       // Prioridad 1: Si hay usuario, mandar lo que diga su perfil
       try {
-        let prefs = (user as any).preferences;
+        let prefs = user.preferences;
 
         // Si no vienen en el locals (JWT Fast Path), buscamos en DB
         if (!prefs) {

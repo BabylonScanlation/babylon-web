@@ -136,7 +136,17 @@ export const chapterActions = {
         }
       );
 
-      const tgResult: any = await tgResponse.json();
+      interface TelegramSendDocumentResponse {
+        ok: boolean;
+        description?: string;
+        result: {
+          document: {
+            file_id: string;
+          };
+        };
+      }
+
+      const tgResult = (await tgResponse.json()) as TelegramSendDocumentResponse;
       if (!tgResult.ok) {
         logError(tgResult, 'Error de Telegram API');
         throw new Error(`Telegram rechazó el archivo: ${tgResult.description}`);

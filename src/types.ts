@@ -1,5 +1,10 @@
 // src/types.ts
 
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import type * as schema from './db/schema';
+
+export type AppDatabase = DrizzleD1Database<typeof schema>;
+
 export interface Chapter {
   id: number;
   seriesId: number;
@@ -75,4 +80,24 @@ export interface Comment {
   userVote?: number; // 1, -1, 0
   isPinned?: boolean;
   isAdminComment?: boolean;
+}
+
+export interface JWTPayload {
+  uid: string;
+  email: string;
+  username: string;
+  displayName: string | null;
+  role: 'admin' | 'user';
+  isNsfw: boolean;
+  iat?: number;
+  exp?: number;
+}
+
+export interface SessionContext {
+  cookies: {
+    get: (key: string) => { value: string } | undefined;
+    set: (key: string, value: string, options?: any) => void;
+    delete: (key: string, options?: any) => void;
+  };
+  request: Request;
 }

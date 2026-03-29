@@ -1,6 +1,6 @@
 <script lang="ts">
 import { actions } from 'astro:actions';
-import { slide } from 'svelte/transition';
+import { slide as _slide } from 'svelte/transition';
 import { toast } from '../lib/stores.svelte';
 
 interface Props {
@@ -14,16 +14,16 @@ interface Props {
 
 let {
   commentId,
-  userEmail,
-  text,
+  userEmail: _userEmail,
+  text: _text,
   targetType,
-  seriesTitle = 'Contenido',
-  createdAt,
+  seriesTitle: _seriesTitle = 'Contenido',
+  createdAt: _createdAt,
 }: Props = $props();
 
 let deleteState = $state<'idle' | 'confirm' | 'deleting'>('idle');
 let deleteTimeout: ReturnType<typeof setTimeout> | undefined;
-let isRemoved = $state(false);
+let _isRemoved = $state(false);
 
 function getUsername(email: string) {
   return (email || 'usuario@anonimo').split('@')[0];
@@ -51,45 +51,46 @@ async function handleDelete() {
       });
 
       if (!error) {
-        isRemoved = true;
+        _isRemoved = true;
         toast.success('Comentario erradicado');
       } else {
         throw new Error(error.message);
       }
-    } catch (e: any) {
-      toast.error(`Error al eliminar: ${e.message}`);
+    } catch (e: unknown) {
+      const error = e as Error;
+      toast.error(`Error al eliminar: ${error.message}`);
       deleteState = 'idle';
     }
   }
 }
 </script>
 
-{#if !isRemoved}
-  <div class="moderation-item" transition:slide>
+{#if !_isRemoved}
+  <div class="moderation-item" transition:_slide>
     <div class="item-header">
       <div class="user-info">
         <div class="mini-avatar">
-          {getInitial(userEmail)}
+          {getInitial(_userEmail)}
         </div>
         <div class="user-details">
-          <span class="username">{getUsername(userEmail)}</span>
-          <span class="email">{userEmail}</span>
+          <span class="username">{getUsername(_userEmail)}</span>
+          <span class="email">{_userEmail}</span>
         </div>
       </div>
       <div class="meta-info">
         <span class="target-badge" class:chapter={targetType === 'chapter'}>
           {targetType === 'chapter' ? 'Capítulo' : 'Serie'}
         </span>
-        {#if createdAt}
-          <span class="date">{new Date(createdAt).toLocaleDateString()}</span>
+        {#if _createdAt}
+          <span class="date">{new Date(_createdAt).toLocaleDateString()}</span>
         {/if}
       </div>
     </div>
 
     <div class="item-content">
-      <p class="comment-text">{text}</p>
+      <p class="comment-text">{_text}</p>
       <div class="context-info">
-        En: <strong>{seriesTitle}</strong>
+        En: <strong>{_seriesTitle}</strong>
       </div>
     </div>
 

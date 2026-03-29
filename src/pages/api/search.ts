@@ -49,7 +49,7 @@ export const GET: APIRoute = async ({ url, locals, cookies }) => {
       .from(series);
 
     // Dynamic Conditions
-    const conditions: any[] = [eq(series.isHidden, false)];
+    const conditions: (import('drizzle-orm').SQL | undefined)[] = [eq(series.isHidden, false)];
 
     if (allowNsfw) {
       conditions.push(eq(series.isNsfw, true));
@@ -99,7 +99,7 @@ export const GET: APIRoute = async ({ url, locals, cookies }) => {
 
     const [totalResult] = (await (countBase as any)
       .where(and(...conditions.filter(Boolean)))
-      .all()) as any;
+      .all()) as { count: number }[];
 
     const total = totalResult?.count || 0;
 
@@ -126,10 +126,10 @@ export const GET: APIRoute = async ({ url, locals, cookies }) => {
     // Limit and Offset for pagination
     finalQuery = finalQuery.limit(pageSize).offset(offset);
 
-    const results = await finalQuery.all();
+    const results = await (finalQuery as any).all();
 
     // Map to frontend expected format
-    const formattedResults = results.map((s: any) => ({
+    const formattedResults = (results as any[]).map((s) => ({
       ...s,
       coverImageUrl: s.coverImageUrl,
     }));

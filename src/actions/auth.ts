@@ -7,8 +7,9 @@ import { getDB } from '../lib/db';
 import { verifyFirebaseToken } from '../lib/firebase/server';
 import { deleteSession, setAuthCookie } from '../lib/session';
 import { generateRandomUsername, generateUUID } from '../lib/utils';
+import type { AppDatabase, SessionContext } from '../types';
 
-async function determineUserRole(db: any, uid: string, superAdminUid: string | undefined) {
+async function determineUserRole(db: AppDatabase, uid: string, superAdminUid: string | undefined) {
   if (superAdminUid && uid === superAdminUid) {
     return 'admin';
   }
@@ -35,7 +36,7 @@ export const authActions = {
         }
       }
 
-      deleteSession(context as any);
+      deleteSession(context as unknown as SessionContext);
       return { success: true };
     },
   }),
@@ -168,8 +169,7 @@ export const authActions = {
       const db = getDB(env);
 
       // Orion: Acceso seguro a propiedades dinámicas del JWT
-      const payload = decodedToken as any;
-      const email = payload.email || `${uid}@firebase.auth`;
+      const email = (decodedToken.email as string) || `${uid}@firebase.auth`;
       const existingUser = await db.select().from(users).where(eq(users.id, uid)).get();
       const usernameToUse = existingUser?.username || generateRandomUsername();
 
@@ -217,12 +217,12 @@ export const authActions = {
 
       const jwtSecret = env.JWT_SECRET || 'fallback-secret-change-me-in-production';
       await setAuthCookie(
-        { cookies, request } as any,
+        { cookies, request } as unknown as SessionContext,
         {
           uid,
           email: email,
           username: usernameToUse,
-          displayName: existingUser?.displayName || (decodedToken as any).name || null,
+          displayName: existingUser?.displayName || (decodedToken.name as string) || null,
           role: role,
           isNsfw: existingUser?.isNsfw ?? false,
         },

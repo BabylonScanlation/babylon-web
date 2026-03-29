@@ -53,12 +53,12 @@ export const GET: APIRoute = async ({ locals }) => {
 
     // Evitamos duplicados convirtiendo a Set
     const r2Avatars = (avatarsList.objects || [])
-      .filter((obj: any) => obj.size > 0)
-      .map((obj: any) => `${publicUrl}/${obj.key}`);
+      .filter((obj) => obj.size > 0)
+      .map((obj) => `${publicUrl}/${obj.key}`);
 
     const r2Banners = (bannersList.objects || [])
-      .filter((obj: any) => obj.size > 0)
-      .map((obj: any) => `${publicUrl}/${obj.key}`);
+      .filter((obj) => obj.size > 0)
+      .map((obj) => `${publicUrl}/${obj.key}`);
 
     // Unimos la lista manual con lo que encuentre en R2 (evitando duplicados)
     const finalAvatars = [...new Set([...ManualAvatars, ...r2Avatars])];

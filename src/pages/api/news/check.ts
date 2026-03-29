@@ -6,17 +6,22 @@ import { getDB } from '../../../lib/db';
 export const GET: APIRoute = async ({ locals }) => {
   // Astra/Orion: Sistema de recuperación de DB ultra-robusto
   const runtime = locals.runtime || {};
-  const env = runtime.env || (process.env as any);
+  const env = runtime.env || (process.env as unknown as Record<string, string>);
 
   try {
     // Intentamos usar la DB ya instanciada por el middleware o crear una nueva
-    const drizzleDb = locals.db || getDB(env);
+    const drizzleDb = locals.db || getDB(env as any);
 
     if (!drizzleDb) {
       throw new Error('No se pudo inicializar la base de datos');
     }
 
-    let latestNews: any;
+    interface NewsCheckResult {
+      id: number;
+      createdAt: Date | string | number | null;
+    }
+
+    let latestNews: NewsCheckResult[] = [];
     let attempts = 0;
     const maxAttempts = 3;
 
@@ -42,18 +47,17 @@ export const GET: APIRoute = async ({ locals }) => {
     }
 
     // Convert Date objects to numeric timestamps safely
-    const formattedNews = (latestNews || []).map((n: any) => {
+    const formattedNews = latestNews.map((n) => {
       try {
         let ts = 0;
-        if (n.createdAt instanceof Date) {
-          ts = n.createdAt.getTime();
-        } else if (typeof n.createdAt === 'number') {
-          ts = n.createdAt;
-        } else if (typeof n.createdAt === 'string') {
+        const val = n.createdAt;
+        if (val instanceof Date) {
+          ts = val.getTime();
+        } else if (typeof val === 'number') {
+          ts = val;
+        } else if (typeof val === 'string') {
           // Orion: Normalizar formato SQLite (YYYY-MM-DD HH:MM:SS) a ISO para navegadores
-          const isoDate = n.createdAt.includes('T')
-            ? n.createdAt
-            : `${n.createdAt.replace(' ', 'T')}Z`;
+          const isoDate = val.includes('T') ? val : `${val.replace(' ', 'T')}Z`;
           ts = new Date(isoDate).getTime();
         }
         return { id: n.id, createdAt: Number.isNaN(ts) ? Date.now() : ts };

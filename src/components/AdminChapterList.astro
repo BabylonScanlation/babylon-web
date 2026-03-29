@@ -17,9 +17,9 @@ const _chapters = rawChapters.map((ch) => ({
   createdAt:
     ch.createdAt &&
     typeof ch.createdAt === 'object' &&
-    (ch.createdAt as any) instanceof Date &&
-    !isNaN((ch.createdAt as any).getTime())
-      ? (ch.createdAt as any).toISOString()
+    ch.createdAt instanceof Date &&
+    !Number.isNaN(ch.createdAt.getTime())
+      ? ch.createdAt.toISOString()
       : typeof ch.createdAt === 'string' || typeof ch.createdAt === 'number'
         ? ch.createdAt
         : new Date().toISOString(),
@@ -81,10 +81,10 @@ const _chapters = rawChapters.map((ch) => ({
     <div class="chapters-grid table-body">
       {
         _chapters.length > 0 ? (
-          _chapters.map((chapter: any) => (
+          _chapters.map((chapter) => (
             <AdminChapterListItem
               client:load
-              chapter={chapter}
+              chapter={chapter as any}
               seriesSlug={series.slug}
               r2PublicUrlAssets={_r2PublicUrlAssets}
             />
@@ -452,8 +452,8 @@ const _chapters = rawChapters.map((ch) => ({
       }
     }
 
-    handleGlobalDelete(e: any) {
-      const { id } = e.detail;
+    handleGlobalDelete(e: Event) {
+      const { id } = (e as CustomEvent).detail;
       if (this.selectedIds.has(id.toString())) {
         this.selectedIds.delete(id.toString());
         this.updateUI();
