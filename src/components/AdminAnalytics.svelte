@@ -1,13 +1,12 @@
 <script>
 import { Chart, registerables } from 'chart.js';
 import { onMount } from 'svelte';
-import { fade } from 'svelte/transition';
 
-let summary = $state({ totalViews: 0, totalUsers: 0, totalSeries: 0 });
-let engagement = $state({ topReactedSeries: [], topCommenters: [] });
+let _summary = $state({ totalViews: 0, totalUsers: 0, totalSeries: 0 });
+let _engagement = $state({ topReactedSeries: [], topCommenters: [] });
 let categories = $state({ byType: [], byDemographic: [] });
 let topSeriesData = $state([]);
-let loading = $state(true);
+let _loading = $state(true);
 let selectedRange = $state('7');
 
 let dailyChartCanvas;
@@ -27,13 +26,13 @@ const palette = {
 
 async function fetchData() {
   try {
-    loading = true;
+    _loading = true;
     const res = await fetch(`/api/admin/stats/all?range=${selectedRange}&refresh=true`);
     if (!res.ok) throw new Error('Error stats');
 
     const data = await res.json();
-    summary = data.summary;
-    engagement = data.engagement;
+    _summary = data.summary;
+    _engagement = data.engagement;
     categories = data.categories;
     topSeriesData = data.topSeries;
 
@@ -47,7 +46,7 @@ async function fetchData() {
   } catch (e) {
     console.error('Analytics error:', e);
   } finally {
-    loading = false;
+    _loading = false;
   }
 }
 
@@ -174,7 +173,7 @@ function renderTopSeriesChart(data) {
   });
 }
 
-function handleRangeChange(range) {
+function _handleRangeChange(range) {
   selectedRange = range;
   fetchData();
 }
@@ -195,17 +194,17 @@ onMount(() => {
 });
 </script>
 
-<div class="analytics-container" in:fade>
+<div class="analytics-container">
   <!-- Controls -->
   <div class="dashboard-header-sticky">
     <div class="range-selector-scroll">
       {#each ['7', '30', '90', 'all'] as r (r)}
-        <button class:active={selectedRange === r} onclick={() => handleRangeChange(r)}>
+        <button class:active={selectedRange === r} onclick={() => _handleRangeChange(r)}>
           {r === 'all' ? 'Histórico' : `${r}d`}
         </button>
       {/each}
     </div>
-    {#if loading} 
+    {#if _loading} 
         <div class="mini-loader">
             <div class="dot-ping"></div>
         </div> 
@@ -218,21 +217,21 @@ onMount(() => {
         <div class="card-icon">👁️</div>
         <div class="card-info">
             <span>Vistas</span>
-            <strong>{summary.totalViews.toLocaleString()}</strong>
+            <strong>{_summary.totalViews.toLocaleString()}</strong>
         </div>
     </div>
     <div class="bento-card highlight purple">
         <div class="card-icon">👥</div>
         <div class="card-info">
             <span>Comunidad</span>
-            <strong>{summary.totalUsers.toLocaleString()}</strong>
+            <strong>{_summary.totalUsers.toLocaleString()}</strong>
         </div>
     </div>
     <div class="bento-card highlight green">
         <div class="card-icon">📚</div>
         <div class="card-info">
             <span>Obras</span>
-            <strong>{summary.totalSeries.toLocaleString()}</strong>
+            <strong>{_summary.totalSeries.toLocaleString()}</strong>
         </div>
     </div>
   </div>
@@ -272,11 +271,11 @@ onMount(() => {
     <div class="bento-card table-card">
       <h3>Interacción (❤️)</h3>
       <div class="engagement-list">
-          {#each engagement.topReactedSeries as s (s.title)}
+          {#each _engagement.topReactedSeries as s (s.title)}
             <div class="engagement-item">
                 <span class="item-name">{s.title}</span>
                 <div class="item-bar-wrap">
-                    <div class="item-bar" style="width: {(s.interactionCount / (engagement.topReactedSeries[0]?.interactionCount || 1)) * 100}%"></div>
+                    <div class="item-bar" style="width: {(s.interactionCount / (_engagement.topReactedSeries[0]?.interactionCount || 1)) * 100}%"></div>
                 </div>
                 <span class="item-value">{s.interactionCount}</span>
             </div>
@@ -287,11 +286,11 @@ onMount(() => {
     <div class="bento-card table-card">
       <h3>Comunidad (💬)</h3>
       <div class="engagement-list">
-          {#each engagement.topCommenters as u (u.email)}
+          {#each _engagement.topCommenters as u (u.email)}
             <div class="engagement-item">
                 <span class="item-name">{u.username || u.displayName || u.email.split('@')[0]}</span>
                 <div class="item-bar-wrap">
-                    <div class="item-bar secondary" style="width: {(u.commentCount / (engagement.topCommenters[0]?.commentCount || 1)) * 100}%"></div>
+                    <div class="item-bar secondary" style="width: {(u.commentCount / (_engagement.topCommenters[0]?.commentCount || 1)) * 100}%"></div>
                 </div>
                 <span class="item-value">{u.commentCount}</span>
             </div>

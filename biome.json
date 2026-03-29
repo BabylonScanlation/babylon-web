@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "formatter": {
-    "enabled": false,
+    "enabled": true,
     "formatWithErrors": false,
     "indentStyle": "space",
     "indentWidth": 2,
@@ -14,7 +14,7 @@
     "lineWidth": 100
   },
   "linter": {
-    "enabled": false,
+    "enabled": true,
     "rules": {
       "recommended": true,
       "a11y": {
@@ -26,14 +26,15 @@
         "noForEach": "off"
       },
       "correctness": {
-        "noUnusedVariables": "warn"
+        "noUnusedVariables": "warn",
+        "noUnknownPseudoClass": "off"
       },
       "performance": {
         "noDelete": "warn"
       },
       "style": {
         "useImportType": "warn",
-        "useNamingConvention": "warn",
+        "useNamingConvention": "off",
         "useTemplate": "warn"
       },
       "suspicious": {

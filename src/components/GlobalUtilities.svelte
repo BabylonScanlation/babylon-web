@@ -1,48 +1,47 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { authModal, toast } from '../lib/stores.svelte';
+import { onMount } from 'svelte';
+import { authModal, toast } from '../lib/stores.svelte';
 
-  
-  let { isVerifyPage = false, shouldShowAgeGate = false } = $props();
+let { isVerifyPage = false, shouldShowAgeGate = false } = $props();
 
-  let AuthModal = $state<any>(null);
-  let ToastContainer = $state<any>(null);
-  let AppBanner = $state<any>(null);
-  let AgeGate = $state<any>(null);
+let AuthModal = $state<any>(null);
+let ToastContainer = $state<any>(null);
+let AppBanner = $state<any>(null);
+let AgeGate = $state<any>(null);
 
-  // Orion: Solo cargar componentes si hay una acción que los requiera
-  $effect(() => {
-    if (authModal.isOpen && !AuthModal) {
-      import('./AuthModal.svelte').then(m => AuthModal = m.default);
+// Orion: Solo cargar componentes si hay una acción que los requiera
+$effect(() => {
+  if (authModal.isOpen && !AuthModal) {
+    import('./AuthModal.svelte').then((m) => (AuthModal = m.default));
+  }
+});
+
+$effect(() => {
+  if (toast.messages.length > 0 && !ToastContainer) {
+    import('./ToastContainer.svelte').then((m) => (ToastContainer = m.default));
+  }
+});
+
+onMount(() => {
+  // Orion: Procesar evento pendiente tras hidratación bajo demanda
+  const pending = (window as any)._babylonPendingEvent;
+  if (pending) {
+    if (pending.type === 'open-auth-modal') {
+      authModal.open(pending.detail?.view || 'login', pending.detail?.message || '');
     }
-  });
+    (window as any)._babylonPendingEvent = null;
+  }
 
-  $effect(() => {
-    if (toast.messages.length > 0 && !ToastContainer) {
-      import('./ToastContainer.svelte').then(m => ToastContainer = m.default);
+  // Orion: Retrasar componentes secundarios para no inflar las peticiones iniciales
+  setTimeout(() => {
+    if (!isVerifyPage && !localStorage.getItem('babylon_app_banner_closed')) {
+      import('./AppBanner.svelte').then((m) => (AppBanner = m.default));
     }
-  });
-
-  onMount(() => {
-    // Orion: Procesar evento pendiente tras hidratación bajo demanda
-    const pending = (window as any)._babylonPendingEvent;
-    if (pending) {
-      if (pending.type === 'open-auth-modal') {
-        authModal.open(pending.detail?.view || 'login', pending.detail?.message || '');
-      }
-      (window as any)._babylonPendingEvent = null;
+    if (shouldShowAgeGate) {
+      import('./AgeGate.svelte').then((m) => (AgeGate = m.default));
     }
-
-    // Orion: Retrasar componentes secundarios para no inflar las peticiones iniciales
-    setTimeout(() => {
-      if (!isVerifyPage && !localStorage.getItem('babylon_app_banner_closed')) {
-        import('./AppBanner.svelte').then(m => AppBanner = m.default);
-      }
-      if (shouldShowAgeGate) {
-        import('./AgeGate.svelte').then(m => AgeGate = m.default);
-      }
-    }, 2000);
-  });
+  }, 2000);
+});
 </script>
 
 {#if ToastContainer}

@@ -7,27 +7,27 @@ interface Props {
   seriesTitle: string;
 }
 
-let { seriesId, seriesTitle }: Props = $props();
+let { seriesId, seriesTitle: _seriesTitle }: Props = $props();
 
 let fileInput: HTMLInputElement | undefined = $state();
-let isUploading = $state(false);
+let _isUploading = $state(false);
 let selectedFiles = $state<FileList | null>(null);
-let progressText = $state('');
+let _progressText = $state('');
 
-function handleFileChange(e: Event) {
+function _handleFileChange(e: Event) {
   const target = e.target as HTMLInputElement;
   if (target.files && target.files.length > 0) {
     selectedFiles = target.files;
   }
 }
 
-async function uploadChapters() {
+async function _uploadChapters() {
   if (!selectedFiles || selectedFiles.length === 0) {
     toast.error('Selecciona al menos un archivo');
     return;
   }
 
-  isUploading = true;
+  _isUploading = true;
   let successCount = 0;
   let errorCount = 0;
 
@@ -37,7 +37,7 @@ async function uploadChapters() {
     const file = selectedFiles[i];
     if (!file) continue;
 
-    progressText = `Subiendo ${i + 1}/${total}`;
+    _progressText = `Subiendo ${i + 1}/${total}`;
 
     if (!file.name.endsWith('.zip')) {
       toast.error(`Ignorado ${file.name}: No es ZIP`);
@@ -64,8 +64,8 @@ async function uploadChapters() {
     }
   }
 
-  isUploading = false;
-  progressText = '';
+  _isUploading = false;
+  _progressText = '';
 
   if (successCount > 0) {
     toast.success(`${successCount} capítulos subidos correctamente.`);
@@ -92,10 +92,10 @@ async function uploadChapters() {
       type="file" 
       multiple 
       accept=".zip" 
-      onchange={handleFileChange}
+      onchange={_handleFileChange}
       bind:this={fileInput}
       id="file-upload"
-      disabled={isUploading}
+      disabled={_isUploading}
     />
     <label for="file-upload">
       <div class="upload-icon">
@@ -109,7 +109,7 @@ async function uploadChapters() {
     </label>
   </div>
 
-  {#if selectedFiles && !isUploading}
+  {#if selectedFiles && !_isUploading}
     <div class="file-list">
       {#each Array.from(selectedFiles) as file}
         <div class="file-item">
@@ -121,20 +121,20 @@ async function uploadChapters() {
   {/if}
 
   <div class="actions">
-    {#if isUploading}
+    {#if _isUploading}
       <div class="progress-container">
         <div class="spinner">
           <svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle></svg>
         </div>
-        <span class="progress-label">{progressText}</span>
+        <span class="progress-label">{_progressText}</span>
       </div>
     {:else}
       <button 
           class="action-btn full-width" 
-          onclick={uploadChapters}
-          disabled={isUploading || !selectedFiles}
+          onclick={_uploadChapters}
+          disabled={_isUploading || !selectedFiles}
       >
-        Subir a {seriesTitle}
+        Subir a {_seriesTitle}
       </button>
     {/if}
   </div>

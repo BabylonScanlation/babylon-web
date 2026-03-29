@@ -20,12 +20,7 @@ if (!newsItem) {
 }
 
 // Cargar comentarios iniciales
-const initialComments = (await getCommentsForTarget(
-  drizzleDb,
-  'news',
-  id,
-  user?.uid
-)) as Comment[];
+const initialComments = (await getCommentsForTarget(drizzleDb, 'news', id, user?.uid)) as Comment[];
 ---
 
 <Layout title={`${newsItem.title} - Noticias - ${siteConfig.shortName}`}>

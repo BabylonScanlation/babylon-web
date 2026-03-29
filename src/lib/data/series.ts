@@ -375,9 +375,9 @@ export async function getSeriesWithRecentChapters(
         lastUpdate: row.chapterCreatedAt, // Se actualizará con la fecha más reciente encontrada
       });
     }
-    
+
     const entry = seriesMap.get(row.slug);
-    
+
     // Actualizamos la fecha de la serie si este capítulo (aunque tenga número menor) es más nuevo en tiempo
     const rowTime = row.chapterCreatedAt ? new Date(row.chapterCreatedAt).getTime() : 0;
     const entryTime = entry.lastUpdate ? new Date(entry.lastUpdate).getTime() : 0;

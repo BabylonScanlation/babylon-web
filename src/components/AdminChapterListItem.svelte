@@ -24,15 +24,15 @@ $effect(() => {
   if (!isEditing) title = chapter.title || '';
 });
 
-let isLoading = $state(false);
+let _isLoading = $state(false);
 let isEditing = $state(false);
 let isSelected = $state(false);
 let deleteState = $state<'idle' | 'confirm' | 'deleting'>('idle');
-let message = $state({ type: '', text: '' });
+let _message = $state({ type: '', text: '' });
 
 let deleteTimeout: ReturnType<typeof setTimeout> | undefined;
 
-// Acción para enfoque automático sin violar a11y rules de linting
+// biome-ignore lint/correctness/noUnusedVariables: Usado en el template como acción use:autoFocus
 function autoFocus(node: HTMLInputElement) {
   node.focus();
 }
@@ -51,9 +51,9 @@ onMount(() => {
 });
 
 function showMessage(type: string, text: string) {
-  message = { type, text };
+  _message = { type, text };
   setTimeout(() => {
-    message = { type: '', text: '' };
+    _message = { type: '', text: '' };
   }, 3000);
 }
 
@@ -69,7 +69,7 @@ async function saveTitle() {
     isEditing = false;
     return;
   }
-  isLoading = true;
+  _isLoading = true;
 
   try {
     const { error } = await actions.chapters.update({
@@ -85,7 +85,7 @@ async function saveTitle() {
   } catch {
     showMessage('error', 'Error');
   } finally {
-    isLoading = false;
+    _isLoading = false;
   }
 }
 
@@ -101,7 +101,7 @@ async function handleDelete() {
 
   if (deleteState === 'confirm') {
     deleteState = 'deleting';
-    isLoading = true;
+    _isLoading = true;
     clearTimeout(deleteTimeout);
 
     try {
@@ -111,7 +111,7 @@ async function handleDelete() {
       window.dispatchEvent(new CustomEvent('chapterDeleted', { detail: { id: chapter.id } }));
     } catch {
       showMessage('error', 'Error');
-      isLoading = false;
+      _isLoading = false;
       deleteState = 'idle';
     }
   }
@@ -122,7 +122,7 @@ async function handleThumbnailUpload(event: Event) {
   const file = input.files?.[0];
   if (!file) return;
 
-  isLoading = true;
+  _isLoading = true;
   const formData = new FormData();
   formData.append('chapterId', chapter.id.toString());
   formData.append('thumbnailImage', file);
@@ -137,7 +137,7 @@ async function handleThumbnailUpload(event: Event) {
   } catch {
     showMessage('error', 'Error Img');
   } finally {
-    isLoading = false;
+    _isLoading = false;
     input.value = '';
   }
 }
@@ -163,7 +163,7 @@ const finalUrl = $derived.by(() => {
 });
 </script>
 
-<div class="chapter-card" class:selected={isSelected} class:loading={isLoading} data-chapter-id={chapter.id}>
+<div class="chapter-card" class:selected={isSelected} class:loading={_isLoading} data-chapter-id={chapter.id}>
     <div class="card-selection">
         <input 
             type="checkbox" 
@@ -230,9 +230,9 @@ const finalUrl = $derived.by(() => {
         </button>
     </div>
 
-    {#if message.text}
-        <div class="status-toast" class:error={message.type === 'error'}>
-            {message.text}
+    {#if _message.text}
+        <div class="status-toast" class:error={_message.type === 'error'}>
+            {_message.text}
         </div>
     {/if}
 </div>

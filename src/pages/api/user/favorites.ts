@@ -71,7 +71,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Check if favorite exists
-    let existing;
+    let existing: any;
     if (type === 'series') {
       existing = await db
         .select()

@@ -12,13 +12,17 @@ interface Props {
 const { targetType, targetId, comments: initialComments = [], user = null } = Astro.props;
 
 // Orion: Saneamos las fechas para evitar el bug de "Invalid time value" de Astro
-const safeComments = initialComments.map(c => ({
+const safeComments = initialComments.map((c) => ({
   ...c,
-  createdAt: (c.createdAt && typeof c.createdAt === 'object' && (c.createdAt as any) instanceof Date && !isNaN((c.createdAt as any).getTime())) 
-    ? (c.createdAt as any).toISOString() 
-    : (typeof c.createdAt === 'string' || typeof c.createdAt === 'number') 
-      ? c.createdAt 
-      : new Date().toISOString()
+  createdAt:
+    c.createdAt &&
+    typeof c.createdAt === 'object' &&
+    (c.createdAt as any) instanceof Date &&
+    !isNaN((c.createdAt as any).getTime())
+      ? (c.createdAt as any).toISOString()
+      : typeof c.createdAt === 'string' || typeof c.createdAt === 'number'
+        ? c.createdAt
+        : new Date().toISOString(),
 }));
 ---
 

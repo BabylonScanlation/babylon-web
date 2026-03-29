@@ -1,5 +1,6 @@
 ---
 import type { Series } from '../types';
+// biome-ignore lint/correctness/noUnusedImports: False positive in Astro template
 import AdminChapterListItem from './AdminChapterListItem.svelte';
 
 interface Props {
@@ -7,17 +8,21 @@ interface Props {
   r2PublicUrlAssets: string;
 }
 
-const { series, r2PublicUrlAssets } = Astro.props;
+const { series, r2PublicUrlAssets: _r2PublicUrlAssets } = Astro.props;
 const rawChapters = series.chapters || [];
 
 // Orion: Saneamos los capítulos para evitar el bug de serialización de Astro
-const chapters = rawChapters.map(ch => ({
+const _chapters = rawChapters.map((ch) => ({
   ...ch,
-  createdAt: (ch.createdAt && typeof ch.createdAt === 'object' && (ch.createdAt as any) instanceof Date && !isNaN((ch.createdAt as any).getTime()))
-    ? (ch.createdAt as any).toISOString()
-    : (typeof ch.createdAt === 'string' || typeof ch.createdAt === 'number')
-      ? ch.createdAt
-      : new Date().toISOString()
+  createdAt:
+    ch.createdAt &&
+    typeof ch.createdAt === 'object' &&
+    (ch.createdAt as any) instanceof Date &&
+    !isNaN((ch.createdAt as any).getTime())
+      ? (ch.createdAt as any).toISOString()
+      : typeof ch.createdAt === 'string' || typeof ch.createdAt === 'number'
+        ? ch.createdAt
+        : new Date().toISOString(),
 }));
 ---
 
@@ -25,7 +30,7 @@ const chapters = rawChapters.map(ch => ({
   <div class="manager-header">
     <div class="header-title">
       <h3>Capítulos</h3>
-      <span class="counter-badge chapter-count">{chapters.length}</span>
+      <span class="counter-badge chapter-count">{_chapters.length}</span>
     </div>
 
     <!-- Acciones en Lote (Ocultas por defecto) -->
@@ -75,13 +80,13 @@ const chapters = rawChapters.map(ch => ({
   <div class="chapters-scroll-area">
     <div class="chapters-grid table-body">
       {
-        chapters.length > 0 ? (
-          chapters.map((chapter: any) => (
+        _chapters.length > 0 ? (
+          _chapters.map((chapter: any) => (
             <AdminChapterListItem
               client:load
               chapter={chapter}
               seriesSlug={series.slug}
-              r2PublicUrlAssets={r2PublicUrlAssets}
+              r2PublicUrlAssets={_r2PublicUrlAssets}
             />
           ))
         ) : (
@@ -337,10 +342,11 @@ const chapters = rawChapters.map(ch => ({
       this.handleGlobalDelete = this.handleGlobalDelete.bind(this);
       this.handleBulkDelete = this.handleBulkDelete.bind(this);
       this.handleFillChapters = this.handleFillChapters.bind(this);
+      this.handleSelectionChange = this.handleSelectionChange.bind(this);
     }
 
     connectedCallback() {
-      this.addEventListener('change', this.handleChange);
+      this.selectAllCb?.addEventListener('change', this.handleChange);
       this.bulkDeleteBtn?.addEventListener('click', this.handleBulkDelete);
       this.fillChaptersBtn?.addEventListener('click', () =>
         this.handleFillChapters()
@@ -351,15 +357,27 @@ const chapters = rawChapters.map(ch => ({
       });
 
       window.addEventListener('chapterDeleted', this.handleGlobalDelete);
+      window.addEventListener('chapterSelectionChanged', this.handleSelectionChange as EventListener);
     }
 
     disconnectedCallback() {
-      this.removeEventListener('change', this.handleChange);
+      this.selectAllCb?.removeEventListener('change', this.handleChange);
       this.bulkDeleteBtn?.removeEventListener('click', this.handleBulkDelete);
       this.fillChaptersBtn?.removeEventListener('click', () =>
         this.handleFillChapters()
       );
       window.removeEventListener('chapterDeleted', this.handleGlobalDelete);
+      window.removeEventListener('chapterSelectionChanged', this.handleSelectionChange as EventListener);
+    }
+
+    handleSelectionChange(e: CustomEvent) {
+      const { id, isSelected } = e.detail;
+      if (isSelected) {
+        this.selectedIds.add(id.toString());
+      } else {
+        this.selectedIds.delete(id.toString());
+      }
+      this.updateUI();
     }
 
     async handleFillChapters() {
@@ -418,35 +436,8 @@ const chapters = rawChapters.map(ch => ({
 
       if (target.matches('.select-all-checkbox')) {
         const isChecked = target.checked;
-        const checkboxes = this.querySelectorAll('.chapter-checkbox');
-
-        checkboxes.forEach((cb: any) => {
-          if (cb.checked !== isChecked) {
-            cb.checked = isChecked;
-            cb.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-        });
-
-        this.recalculateSelection();
-        return;
+        window.dispatchEvent(new CustomEvent('toggleAllChapters', { detail: { isChecked } }));
       }
-
-      if (target.matches('.chapter-checkbox')) {
-        this.recalculateSelection();
-      }
-    }
-
-    recalculateSelection() {
-      this.selectedIds.clear();
-      const checkedBoxes = this.querySelectorAll('.chapter-checkbox:checked');
-
-      checkedBoxes.forEach((cb: any) => {
-        const row = cb.closest('.chapter-card');
-        const id = row?.dataset.chapterId;
-        if (id) this.selectedIds.add(id);
-      });
-
-      this.updateUI();
     }
 
     updateUI() {

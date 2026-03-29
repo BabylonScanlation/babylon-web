@@ -4,8 +4,11 @@ import { logError } from '../logError';
 
 const firebaseConfig = {
   apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
-  authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN || 
-              (import.meta.env.PUBLIC_FIREBASE_PROJECT_ID ? `${import.meta.env.PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com` : ''),
+  authDomain:
+    import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN ||
+    (import.meta.env.PUBLIC_FIREBASE_PROJECT_ID
+      ? `${import.meta.env.PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com`
+      : ''),
   projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID,

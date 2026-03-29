@@ -16,7 +16,7 @@ export const GET: APIRoute = async ({ locals }) => {
       throw new Error('No se pudo inicializar la base de datos');
     }
 
-    let latestNews;
+    let latestNews: any;
     let attempts = 0;
     const maxAttempts = 3;
 

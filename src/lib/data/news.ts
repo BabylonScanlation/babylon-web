@@ -95,7 +95,10 @@ export async function getNewsList(
   }
 }
 
-export async function getLatestNewsId(db: DrizzleD1Database<typeof schema>, allowNsfw: boolean = false) {
+export async function getLatestNewsId(
+  db: DrizzleD1Database<typeof schema>,
+  allowNsfw: boolean = false
+) {
   try {
     const conditions: any[] = [eq(news.status, 'published')];
     if (allowNsfw) {

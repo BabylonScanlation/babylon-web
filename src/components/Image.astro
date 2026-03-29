@@ -14,13 +14,16 @@ interface Props {
   forceLazy?: boolean;
 }
 
-const { 
-  src, alt, class: className = '', 
-  loading = 'lazy', 
-  fetchpriority = 'auto', 
-  width = 300, height = 450, 
+const {
+  src,
+  alt,
+  class: className = '',
+  loading = 'lazy',
+  fetchpriority = 'auto',
+  width = 300,
+  height = 450,
   style = '',
-  forceLazy = false
+  forceLazy = false,
 } = Astro.props;
 
 const { runtime } = Astro.locals;

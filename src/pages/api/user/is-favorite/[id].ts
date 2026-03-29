@@ -34,8 +34,8 @@ export const GET: APIRoute = async ({ params, locals }) => {
     return new Response(JSON.stringify({ isFavorite: !!existing }), {
       status: 200,
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+      },
     });
   } catch (error) {
     console.error('Error checking favorite status:', error);

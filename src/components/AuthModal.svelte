@@ -22,7 +22,7 @@ async function getFullAuthStack() {
   const [{ getClientAuth }, firebaseAuth, { actions }] = await Promise.all([
     import('../lib/firebase/client'),
     import('firebase/auth'),
-    import('astro:actions')
+    import('astro:actions'),
   ]);
   const auth = await getClientAuth();
   return { auth, actions, ...firebaseAuth };
@@ -116,7 +116,8 @@ async function handleLinkAccount() {
   }
 
   try {
-    const { auth, actions, signInWithEmailAndPassword, linkWithCredential } = await getFullAuthStack();
+    const { auth, actions, signInWithEmailAndPassword, linkWithCredential } =
+      await getFullAuthStack();
     const userCredential = await signInWithEmailAndPassword(auth, email, linkPassword);
     await linkWithCredential(userCredential.user, pendingCredential);
     const idToken = await userCredential.user.getIdToken();

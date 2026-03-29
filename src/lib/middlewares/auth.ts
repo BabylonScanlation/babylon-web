@@ -6,12 +6,12 @@ import { getDB } from '../db-client';
 import { logError } from '../logError';
 import { deleteSession, setAuthCookie, verifyToken } from '../session';
 
-export function clearSessionCache(sessionId?: string) {
+export function clearSessionCache(_sessionId?: string) {
   // Legacy stub: session cache removed to prevent memory leaks in isolates
 }
 
 export async function authFlow(context: APIContext, next: MiddlewareNext) {
-  const { cookies, locals, request, url } = context;
+  const { cookies, locals, request: _request, url } = context;
   const currentPath = url.pathname;
   const runtime = locals.runtime;
 
@@ -59,16 +59,16 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
         .innerJoin(users, eq(sessions.userId, users.id))
         .leftJoin(userRoles, eq(sessions.userId, userRoles.userId))
         .where(
-          and(
-            eq(sessions.id, sessionId),
-            gt(sessions.expiresAt, Math.floor(Date.now() / 1000))
-          )
+          and(eq(sessions.id, sessionId), gt(sessions.expiresAt, Math.floor(Date.now() / 1000)))
         )
         .get();
 
       if (result?.session) {
         const uid = result.session.userId;
-        const role = (runtime.env.SUPER_ADMIN_UID && uid === runtime.env.SUPER_ADMIN_UID) ? 'admin' : (result.role || 'user');
+        const role =
+          runtime.env.SUPER_ADMIN_UID && uid === runtime.env.SUPER_ADMIN_UID
+            ? 'admin'
+            : result.role || 'user';
         const userObj = {
           uid,
           email: result.user.email,
@@ -83,14 +83,18 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
 
         // Auto-refresh: Emitimos un nuevo JWT válido por 15 mins ya que la sesión D1 es válida
         if (runtime?.env?.JWT_SECRET) {
-          await setAuthCookie(context, {
-            uid: userObj.uid,
-            email: userObj.email,
-            username: userObj.username || null,
-            displayName: userObj.displayName || null,
-            role: role,
-            isNsfw: userObj.isNsfw
-          }, runtime.env.JWT_SECRET);
+          await setAuthCookie(
+            context,
+            {
+              uid: userObj.uid,
+              email: userObj.email,
+              username: userObj.username || null,
+              displayName: userObj.displayName || null,
+              role: role,
+              isNsfw: userObj.isNsfw,
+            },
+            runtime.env.JWT_SECRET
+          );
         }
       } else {
         // Sesión no válida en D1 (ej. expirada o usuario baneado/sesión borrada)

@@ -1,5 +1,5 @@
-import type { APIContext } from 'astro';
 import { defineMiddleware } from 'astro:middleware';
+import type { APIContext } from 'astro';
 import { authFlow } from './lib/middlewares/auth';
 import { shield } from './lib/middlewares/shield';
 

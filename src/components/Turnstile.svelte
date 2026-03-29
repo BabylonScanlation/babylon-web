@@ -20,7 +20,7 @@ onMount(() => {
       setTimeout(checkTurnstile, 50);
     }
   };
-  
+
   checkTurnstile();
 });
 

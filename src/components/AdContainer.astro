@@ -8,13 +8,13 @@ interface Props {
   className?: string;
 }
 
-const { type, id, className = '' } = Astro.props;
+const { type, id, className: _className = '' } = Astro.props;
 const { user } = Astro.locals;
 
 const adKeys = siteConfig.ads.adsterra;
-const adKey = adKeys[type as keyof typeof adKeys] || adKeys.banner;
+const _adKey = adKeys[type as keyof typeof adKeys] || adKeys.banner;
 
-const dimensions = {
+const _dimensions = {
   banner: { w: 728, h: 90 },
   bannerLarge: { w: 728, h: 90 },
   bannerSmall: { w: 468, h: 60 },
@@ -22,24 +22,24 @@ const dimensions = {
   native: { w: 0, h: 0 },
 };
 
-const shouldShowAds = siteConfig.ads.enabled && !user?.isAdmin;
+const _shouldShowAds = siteConfig.ads.enabled && !user?.isAdmin;
 
 // Generar un ID único para esta instancia de anuncio
-const instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}`;
+const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}`;
 ---
 
-{shouldShowAds && (
+{_shouldShowAds && (
   <div 
-    class:list={["ad-container-root", type, className]} 
-    id={instanceId}
+    class:list={["ad-container-root", type, _className]} 
+    id={_instanceId}
     data-ad-type={type}
     data-ad-keys={JSON.stringify(adKeys)}
-    data-ad-dims={JSON.stringify(dimensions)}
-    data-ad-initial={adKey}
+    data-ad-dims={JSON.stringify(_dimensions)}
+    data-ad-initial={_adKey}
   >
     <div class="ad-inner-wrapper">
-      <div class="ad-content-slot" id={`slot-${instanceId}`}>
-        <div id={`container-${instanceId}`}></div>
+      <div class="ad-content-slot" id={`slot-${_instanceId}`}>
+        <div id={`container-${_instanceId}`}></div>
       </div>
       
       <div class="ad-info-overlay">
@@ -48,5 +48,3 @@ const instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}`
     </div>
   </div>
 )}
-
-

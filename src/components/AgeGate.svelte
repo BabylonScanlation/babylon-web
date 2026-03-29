@@ -10,8 +10,8 @@ let captchaToken = $state('');
 
 let { isVerificationPage = false } = $props();
 
-const BRAND_NAME = "Babylon";
-const ACCENT_COLOR = "#00bfff";
+const BRAND_NAME = 'Babylon';
+const ACCENT_COLOR = '#00bfff';
 
 onMount(() => {
   if (isVerificationPage) {
@@ -45,7 +45,7 @@ async function enterSite() {
     try {
       const response = await fetch('/_actions/auth.verifyAge', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       if (response.ok) {

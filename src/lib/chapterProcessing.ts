@@ -39,7 +39,7 @@ export async function processAndCacheChapter(
     console.log(`[PROCESO] Iniciando Lightspeed para capítulo ID: ${chapterId}`);
 
     const fileInfoUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`;
-    let rawFileInfo;
+    let rawFileInfo: any;
     for (let i = 0; i < 3; i++) {
       try {
         const response = await fetch(fileInfoUrl);

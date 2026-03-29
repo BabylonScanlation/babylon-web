@@ -23,7 +23,7 @@ export async function getAdminSeriesWithChapters(
   includeComments: boolean = false,
   searchQuery?: string
 ) {
-  let whereClause;
+  let whereClause: any;
   if (searchQuery && searchQuery.trim() !== '') {
     whereClause = or(
       sql`${series.title} LIKE ${`%${searchQuery}%`}`,
