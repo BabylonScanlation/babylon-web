@@ -93,6 +93,14 @@ export interface JWTPayload {
   exp?: number;
 }
 
+export interface FirebaseDecodedToken {
+  sub: string;
+  email?: string;
+  name?: string;
+  picture?: string;
+  [key: string]: unknown;
+}
+
 export interface SessionContext {
   cookies: {
     get: (key: string) => { value: string } | undefined;
@@ -100,4 +108,10 @@ export interface SessionContext {
     delete: (key: string, options?: any) => void;
   };
   request: Request;
+  locals: {
+    runtime: {
+      env: any;
+    };
+    [key: string]: any;
+  };
 }

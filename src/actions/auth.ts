@@ -7,7 +7,7 @@ import { getDB } from '../lib/db';
 import { verifyFirebaseToken } from '../lib/firebase/server';
 import { deleteSession, setAuthCookie } from '../lib/session';
 import { generateRandomUsername, generateUUID } from '../lib/utils';
-import type { AppDatabase, SessionContext } from '../types';
+import type { AppDatabase, FirebaseDecodedToken, SessionContext } from '../types';
 
 async function determineUserRole(db: AppDatabase, uid: string, superAdminUid: string | undefined) {
   if (superAdminUid && uid === superAdminUid) {
@@ -31,8 +31,8 @@ export const authActions = {
       if (sessionId && db) {
         try {
           await db.delete(sessions).where(eq(sessions.id, sessionId)).run();
-        } catch (e) {
-          console.error('Error deleting session from DB on logout:', e);
+        } catch (e: unknown) {
+          console.error('Error deleting session from DB on logout:', (e as Error).message);
         }
       }
 
@@ -160,7 +160,10 @@ export const authActions = {
       const { env } = context.locals.runtime;
       const { cookies, request } = context;
 
-      const decodedToken = await verifyFirebaseToken(idToken, env);
+      const decodedToken = (await verifyFirebaseToken(
+        idToken,
+        env
+      )) as unknown as FirebaseDecodedToken;
       if (!decodedToken?.sub) {
         throw new Error('Token de Firebase inválido');
       }
@@ -169,7 +172,7 @@ export const authActions = {
       const db = getDB(env);
 
       // Orion: Acceso seguro a propiedades dinámicas del JWT
-      const email = (decodedToken.email as string) || `${uid}@firebase.auth`;
+      const email = decodedToken.email || `${uid}@firebase.auth`;
       const existingUser = await db.select().from(users).where(eq(users.id, uid)).get();
       const usernameToUse = existingUser?.username || generateRandomUsername();
 
@@ -217,12 +220,12 @@ export const authActions = {
 
       const jwtSecret = env.JWT_SECRET || 'fallback-secret-change-me-in-production';
       await setAuthCookie(
-        { cookies, request } as unknown as SessionContext,
+        context as unknown as SessionContext,
         {
           uid,
           email: email,
           username: usernameToUse,
-          displayName: existingUser?.displayName || (decodedToken.name as string) || null,
+          displayName: existingUser?.displayName || decodedToken.name || null,
           role: role,
           isNsfw: existingUser?.isNsfw ?? false,
         },

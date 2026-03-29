@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { news } from '../../../db/schema';
 import { getDB } from '../../../lib/db';
 
@@ -27,16 +27,16 @@ export const GET: APIRoute = async ({ locals }) => {
 
     while (attempts < maxAttempts) {
       try {
-        latestNews = await drizzleDb
+        latestNews = (await drizzleDb
           .select({
             id: news.id,
             createdAt: news.createdAt,
           })
           .from(news)
           .where(eq(news.status, 'published'))
-          .orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`))
-          .limit(10)
-          .all();
+          .orderBy(desc(news.createdAt))
+          .limit(5)
+          .all()) as unknown as NewsCheckResult[];
         break;
       } catch (dbErr) {
         attempts++;

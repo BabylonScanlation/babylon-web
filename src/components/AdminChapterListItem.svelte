@@ -1,14 +1,7 @@
 <script lang="ts">
 import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
-
-interface Chapter {
-  id: number;
-  title: string | null;
-  chapterNumber: string | number; // Orion: Migrado a camelCase
-  urlPortada: string | null;
-  messageThreadId: number | null;
-}
+import type { Chapter } from '../types';
 
 interface Props {
   chapter: Chapter;
@@ -17,12 +10,6 @@ interface Props {
 }
 
 let { chapter, seriesSlug, r2PublicUrlAssets }: Props = $props();
-
-// Orion: Evitamos la advertencia de Svelte 5 sobre capturar valor inicial usando un cierre
-let title = $state((() => chapter.title || '')());
-$effect(() => {
-  if (!isEditing) title = chapter.title || '';
-});
 
 let _isLoading = $state(false);
 let isEditing = $state(false);
@@ -64,7 +51,7 @@ function dispatchSelection() {
   window.dispatchEvent(event);
 }
 
-async function saveTitle() {
+async function _saveTitle() {
   if (title === chapter.title) {
     isEditing = false;
     return;
@@ -89,7 +76,7 @@ async function saveTitle() {
   }
 }
 
-async function handleDelete() {
+async function _handleDelete() {
   if (deleteState === 'idle') {
     deleteState = 'confirm';
     clearTimeout(deleteTimeout);
@@ -117,7 +104,7 @@ async function handleDelete() {
   }
 }
 
-async function handleThumbnailUpload(event: Event) {
+async function _handleThumbnailUpload(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
@@ -142,91 +129,93 @@ async function handleThumbnailUpload(event: Event) {
   }
 }
 
-function openCropper() {
+function _openCropper() {
   window.dispatchEvent(
     new CustomEvent('openCropperModal', {
       detail: {
         chapterId: chapter.id,
         seriesSlug: seriesSlug,
-        chapterNumber: chapter.chapterNumber,
+        currentImageUrl: chapter.urlPortada || '',
       },
     })
   );
 }
 
-const finalUrl = $derived.by(() => {
+let title = $state(chapter.title || '');
+
+// Sincronizar título si el objeto chapter cambia desde el padre
+$effect(() => {
+  title = chapter.title || '';
+});
+
+const _finalUrl = $derived.by(() => {
   if (!chapter.urlPortada)
     return `${r2PublicUrlAssets}/covers/placeholder-chapter.jpg`.replace(/([^:]\/)\/+/g, '$1');
-  if (chapter.urlPortada.startsWith('http') || chapter.urlPortada.startsWith('/'))
-    return chapter.urlPortada;
+
+  if (chapter.urlPortada.startsWith('http')) return chapter.urlPortada;
+
   return `${r2PublicUrlAssets}/${chapter.urlPortada}`.replace(/([^:]\/)\/+/g, '$1');
 });
 </script>
 
 <div class="chapter-card" class:selected={isSelected} class:loading={_isLoading} data-chapter-id={chapter.id}>
     <div class="card-selection">
-        <input 
-            type="checkbox" 
-            bind:checked={isSelected} 
-            onchange={dispatchSelection}
-            class="chapter-checkbox"
-        />
+        <input type="checkbox" bind:checked={isSelected} onchange={dispatchSelection} />
     </div>
 
-    <div class="card-thumbnail">
-        <img src={finalUrl} alt={chapter.title || `Cap ${chapter.chapterNumber}`} />
+    <div class="card-thumb" onclick={_openCropper} aria-hidden="true">
+        <img src={_finalUrl} alt={chapter.title} loading="lazy" />
         <div class="thumb-overlay">
-            <button class="icon-btn" onclick={openCropper} title="Recortar miniatura">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"/><path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"/></svg>
-            </button>
-            <label class="icon-btn" title="Subir miniatura">
-                <input type="file" accept="image/*" onchange={handleThumbnailUpload} hidden />
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            </label>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
         </div>
     </div>
 
     <div class="card-main">
-        <div class="chapter-number">Capítulo {chapter.chapterNumber}</div>
-        <div class="title-row">
-            {#if isEditing}
-                <div class="edit-box">
-                    <input 
-                        type="text" 
-                        bind:value={title} 
-                        onkeydown={(e) => e.key === 'Enter' && saveTitle()}
-                        onblur={saveTitle}
-                        use:autoFocus
-                    />
-                </div>
-            {:else}
-                <span
-                    class="title-display"
-                    onclick={() => isEditing = true}
-                    role="button"
-                    tabindex="0"
-                    onkeydown={(e) => e.key === 'Enter' && (isEditing = true)}
-                    title={chapter.title && chapter.title !== 'null' ? chapter.title : `Capítulo ${chapter.chapterNumber}`}
-                >
-                    {chapter.title && chapter.title !== 'null' ? chapter.title : `Capítulo ${chapter.chapterNumber}`}
-                </span>
-
-            {/if}
+        {#if isEditing}
+            <div class="title-edit-wrap">
+                <input 
+                    type="text" 
+                    bind:value={title} 
+                    onkeydown={(e) => e.key === 'Enter' && _saveTitle()}
+                    onblur={_saveTitle}
+                    use:autoFocus
+                />
+            </div>
+        {:else}
+            <div class="title-display" onclick={() => (isEditing = true)} aria-hidden="true">
+                <span class="chapter-num">Cap. {chapter.chapterNumber}</span>
+                <h4 class="chapter-title">{chapter.title || 'Sin título'}</h4>
+            </div>
+        {/if}
+        
+        <div class="card-meta">
+            <span class="meta-item views">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                {chapter.views || 0}
+            </span>
+            <span class="meta-item date">
+                {chapter.createdAt ? new Date(chapter.createdAt).toLocaleDateString() : 'N/A'}
+            </span>
         </div>
     </div>
 
     <div class="card-actions">
-        <a href={`/series/${seriesSlug}/${chapter.chapterNumber}`} class="action-btn" title="Ver capítulo">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        </a>
+        <label class="action-btn upload" title="Subir miniatura">
+            <input type="file" accept="image/*" onchange={_handleThumbnailUpload} class="hidden" />
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        </label>
+
         <button 
             class="action-btn delete" 
-            class:is-confirming={deleteState === 'confirm'}
-            class:is-deleting={deleteState === 'deleting'}
-            onclick={handleDelete}
-            title={deleteState === 'confirm' ? '¿Confirmar?' : 'Eliminar'}
+            class:confirm={deleteState === 'confirm'} 
+            onclick={_handleDelete}
+            title="Eliminar capítulo"
         >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            {#if deleteState === 'confirm'}
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            {:else}
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            {/if}
         </button>
     </div>
 
@@ -239,118 +228,94 @@ const finalUrl = $derived.by(() => {
 
 <style>
   .chapter-card {
+    background: #1e1e1e;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
     display: flex;
     align-items: center;
-    background: #111;
-    border: 1px solid #222;
-    border-radius: 14px;
     padding: 0.75rem;
     gap: 1rem;
-    position: relative;
     transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
   }
 
-  .chapter-card:hover { border-color: #444; background: #161616; }
+  .chapter-card:hover { border-color: rgba(0, 191, 255, 0.3); background: #252525; }
   .chapter-card.selected { border-color: var(--accent-color); background: rgba(0, 191, 255, 0.05); }
   .chapter-card.loading { opacity: 0.6; pointer-events: none; }
 
-  .card-selection input { width: 18px; height: 18px; cursor: pointer; }
+  .card-selection { display: flex; align-items: center; }
+  .card-selection input { width: 18px; height: 18px; accent-color: var(--accent-color); cursor: pointer; }
 
-  .card-thumbnail {
-    width: 60px;
-    height: 80px;
-    background: #000;
-    border-radius: 8px;
-    overflow: hidden;
-    position: relative;
-    flex-shrink: 0;
-  }
-
-  .card-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
-
-  .thumb-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-
-  .card-thumbnail:hover .thumb-overlay { opacity: 1; }
-
-  .icon-btn {
-    background: rgba(255,255,255,0.1);
-    border: none;
-    color: #fff;
-    width: 28px;
-    height: 28px;
+  .card-thumb {
+    width: 50px;
+    height: 70px;
     border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    overflow: hidden;
+    background: #000;
+    flex-shrink: 0;
+    position: relative;
     cursor: pointer;
-    transition: all 0.2s;
   }
 
-  .icon-btn:hover { background: var(--accent-color); color: #000; }
+  .card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .thumb-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; color: #fff; }
+  .card-thumb:hover .thumb-overlay { opacity: 1; }
 
-  .card-main { flex: 1; min-width: 0; }
-  .chapter-number { font-size: 0.75rem; font-weight: 800; color: var(--accent-color); text-transform: uppercase; margin-bottom: 0.25rem; }
+  .card-main { flex-grow: 1; min-width: 0; }
   
-  .title-row { font-size: 0.95rem; font-weight: 600; color: #eee; }
-  .title-display { cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-  .title-display:hover { color: #fff; text-decoration: underline; }
+  .title-display { cursor: text; }
+  .chapter-num { display: block; font-size: 0.7rem; font-weight: 800; color: var(--accent-color); text-transform: uppercase; margin-bottom: 2px; }
+  .chapter-title { margin: 0; font-size: 0.95rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  .edit-box input {
-    background: #000;
-    border: 1px solid var(--accent-color);
-    color: #fff;
-    padding: 2px 6px;
-    border-radius: 4px;
+  .title-edit-wrap input {
     width: 100%;
+    background: #111;
+    border: 1px solid var(--accent-color);
+    border-radius: 4px;
+    color: #fff;
+    padding: 4px 8px;
     font-size: 0.9rem;
     outline: none;
   }
 
+  .card-meta { display: flex; gap: 1rem; margin-top: 4px; }
+  .meta-item { font-size: 0.7rem; color: #666; display: flex; align-items: center; gap: 4px; font-weight: 600; }
+
   .card-actions { display: flex; gap: 0.5rem; }
   .action-btn {
-    background: #222;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     border: none;
+    background: rgba(255, 255, 255, 0.03);
     color: #888;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
-    text-decoration: none;
   }
 
-  .action-btn:hover { background: #333; color: #fff; }
-  .action-btn.delete:hover { background: #ff4757; color: #fff; }
-  .action-btn.delete.is-confirming { background: #ffa502; color: #000; animation: pulse 1s infinite; }
-  .action-btn.delete.is-deleting { background: #2f3542; cursor: wait; }
+  .action-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+  .action-btn.upload { position: relative; cursor: pointer; }
+  .action-btn.upload input { display: none; }
+  .action-btn.delete:hover { background: rgba(255, 71, 87, 0.1); color: #ff4757; }
+  .action-btn.delete.confirm { background: #ff4757; color: #fff; animation: pulse 1s infinite; }
 
-  @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
   .status-toast {
     position: absolute;
-    bottom: -10px;
+    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    background: #2ed573;
+    background: var(--accent-color);
     color: #000;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 800;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 2px 10px;
+    border-radius: 4px 4px 0 0;
     animation: popIn 0.2s;
     z-index: 10;
   }

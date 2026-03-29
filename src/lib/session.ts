@@ -1,5 +1,5 @@
-import type { APIContext } from 'astro';
 import { jwtVerify, SignJWT } from 'jose';
+import type { SessionContext } from '../types';
 
 export interface UserSessionPayload {
   uid: string;
@@ -32,11 +32,11 @@ export async function verifyToken(
   }
 }
 
-export function getSession(context: APIContext): string | undefined {
+export function getSession(context: SessionContext): string | undefined {
   return context.cookies.get('user_session')?.value;
 }
 
-export function setSession(context: APIContext, sessionValue: string): void {
+export function setSession(context: SessionContext, sessionValue: string): void {
   const url = new URL(context.request.url);
   const isLocalIp =
     url.hostname.startsWith('192.168.') ||
@@ -54,7 +54,7 @@ export function setSession(context: APIContext, sessionValue: string): void {
 }
 
 export async function setAuthCookie(
-  context: APIContext,
+  context: SessionContext,
   payload: UserSessionPayload,
   secret: string
 ): Promise<void> {
@@ -75,7 +75,7 @@ export async function setAuthCookie(
   });
 }
 
-export function deleteSession(context: APIContext): void {
+export function deleteSession(context: SessionContext): void {
   context.cookies.delete('user_session', { path: '/' });
   context.cookies.delete('user_auth', { path: '/' });
   context.cookies.delete('user_role', { path: '/' });

@@ -220,7 +220,7 @@ export const seriesActions = {
         let cursor: string | undefined;
         while (truncated) {
           const list = await r2Cache.list({ prefix: `${seriesData.slug}/`, cursor });
-          const keys = list.objects.map((obj) => obj.key);
+          const keys = list.objects.map((obj: { key: string }) => obj.key);
           if (keys.length > 0) await r2Cache.delete(keys);
           truncated = list.truncated;
           cursor = list.truncated ? list.cursor : undefined;

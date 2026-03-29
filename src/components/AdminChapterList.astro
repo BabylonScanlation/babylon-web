@@ -12,18 +12,26 @@ const { series, r2PublicUrlAssets: _r2PublicUrlAssets } = Astro.props;
 const rawChapters = series.chapters || [];
 
 // Orion: Saneamos los capítulos para evitar el bug de serialización de Astro
-const _chapters = rawChapters.map((ch) => ({
-  ...ch,
-  createdAt:
-    ch.createdAt &&
-    typeof ch.createdAt === 'object' &&
-    ch.createdAt instanceof Date &&
-    !Number.isNaN(ch.createdAt.getTime())
-      ? ch.createdAt.toISOString()
-      : typeof ch.createdAt === 'string' || typeof ch.createdAt === 'number'
-        ? ch.createdAt
-        : new Date().toISOString(),
-}));
+const _chapters = rawChapters.map((ch) => {
+  let dateStr = new Date().toISOString();
+  const rawDate = ch.createdAt;
+
+  try {
+    if (rawDate) {
+      const parsedDate = new Date(rawDate);
+      if (!Number.isNaN(parsedDate.getTime())) {
+        dateStr = parsedDate.toISOString();
+      }
+    }
+  } catch (e) {
+    console.error('Error parsing date for chapter:', ch.id, e);
+  }
+
+  return {
+    ...ch,
+    createdAt: dateStr,
+  };
+});
 ---
 
 <chapter-manager class="chapters-manager">
@@ -84,7 +92,7 @@ const _chapters = rawChapters.map((ch) => ({
           _chapters.map((chapter) => (
             <AdminChapterListItem
               client:load
-              chapter={chapter as any}
+              chapter={chapter}
               seriesSlug={series.slug}
               r2PublicUrlAssets={_r2PublicUrlAssets}
             />

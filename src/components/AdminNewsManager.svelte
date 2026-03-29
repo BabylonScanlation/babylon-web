@@ -2,6 +2,7 @@
 import { actions } from 'astro:actions';
 import { fade, fly, slide } from 'svelte/transition';
 import { toast } from '../lib/stores.svelte';
+import type { User } from '../types';
 
 // Tipos
 interface Series {
@@ -25,8 +26,7 @@ interface NewsItem {
 interface Props {
   allSeries?: Series[];
   initialNews?: NewsItem[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  currentUser?: any;
+  currentUser?: User | null;
   r2PublicUrlAssets?: string;
 }
 
@@ -44,7 +44,7 @@ $effect(() => {
 });
 
 // Orion: Normalizador de imágenes
-const getImageUrl = (path: string | null) => {
+const _getImageUrl = (path: string | null) => {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   const base = r2PublicUrlAssets || '/api/assets/proxy';
@@ -60,9 +60,9 @@ let editingNewsId = $state<string | null>(null);
 let formTitle = $state('');
 let formContent = $state('');
 let formStatus = $state<'draft' | 'published'>('published');
-let isSubmitting = $state(false);
+let _isSubmitting = $state(false);
 let formImage = $state<File | null>(null);
-let imagePreview = $state<string | null>(null);
+let _imagePreview = $state<string | null>(null);
 
 // Filtrar noticias derivado
 const filteredNews = $derived(
@@ -96,10 +96,10 @@ function resetForm() {
   formContent = '';
   formStatus = 'published';
   formImage = null;
-  imagePreview = null;
+  _imagePreview = null;
   editingNewsId = null;
   isEditing = false;
-  isSubmitting = false;
+  _isSubmitting = false;
 }
 
 function startEdit(news: NewsItem) {
@@ -131,75 +131,53 @@ async function handleDelete(newsId: string) {
   }
 }
 
+async function _handleImageUpload(newsId: string) {
+  if (!formImage) return;
+  const uploadData = new FormData();
+  uploadData.append('image', formImage);
+  uploadData.append('newsId', newsId);
+
+  const { error } = await actions.news.uploadImage(uploadData);
+  if (error) {
+    toast.warning(`Noticia guardada pero la imagen falló: ${error.message}`);
+  }
+}
+
 async function handleSubmit() {
   if (!formTitle || !formContent) {
     toast.warning('Completa título y contenido');
     return;
   }
 
-  isSubmitting = true;
+  _isSubmitting = true;
 
   try {
-    const payload = {
-      title: formTitle,
-      content: formContent,
-      status: formStatus,
-      seriesId: selectedSeriesId,
-    };
-
-    let result;
-
-    if (isEditing && editingNewsId) {
-      result = await actions.news.update({ id: editingNewsId, ...payload });
-    } else {
-      result = await actions.news.create(payload);
-    }
+    const payload = { title: formTitle, content: formContent, status: formStatus, seriesId: selectedSeriesId };
+    const result = isEditing && editingNewsId 
+      ? await actions.news.update({ id: editingNewsId, ...payload })
+      : await actions.news.create(payload);
 
     if (result.error) throw new Error(result.error.message);
 
     const savedNews = result.data;
-
-    if (formImage) {
-      const uploadData = new FormData();
-      uploadData.append('image', formImage);
-      uploadData.append('newsId', savedNews.id);
-
-      const { error: uploadError } = await actions.news.uploadImage(uploadData);
-      if (uploadError) {
-        toast.warning(`Noticia guardada pero la imagen falló: ${uploadError.message}`);
-      }
-    }
+    await _handleImageUpload(savedNews.id);
 
     toast.success(isEditing ? 'Noticia actualizada' : 'Noticia publicada');
 
     if (isEditing) {
-      newsItems = newsItems.map((n) =>
-        n.id === savedNews.id ? { ...savedNews, seriesId: selectedSeriesId } : n
-      );
+      newsItems = newsItems.map((n) => n.id === savedNews.id ? { ...savedNews, seriesId: selectedSeriesId } : n);
     } else {
-      newsItems = [
-        {
-          ...savedNews,
-          seriesId: selectedSeriesId,
-          createdAt: savedNews.createdAt || new Date().toISOString(),
-        },
-        ...newsItems,
-      ];
-
-      // Orion: Notificar al Servicio de Noticias centralizado
-      window.dispatchEvent(
-        new CustomEvent('new-news-created', {
-          detail: { news: savedNews },
-        })
-      );
+      newsItems = [{ ...savedNews, seriesId: selectedSeriesId, createdAt: savedNews.createdAt || new Date().toISOString() }, ...newsItems];
+      window.dispatchEvent(new CustomEvent('new-news-created', { detail: { news: savedNews } }));
     }
 
     resetForm();
-  } catch (error: any) {
+  } catch (error) {
     console.error(error);
-    toast.error(`Fallo al guardar noticia: ${error.message}`);
+    const message = error instanceof Error ? error.message : 'Error desconocido';
+    toast.error(`Fallo al guardar noticia: ${message}`);
   } finally {
-    isSubmitting = false;
+    _isSubmitting = false;
   }
 }
 
@@ -207,7 +185,7 @@ function handleImageChange(e: Event) {
   const input = e.target as HTMLInputElement;
   if (input.files?.[0]) {
     formImage = input.files[0];
-    imagePreview = URL.createObjectURL(formImage);
+    _imagePreview = URL.createObjectURL(formImage);
   }
 }
 </script>
@@ -220,7 +198,7 @@ function handleImageChange(e: Event) {
         <button class="series-card" onclick={() => selectSeries(series.id)}>
           <div class="series-cover">
             {#if series.coverImageUrl}
-              <img src={getImageUrl(series.coverImageUrl)} alt={series.title} />
+              <img src={_getImageUrl(series.coverImageUrl)} alt={series.title} />
             {:else}
               <div class="no-cover">NO COVER</div>
             {/if}
@@ -291,10 +269,10 @@ function handleImageChange(e: Event) {
                     accept="image/*" 
                     onchange={handleImageChange}
                   />
-                  {#if imagePreview}
+                  {#if _imagePreview}
                   <div class="mini-preview" transition:slide>
-                      <img src={imagePreview} alt="Preview" />
-                      <button class="remove-preview" onclick={() => { formImage = null; imagePreview = null; }}>×</button>
+                      <img src={_imagePreview} alt="Preview" />
+                      <button class="remove-preview" onclick={() => { formImage = null; _imagePreview = null; }}>×</button>
                   </div>
                   {/if}
                 </div>
@@ -308,9 +286,9 @@ function handleImageChange(e: Event) {
               <button 
                 class="btn-submit" 
                 onclick={handleSubmit} 
-                disabled={isSubmitting}
+                disabled={_isSubmitting}
               >
-                {isSubmitting ? 'Guardando...' : (isEditing ? 'Actualizar Noticia' : 'Publicar Noticia')}
+                {_isSubmitting ? 'Guardando...' : (isEditing ? 'Actualizar Noticia' : 'Publicar Noticia')}
               </button>
             </div>
             

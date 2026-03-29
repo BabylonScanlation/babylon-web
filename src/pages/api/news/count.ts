@@ -23,7 +23,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
             .from(users)
             .where(eq(users.id, user.uid))
             .get();
-          prefs = dbUser?.preferences;
+          prefs = dbUser?.preferences ?? undefined;
         }
 
         const parsedPrefs = typeof prefs === 'string' ? JSON.parse(prefs) : prefs || {};

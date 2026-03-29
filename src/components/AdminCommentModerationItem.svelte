@@ -25,15 +25,15 @@ let deleteState = $state<'idle' | 'confirm' | 'deleting'>('idle');
 let deleteTimeout: ReturnType<typeof setTimeout> | undefined;
 let _isRemoved = $state(false);
 
-function getUsername(email: string) {
+function _getUsername(email: string) {
   return (email || 'usuario@anonimo').split('@')[0];
 }
 
-function getInitial(email: string) {
+function _getInitial(email: string) {
   return (email || '?').charAt(0).toUpperCase();
 }
 
-async function handleDelete() {
+async function _handleDelete() {
   if (deleteState === 'idle') {
     deleteState = 'confirm';
     clearTimeout(deleteTimeout);
@@ -70,10 +70,10 @@ async function handleDelete() {
     <div class="item-header">
       <div class="user-info">
         <div class="mini-avatar">
-          {getInitial(_userEmail)}
+          {_getInitial(_userEmail)}
         </div>
         <div class="user-details">
-          <span class="username">{getUsername(_userEmail)}</span>
+          <span class="username">{_getUsername(_userEmail)}</span>
           <span class="email">{_userEmail}</span>
         </div>
       </div>
@@ -98,7 +98,7 @@ async function handleDelete() {
       <button 
         class="btn-delete" 
         class:confirm={deleteState === 'confirm'}
-        onclick={handleDelete}
+        onclick={_handleDelete}
         disabled={deleteState === 'deleting'}
       >
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
