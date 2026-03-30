@@ -111,19 +111,5 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
     return context.redirect('/');
   }
 
-  // Orion: Sincronización de estado NSFW
-  if (locals.user) {
-    const hasNsfwCookie = cookies.has('babylon_nsfw');
-    if (!hasNsfwCookie) {
-      const userNsfwPref = locals.user.isNsfw === true || String(locals.user.isNsfw) === '1';
-      cookies.set('babylon_nsfw', userNsfwPref ? 'true' : 'false', {
-        path: '/',
-        maxAge: 60 * 60 * 24 * 30, // 30 días
-        httpOnly: false,
-        sameSite: 'lax',
-      });
-    }
-  }
-
   return next();
 }

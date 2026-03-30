@@ -5,12 +5,21 @@ import { favorites, series } from '../../../db/schema';
 import { getDB } from '../../../lib/db';
 
 // GET: Full details for Library page
-export const GET: APIRoute = async ({ locals }) => {
+export const GET: APIRoute = async ({ locals, cookies }) => {
   const { user } = locals;
   if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
 
+  const isNsfwMode = cookies.get('babylon_nsfw')?.value === 'true';
+
   try {
     const db = getDB(locals.runtime.env);
+
+    // Orion: Filtrado exclusivo por zona
+    if (isNsfwMode) {
+      conditions.push(eq(series.isNsfw, true));
+    } else {
+      conditions.push(eq(series.isNsfw, false));
+    }
 
     // Fetch series favorites with join
     const seriesFavs = await db
@@ -23,11 +32,12 @@ export const GET: APIRoute = async ({ locals }) => {
           slug: series.slug,
           cover: series.coverImageUrl,
           views: series.views,
+          isNsfw: series.isNsfw,
         },
       })
       .from(favorites)
       .innerJoin(series, eq(favorites.seriesId, series.id))
-      .where(and(eq(favorites.userId, user.uid), eq(favorites.type, 'series')))
+      .where(and(...conditions))
       .orderBy(desc(favorites.createdAt));
 
     return new Response(JSON.stringify(seriesFavs), {

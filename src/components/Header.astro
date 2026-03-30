@@ -11,17 +11,15 @@ const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo
 
 <header class:list={['site-header', { 'nsfw-active': isNsfwActive }]} id="main-header">
   <script is:inline define:vars={{ logoNormal: siteConfig.assets.logoHeader, logoNsfw: siteConfig.assets.logoHeaderNsfw, r2Url: r2PublicUrlAssets }}>
-    // Astra: Aplicar modo NSFW instantáneamente en el cliente, respetando si la página forzó el estado en el HTML
+    // Astra: Aplicar modo NSFW instantáneamente en el cliente, respetando estrictamente la cookie manual
     (function() {
-      // Si el HTML tiene explícitamente nsfw-mode (forzado por el Layout), el header debe coincidir
-      const htmlHasMode = document.documentElement.classList.contains('nsfw-mode');
       const isNsfwCookie = document.cookie.split(';').some(c => c.trim().startsWith('babylon_nsfw=true'));
       
       const header = document.getElementById('main-header');
       const logoImg = document.getElementById('header-logo-img');
       
-      // Si estamos en una página que fuerza NO ser roja (ej. serie SFW), no pintamos el header de rojo
-      if (isNsfwCookie || htmlHasMode) {
+      // Orion: Solo activamos el visual si el usuario lo pidió manualmente vía cookie
+      if (isNsfwCookie) {
         header?.classList.add('nsfw-active');
         if (logoImg) {
           const newLogo = logoNsfw.startsWith('/') ? `${r2Url}${logoNsfw}` : logoNsfw;
@@ -32,7 +30,7 @@ const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo
   </script>
   <div class="header-container">
     <div class="logo-section">
-      <a href="/" class="logo-link" id="header-logo-toggle">
+      <a href="/" class="logo-link">
         <img
           src={logoUrl}
           alt={`${siteConfig.name} Logo`}
@@ -42,10 +40,39 @@ const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo
       </a>
     </div>
 
+    <script>
+      import { actions } from 'astro:actions';
+      
+      const btn = document.getElementById('nsfw-toggle-btn');
+      if (btn) {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          btn.classList.add('loading');
+          
+          try {
+            const { data } = await actions.ui.toggleNsfw();
+            if (data?.success) {
+              window.location.reload();
+            }
+          } catch (err) {
+            console.error('Error toggling NSFW:', err);
+          } finally {
+            btn.classList.remove('loading');
+          }
+        });
+      }
+    </script>
+
     <nav class="desktop-nav">
       <div class="main-nav-links">
         <a href="/" class="nav-link-pc"><span>INICIO</span></a>
         <a href="/search" class="nav-link-pc"><span>EXPLORAR</span></a>
+        <button 
+          id="nsfw-toggle-btn" 
+          class:list={['nav-link-pc nsfw-link', { 'is-active': isNsfwActive }]}
+        >
+          <span>ZONA +18</span>
+        </button>
         <a href="/news" class="nav-link-pc news-link">
           <span>NOTICIAS</span>
           <span data-news-badge class="news-badge-pc hidden">0</span>
@@ -67,6 +94,54 @@ const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo
   </div>
 </header>
 
-<style is:global></style>
+<style is:global>
+  .logo-section {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  /* Astra: Estilo Idéntico a Enlaces de Navegación */
+  .nsfw-link {
+    all: unset;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .nsfw-link span {
+    color: #fff;
+    opacity: 0.7;
+    font-weight: 800;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: opacity 0.2s ease;
+  }
+
+  .nsfw-link:hover span {
+    opacity: 1;
+  }
+
+  /* Estado ACTIVO (NSFW ON) */
+  .nsfw-link.is-active span {
+    color: #ff003c !important;
+    opacity: 1 !important;
+    text-shadow: 0 0 10px rgba(255, 0, 60, 0.4);
+  }
+
+  .nsfw-link.loading {
+    cursor: wait;
+    pointer-events: none;
+  }
+
+  @media (max-width: 1024px) {
+    .nsfw-link {
+      display: none;
+    }
+  }
+</style>
 
 

@@ -677,7 +677,9 @@ async function handleTogglePin(comment: Comment) {
                                             </span>
                                             <span class="btn-label">Editar</span>
                                         </button>
+                                    {/if}
 
+                                    {#if node.isOwner || user?.isAdmin}
                                         <span class="bullet-sep">•</span>
                                         <button 
                                             class="action-btn danger" 

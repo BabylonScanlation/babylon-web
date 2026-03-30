@@ -180,14 +180,14 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         window._babylonPendingEvent = { type: e.type, detail: e.detail };
 
         // 1. Cargamos el motor de Svelte y el componente bajo demanda
-        const [{ mount }, { default: GlobalUtilities }] = await Promise.all([
+        const [svelte, { default: GlobalUtilities }] = await Promise.all([
           import('svelte'),
           import('../components/GlobalUtilities.svelte')
         ]);
 
         const container = document.getElementById('global-utilities-root');
-        if (container) {
-          mount(GlobalUtilities as any, {
+        if (container && svelte.mount) {
+          svelte.mount(GlobalUtilities as any, {
             target: container,
             props: { 
               isVerifyPage: window.location.pathname === '/verify',
@@ -223,18 +223,8 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
             animate();
           }
         }
-
-        // 2. Header & NSFW Toggle
-        const logo = document.getElementById('header-logo-toggle');
-        if (logo) {
-          logo.onclick = async (e) => {
-            e.preventDefault();
-            const { actions } = await import('astro:actions');
-            const { data } = await actions.ui.toggleNsfw();
-            if (data?.success) window.location.assign('/');
-          };
-        }
-
+// 2. NSFW Toggle (Moved to Header.astro for reliability)
+// logic removed from here to prevent double execution
         // 3. News Badges
         const updateBadges = (count: number) => {
           document.querySelectorAll('[data-news-badge]').forEach(b => {

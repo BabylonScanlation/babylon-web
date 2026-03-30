@@ -2,15 +2,26 @@ import { and, desc, eq, gt, sql } from 'drizzle-orm';
 import { chapters, chapterViews, series } from '../../../db/schema';
 import { createApiRoute } from '../../../lib/api';
 
-export const GET = createApiRoute({ auth: 'user' }, async ({ locals }) => {
+export const GET = createApiRoute({ auth: 'user' }, async ({ locals, cookies }) => {
   const db = locals.db;
   const userId = locals.user?.uid;
+  const isNsfwMode = cookies.get('babylon_nsfw')?.value === 'true';
 
   if (!userId) {
     return new Response(JSON.stringify({ progress: [] }), { status: 200 });
   }
 
   // 1. Get distinct series the user has viewed, ordered by most recent view
+  const conditions = [
+    eq(chapterViews.userId, userId)
+  ];
+
+  if (isNsfwMode) {
+    conditions.push(eq(series.isNsfw, true));
+  } else {
+    conditions.push(eq(series.isNsfw, false));
+  }
+
   const recentSeries = await db
     .select({
       seriesId: series.id,
@@ -22,7 +33,7 @@ export const GET = createApiRoute({ auth: 'user' }, async ({ locals }) => {
     .from(chapterViews)
     .innerJoin(chapters, eq(chapterViews.chapterId, chapters.id))
     .innerJoin(series, eq(chapters.seriesId, series.id))
-    .where(eq(chapterViews.userId, userId))
+    .where(and(...conditions))
     .groupBy(series.id)
     .orderBy(desc(sql`lastViewedAt`))
     .limit(10) // Fetch a few more in case some are completed

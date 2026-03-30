@@ -286,9 +286,9 @@ onMount(() => {
     <div class="bento-card table-card">
       <h3>Comunidad (💬)</h3>
       <div class="engagement-list">
-          {#each _engagement.topCommenters as u (u.email)}
+          {#each _engagement.topCommenters as u (u.email || Math.random())}
             <div class="engagement-item">
-                <span class="item-name">{u.username || u.displayName || u.email.split('@')[0]}</span>
+                <span class="item-name">{u.username || u.displayName || (u.email && u.email.includes('@') ? u.email.split('@')[0] : 'Invitado')}</span>
                 <div class="item-bar-wrap">
                     <div class="item-bar secondary" style="width: {(u.commentCount / (_engagement.topCommenters[0]?.commentCount || 1)) * 100}%"></div>
                 </div>

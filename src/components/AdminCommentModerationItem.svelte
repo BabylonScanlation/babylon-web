@@ -6,8 +6,11 @@ import { toast } from '../lib/stores.svelte';
 interface Props {
   commentId: number;
   userEmail: string;
+  userName?: string;
   text: string;
-  targetType: 'series' | 'chapter';
+  targetType: 'series' | 'chapter' | 'news';
+  seriesSlug?: string;
+  chapterId?: number | null;
   seriesTitle?: string;
   createdAt?: string;
 }
@@ -15,22 +18,40 @@ interface Props {
 let {
   commentId,
   userEmail: _userEmail,
+  userName: _userName,
   text: _text,
   targetType,
+  seriesSlug: _seriesSlug,
+  chapterId: _chapterId,
   seriesTitle: _seriesTitle = 'Contenido',
   createdAt: _createdAt,
 }: Props = $props();
+
+const _commentUrl = $derived.by(() => {
+  if (targetType === 'chapter' && _seriesSlug) {
+    return `/series/${_seriesSlug}/chapter-${_chapterId}#comment-${commentId}`;
+  }
+  if (targetType === 'series' && _seriesSlug) {
+    return `/series/${_seriesSlug}#comment-${commentId}`;
+  }
+  if (targetType === 'news' && _seriesSlug) {
+    return `/news/${_seriesSlug}#comment-${commentId}`;
+  }
+  return null;
+});
 
 let deleteState = $state<'idle' | 'confirm' | 'deleting'>('idle');
 let deleteTimeout: ReturnType<typeof setTimeout> | undefined;
 let _isRemoved = $state(false);
 
-function _getUsername(email: string) {
-  return (email || 'usuario@anonimo').split('@')[0];
+function _getDisplayName() {
+  if (_userName) return _userName;
+  return (_userEmail || 'usuario@anonimo').split('@')[0];
 }
 
-function _getInitial(email: string) {
-  return (email || '?').charAt(0).toUpperCase();
+function _getInitial() {
+  if (_userName) return _userName.charAt(0).toUpperCase();
+  return (_userEmail || '?').charAt(0).toUpperCase();
 }
 
 async function _handleDelete() {
@@ -70,19 +91,22 @@ async function _handleDelete() {
     <div class="item-header">
       <div class="user-info">
         <div class="mini-avatar">
-          {_getInitial(_userEmail)}
+          {_getInitial()}
         </div>
         <div class="user-details">
-          <span class="username">{_getUsername(_userEmail)}</span>
+          <span class="username">{_getDisplayName()}</span>
           <span class="email">{_userEmail}</span>
         </div>
       </div>
       <div class="meta-info">
         <span class="target-badge" class:chapter={targetType === 'chapter'}>
-          {targetType === 'chapter' ? 'Capítulo' : 'Serie'}
+          {targetType === 'chapter' ? 'Capítulo' : (targetType === 'news' ? 'Noticia' : 'Serie')}
         </span>
         {#if _createdAt}
-          <span class="date">{new Date(_createdAt).toLocaleDateString()}</span>
+          {@const date = new Date(_createdAt)}
+          {#if !isNaN(date.getTime())}
+            <span class="date">{date.toLocaleDateString()}</span>
+          {/if}
         {/if}
       </div>
     </div>
@@ -95,6 +119,12 @@ async function _handleDelete() {
     </div>
 
     <div class="item-actions">
+      {#if _commentUrl}
+        <a href={_commentUrl} target="_blank" class="btn-goto">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+          Ir al mensaje
+        </a>
+      {/if}
       <button 
         class="btn-delete" 
         class:confirm={deleteState === 'confirm'}
@@ -170,8 +200,8 @@ async function _handleDelete() {
   .context-info { font-size: 0.75rem; color: #555; }
   .context-info strong { color: #888; }
 
-  .item-actions { display: flex; justify-content: flex-end; }
-  .btn-delete {
+  .item-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
+  .btn-delete, .btn-goto {
     background: #222;
     border: none;
     color: #ff4757;
@@ -184,7 +214,11 @@ async function _handleDelete() {
     align-items: center;
     gap: 0.5rem;
     transition: all 0.2s;
+    text-decoration: none;
   }
+
+  .btn-goto { color: var(--accent-color); }
+  .btn-goto:hover { background: var(--accent-color); color: #000; }
 
   .btn-delete:hover { background: #ff4757; color: #fff; }
   .btn-delete.confirm { background: #ffa502; color: #000; }

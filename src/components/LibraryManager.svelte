@@ -68,23 +68,23 @@ async function loadData() {
       isAuthenticated = true;
 
       // Parallel fetch for better performance
-      const [histRes, favRes, ratRes] = await Promise.all([
+      const [histRes, favRes, ratRes] = await Promise.allSettled([
         fetch('/api/user/progress'),
         fetch('/api/user/favorites-full'),
         fetch('/api/user/ratings'),
       ]);
 
-      if (histRes.ok) {
-        const data = await histRes.json();
+      if (histRes.status === 'fulfilled' && histRes.value.ok) {
+        const data = await histRes.value.json();
         historyItems = data.progress || [];
       }
 
-      if (favRes.ok) {
-        favoritesItems = await favRes.json();
+      if (favRes.status === 'fulfilled' && favRes.value.ok) {
+        favoritesItems = await favRes.value.json();
       }
 
-      if (ratRes.ok) {
-        ratingsItems = await ratRes.json();
+      if (ratRes.status === 'fulfilled' && ratRes.value.ok) {
+        ratingsItems = await ratRes.value.json();
       }
     } else {
       isAuthenticated = false;
@@ -102,8 +102,8 @@ function handleLogin() {
 
 onMount(() => {
   loadData();
-  document.addEventListener('auth-success', loadData);
-  return () => document.removeEventListener('auth-success', loadData);
+  window.addEventListener('auth-success', loadData);
+  return () => window.removeEventListener('auth-success', loadData);
 });
 </script>
 
@@ -168,7 +168,7 @@ onMount(() => {
                   <h3>{item.series.title}</h3>
                   <div class="meta">
                     <span class="chap-badge">Cap {item.nextChapter.number}</span>
-                    <span class="time">{timeAgo(new Date(item.nextChapter.createdAt).getTime())}</span>
+                    <span class="time">{item.nextChapter.createdAt ? timeAgo(new Date(item.nextChapter.createdAt).getTime()) : 'Reciente'}</span>
                   </div>
                 </div>
               </a>
@@ -196,7 +196,7 @@ onMount(() => {
                 </div>
                 <div class="card-info">
                   <h3>{item.series.title}</h3>
-                  <span class="added-date">Añadido {timeAgo(new Date(item.createdAt).getTime())}</span>
+                  <span class="added-date">Añadido {item.createdAt ? timeAgo(new Date(item.createdAt).getTime()) : 'Recientemente'}</span>
                 </div>
               </a>
             {/each}
@@ -228,7 +228,7 @@ onMount(() => {
                 </div>
                 <div class="card-info">
                   <h3>{item.series.title}</h3>
-                  <span class="added-date">Valorado {timeAgo(new Date(item.createdAt).getTime())}</span>
+                  <span class="added-date">Valorado {item.createdAt ? timeAgo(new Date(item.createdAt).getTime()) : 'Recientemente'}</span>
                 </div>
               </a>
             {/each}
@@ -307,8 +307,8 @@ onMount(() => {
 
   .illustration-locked, .illustration-empty { font-size: 3.5rem; margin-bottom: 0.5rem; filter: grayscale(1) opacity(0.3); }
 
-  .guest-state h2 { font-size: 1.6rem; font-weight: 900; margin-bottom: 0.25rem; color: #fff; }
-  .guest-state p { color: #666; margin-bottom: 1.25rem; font-weight: 600; font-size: 0.9rem; }
+  .guest-state h2, .empty-tab h3 { font-size: 1.6rem; font-weight: 900; margin-bottom: 0.25rem; color: #fff; }
+  .guest-state p, .empty-tab p { color: #666; margin-bottom: 1.25rem; font-weight: 600; font-size: 0.9rem; }
 
   .login-btn, .explore-btn {
     background: var(--accent-color);

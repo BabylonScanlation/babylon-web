@@ -1,11 +1,12 @@
 import type { APIRoute } from 'astro';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { series, seriesRatings } from '../../../db/schema';
 import { getDB } from '../../../lib/db';
 import { logError } from '../../../lib/logError';
 
-export const GET: APIRoute = async ({ locals }) => {
+export const GET: APIRoute = async ({ locals, cookies }) => {
   const { user, runtime } = locals;
+  const isNsfwMode = cookies.get('babylon_nsfw')?.value === 'true';
 
   if (!user) {
     return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401 });
@@ -13,6 +14,17 @@ export const GET: APIRoute = async ({ locals }) => {
 
   try {
     const db = getDB(runtime.env);
+
+    // Orion: Construir condiciones dinámicas
+    const conditions = [
+      eq(seriesRatings.userId, user.uid)
+    ];
+
+    if (isNsfwMode) {
+      conditions.push(eq(series.isNsfw, true));
+    } else {
+      conditions.push(eq(series.isNsfw, false));
+    }
 
     // Obtenemos todas las calificaciones del usuario con la info de la serie
     const ratedSeries = await db
@@ -29,7 +41,7 @@ export const GET: APIRoute = async ({ locals }) => {
       })
       .from(seriesRatings)
       .innerJoin(series, eq(seriesRatings.seriesId, series.id))
-      .where(eq(seriesRatings.userId, user.uid))
+      .where(and(...conditions))
       .orderBy(desc(seriesRatings.createdAt))
       .all();
 
