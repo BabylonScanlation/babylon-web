@@ -14,6 +14,8 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
   try {
     const db = getDB(locals.runtime.env);
 
+    const conditions = [eq(favorites.userId, user.uid)];
+
     // Orion: Filtrado exclusivo por zona
     if (isNsfwMode) {
       conditions.push(eq(series.isNsfw, true));

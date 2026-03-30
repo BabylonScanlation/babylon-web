@@ -1,5 +1,5 @@
 import { desc, eq, sql } from 'drizzle-orm';
-import { anonymousUsers, seriesViews, series, users } from '../../../../db/schema';
+import { anonymousUsers, series, seriesViews, users } from '../../../../db/schema';
 import { createApiRoute } from '../../../../lib/api';
 
 export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => {
@@ -21,10 +21,9 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
   try {
     const rangeDays = range === 'all' ? 365 * 10 : parseInt(range, 10);
     const startDate = new Date();
-    startDate.setHours(0, 0, 0, 0); 
+    startDate.setHours(0, 0, 0, 0);
     startDate.setDate(startDate.getDate() - rangeDays);
     const timestampLimit = startDate.getTime();
-    const dateLimitStr = startDate.toISOString().split('T')[0];
 
     // Orion: SQL Maestro para normalizar CUALQUIER formato de fecha a milisegundos (ms)
     // Maneja: ISO Strings, YYYY-MM-DD, Segundos y Milisegundos.
@@ -55,7 +54,9 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
           count: sql`COUNT(*)`,
         })
         .from(seriesViews)
-        .where(range === 'all' ? undefined : sql`${sqlNormalizeToMs('viewed_at')} >= ${timestampLimit}`)
+        .where(
+          range === 'all' ? undefined : sql`${sqlNormalizeToMs('viewed_at')} >= ${timestampLimit}`
+        )
         .groupBy(sql`1`)
         .orderBy(desc(sql`1`))
         .limit(31)
@@ -126,12 +127,27 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
 
       // 5. Categorías
       Promise.all([
-        db.select({ name: series.type, count: sql`COUNT(*)` }).from(series).groupBy(series.type).all(),
-        db.select({ name: series.demographic, count: sql`COUNT(*)` }).from(series).groupBy(series.demographic).all(),
+        db
+          .select({ name: series.type, count: sql`COUNT(*)` })
+          .from(series)
+          .groupBy(series.type)
+          .all(),
+        db
+          .select({ name: series.demographic, count: sql`COUNT(*)` })
+          .from(series)
+          .groupBy(series.demographic)
+          .all(),
       ]).then(([types, demos]) => ({ byType: types, byDemographic: demos })),
     ]);
 
-    const result = { summary, dailyViews, topSeries, engagement, categories, timestamp: Date.now() };
+    const result = {
+      summary,
+      dailyViews,
+      topSeries,
+      engagement,
+      categories,
+      timestamp: Date.now(),
+    };
     const responseBody = JSON.stringify(result);
     if (kv) await kv.put(cacheKey, responseBody, { expirationTtl: 3600 });
 

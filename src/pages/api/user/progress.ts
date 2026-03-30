@@ -12,9 +12,7 @@ export const GET = createApiRoute({ auth: 'user' }, async ({ locals, cookies }) 
   }
 
   // 1. Get distinct series the user has viewed, ordered by most recent view
-  const conditions = [
-    eq(chapterViews.userId, userId)
-  ];
+  const conditions = [eq(chapterViews.userId, userId)];
 
   if (isNsfwMode) {
     conditions.push(eq(series.isNsfw, true));

@@ -1,7 +1,25 @@
-import { asc, desc, eq, inArray, or, sql, and } from 'drizzle-orm';
+import { desc, eq, inArray, or, sql } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
-import { chapters, comments, series, seriesComments, userRoles, newsComments, news, users } from '../../db/schema';
+import {
+  chapters,
+  comments,
+  news,
+  newsComments,
+  series,
+  seriesComments,
+  users,
+  userRoles,
+} from '../../db/schema';
+
+export async function getAdmins(db: DrizzleD1Database<typeof schema>) {
+  const adminUids = await db
+    .select({ uid: userRoles.userId })
+    .from(userRoles)
+    .where(eq(userRoles.role, 'admin'))
+    .all();
+  return adminUids;
+}
 
 export async function getAdminCommentsActivity(db: DrizzleD1Database<typeof schema>) {
   // 1. Últimos comentarios de Capítulos (Solo Usuarios Reales)
@@ -17,7 +35,7 @@ export async function getAdminCommentsActivity(db: DrizzleD1Database<typeof sche
       chapterId: chapters.id,
       userEmail: users.email,
       userName: users.username,
-      isDeleted: comments.isDeleted
+      isDeleted: comments.isDeleted,
     })
     .from(comments)
     .leftJoin(chapters, eq(comments.chapterId, chapters.id))
@@ -40,7 +58,7 @@ export async function getAdminCommentsActivity(db: DrizzleD1Database<typeof sche
       chapterId: sql<number>`NULL`,
       userEmail: users.email,
       userName: users.username,
-      isDeleted: seriesComments.isDeleted
+      isDeleted: seriesComments.isDeleted,
     })
     .from(seriesComments)
     .leftJoin(series, eq(seriesComments.seriesId, series.id))
@@ -62,7 +80,7 @@ export async function getAdminCommentsActivity(db: DrizzleD1Database<typeof sche
       chapterId: sql<number>`NULL`,
       userEmail: users.email,
       userName: users.username,
-      isDeleted: newsComments.isDeleted
+      isDeleted: newsComments.isDeleted,
     })
     .from(newsComments)
     .leftJoin(news, eq(newsComments.newsId, news.id))
@@ -91,7 +109,7 @@ export async function getAdminCommentsActivity(db: DrizzleD1Database<typeof sche
       createdAt: parseSafeDate(c.rawDate),
       // Si no hay datos del usuario (huérfano), mostramos el ID para poder rastrearlo
       userEmail: c.userEmail || 'ID: ' + c.userId,
-      userName: c.userName || c.userEmail?.split('@')[0] || 'Usuario Desconocido'
+      userName: c.userName || c.userEmail?.split('@')[0] || 'Usuario Desconocido',
     }))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
@@ -100,7 +118,7 @@ export async function getAdminSeriesWithChapters(
   db: DrizzleD1Database<typeof schema>,
   limit: number = 12,
   offset: number = 0,
-  includeComments: boolean = false,
+  _includeComments: boolean = false,
   searchQuery?: string
 ) {
   let whereClause: any;

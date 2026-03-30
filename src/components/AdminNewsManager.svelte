@@ -152,10 +152,16 @@ async function handleSubmit() {
   _isSubmitting = true;
 
   try {
-    const payload = { title: formTitle, content: formContent, status: formStatus, seriesId: selectedSeriesId };
-    const result = isEditing && editingNewsId 
-      ? await actions.news.update({ id: editingNewsId, ...payload })
-      : await actions.news.create(payload);
+    const payload = {
+      title: formTitle,
+      content: formContent,
+      status: formStatus,
+      seriesId: selectedSeriesId,
+    };
+    const result =
+      isEditing && editingNewsId
+        ? await actions.news.update({ id: editingNewsId, ...payload })
+        : await actions.news.create(payload);
 
     if (result.error) throw new Error(result.error.message);
 
@@ -165,9 +171,18 @@ async function handleSubmit() {
     toast.success(isEditing ? 'Noticia actualizada' : 'Noticia publicada');
 
     if (isEditing) {
-      newsItems = newsItems.map((n) => n.id === savedNews.id ? { ...savedNews, seriesId: selectedSeriesId } : n);
+      newsItems = newsItems.map((n) =>
+        n.id === savedNews.id ? { ...savedNews, seriesId: selectedSeriesId } : n
+      );
     } else {
-      newsItems = [{ ...savedNews, seriesId: selectedSeriesId, createdAt: savedNews.createdAt || new Date().toISOString() }, ...newsItems];
+      newsItems = [
+        {
+          ...savedNews,
+          seriesId: selectedSeriesId,
+          createdAt: savedNews.createdAt || new Date().toISOString(),
+        },
+        ...newsItems,
+      ];
       window.dispatchEvent(new CustomEvent('new-news-created', { detail: { news: savedNews } }));
     }
 

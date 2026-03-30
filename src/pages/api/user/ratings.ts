@@ -16,9 +16,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
     const db = getDB(runtime.env);
 
     // Orion: Construir condiciones dinámicas
-    const conditions = [
-      eq(seriesRatings.userId, user.uid)
-    ];
+    const conditions = [eq(seriesRatings.userId, user.uid)];
 
     if (isNsfwMode) {
       conditions.push(eq(series.isNsfw, true));

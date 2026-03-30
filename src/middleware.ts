@@ -27,7 +27,7 @@ function applyOptimizedHeaders(response: Response, context: APIContext) {
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-Robots-Tag', 'index, follow, max-image-preview:large');
-    
+
     // Orion: Aseguramos que el caché varíe según las cookies críticas
     response.headers.append('Vary', 'Cookie');
 

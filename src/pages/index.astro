@@ -9,7 +9,7 @@ import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
 import { siteConfig } from '../site.config';
 
-const { runtime, user } = Astro.locals;
+const { runtime } = Astro.locals;
 const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 
 // Astra: El modo NSFW ahora es global vía cookies (Exclusivo)
