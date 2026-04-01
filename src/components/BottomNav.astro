@@ -53,7 +53,7 @@ const navItems = [
         >
           <div class="icon-wrapper">
             <Fragment set:html={item.icon} />
-            {item.id === 'news' && <span data-news-badge class="news-badge-dot hidden">0</span>}
+            {item.id === 'news' && <span data-news-badge class="news-badge-dot hidden"></span>}
           </div>
           <span class="nav-label">{item.label}</span>
           {isActive && <div class="active-indicator" />}

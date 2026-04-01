@@ -233,6 +233,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
               b.classList.remove('hidden');
               (b as HTMLElement).style.display = 'flex';
             } else {
+              b.textContent = '';
               b.classList.add('hidden');
               (b as HTMLElement).style.display = 'none';
             }
