@@ -174,9 +174,8 @@ export const chapterActions = {
             telegramFileId: fileId,
             status: 'processing',
             urlPortada: `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`,
-            createdAt: new Date(),
-          })
-          .returning({ id: chapters.id });
+            createdAt: new Date().toISOString(),
+            })          .returning({ id: chapters.id });
 
         if (!insertResult || insertResult.length === 0 || !insertResult[0]) {
           throw new Error('Error al registrar el capítulo en la base de datos');

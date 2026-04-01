@@ -135,9 +135,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
             telegramFileId: fileId,
             status: 'live',
             urlPortada: null,
-            createdAt: new Date(), // Fijar fecha explícita para evitar problemas de default/formato
-          })
-          .returning({ id: chapters.id })
+            createdAt: new Date().toISOString(), // Forzar formato ISO String para evitar milisegundos en D1
+            })          .returning({ id: chapters.id })
           .get();
 
         if (chapterIdResult?.id) {

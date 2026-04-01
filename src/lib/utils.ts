@@ -6,26 +6,38 @@ export function parseToTimestamp(dateInput: any): number {
   if (!dateInput) return 0;
 
   if (typeof dateInput === 'number') {
+    // Si es un número pequeño (< 10^10), asumimos segundos (Unix) y pasamos a ms.
     return dateInput < 10000000000 ? dateInput * 1000 : dateInput;
   }
 
   if (dateInput instanceof Date) {
-    return Number.isNaN(dateInput.getTime()) ? 0 : dateInput.getTime();
+    const t = dateInput.getTime();
+    return Number.isNaN(t) ? 0 : t;
   }
 
   try {
     let s = String(dateInput).trim();
     if (!s || s === 'null' || s === 'undefined' || s === '[object Object]') return 0;
 
+    // Caso: Timestamps numéricos en formato string ("1234567890")
     if (/^\d+$/.test(s)) {
       const num = parseInt(s, 10);
       return num < 10000000000 ? num * 1000 : num;
     }
 
+    // Normalizar separador de fecha/hora si es necesario
     s = s.replace(' ', 'T');
-    if (s.includes('T') && !s.includes('Z') && !s.includes('+')) s += 'Z';
 
-    const t = new Date(s).getTime();
+    // Intentar parsear directamente
+    let t = new Date(s).getTime();
+
+    // Si falla y no tiene 'Z' ni offset, intentamos forzar UTC
+    if (Number.isNaN(t) || (!s.includes('Z') && !s.includes('+') && s.includes('T'))) {
+      const sWithZ = s.endsWith('Z') ? s : `${s}Z`;
+      const t2 = new Date(sWithZ).getTime();
+      if (!Number.isNaN(t2)) t = t2;
+    }
+
     return Number.isNaN(t) ? 0 : t;
   } catch {
     return 0;
@@ -39,8 +51,16 @@ export function timeAgo(dateVal: any): string {
   const timestamp = parseToTimestamp(dateVal);
   if (timestamp <= 0) return 'justo ahora';
 
-  const absDiff = Math.abs(Date.now() - timestamp);
+  const now = Date.now();
+  const diff = now - timestamp;
+  const absDiff = Math.abs(diff);
   const seconds = Math.floor(absDiff / 1000);
+
+  // Si la fecha es ligeramente en el futuro (desfase servidor/DB), mostramos "justo ahora"
+  if (diff < -5000) {
+    // Si es más de 5 segundos en el futuro, algo raro pasa, pero tratémoslo como reciente
+    return 'justo ahora';
+  }
 
   if (seconds < 10) return 'justo ahora';
   if (seconds < 60) return `hace ${seconds} segundos`;

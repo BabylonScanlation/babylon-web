@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 import { chapters, favorites, series, seriesRatings, seriesReactions } from '../../db/schema';
+import { parseToTimestamp } from '../utils';
 
 /**
  * Orion: Obtiene los detalles de una serie.
@@ -360,7 +361,7 @@ export async function getSeriesWithRecentChapters(
         sql`${chapters.chapterNumber} > 0`
       )
     )
-    .orderBy(desc(chapters.chapterNumber)) // Prioridad absoluta al número de capítulo
+    .orderBy(desc(chapters.createdAt)) // Prioridad al tiempo de creación real
     .all();
 
   const seriesMap = new Map();
@@ -372,20 +373,20 @@ export async function getSeriesWithRecentChapters(
         title: row.title,
         coverImageUrl: row.coverImageUrl,
         recentChapters: [],
-        lastUpdate: row.chapterCreatedAt, // Se actualizará con la fecha más reciente encontrada
+        lastUpdate: row.chapterCreatedAt, 
       });
     }
 
     const entry = seriesMap.get(row.slug);
 
-    // Actualizamos la fecha de la serie si este capítulo (aunque tenga número menor) es más nuevo en tiempo
-    const rowTime = row.chapterCreatedAt ? new Date(row.chapterCreatedAt).getTime() : 0;
-    const entryTime = entry.lastUpdate ? new Date(entry.lastUpdate).getTime() : 0;
+    // Actualizamos la fecha de la serie si este capítulo es más nuevo en tiempo
+    const rowTime = parseToTimestamp(row.chapterCreatedAt);
+    const entryTime = parseToTimestamp(entry.lastUpdate);
     if (rowTime > entryTime) {
       entry.lastUpdate = row.chapterCreatedAt;
     }
 
-    // Orion: Como vienen ordenados por número DESC, los primeros 3 son los más altos
+    // Orion: Añadimos a la lista si no está ya (evitar duplicados por bug de DB)
     if (entry.recentChapters.length < 3) {
       if (!entry.recentChapters.some((c: any) => c.number === row.chapterNumber)) {
         entry.recentChapters.push({
@@ -399,7 +400,7 @@ export async function getSeriesWithRecentChapters(
 
   // Ordenamos las series finales por su actualización más reciente en el tiempo
   return Array.from(seriesMap.values()).sort((a: any, b: any) => {
-    return new Date(b.lastUpdate).getTime() - new Date(a.lastUpdate).getTime();
+    return parseToTimestamp(b.lastUpdate) - parseToTimestamp(a.lastUpdate);
   });
 }
 
