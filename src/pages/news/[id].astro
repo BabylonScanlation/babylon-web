@@ -1,4 +1,5 @@
 ---
+import snarkdown from 'snarkdown';
 import UnifiedComments from '../../components/UnifiedComments.astro';
 import Layout from '../../layouts/Layout.astro';
 import { getCommentsForTarget } from '../../lib/data/comments';
@@ -19,6 +20,9 @@ if (!newsItem) {
   return Astro.redirect('/news');
 }
 
+// Orion: Procesar Markdown
+const renderedContent = snarkdown(newsItem.content);
+
 // Cargar comentarios iniciales
 const initialComments = (await getCommentsForTarget(drizzleDb, 'news', id, user?.uid)) as Comment[];
 ---
@@ -36,16 +40,8 @@ const initialComments = (await getCommentsForTarget(drizzleDb, 'news', id, user?
         </div>
       </div>
 
-      {newsItem.imageUrls && newsItem.imageUrls.length > 0 && (
-        <div class="news-image-container">
-          <img src={newsItem.imageUrls[0]} alt={newsItem.title} class="news-featured-image" />
-        </div>
-      )}
-
-      <div class="news-content">
-        {newsItem.content.split('\n').map((paragraph: string) => (
-          paragraph.trim() && <p>{paragraph}</p>
-        ))}
+      <div class="news-content-wrapper">
+        <div class="news-content prose" set:html={renderedContent}></div>
       </div>
 
       <div class="news-navigation">
@@ -131,11 +127,13 @@ const initialComments = (await getCommentsForTarget(drizzleDb, 'news', id, user?
   }
 
   .news-featured-image {
-    width: 100%;
+    width: auto;
+    max-width: 100%;
     height: auto;
-    max-height: 600px;
-    object-fit: cover;
+    max-height: 500px; /* Astra: Tamaño aumentado */
+    object-fit: contain; /* Astra: Imagen completa sin recortes */
     display: block;
+    margin: 0 auto;
   }
 
   .news-content {
@@ -146,6 +144,38 @@ const initialComments = (await getCommentsForTarget(drizzleDb, 'news', id, user?
     max-width: 75ch; /* Ancho óptimo de lectura */
     margin-left: auto;
     margin-right: auto;
+  }
+
+  /* Astra: Estilos para Markdown (Prose) */
+  :global(.prose img) {
+    max-width: 100%;
+    height: auto;
+    max-height: 350px;
+    border-radius: 16px;
+    display: block;
+    margin: 2rem auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.05);
+    object-fit: contain;
+  }
+
+  :global(.prose strong) { color: #fff; font-weight: 800; }
+  :global(.prose ul, .prose ol) { margin: 1.5rem 0; padding-left: 1.5rem; color: #bbb; }
+  :global(.prose li) { margin-bottom: 0.5rem; }
+  :global(.prose h2, .prose h3) { color: #fff; margin-top: 2.5rem; margin-bottom: 1rem; }
+
+  :global(.prose a) {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid rgba(0, 191, 255, 0.2);
+  }
+
+  :global(.prose a:hover) {
+    color: #fff;
+    border-bottom-color: #fff;
+    text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
   }
 
   .news-content p { margin-bottom: 1.8rem; }

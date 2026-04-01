@@ -59,11 +59,11 @@ export async function getNewsList(
 
       finalResults.push({
         ...r,
-        seriesCover: r.seriesCover || undefined,
+        seriesCover: r.seriesCover ? (r.seriesCover.startsWith('http') ? r.seriesCover : `/api/assets/proxy/${r.seriesCover}`) : undefined,
         seriesTitle: r.seriesTitle || undefined,
         authorAvatar: r.authorAvatar || undefined,
         images: images || [],
-        imageUrls: images.map((img) => img.r2Key),
+        imageUrls: images.map((img) => img.r2Key.startsWith('http') ? img.r2Key : `/api/assets/proxy/${img.r2Key}`),
       });
     }
 
@@ -156,7 +156,7 @@ export async function getNewsDetail(db: DrizzleD1Database<typeof schema>, id: st
       seriesSlug: result.seriesSlug || undefined,
       seriesTitle: result.seriesTitle || undefined,
       images: images || [],
-      imageUrls: images.map((img) => img.r2Key),
+      imageUrls: images.map((img) => img.r2Key.startsWith('http') ? img.r2Key : `/api/assets/proxy/${img.r2Key}`),
     };
   } catch (error) {
     console.error('Error fetching news detail with joins:', error);

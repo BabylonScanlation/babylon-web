@@ -1,5 +1,6 @@
 ---
 import { siteConfig } from '../site.config';
+import NewsCounter from './NewsCounter.svelte';
 
 const { user, runtime } = Astro.locals;
 const isNsfwActive = Astro.cookies.get('babylon_nsfw')?.value === 'true';
@@ -109,6 +110,8 @@ const logoUrl = currentLogo.startsWith('/')
         <a href="/library" class="nav-link-pc"><span>BIBLIOTECA</span></a>
       </div>
 
+      <NewsCounter client:load />
+
       <div class="user-actions">
         <a
           href={user ? '/profile' : '#'}
@@ -148,9 +151,36 @@ const logoUrl = currentLogo.startsWith('/')
     text-transform: uppercase;
     transition: opacity 0.2s ease;
   }
+  .nsfw-link:hover span {
+    opacity: 1;
+  }
   .nsfw-link.is-active span {
     color: #ff003c !important;
     opacity: 1 !important;
+  }
+
+  .news-badge-pc {
+    background: #ff4444;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 900;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+    border: 2px solid #050505;
+    position: absolute;
+    top: -8px;
+    right: -12px;
+    z-index: 10;
+  }
+
+  .news-badge-pc.hidden {
+    display: none !important;
   }
 
   /* Astra: Badge Móvil (ESTRICTAMENTE OCULTO EN PC) */

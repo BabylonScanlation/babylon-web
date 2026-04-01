@@ -33,7 +33,8 @@ export type NewsItem = z.infer<typeof NewsSchema>;
 export type NewsImageItem = z.infer<typeof NewsImageSchema>;
 
 // Helper types for creation/update
-export type CreateNewsInput = Omit<NewsItem, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateNewsInput = Omit<NewsItem, 'id' | 'createdAt' | 'updatedAt'> & { id?: string };
+
 export type CreateNewsImageInput = Omit<NewsImageItem, 'id'>;
 
 export type NewsWithDetails = NewsItem & {
@@ -48,7 +49,7 @@ export async function createNews(
   drizzleDb: ReturnType<typeof getDB>,
   newsData: CreateNewsInput
 ): Promise<NewsItem> {
-  const id = generateUUID();
+  const id = newsData.id || generateUUID();
   const now = new Date();
 
   const newsItem = {

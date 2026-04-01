@@ -42,12 +42,10 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
   const isCriticalPath =
     currentPath === '/verify' ||
     currentPath === '/terms' ||
-    currentPath.startsWith('/_actions/') ||
-    currentPath.startsWith('/api/') ||
     currentPath.startsWith('/js/') ||
     currentPath.startsWith('/_astro');
 
-  if (!locals.user && sessionId && db && !isCriticalPath && !locals.isBot) {
+  if (!locals.user && sessionId && db && !locals.isBot) {
     try {
       const result = await db
         .select({

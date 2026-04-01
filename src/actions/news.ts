@@ -31,8 +31,8 @@ export const newsActions = {
       if (!r2Assets) throw new Error('R2 storage not configured');
 
       const arrayBuffer = await image.arrayBuffer();
-      const fileExtension = image.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const r2Key = `news/${newsId}/${generateUUID()}.${fileExtension}`;
+      const cleanName = image.name.replace(/[^a-zA-Z0-9.]/g, '_');
+      const r2Key = `news/${newsId}/${cleanName}`;
 
       await r2Assets.put(r2Key, arrayBuffer, {
         httpMetadata: { contentType: image.type },
@@ -51,6 +51,7 @@ export const newsActions = {
 
   create: defineAction({
     input: z.object({
+      id: z.string().uuid().optional(),
       title: z.string().min(1, 'El título es obligatorio'),
       content: z.string().min(1, 'El contenido es obligatorio'),
       status: z.enum(['draft', 'published']).default('published'),
