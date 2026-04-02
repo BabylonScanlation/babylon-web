@@ -69,16 +69,19 @@ let showMarkdownHelp = $state(false);
 // Orion: Predecir ruta final de la imagen (Evitar blob:)
 const predictedImagePath = $derived.by(() => {
   if (!formImage) return '';
-  // Orion: Lógica de limpieza idéntica a src/actions/news.ts
   const cleanName = formImage.name.replace(/[^a-zA-Z0-9.]/g, '_');
   const id = editingNewsId || 'pending';
   
+  // Orion: Lógica de carpetas pre-existentes y prefijo de archivo para evitar subcarpetas
+  const isGlobal = selectedSeriesId === -1;
+  const folder = isGlobal ? 'news/global_news' : 'news';
+  const fileName = `${id}_${cleanName}`;
+  
   // Astra: Si es el proxy interno, usamos ruta relativa "/" para que funcione en móviles en local
-  // Si es una URL externa (CDN), la mantenemos absoluta.
   const isInternalProxy = !r2PublicUrlAssets || r2PublicUrlAssets.includes('/api/assets/proxy');
   const base = isInternalProxy ? '/api/assets/proxy' : r2PublicUrlAssets;
   
-  const fullPath = `${base}/news/${id}/${cleanName}`.replace(/([^:]\/)\/+/g, '$1');
+  const fullPath = `${base}/${folder}/${fileName}`.replace(/([^:]\/)\/+/g, '$1');
   
   return fullPath;
 });
@@ -158,15 +161,12 @@ async function handleDelete(newsId: string) {
 
 async function _handleImageUpload(newsId: string) {
   if (!formImage) return;
-  
-  // Orion: Astro Actions manejan mejor el paso de objetos con File si se usa la API de objeto
-  const { error } = await actions.news.uploadImage({
-    image: formImage,
-    newsId: newsId
-  });
-  
+  const uploadData = new FormData();
+  uploadData.append('image', formImage);
+  uploadData.append('newsId', newsId);
+
+  const { error } = await actions.news.uploadImage(uploadData);
   if (error) {
-    console.error('[Upload Error]', error);
     toast.warning(`Noticia guardada pero la imagen falló: ${error.message}`);
   }
 }

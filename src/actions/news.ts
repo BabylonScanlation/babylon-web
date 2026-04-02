@@ -24,18 +24,37 @@ export const newsActions = {
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
       const { image, newsId } = input;
+      console.log(`[R2 Upload] Starting upload for news ${newsId}, file: ${image.name} (${image.size} bytes)`);
+      
       const r2Assets = context.locals.runtime.env.R2_ASSETS;
       const db = getDB(context.locals.runtime.env);
 
-      if (!r2Assets) throw new Error('R2 storage not configured');
+      if (!r2Assets) {
+        console.error('[R2 Upload] Error: R2_ASSETS binding is missing');
+        throw new Error('R2 storage not configured');
+      }
 
       const arrayBuffer = await image.arrayBuffer();
       const cleanName = image.name.replace(/[^a-zA-Z0-9.]/g, '_');
-      const r2Key = `news/${newsId}/${cleanName}`;
+      
+      // Orion: Determinamos la carpeta y usamos un prefijo para evitar subcarpetas nuevas
+      const newsItem = await db.select({ seriesId: schema.news.seriesId }).from(schema.news).where(eq(schema.news.id, newsId)).get();
+      const isGlobal = !newsItem || newsItem.seriesId === null;
+      
+      // Estructura plana: news/[global_news/]ID_filename
+      const r2Key = isGlobal 
+        ? `news/global_news/${newsId}_${cleanName}` 
+        : `news/${newsId}_${cleanName}`;
 
-      await r2Assets.put(r2Key, arrayBuffer, {
-        httpMetadata: { contentType: image.type },
-      });
+      try {
+        await r2Assets.put(r2Key, arrayBuffer, {
+          httpMetadata: { contentType: image.type },
+        });
+        console.log(`[R2 Upload] Success: ${r2Key}`);
+      } catch (err) {
+        console.error(`[R2 Upload] Failed to put object ${r2Key}:`, err);
+        throw new Error('Failed to upload to storage');
+      }
 
       await addNewsImage(db, {
         newsId,
