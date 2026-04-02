@@ -158,12 +158,15 @@ async function handleDelete(newsId: string) {
 
 async function _handleImageUpload(newsId: string) {
   if (!formImage) return;
-  const uploadData = new FormData();
-  uploadData.append('image', formImage);
-  uploadData.append('newsId', newsId);
-
-  const { error } = await actions.news.uploadImage(uploadData);
+  
+  // Orion: Astro Actions manejan mejor el paso de objetos con File si se usa la API de objeto
+  const { error } = await actions.news.uploadImage({
+    image: formImage,
+    newsId: newsId
+  });
+  
   if (error) {
+    console.error('[Upload Error]', error);
     toast.warning(`Noticia guardada pero la imagen falló: ${error.message}`);
   }
 }
