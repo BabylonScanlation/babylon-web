@@ -39,13 +39,13 @@ const allNews = await db
   .all();
 
 const user = Astro.locals.user;
-// Orion: Forzamos la URL absoluta en local para que el proxy funcione correctamente entre puertos
-// Si estamos en localhost, ignoramos la URL pública de R2 porque los archivos están en el almacenamiento local de Wrangler
+// Orion: En local, usamos siempre la ruta relativa para que funcione en PC y móviles
+// Al no incluir el host (localhost), el navegador del móvil usará la IP del servidor automáticamente
 let r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
 const isLocal = Astro.url.hostname === 'localhost' || Astro.url.hostname === '127.0.0.1';
 
 if (isLocal || !r2PublicUrlAssets) {
-  r2PublicUrlAssets = `${Astro.url.origin}/api/assets/proxy`;
+  r2PublicUrlAssets = '/api/assets/proxy';
 }
 ---
 
