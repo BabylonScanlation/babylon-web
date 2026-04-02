@@ -20,16 +20,16 @@ interface Series {
   isHidden: boolean;
   isNsfw: boolean;
   isAppSeries: boolean;
-  chapters?: any[];
+  chapters?: unknown[];
   chapterCount?: number;
-}
+  }
 
-interface Props {
+  interface Props {
   series: Series;
-}
+  }
 
-const { series } = Astro.props;
----
+  const { series } = Astro.props;
+  ---
 
 <div class="series-edit-container">
   <form

@@ -28,7 +28,7 @@ export const GET: APIRoute = async ({ locals }: any) => {
 
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-  
+
   allSeries.forEach((s) => {
     const date = s.updatedAt
       ? new Date(s.updatedAt).toISOString().split('T')[0]

@@ -30,6 +30,7 @@ const { slides = [], title } = Astro.props;
                   loading={index === 0 ? "eager" : "lazy"}
                   width={300}
                   height={450}
+                  forceLazy={true}
                 />
               </div>
               <div class="slide-overlay-master" />
@@ -47,6 +48,7 @@ const { slides = [], title } = Astro.props;
                       height={450}
                       loading={index === 0 ? "eager" : "lazy"}
                       fetchpriority={index === 0 ? "high" : "auto"}
+                      forceLazy={true}
                     />
                   </div>
                   

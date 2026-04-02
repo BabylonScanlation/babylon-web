@@ -1,6 +1,5 @@
 ---
 import { siteConfig } from '../site.config';
-import NewsCounter from './NewsCounter.svelte';
 
 const { user, runtime } = Astro.locals;
 const isNsfwActive = Astro.cookies.get('babylon_nsfw')?.value === 'true';
@@ -63,8 +62,7 @@ const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo
     </div>
 
     <script>
-      import { actions } from 'astro:actions';
-
+      // Orion: Toggle NSFW sin depender de astro:actions (Ahorro de ~15 requests de runtime)
       const setupToggle = (id: string) => {
         const btn = document.getElementById(id);
         if (btn) {
@@ -72,7 +70,9 @@ const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo
             e.preventDefault();
             btn.classList.add('loading');
             try {
-              const { data } = await actions.ui.toggleNsfw();
+              // Astra: Usamos fetch nativo para evitar cargar el runtime de devalue/actions
+              const res = await fetch('/api/ui/toggle-nsfw', { method: 'POST' });
+              const data = await res.json();
               if (data?.success) window.location.reload();
             } catch (err) {
               console.error('Error:', err);
@@ -100,12 +100,11 @@ const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo
         </button>
         <a href="/news" class="nav-link-pc news-link">
           <span>NOTICIAS</span>
+          <!-- Astra: El badge se actualiza vía initAll en Layout.astro (JS Nativo) -->
           <span data-news-badge class="news-badge-pc hidden"></span>
         </a>
         <a href="/library" class="nav-link-pc"><span>BIBLIOTECA</span></a>
       </div>
-
-      <NewsCounter client:load />
 
       <div class="user-actions">
         <a

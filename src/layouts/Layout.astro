@@ -171,38 +171,13 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     {!isAdminPage && <AdblockWall />}
     
     <script>
-      // Orion: Inyección Dinámica Manual (36 llamadas exactas garantizadas)
-      const handleTrigger = async (e: any) => {
-        if (window._babylonUtilsInjected) return;
-        window._babylonUtilsInjected = true;
-
-        // Guardamos la intención del usuario
-        window._babylonPendingEvent = { type: e.type, detail: e.detail };
-
-        // 1. Cargamos el motor de Svelte y el componente bajo demanda
-        const [svelte, { default: GlobalUtilities }] = await Promise.all([
-          import('svelte'),
-          import('../components/GlobalUtilities.svelte')
-        ]);
-
-        const container = document.getElementById('global-utilities-root');
-        if (container && svelte.mount) {
-          svelte.mount(GlobalUtilities as any, {
-            target: container,
-            props: { 
-              isVerifyPage: window.location.pathname === '/verify',
-              shouldShowAgeGate: document.documentElement.classList.contains('age-gate-active')
-            }
-          });
-        }
-      };
-
-      window.addEventListener('open-auth-modal', handleTrigger);
-      window.addEventListener('show-toast', handleTrigger);
-    </script>
-    
-    <script>
       const initAll = async () => {
+        // Orion: Singleton para evitar doble ejecución (Astro lifecycle fix)
+        // @ts-ignore
+        if (window._babylonInitialized) return;
+        // @ts-ignore
+        window._babylonInitialized = true;
+
         // 0. Instant NSFW
         const htmlHasMode = document.documentElement.classList.contains('nsfw-mode');
         const isNsfwCookie = document.cookie.split(';').some(c => c.trim().startsWith('babylon_nsfw=true'));
@@ -223,8 +198,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
             animate();
           }
         }
-// 2. NSFW Toggle (Moved to Header.astro for reliability)
-// logic removed from here to prevent double execution
+
         // 3. News Badges
         const updateBadges = (count: number) => {
           document.querySelectorAll('[data-news-badge]').forEach(b => {
@@ -239,8 +213,22 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
             }
           });
         };
+
+        const refreshNewsCount = async () => {
+          try {
+            const res = await fetch('/api/news/count');
+            const data = await res.json();
+            if (typeof data.count === 'number') {
+              localStorage.setItem('babylon_news_count', data.count.toString());
+              updateBadges(data.count);
+            }
+          } catch (e) {}
+        };
+
         updateBadges(parseInt(localStorage.getItem('babylon_news_count') || '0', 10));
-        window.addEventListener('news-count-updated', (e: any) => updateBadges(e.detail.count));
+        refreshNewsCount(); // Astra: Refresco nativo sin Svelte
+        // @ts-ignore
+        window.addEventListener('news-count-updated', (e: CustomEvent) => updateBadges(e.detail.count));
 
         // 3.5 Ghost Loader (Astra Orion - Ultra Reactive)
         const initGhostLoader = () => {
@@ -252,82 +240,68 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                 if (ds) {
                   img.src = ds;
                   img.removeAttribute('data-src');
-                  img.classList.remove('lazy-ghost');
+                  requestAnimationFrame(() => img.classList.remove('lazy-ghost'));
                 }
                 obs.unobserve(img);
               }
             });
-          }, { rootMargin: '500px' }); // Astra: Cargamos 500px antes para fluidez total
+          }, { rootMargin: '100px' }); // Astra: Reducido a 100px para minimizar peticiones concurrentes
 
-          const observeExisting = () => {
-            document.querySelectorAll('.lazy-ghost').forEach(el => obs.observe(el));
+          const observeExisting = (root: HTMLElement | Document = document.body) => {
+            if (!root) return;
+            root.querySelectorAll('.lazy-ghost').forEach(el => obs.observe(el));
           };
 
-          // Orion: Observar cambios en el DOM para resultados dinámicos
-          const mut = new MutationObserver(() => observeExisting());
-          mut.observe(document.body, { childList: true, subtree: true });
+          const mut = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+              m.addedNodes.forEach(node => {
+                if (node instanceof HTMLElement) {
+                  if (node.classList.contains('lazy-ghost')) obs.observe(node);
+                  node.querySelectorAll('.lazy-ghost').forEach(el => obs.observe(el));
+                }
+              });
+            }
+          });
           
+          mut.observe(document.body, { childList: true, subtree: true });
           observeExisting();
         };
         initGhostLoader();
 
-        // 4. Swiper Initialization (Fixed for CDN Bundle)
+        // 4. Swiper Initialization
         const initSwipers = () => {
-          // @ts-ignore - Swiper viene del CDN bundle global
+          // @ts-ignore
           const S = window.Swiper;
           if (!S) return;
           
           const hero = document.querySelector('.hero-swiper');
           if (hero && !(hero as any).swiper) {
-            new S(hero, { 
-              slidesPerView: 1, 
-              loop: true, 
-              effect: 'fade', 
-              speed: 1000,
-              autoplay: { delay: 6000, disableOnInteraction: false }, 
-              pagination: { el: '.premium-pagination', clickable: true }, 
-              navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } 
-            });
+            new S(hero, { slidesPerView: 1, loop: true, effect: 'fade', speed: 1000, autoplay: { delay: 6000, disableOnInteraction: false }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } });
           }
 
-          // Deferimos la segunda parte para no saturar el idle
-          setTimeout(() => {
-            const updates = document.querySelector('.recent-updates-swiper');
-            if (updates && !(updates as any).swiper) {
-              const obs = new IntersectionObserver((es) => { 
-                es.forEach(e => { 
-                  if (e.isIntersecting) { 
-                    new S(updates as HTMLElement, { 
-                      slidesPerView: 'auto', 
-                      spaceBetween: 20, // Astra: Espaciado recuperado
-                      freeMode: true, 
-                      scrollbar: { el: '.premium-scrollbar', draggable: true }, 
-                      breakpoints: { 
-                        768: { spaceBetween: 30 },
-                        1024: { spaceBetween: 40 }
-                      } 
-                    }); 
-                    obs.disconnect(); 
-                  } 
-                }); 
-              }, { rootMargin: '400px' });
-              obs.observe(updates);
-            }
-          }, 50);
+          const updates = document.querySelector('.recent-updates-swiper');
+          if (updates && !(updates as any).swiper) {
+            const obs = new IntersectionObserver((es) => { 
+              es.forEach(e => { 
+                if (e.isIntersecting) { 
+                  new S(updates as HTMLElement, { slidesPerView: 'auto', spaceBetween: 20, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true }, breakpoints: { 768: { spaceBetween: 30 }, 1024: { spaceBetween: 40 } } }); 
+                  obs.disconnect(); 
+                } 
+              }); 
+            }, { rootMargin: '100px' });
+            obs.observe(updates);
+          }
         };
         
-        // Orion: Usamos Idle para Swipers
         if ('requestIdleCallback' in window) {
           (window as any).requestIdleCallback(initSwipers);
         } else {
           setTimeout(initSwipers, 100);
         }
 
-        // 5. Adsterra Runner (IntersectionObserver - Solo carga cuando es visible)
+        // 5. Adsterra Runner
         const initAds = () => {
           const ads = Array.from(document.querySelectorAll('.ad-container-root'));
-          if (ads.length === 0) return;
-
           const observer = new IntersectionObserver((entries) => {
             entries.forEach(async (entry) => {
               if (entry.isIntersecting) {
@@ -340,90 +314,80 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                 const keys = JSON.parse(el.getAttribute('data-ad-keys') || '{}');
                 const dims = JSON.parse(el.getAttribute('data-ad-dims') || '{}');
                 const currentWinW = window.innerWidth;
-                
                 let currentType = type, currentDim = dims[currentType!] || { w: 728, h: 90 };
-                if (currentWinW < currentDim.w) { 
-                  currentType = currentWinW >= 468 && type !== 'square' ? 'bannerSmall' : 'square'; 
-                  currentDim = dims[currentType!] || { w: 300, h: 250 }; 
-                }
-                
+                if (currentWinW < currentDim.w) { currentType = currentWinW >= 468 && type !== 'square' ? 'bannerSmall' : 'square'; currentDim = dims[currentType!] || { w: 300, h: 250 }; }
                 const finalKey = keys[currentType!] || keys.banner;
                 if (finalKey) {
-                  const adId = el.id;
-                  const adKey = finalKey;
-                  const adDim = currentDim;
-                  
                   const iframe = document.createElement('iframe');
-                  iframe.style.width = adDim.w + 'px';
-                  iframe.style.height = adDim.h + 'px';
-                  iframe.style.border = 'none';
-                  iframe.style.overflow = 'hidden';
-                  iframe.loading = 'lazy';
-                  
-                  const slot = document.getElementById(`slot-${adId}`);
+                  iframe.style.width = currentDim.w + 'px'; iframe.style.height = currentDim.h + 'px'; iframe.style.border = 'none'; iframe.style.overflow = 'hidden'; iframe.loading = 'lazy';
+                  const slot = document.getElementById(`slot-${el.id}`);
                   if (slot) {
-                    slot.innerHTML = '';
-                    slot.appendChild(iframe);
-                    
-                    iframe.srcdoc = `
-                      <body style="margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:${adDim.h}px;">
-                        <div id="container-${adKey}"></div>
-                        <script type="text/javascript">
-                          atOptions = { 'key' : '${adKey}', 'format' : 'iframe', 'height' : ${adDim.h}, 'width' : ${adDim.w}, 'params' : {} };
-                        <\/script>
-                        <script type="text/javascript" src="https://crowdsubsequentadmire.com/${adKey}/invoke.js"><\/script>
-                      </body>
-                    `;
+                    slot.innerHTML = ''; slot.appendChild(iframe);
+                    iframe.srcdoc = `<body style="margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:${currentDim.h}px;background:transparent;"><div id="container-${finalKey}"></div><script type="text/javascript">atOptions = { 'key' : '${finalKey}', 'format' : 'iframe', 'height' : ${currentDim.h}, 'width' : ${currentDim.w}, 'params' : {} };<\/script><script type="text/javascript" src="https://crowdsubsequentadmire.com/${finalKey}/invoke.js"><\/script></body>`;
                   }
                 }
               }
             });
-          }, { rootMargin: '250px' }); // Astra: Cargamos 250px antes de que lleguen
-
+          }, { rootMargin: '50px' });
           ads.forEach(ad => observer.observe(ad));
         };
-        
-        // 6. Adblock Detection (Minimal)
+
         const runAdblockCheck = () => {
+          // Orion: Si es admin, no perdemos tiempo comprobando bloqueadores
+          if (document.body.getAttribute('data-user-state')?.includes('"isAdmin":true')) return;
+
           setTimeout(async () => {
-            const check = async () => {
-              try {
-                await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' });
-                const bait = document.getElementById('tester-wrap');
-                if (bait && (bait.offsetParent === null || bait.offsetHeight === 0)) return true;
-                return false;
-              } catch (e) {
-                return true;
-              }
-            };
+            const check = async () => { try { await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' }); const bait = document.getElementById('tester-wrap'); if (bait && (bait.offsetParent === null || bait.offsetHeight === 0)) return true; return false; } catch (e) { return true; } };
             if (await check()) {
               if (window.location.pathname.includes('/series/') && window.location.pathname.split('/').length >= 4) {
-                const wall = document.getElementById('adblock-wall');
-                if (wall) { wall.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+                const wall = document.getElementById('adblock-wall'); if (wall) { wall.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
               } else {
-                const toast = document.getElementById('adblock-toast');
-                if (toast) toast.style.display = 'flex';
+                const toast = document.getElementById('adblock-toast'); if (toast) toast.style.display = 'flex';
               }
             }
           }, 2000);
         };
 
-        // Orion: Usamos Idle para Ads y Adblock
         if ('requestIdleCallback' in window) {
-          (window as any).requestIdleCallback(() => {
-            initAds();
-            runAdblockCheck();
-          });
+          (window as any).requestIdleCallback(() => { initAds(); runAdblockCheck(); });
         } else {
-          setTimeout(() => {
-            initAds();
-            runAdblockCheck();
-          }, 2000);
+          setTimeout(() => { initAds(); runAdblockCheck(); }, 2000);
         }
       };
 
-      document.addEventListener('astro:page-load', initAll);
+      // Astra: Inyección bajo demanda (Event Delegation)
+      const handleTrigger = async (e: any) => {
+        // @ts-ignore
+        if (window._babylonUtilsInjected) return;
+        // @ts-ignore
+        window._babylonUtilsInjected = true;
+        // @ts-ignore
+        window._babylonPendingEvent = { type: e.type, detail: e.detail };
+        const [svelte, { default: GlobalUtilities }] = await Promise.all([import('svelte'), import('../components/GlobalUtilities.svelte')]);
+        const container = document.getElementById('global-utilities-root');
+        if (container && svelte.mount) {
+          // @ts-ignore
+          svelte.mount(GlobalUtilities, { target: container, props: { isVerifyPage: window.location.pathname === '/verify', shouldShowAgeGate: document.documentElement.classList.contains('age-gate-active') } });
+        }
+      };
+
+      window.addEventListener('open-auth-modal', handleTrigger);
+      window.addEventListener('show-toast', handleTrigger);
+
+      document.addEventListener('astro:page-load', () => {
+        // Orion: Reset de inicialización en navegación SPA
+        // @ts-ignore
+        if (window.location.pathname !== window._babylonLastPath) {
+          // @ts-ignore
+          window._babylonInitialized = false;
+          // @ts-ignore
+          window._babylonLastPath = window.location.pathname;
+        }
+        initAll();
+      });
+
       if (document.readyState !== 'loading') initAll();
+      else document.addEventListener('DOMContentLoaded', initAll);
     </script>
   </body>
 </html>
