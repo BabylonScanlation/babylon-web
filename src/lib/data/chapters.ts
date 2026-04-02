@@ -3,12 +3,13 @@ import { and, eq, inArray } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 import { chapters, series } from '../../db/schema';
+import type { BabylonEnv, ChapterManifest } from '../../types';
 import { signManifest } from '../crypto';
 import { obfuscate } from '../obfuscator';
 
 export async function getChapterPayload(
   db: DrizzleD1Database<typeof schema>,
-  env: any,
+  env: BabylonEnv,
   slug: string,
   chapterNumber: number,
   ctx?: ExecutionContext
@@ -32,7 +33,7 @@ export async function getChapterPayload(
   const chapter = chapterData.Chapters;
 
   const manifestKey = `${slug}/${chapterNumber}/manifest.json`;
-  let manifestContent: any = null;
+  let manifestContent: ChapterManifest | null = null;
 
   // Orion: Intentamos recuperar del Edge Cache primero
   const cache = typeof caches !== 'undefined' ? (caches as any).default : null;

@@ -4,15 +4,10 @@ import NewsCounter from './NewsCounter.svelte';
 
 const { user, runtime } = Astro.locals;
 const isNsfwActive = Astro.cookies.get('babylon_nsfw')?.value === 'true';
-const r2PublicUrlAssets =
-  runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
+const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 
-const currentLogo = isNsfwActive
-  ? siteConfig.assets.logoHeaderNsfw
-  : siteConfig.assets.logoHeader;
-const logoUrl = currentLogo.startsWith('/')
-  ? `${r2PublicUrlAssets}${currentLogo}`
-  : currentLogo;
+const currentLogo = isNsfwActive ? siteConfig.assets.logoHeaderNsfw : siteConfig.assets.logoHeader;
+const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo}` : currentLogo;
 ---
 
 <header
@@ -70,7 +65,7 @@ const logoUrl = currentLogo.startsWith('/')
     <script>
       import { actions } from 'astro:actions';
 
-      const setupToggle = (id) => {
+      const setupToggle = (id: string) => {
         const btn = document.getElementById(id);
         if (btn) {
           btn.addEventListener('click', async (e) => {

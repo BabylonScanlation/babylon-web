@@ -175,7 +175,8 @@ export const chapterActions = {
             status: 'processing',
             urlPortada: `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`,
             createdAt: new Date().toISOString(),
-            })          .returning({ id: chapters.id });
+          })
+          .returning({ id: chapters.id });
 
         if (!insertResult || insertResult.length === 0 || !insertResult[0]) {
           throw new Error('Error al registrar el capítulo en la base de datos');
@@ -187,7 +188,7 @@ export const chapterActions = {
           .set({
             telegramFileId: fileId,
             status: 'processing',
-            createdAt: new Date(),
+            createdAt: new Date().toISOString(),
           })
           .where(eq(chapters.id, existing.id));
         registeredChapterId = existing.id;

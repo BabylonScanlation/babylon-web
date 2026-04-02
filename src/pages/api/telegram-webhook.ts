@@ -68,7 +68,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
               coverImageUrl: placeholderUrl,
               telegramTopicId: topicId,
               isHidden: true,
-              createdAt: new Date(),
+              createdAt: new Date().toISOString(),
             })
             .returning({ id: series.id, title: series.title })
             .get();
@@ -117,7 +117,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
             telegramFileId: fileId,
             status: 'live',
             urlPortada: chapterPlaceholderUrl,
-            createdAt: new Date(),
+            createdAt: new Date().toISOString(),
           })
           .where(eq(chapters.id, existingChapter.id))
           .run();
@@ -136,7 +136,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
             status: 'live',
             urlPortada: null,
             createdAt: new Date().toISOString(), // Forzar formato ISO String para evitar milisegundos en D1
-            })          .returning({ id: chapters.id })
+          })
+          .returning({ id: chapters.id })
           .get();
 
         if (chapterIdResult?.id) {

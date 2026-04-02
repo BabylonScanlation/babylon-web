@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, or, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, or, type SQL, sql } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 import { news, newsImage, series, users } from '../../db/schema';
@@ -9,7 +9,7 @@ export async function getNewsList(
   seriesId?: number | null,
   allowNsfw: boolean = false
 ) {
-  const conditions: any[] = [eq(news.status, status)];
+  const conditions: (SQL | undefined)[] = [eq(news.status, status)];
 
   if (seriesId !== undefined) {
     conditions.push(seriesId === null ? isNull(news.seriesId) : eq(news.seriesId, seriesId));
@@ -59,11 +59,17 @@ export async function getNewsList(
 
       finalResults.push({
         ...r,
-        seriesCover: r.seriesCover ? (r.seriesCover.startsWith('http') ? r.seriesCover : `/api/assets/proxy/${r.seriesCover}`) : undefined,
+        seriesCover: r.seriesCover
+          ? r.seriesCover.startsWith('http')
+            ? r.seriesCover
+            : `/api/assets/proxy/${r.seriesCover}`
+          : undefined,
         seriesTitle: r.seriesTitle || undefined,
         authorAvatar: r.authorAvatar || undefined,
         images: images || [],
-        imageUrls: images.map((img) => img.r2Key.startsWith('http') ? img.r2Key : `/api/assets/proxy/${img.r2Key}`),
+        imageUrls: images.map((img) =>
+          img.r2Key.startsWith('http') ? img.r2Key : `/api/assets/proxy/${img.r2Key}`
+        ),
       });
     }
 
@@ -100,7 +106,7 @@ export async function getLatestNewsId(
   allowNsfw: boolean = false
 ) {
   try {
-    const conditions: any[] = [eq(news.status, 'published')];
+    const conditions: (SQL | undefined)[] = [eq(news.status, 'published')];
     if (allowNsfw) {
       conditions.push(eq(series.isNsfw, true));
     } else {
@@ -156,7 +162,9 @@ export async function getNewsDetail(db: DrizzleD1Database<typeof schema>, id: st
       seriesSlug: result.seriesSlug || undefined,
       seriesTitle: result.seriesTitle || undefined,
       images: images || [],
-      imageUrls: images.map((img) => img.r2Key.startsWith('http') ? img.r2Key : `/api/assets/proxy/${img.r2Key}`),
+      imageUrls: images.map((img) =>
+        img.r2Key.startsWith('http') ? img.r2Key : `/api/assets/proxy/${img.r2Key}`
+      ),
     };
   } catch (error) {
     console.error('Error fetching news detail with joins:', error);

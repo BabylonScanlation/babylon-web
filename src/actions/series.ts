@@ -109,7 +109,7 @@ export const seriesActions = {
         isAppSeries: !!input.isAppSeries,
         isHidden: !!input.isHidden,
         isNsfw: !!input.isNsfw,
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
       });
 
       return { success: true, slug, telegramTopicId };

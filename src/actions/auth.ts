@@ -100,7 +100,7 @@ export const authActions = {
               lastIpAddress: ip,
               userAgent,
               country,
-              updatedAt: new Date(),
+              updatedAt: new Date().toISOString(),
               fingerprintHash: fingerprint || null,
             },
           })

@@ -1,9 +1,27 @@
 // src/types.ts
 
+import type { D1Database, KVNamespace, R2Bucket } from '@cloudflare/workers-types';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from './db/schema';
 
 export type AppDatabase = DrizzleD1Database<typeof schema>;
+
+export interface BabylonEnv {
+  DB: D1Database;
+  R2_ASSETS: R2Bucket;
+  R2_CACHE: R2Bucket;
+  KV_VIEWS: KVNamespace;
+  JWT_SECRET?: string;
+  AUTH_SECRET?: string;
+  SUPER_ADMIN_UID?: string;
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_WEBHOOK_SECRET?: string;
+  R2_PUBLIC_URL_ASSETS?: string;
+  R2_PUBLIC_URL_CACHE?: string;
+  INTERNAL_CRYPTO_SALT?: string;
+  CONTEXT7_API?: string;
+  [key: string]: unknown;
+}
 
 export interface Chapter {
   id: number;
@@ -104,14 +122,30 @@ export interface FirebaseDecodedToken {
 export interface SessionContext {
   cookies: {
     get: (key: string) => { value: string } | undefined;
-    set: (key: string, value: string, options?: any) => void;
-    delete: (key: string, options?: any) => void;
+    set: (key: string, value: string, options?: unknown) => void;
+    delete: (key: string, options?: unknown) => void;
   };
   request: Request;
   locals: {
     runtime: {
-      env: any;
+      env: BabylonEnv;
     };
-    [key: string]: any;
+    [key: string]: unknown;
   };
+}
+
+export interface ChapterPage {
+  imageUrl?: string;
+  url?: string;
+  pageNumber?: number;
+  [key: string]: unknown;
+}
+
+export interface ChapterManifest {
+  seriesId: number;
+  chapterNumber: number;
+  title?: string | null;
+  pages?: ChapterPage[];
+  imageUrls?: string[]; // Legacy
+  [key: string]: unknown;
 }

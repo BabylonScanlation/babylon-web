@@ -24,11 +24,11 @@ export const adminActions = {
 
       const cvDeleted = await db
         .delete(chapterViews)
-        .where(lt(chapterViews.viewedAt, thirtyDaysAgo))
+        .where(lt(chapterViews.viewedAt, thirtyDaysAgo.toISOString() as any))
         .run();
       const svDeleted = await db
         .delete(seriesViews)
-        .where(lt(seriesViews.viewedAt, thirtyDaysAgo))
+        .where(lt(seriesViews.viewedAt, thirtyDaysAgo.toISOString() as any))
         .run();
       const sessionsDeleted = await db
         .delete(sessions)
@@ -36,7 +36,7 @@ export const adminActions = {
         .run();
       const anonDeleted = await db
         .delete(anonymousUsers)
-        .where(lt(anonymousUsers.updatedAt, sevenDaysAgo))
+        .where(lt(anonymousUsers.updatedAt, sevenDaysAgo.toISOString() as any))
         .run();
 
       return {
@@ -60,13 +60,13 @@ export const adminActions = {
 
       const chaptersResult = await db
         .update(chapters)
-        .set({ createdAt: new Date() })
+        .set({ createdAt: new Date().toISOString() })
         .where(isNull(chapters.createdAt))
         .returning({ id: chapters.id })
         .all();
       const seriesResult = await db
         .update(series)
-        .set({ createdAt: new Date() })
+        .set({ createdAt: new Date().toISOString() })
         .where(isNull(series.createdAt))
         .returning({ id: series.id })
         .all();

@@ -76,9 +76,11 @@ const predictedImagePath = $derived.by(() => {
 
 // Filtrar noticias derivado
 const filteredNews = $derived(
-  selectedSeriesId === -1 
-    ? newsItems.filter(n => n.seriesId === null)
-    : selectedSeriesId ? newsItems.filter((n) => n.seriesId === selectedSeriesId) : []
+  selectedSeriesId === -1
+    ? newsItems.filter((n) => n.seriesId === null)
+    : selectedSeriesId
+      ? newsItems.filter((n) => n.seriesId === selectedSeriesId)
+      : []
 );
 
 // Orion: Helper para obtener conteos
@@ -95,7 +97,7 @@ function selectSeries(id: number | null) {
   resetForm();
   isEditing = false;
   // Pre-generar un ID para noticias nuevas para que las rutas de imágenes sean permanentes
-  editingNewsId = generateUUID(); 
+  editingNewsId = generateUUID();
   window.dispatchEvent(new CustomEvent('series-selected', { detail: { selected: true } }));
 }
 
@@ -111,7 +113,7 @@ function resetForm() {
   formStatus = 'published';
   formImage = null;
   _imagePreview = null;
-  editingNewsId = null; 
+  editingNewsId = null;
   isEditing = false;
   _isSubmitting = false;
 }
@@ -167,16 +169,16 @@ async function handleSubmit() {
 
   try {
     const payload = {
-      id: editingNewsId || undefined,
       title: formTitle,
       content: formContent,
       status: formStatus,
       seriesId: selectedSeriesId === -1 ? null : selectedSeriesId,
     };
+
     const result =
       isEditing && editingNewsId
-        ? await actions.news.update({ id: editingNewsId, ...payload })
-        : await actions.news.create(payload);
+        ? await actions.news.update({ id: editingNewsId as string, ...payload })
+        : await actions.news.create({ ...payload, id: undefined });
 
     if (result.error) throw new Error(result.error.message);
 
@@ -187,7 +189,9 @@ async function handleSubmit() {
 
     if (isEditing) {
       newsItems = newsItems.map((n) =>
-        n.id === savedNews.id ? { ...savedNews, seriesId: selectedSeriesId === -1 ? null : selectedSeriesId } : n
+        n.id === savedNews.id
+          ? { ...savedNews, seriesId: selectedSeriesId === -1 ? null : selectedSeriesId }
+          : n
       );
     } else {
       newsItems = [

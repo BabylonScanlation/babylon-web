@@ -11,11 +11,11 @@ export interface UserSessionPayload {
 }
 
 export async function createToken(payload: UserSessionPayload, secret: string): Promise<string> {
-  const secretKey = new TextEncoder().encode(secret.trim());
+  const secretKey = new TextEncoder().encode(secret);
   return await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('15m')
+    .setExpirationTime('5m')
     .sign(secretKey);
 }
 
@@ -24,7 +24,7 @@ export async function verifyToken(
   secret: string
 ): Promise<UserSessionPayload | null> {
   try {
-    const secretKey = new TextEncoder().encode(secret.trim());
+    const secretKey = new TextEncoder().encode(secret);
     const { payload } = await jwtVerify(token, secretKey);
     return payload as unknown as UserSessionPayload;
   } catch {

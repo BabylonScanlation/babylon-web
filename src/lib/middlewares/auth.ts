@@ -39,12 +39,6 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
   }
 
   // 2. SLOW-PATH: Verificación de sesión en D1 (Si el JWT expiró, no existe, o necesitamos revalidar)
-  const isCriticalPath =
-    currentPath === '/verify' ||
-    currentPath === '/terms' ||
-    currentPath.startsWith('/js/') ||
-    currentPath.startsWith('/_astro');
-
   if (!locals.user && sessionId && db && !locals.isBot) {
     try {
       const result = await db
@@ -82,7 +76,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
         // Auto-refresh: Emitimos un nuevo JWT válido por 15 mins ya que la sesión D1 es válida
         if (runtime?.env?.JWT_SECRET) {
           await setAuthCookie(
-            context,
+            context as any,
             {
               uid: userObj.uid,
               email: userObj.email,
@@ -96,11 +90,11 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
         }
       } else {
         // Sesión no válida en D1 (ej. expirada o usuario baneado/sesión borrada)
-        deleteSession(context);
+        deleteSession(context as any);
       }
     } catch (error) {
       logError(error, 'Auth Middleware Error');
-      deleteSession(context);
+      deleteSession(context as any);
     }
   }
 

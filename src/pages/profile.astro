@@ -9,7 +9,7 @@ import { getSession } from '../lib/session';
 import { siteConfig } from '../site.config';
 
 // 1. Auth Check
-const sessionCookie = getSession(Astro);
+const sessionCookie = getSession(Astro as any);
 if (!sessionCookie) {
   return Astro.redirect('/');
 }

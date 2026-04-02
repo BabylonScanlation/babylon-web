@@ -11,7 +11,6 @@ import {
   type NewsImageItem,
   updateNews,
 } from '../lib/db';
-import { generateUUID } from '../lib/utils';
 
 export const newsActions = {
   uploadImage: defineAction({

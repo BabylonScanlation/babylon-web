@@ -46,7 +46,8 @@ export const siteConfig = {
 
   // App Links
   app: {
-    androidUrl: 'https://pub-2e7d3fdb6a36489c808eaae6d2263bc7.r2.dev/babylonweb-app/DtupScan.apk',
+    // Orion: Usamos el proxy de la API para no exponer el bucket de R2 en el cliente
+    androidUrl: '/api/assets/proxy/babylonweb-app/DtupScan.apk',
   },
 
   // Persistencia y Prefijos

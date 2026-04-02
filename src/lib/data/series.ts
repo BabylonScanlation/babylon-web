@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, or, type SQL, sql } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 import { chapters, favorites, series, seriesRatings, seriesReactions } from '../../db/schema';
@@ -152,7 +152,7 @@ export async function getSeriesDetails(
  * Reduce múltiples viajes a la DB y solo trae los campos necesarios para la UI.
  */
 export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsfw = false) {
-  const commonConditions: any[] = [eq(series.isHidden, false)];
+  const commonConditions: (SQL | undefined)[] = [eq(series.isHidden, false)];
 
   // Orion: Modo Estricto.
   // Si allowNsfw es true, SOLO mostramos NSFW (isNsfw = true)
@@ -222,7 +222,7 @@ export async function getRecentSeries(
   allowNsfw: boolean = false,
   limit = 5
 ) {
-  const conditions: any[] = [eq(series.isHidden, false)];
+  const conditions: (SQL | undefined)[] = [eq(series.isHidden, false)];
   if (allowNsfw) {
     conditions.push(eq(series.isNsfw, true));
   } else {
@@ -254,7 +254,7 @@ export async function getPopularSeries(
   allowNsfw: boolean = false,
   limit = 5
 ) {
-  const conditions: any[] = [eq(series.isHidden, false)];
+  const conditions: (SQL | undefined)[] = [eq(series.isHidden, false)];
   if (allowNsfw) {
     conditions.push(eq(series.isNsfw, true));
   } else {
@@ -314,7 +314,7 @@ export async function getSeriesWithRecentChapters(
   db: DrizzleD1Database<typeof schema>,
   allowNsfw: boolean = false
 ) {
-  const seriesConditions: any[] = [eq(series.isHidden, false)];
+  const seriesConditions: (SQL | undefined)[] = [eq(series.isHidden, false)];
   if (allowNsfw) {
     seriesConditions.push(eq(series.isNsfw, true));
   } else {
@@ -373,7 +373,7 @@ export async function getSeriesWithRecentChapters(
         title: row.title,
         coverImageUrl: row.coverImageUrl,
         recentChapters: [],
-        lastUpdate: row.chapterCreatedAt, 
+        lastUpdate: row.chapterCreatedAt,
       });
     }
 
@@ -412,7 +412,7 @@ export async function getSeriesByChapterCount(
   allowNsfw: boolean = false,
   limit = 5
 ) {
-  const conditions: any[] = [eq(series.isHidden, false), eq(chapters.status, 'live')];
+  const conditions: (SQL | undefined)[] = [eq(series.isHidden, false), eq(chapters.status, 'live')];
 
   if (allowNsfw) {
     conditions.push(eq(series.isNsfw, true));
@@ -477,7 +477,7 @@ export async function searchSeries(
   } = options;
 
   const offset = (page - 1) * limit;
-  const conditions: any[] = [eq(series.isHidden, false)];
+  const conditions: (SQL | undefined)[] = [eq(series.isHidden, false)];
   if (allowNsfw) {
     conditions.push(eq(series.isNsfw, true));
   } else {
@@ -485,8 +485,8 @@ export async function searchSeries(
   }
 
   // Orion: Usamos FTS5 si hay una consulta de texto, de lo contrario usamos filtros estándar
-  let baseQuery: any = db.select().from(series);
-  let countQuery: any = db.select({ count: sql<number>`count(*)` }).from(series);
+  let baseQuery: any = db.select().from(series).$dynamic();
+  let countQuery: any = db.select({ count: sql<number>`count(*)` }).from(series).$dynamic();
 
   if (q && q.trim() !== '') {
     const searchTerm = q
@@ -530,7 +530,7 @@ export async function searchSeries(
     query.orderBy(asc(series.title));
   }
 
-  const results = await query.limit(limit).offset(offset).all();
+  const results = (await query.limit(limit).offset(offset).all()) as any[];
 
   return {
     results,

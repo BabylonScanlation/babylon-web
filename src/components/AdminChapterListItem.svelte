@@ -173,9 +173,9 @@ const _finalUrl = $derived.by(() => {
     <div class="card-main">
         {#if isEditing}
             <div class="title-edit-wrap">
-                <input 
-                    type="text" 
-                    bind:value={title} 
+                <input
+                    type="text"
+                    bind:value={title}
                     onkeydown={(e) => e.key === 'Enter' && _saveTitle()}
                     onblur={_saveTitle}
                     use:autoFocus
@@ -187,7 +187,7 @@ const _finalUrl = $derived.by(() => {
                 <h4 class="chapter-title">{chapter.title || 'Sin título'}</h4>
             </div>
         {/if}
-        
+
         <div class="card-meta">
             <span class="meta-item views">
                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -205,9 +205,9 @@ const _finalUrl = $derived.by(() => {
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
         </label>
 
-        <button 
-            class="action-btn delete" 
-            class:confirm={deleteState === 'confirm'} 
+        <button
+            class="action-btn delete"
+            class:confirm={deleteState === 'confirm'}
             onclick={_handleDelete}
             title="Eliminar capítulo"
         >
@@ -263,7 +263,7 @@ const _finalUrl = $derived.by(() => {
   .card-thumb:hover .thumb-overlay { opacity: 1; }
 
   .card-main { flex-grow: 1; min-width: 0; }
-  
+
   .title-display { cursor: text; }
   .chapter-num { display: block; font-size: 0.7rem; font-weight: 800; color: var(--accent-color); text-transform: uppercase; margin-bottom: 2px; }
   .chapter-title { margin: 0; font-size: 0.95rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

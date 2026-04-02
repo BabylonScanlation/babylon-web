@@ -8,8 +8,8 @@ import {
   newsComments,
   series,
   seriesComments,
-  users,
   userRoles,
+  users,
 } from '../../db/schema';
 
 export async function getAdmins(db: DrizzleD1Database<typeof schema>) {

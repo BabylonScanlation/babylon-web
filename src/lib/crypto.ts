@@ -120,18 +120,17 @@ function normalizeProxyUrl(url: string): string {
   return `/api/r2-cache/${cleanPath}`;
 }
 
+import type { ChapterManifest, ChapterPage } from '../types';
+
 /**
  * Signs all URLs inside a chapter manifest using the environment secret.
  */
-export async function signManifest(manifest: any, envSecret: string | undefined): Promise<any> {
+export async function signManifest(
+  manifest: ChapterManifest,
+  envSecret: string | undefined
+): Promise<ChapterManifest> {
   console.log('[CRYPTO] signManifest: Starting manifest signing...');
-  let secret = envSecret;
-  if (typeof secret === 'string') {
-    secret = secret
-      .replace(/['"“”]/g, '')
-      .replace(/\\n/g, '')
-      .trim();
-  }
+  const secret = envSecret;
 
   if (!secret) {
     console.error('[CRYPTO] signManifest: AUTH_SECRET is missing!');
@@ -142,7 +141,7 @@ export async function signManifest(manifest: any, envSecret: string | undefined)
   if (manifest.pages && Array.isArray(manifest.pages)) {
     console.log(`[CRYPTO] signManifest: Signing ${manifest.pages.length} pages (modern format)`);
     const signedPages = await Promise.all(
-      manifest.pages.map(async (page: any, idx: number) => {
+      manifest.pages.map(async (page: ChapterPage, idx: number) => {
         // If page is just a string (legacy/edge case), normalize, sign and return as object
         if (typeof page === 'string') {
           const normalizedUrl = normalizeProxyUrl(page);

@@ -1,7 +1,8 @@
 // src/lib/middlewares/shield.ts
+import type { APIContext, MiddlewareNext } from 'astro';
 import { siteConfig } from '../../site.config';
 
-export async function shield(context: any, next: any) {
+export async function shield(context: APIContext, next: MiddlewareNext) {
   const { request, url, locals } = context;
   const userAgent = request.headers.get('user-agent') || '';
   const lowerUa = userAgent.toLowerCase();
