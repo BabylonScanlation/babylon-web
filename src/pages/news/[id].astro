@@ -29,6 +29,14 @@ const initialComments = (await getCommentsForTarget(drizzleDb, 'news', id, user?
 
 <Layout title={`${newsItem.title} - Noticias - ${siteConfig.shortName}`}>
   <main class="news-detail-container">
+    <!-- Navegación Superior -->
+    <nav class="news-top-nav">
+      <a href="/news" class="back-link-minimal">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span>Noticias</span>
+      </a>
+    </nav>
+
     <!-- Artículo Principal -->
     <article class="news-article">
       <div class="news-header">
@@ -44,18 +52,14 @@ const initialComments = (await getCommentsForTarget(drizzleDb, 'news', id, user?
         <div class="news-content prose" set:html={renderedContent}></div>
       </div>
 
-      <div class="news-navigation">
-        <a href="/news" class="nav-btn-modern">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          Volver a Noticias
-        </a>
-        {newsItem.seriesSlug && (
+      {newsItem.seriesSlug && (
+        <div class="news-footer-nav">
           <a href={`/series/${newsItem.seriesSlug}`} class="nav-btn-modern accent">
             Ir a la Serie
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </a>
-        )}
-      </div>
+        </div>
+      )}
     </article>
 
     <!-- Zona de Comentarios Separada -->
@@ -73,14 +77,67 @@ const initialComments = (await getCommentsForTarget(drizzleDb, 'news', id, user?
 </Layout>
 
 <style>
-  .news-detail-container {
-    max-width: 900px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 3rem 1.5rem;
+  /* --- NAVEGACIÓN --- */
+  .news-top-nav {
+    margin-bottom: 2.5rem;
     display: flex;
-    flex-direction: column;
-    gap: 4rem; /* Gran separación entre artículo y comentarios */
+    justify-content: flex-start;
+    padding-left: 8rem; /* Astra: Desplazamiento profundo a la derecha */
+  }
+
+  @media (max-width: 1400px) {
+    .news-top-nav { padding-left: 4rem; }
+  }
+
+  @media (max-width: 1200px) {
+    .news-top-nav { padding-left: 2rem; }
+  }
+
+  @media (max-width: 768px) {
+    .news-top-nav { padding-left: 1.5rem; }
+  }
+
+  .back-link-minimal {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #aaa;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    padding: 0.7rem 1.2rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 100px;
+    backdrop-filter: blur(10px);
+  }
+
+  .back-link-minimal svg {
+    transition: transform 0.3s ease;
+    color: var(--accent-color);
+  }
+
+  .back-link-minimal:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateX(5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  .back-link-minimal:hover svg {
+    transform: translateX(-3px);
+  }
+
+  .news-footer-nav {
+    display: flex;
+    justify-content: center;
+    padding-top: 3rem;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    margin-top: 4rem;
   }
 
   /* --- ARTÍCULO --- */
@@ -150,12 +207,12 @@ const initialComments = (await getCommentsForTarget(drizzleDb, 'news', id, user?
   :global(.prose img) {
     max-width: 100%;
     height: auto;
-    max-height: 350px;
+    max-height: 700px; /* Astra: Tamaño duplicado para impacto visual */
     border-radius: 16px;
     display: block;
-    margin: 2rem auto;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    border: 1px solid rgba(255,255,255,0.05);
+    margin: 2.5rem auto;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.08);
     object-fit: contain;
   }
 

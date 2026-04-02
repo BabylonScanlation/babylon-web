@@ -335,7 +335,9 @@ const reactions = [
                     seriesCover={getImageUrl(series.coverImageUrl, r2PublicUrlAssets, 'series')}
                   />
                 )}
-                <NewsFeed seriesId={series.id} user={user} />
+                <div class="news-feed-container">
+                  <NewsFeed seriesId={series.id} user={user} />
+                </div>
               </div>
             </div>
 

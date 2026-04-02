@@ -36,8 +36,10 @@ try {
 }
 
 // Orion: Deduplicación inteligente para el FeaturedGrid
-const featuredGridData = [...popularSeries]
-  .sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0))
+// Evitamos que las series que ya aparecen en el Hero (carrusel) se repitan en el Grid inferior
+const carouselIds = new Set(seriesByChapterCount.map((s: any) => s.id));
+const featuredGridData = popularSeries
+  .filter((s: any) => !carouselIds.has(s.id))
   .slice(0, 6);
 ---
 

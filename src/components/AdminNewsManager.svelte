@@ -1,6 +1,6 @@
 <script lang="ts">
 import { actions } from 'astro:actions';
-import { fade, fly, slide } from 'svelte/transition';
+import { slide } from 'svelte/transition';
 import { toast } from '../lib/stores.svelte';
 import { generateUUID } from '../lib/utils';
 import type { User } from '../types';
@@ -69,9 +69,18 @@ let showMarkdownHelp = $state(false);
 // Orion: Predecir ruta final de la imagen (Evitar blob:)
 const predictedImagePath = $derived.by(() => {
   if (!formImage) return '';
+  // Orion: Lógica de limpieza idéntica a src/actions/news.ts
   const cleanName = formImage.name.replace(/[^a-zA-Z0-9.]/g, '_');
   const id = editingNewsId || 'pending';
-  return `/api/assets/proxy/news/${id}/${cleanName}`;
+  
+  // Astra: Si es el proxy interno, usamos ruta relativa "/" para que funcione en móviles en local
+  // Si es una URL externa (CDN), la mantenemos absoluta.
+  const isInternalProxy = !r2PublicUrlAssets || r2PublicUrlAssets.includes('/api/assets/proxy');
+  const base = isInternalProxy ? '/api/assets/proxy' : r2PublicUrlAssets;
+  
+  const fullPath = `${base}/news/${id}/${cleanName}`.replace(/([^:]\/)\/+/g, '$1');
+  
+  return fullPath;
 });
 
 // Filtrar noticias derivado
@@ -178,7 +187,7 @@ async function handleSubmit() {
     const result =
       isEditing && editingNewsId
         ? await actions.news.update({ id: editingNewsId as string, ...payload })
-        : await actions.news.create({ ...payload, id: undefined });
+        : await actions.news.create({ ...payload, id: editingNewsId as string });
 
     if (result.error) throw new Error(result.error.message);
 
@@ -652,11 +661,13 @@ function copyToClipboard(text: string) {
     flex-shrink: 1; 
     flex-basis: 0; 
     border: 1px solid #222;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* Astra: Fix para URLs ultra-largas que rompen el layout */
+    white-space: normal;
+    word-break: break-all;
+    overflow-wrap: anywhere;
     display: block;
     min-width: 0;
+    line-height: 1.4;
   }
   .copy-snippet { 
     background: #333; 

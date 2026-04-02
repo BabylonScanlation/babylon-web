@@ -133,6 +133,41 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       }
     `}>
     </style>
+    <style is:global>
+      /* Astra: Estilos críticos para imágenes de noticias (Carga prioritaria para evitar parpadeos) */
+      .news-gallery, 
+      .post-images, 
+      .news-gallery-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        margin-top: 1.5rem;
+        width: 100%;
+      }
+      
+      /* Selectores de alta especificidad para garantizar el tamaño sin usar !important */
+      article.news-article .prose img,
+      .premium-news-post .news-gallery img,
+      .news-post .post-images img {
+        width: 100%;
+        height: auto;
+        max-height: 1200px;
+        object-fit: contain;
+        display: block;
+        margin: 2.5rem auto;
+      }
+
+      .news-gallery .image-wrapper, 
+      .post-images .image-wrapper {
+        position: relative;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.3);
+        width: 100%;
+        display: block;
+      }
+    </style>
   </head>
   <body 
     class="cosmos-theme" 
@@ -276,7 +311,17 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           
           const hero = document.querySelector('.hero-swiper');
           if (hero && !(hero as any).swiper) {
-            new S(hero, { slidesPerView: 1, loop: true, effect: 'fade', speed: 1000, autoplay: { delay: 6000, disableOnInteraction: false }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } });
+            const slideCount = hero.querySelectorAll('.swiper-slide').length;
+            new S(hero, { 
+              slidesPerView: 1, 
+              loop: slideCount > 1, 
+              effect: 'fade', 
+              fadeEffect: { crossFade: true },
+              speed: 1000, 
+              autoplay: slideCount > 1 ? { delay: 6000, disableOnInteraction: false } : false, 
+              pagination: { el: '.premium-pagination', clickable: true }, 
+              navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } 
+            });
           }
 
           const updates = document.querySelector('.recent-updates-swiper');

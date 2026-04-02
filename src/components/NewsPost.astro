@@ -72,17 +72,21 @@ function formatDate(date: Date | string | number) {
   }
   .post-images {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
+    grid-template-columns: 1fr; /* Astra: Una sola columna para máximo tamaño */
+    gap: 1.5rem;
+    margin-top: 1.5rem;
   }
   .post-images img {
     width: 100%;
     height: auto;
-    border-radius: 4px;
-    border: 1px solid #444;
-    transition: transform 0.2s ease;
+    max-height: 1000px; /* Astra: Tamaño duplicado y blindado */
+    border-radius: 16px;
+    border: 1px solid #333;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+    display: block;
   }
+
   .post-images a:hover img {
       transform: scale(1.05);
   }

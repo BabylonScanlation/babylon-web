@@ -1,5 +1,4 @@
 ﻿/* src/styles/global.css */
-@import "swiper/css/bundle";
 
 :root {
   /* Theme Colors */
@@ -703,25 +702,6 @@ body a.nav-btn-modern {
   text-decoration: none;
 }
 
-.news-gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-.image-wrapper {
-  position: relative;
-  border-radius: 16px;
-  overflow: hidden;
-  aspect-ratio: 16 / 9;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  text-decoration: none;
-}
-.image-wrapper img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
 .zoom-btn {
   position: absolute;
   top: 1rem;
@@ -1083,19 +1063,19 @@ body a.nav-btn-modern {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: blur(20px) brightness(0.4) saturate(1.2);
-  transform: scale(1.1);
+  filter: blur(40px) brightness(0.3) saturate(1.2); /* Astra: Desenfoque ultra profundo para evitar sensación de duplicado */
+  transform: scale(1.15);
   transition: transform 10s ease-out;
 }
 
 .swiper-slide-active .slide-bg-art-optimized {
-  transform: scale(1);
+  transform: scale(1.05);
 }
 
 .slide-overlay-master {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 20% 50%, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.8) 100%);
+  background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.85) 100%); /* Astra: Overlay más centrado y oscuro */
   z-index: 1;
 }
 
@@ -1259,7 +1239,8 @@ body a.nav-btn-modern {
     min-height: 520px;
   }
   .slide-inner-content {
-    padding: 2rem 1.5rem !important;
+    /* Astra: Aumentado padding inferior para proteger la paginación de títulos largos */
+    padding: 2.5rem 1.5rem 4.5rem !important;
     height: auto !important;
     min-height: 520px;
   }

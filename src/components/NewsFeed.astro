@@ -23,8 +23,10 @@ try {
     newsWithImages = await Promise.all(
       newsForSeries.map(async (newsItem: NewsItem) => {
         const images = await getNewsImages(db, newsItem.id);
+        const publicBase = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
+        
         const imageUrls = images.map(
-          (img: NewsImageItem) => `${Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`
+          (img: NewsImageItem) => `${publicBase}/${img.r2Key}`.replace(/([^:]\/)\/+/g, '$1')
         );
 
         return {
@@ -179,7 +181,7 @@ function formatDate(timestamp: number | string | Date) {
           <div class="post-content-area">
             <p>${news.content}</p>
           </div>
-          ${hasImage ? `<div class="news-gallery"><div class="image-wrapper" style="border:1px dashed rgba(255,255,255,0.2); display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);color:#aaa;font-size:0.85rem; aspect-ratio:16/9; border-radius:16px;">Procesando imagen...</div></div>` : ''}
+          ${hasImage ? `<div class="news-gallery"><div class="image-wrapper" style="border:1px dashed rgba(255,255,255,0.2); display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);color:#aaa;font-size:0.85rem; border-radius:20px; width:100%; height:auto;">Procesando imagen...</div></div>` : ''}
         </div>
       `;
       
