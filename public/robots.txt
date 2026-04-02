@@ -49,8 +49,6 @@ Disallow: /admin/
 Disallow: /api/admin/
 Disallow: /api/user/
 Disallow: /verify/
-# Permitir todo lo demás
-Allow: /
 
 # Sitemap al final por convención
 Sitemap: https://babylon-scanlation.pages.dev/sitemap-dynamic.xml

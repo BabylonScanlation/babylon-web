@@ -96,15 +96,15 @@ export const siteConfig = {
     ],
   },
 
-  // Publicidad (Configuraciones y Placeholders de IDs)
+  // Publicidad
   ads: {
     enabled: true,
-    // IDs de Adsterra (leídos de .env o placeholders genéricos)
+    // IDs de Adsterra
     adsterra: {
-      banner: import.meta.env.PUBLIC_ADSTERRA_BANNER_ID || 'YOUR_BANNER_ID',
-      bannerLarge: import.meta.env.PUBLIC_ADSTERRA_BANNER_LARGE_ID || 'YOUR_BANNER_LARGE_ID',
-      bannerSmall: import.meta.env.PUBLIC_ADSTERRA_BANNER_SMALL_ID || 'YOUR_BANNER_SMALL_ID',
-      square: import.meta.env.PUBLIC_ADSTERRA_SQUARE_ID || 'YOUR_SQUARE_ID',
+      banner: import.meta.env.PUBLIC_ADSTERRA_BANNER_ID,
+      bannerLarge: import.meta.env.PUBLIC_ADSTERRA_BANNER_LARGE_ID,
+      bannerSmall: import.meta.env.PUBLIC_ADSTERRA_BANNER_SMALL_ID,
+      square: import.meta.env.PUBLIC_ADSTERRA_SQUARE_ID,
     },
   },
 };
