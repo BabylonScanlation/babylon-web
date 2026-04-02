@@ -26,30 +26,29 @@ export const GET: APIRoute = async ({ locals }: any) => {
     .limit(1000)
     .all();
 
-  let xml =
-    '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+  
   allSeries.forEach((s) => {
     const date = s.updatedAt
       ? new Date(s.updatedAt).toISOString().split('T')[0]
       : new Date().toISOString().split('T')[0];
-    xml += `<url><loc>${siteUrl}/series/${s.slug}</loc><lastmod>${date}</lastmod></url>`;
+    xml += `  <url>\n    <loc>${siteUrl}/series/${s.slug}</loc>\n    <lastmod>${date}</lastmod>\n  </url>\n`;
   });
+
   recentChapters.forEach((c) => {
     const date = c.createdAt
       ? new Date(c.createdAt).toISOString().split('T')[0]
       : new Date().toISOString().split('T')[0];
-    xml += `<url><loc>${siteUrl}/series/${c.slug}/${c.chapterNumber}</loc><lastmod>${date}</lastmod></url>`;
+    xml += `  <url>\n    <loc>${siteUrl}/series/${c.slug}/${c.chapterNumber}</loc>\n    <lastmod>${date}</lastmod>\n  </url>\n`;
   });
+
   xml += '</urlset>';
 
-  const body = new TextEncoder().encode(xml);
-
-  return new Response(body, {
+  return new Response(xml, {
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
-      'Content-Length': body.length.toString(),
-      // 'no-transform' es el secreto para que Cloudflare no rompa el Content-Length
-      'Cache-Control': 'public, max-age=3600, no-transform',
+      'Cache-Control': 'public, max-age=3600, stale-while-revalidate=1800',
       'X-Content-Type-Options': 'nosniff',
     },
   });
