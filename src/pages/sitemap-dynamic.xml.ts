@@ -50,6 +50,7 @@ export const GET: APIRoute = async ({ locals }: any) => {
       'Content-Type': 'application/xml; charset=utf-8',
       'Cache-Control': 'public, max-age=3600, stale-while-revalidate=1800',
       'X-Content-Type-Options': 'nosniff',
+      'X-Robots-Tag': 'all',
     },
   });
 };
