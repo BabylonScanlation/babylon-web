@@ -105,7 +105,7 @@ async function _handleDelete() {
         {#if _createdAt}
           {@const date = new Date(_createdAt)}
           {#if !isNaN(date.getTime())}
-            <span class="date">{date.toLocaleDateString()}</span>
+            <span class="date">{date.toLocaleDateString('es-ES')}</span>
           {/if}
         {/if}
       </div>

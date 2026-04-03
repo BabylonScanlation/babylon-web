@@ -35,8 +35,7 @@ if (Astro.request.method === 'POST') {
               )}
               <p class="text-xs text-gray-500">
                 Publicado por: {news.publishedBy} el{' '}
-                {new Date(news.createdAt).toLocaleDateString()}
-              </p>
+                {new Date(news.createdAt).toLocaleDateString('es-ES')}              </p>
             </div>
             <div class="flex space-x-2">
               <button

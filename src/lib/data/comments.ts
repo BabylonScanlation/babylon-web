@@ -43,9 +43,8 @@ export async function getCommentsForTarget(
       userId: table.userId,
       parentId: table.parentId,
       commentText: table.commentText,
-      // Forzar extracción como número (ms) para evitar fallos de serialización en Astro
-      createdAt: sql<number>`CAST(${table.createdAt} AS INTEGER)`,
-      updatedAt: sql<number>`CAST(${table.updatedAt} AS INTEGER)`,
+      createdAt: table.createdAt,
+      updatedAt: table.updatedAt,
       isPinned: table.isPinned,
       isDeleted: table.isDeleted,
       username: users.username,

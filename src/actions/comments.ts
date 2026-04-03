@@ -155,7 +155,7 @@ export const commentActions = {
         .update(table)
         .set({
           commentText: text,
-          updatedAt: sql`(strftime('%s', 'now') * 1000)`,
+          updatedAt: sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`,
         })
         .where(eq(table.id, commentId))
         .run();

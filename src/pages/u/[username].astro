@@ -406,9 +406,8 @@ const bio = targetUser.bio || 'Este usuario aún no ha escrito una biografía.';
                         >
                           <h4>{post.title}</h4>
                           <span class="news-date">
-                            {new Date(post.createdAt).toLocaleDateString()}
-                          </span>
-                        </a>
+                            {new Date(post.createdAt).toLocaleDateString('es-ES')}
+                          </span>                        </a>
                       ))
                     ) : (
                       <div class="empty-tab">

@@ -194,7 +194,7 @@ const _finalUrl = $derived.by(() => {
                 {chapter.views || 0}
             </span>
             <span class="meta-item date">
-                {chapter.createdAt ? new Date(chapter.createdAt).toLocaleDateString() : 'N/A'}
+                {chapter.createdAt ? new Date(chapter.createdAt).toLocaleDateString('es-ES') : 'N/A'}
             </span>
         </div>
     </div>

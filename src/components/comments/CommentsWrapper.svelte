@@ -111,6 +111,15 @@ function buildCommentTree(flatComments: Comment[]): Comment[] {
 
 let comments = $state<Comment[]>([]);
 
+// Astra: Reloj reactivo para actualizar etiquetas de tiempo ("hace x min") dinámicamente
+let nowTick = $state(Date.now());
+onMount(() => {
+  const interval = setInterval(() => {
+    nowTick = Date.now();
+  }, 60000); // Actualizar cada minuto
+  return () => clearInterval(interval);
+});
+
 // Astra: Sincronización robusta. Usamos una variable local para evitar bucles.
 let lastProcessedId = $state<string | number | null>(null);
 
@@ -247,7 +256,7 @@ let visibleComments = $derived(
     : []
 );
 
-const formatCommentDateClient = (dateVal: any) => {
+const formatCommentDateClient = (dateVal: any, _tick: number) => {
   const ts = parseToTimestamp(dateVal);
   const label = timeAgo(ts);
   return label.charAt(0).toUpperCase() + label.slice(1);
@@ -606,10 +615,10 @@ async function handleTogglePin(comment: Comment) {
                             </div>
                             <div class="meta-right">
                                 <span class="time-ago">
-                                    {formatCommentDateClient(node.createdAt)}
+                                    {formatCommentDateClient(node.createdAt, nowTick)}
                                 </span>
                                 {#if isEdited(node) && !node.isDeleted}
-                                    <span class="edited-badge" title={`Original: ${formatCommentDateClient(node.createdAt)}`}>
+                                    <span class="edited-badge" title={`Original: ${formatCommentDateClient(node.createdAt, nowTick)}`}>
                                         (editado {timeAgo(node.updatedAt!)})
                                     </span>
                                 {/if}
@@ -622,7 +631,8 @@ async function handleTogglePin(comment: Comment) {
                                 <textarea 
                                     id={`edit-input-${node.id}`}
                                     name={`editedText_${node.id}`}
-                                    bind:value={node.editedText} 
+                                    value={node.editedText}
+                                    oninput={(e) => node.editedText = e.currentTarget.value}
                                     class="edit-textarea"
                                 ></textarea>
                                 <div class="edit-actions">

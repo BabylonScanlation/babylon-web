@@ -1,6 +1,6 @@
 <script lang="ts">
 import { actions } from 'astro:actions';
-import { slide } from 'svelte/transition';
+import { fade, fly, slide } from 'svelte/transition';
 import { toast } from '../lib/stores.svelte';
 import { generateUUID } from '../lib/utils';
 import type { User } from '../types';
@@ -447,10 +447,13 @@ function copyToClipboard(text: string) {
                 <div class="news-card-item" class:is-draft={news.status === 'draft'} in:fly={{ y: 20 }}>
                   <div class="item-content">
                     <h4>{news.title}</h4>
-                    <span class="date">{new Date(news.createdAt).toLocaleDateString()}</span>
+                    <span class="date">{new Date(news.createdAt).toLocaleDateString('es-ES')}</span>
                     <p class="excerpt">{news.content.substring(0, 80)}...</p>
                   </div>
                   <div class="item-actions">
+                    <a href={`/news/${news.id}`} target="_blank" class="btn-preview" title="Previsualizar">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </a>
                     <button class="btn-edit" onclick={() => startEdit(news)} aria-label="Editar">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
@@ -713,7 +716,20 @@ function copyToClipboard(text: string) {
   .item-actions { display: flex; gap: 0.5rem; }
   .item-actions button { background: #222; border: none; color: #888; padding: 0.5rem; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
   .item-actions .btn-edit:hover { background: #2980b9; color: #fff; }
+  .item-actions .btn-preview:hover { background: var(--accent-color); color: #000; }
   .item-actions .btn-delete:hover { background: #c0392b; color: #fff; }
+
+  .item-actions .btn-preview {
+    background: #222;
+    color: #888;
+    padding: 0.5rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
 
   .empty-list { text-align: center; padding: 2rem; color: #555; font-style: italic; }
 
