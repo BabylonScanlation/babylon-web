@@ -41,6 +41,15 @@ const carouselIds = new Set(seriesByChapterCount.map((s: any) => s.id));
 const featuredGridData = popularSeries
   .filter((s: any) => !carouselIds.has(s.id))
   .slice(0, 6);
+
+// Astra: Si por deduplicación nos quedamos con menos de 6, rellenamos con las populares (aunque se repitan)
+if (featuredGridData.length < 6) {
+  const remainingNeeded = 6 - featuredGridData.length;
+  const fillers = popularSeries
+    .filter(s => !featuredGridData.some(f => f.id === s.id))
+    .slice(0, remainingNeeded);
+  featuredGridData.push(...fillers);
+}
 ---
 
 <Layout 

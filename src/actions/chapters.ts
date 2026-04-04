@@ -8,6 +8,26 @@ import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
 
 export const chapterActions = {
+  getProcessingStatus: defineAction({
+    input: z.object({
+      chapterId: z.number(),
+    }),
+    handler: async (input, context) => {
+      const { user } = context.locals;
+      if (!user?.isAdmin) return { status: 'unauthorized' };
+
+      const { chapterId } = input;
+      const db = getDB(context.locals.runtime.env);
+      const data = await db
+        .select({ status: chapters.status })
+        .from(chapters)
+        .where(eq(chapters.id, chapterId))
+        .get();
+
+      return { status: data?.status || 'not_found' };
+    },
+  }),
+
   registerView: defineAction({
     input: z.object({
       chapterId: z.number(),

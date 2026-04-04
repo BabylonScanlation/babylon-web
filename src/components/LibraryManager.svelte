@@ -1,47 +1,47 @@
 <script lang="ts">
 import { onMount } from 'svelte';
 import { fade } from 'svelte/transition';
+import { toast, userStore } from '../lib/stores.svelte';
+import { actions } from 'astro:actions';
 import { timeAgo } from '../lib/utils';
 
-// Types
+// Tipos locales flexibilizados
 interface ProgressItem {
   series: {
+    id: number;
     title: string;
     slug: string;
-    cover: string;
+    coverImageUrl: string | null;
   };
   nextChapter: {
-    number: string;
+    number: number;
     url: string;
-    createdAt: string;
+    createdAt: any;
   };
 }
 
 interface FavoriteItem {
-  id: number;
-  createdAt: string;
   series: {
     id: number;
     title: string;
     slug: string;
-    cover: string | null;
-    views: number;
+    coverImageUrl: string | null;
   };
+  createdAt: any;
 }
 
 interface RatingItem {
-  rating: number;
-  createdAt: string;
   series: {
     id: number;
     title: string;
     slug: string;
-    cover: string | null;
-    views: number;
+    coverImageUrl: string | null;
   };
+  rating: number;
+  createdAt: any;
 }
 
-// State
+// Estado reactivo (Svelte 5)
 let activeTab = $state<'history' | 'favorites' | 'ratings'>('history');
 let historyItems = $state<ProgressItem[]>([]);
 let favoritesItems = $state<FavoriteItem[]>([]);
@@ -50,61 +50,65 @@ let isLoading = $state(true);
 let isAuthenticated = $state(false);
 let selectedStarFilter = $state<number | null>(null);
 
-// Derived state for filtered ratings
-let filteredRatings = $derived(
+// Orion: Normalizador de imágenes
+const getImageUrl = (path: string | null) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  return `/api/assets/proxy/${path}`.replace(/([^:]\/)\/+/g, '$1');
+};
+
+const filteredRatings = $derived(
   selectedStarFilter
-    ? ratingsItems.filter((item) => item.rating === selectedStarFilter)
+    ? ratingsItems.filter((item) => Math.round(item.rating) === selectedStarFilter)
     : ratingsItems
 );
 
-// Actions
-async function loadData() {
+async function loadLibraryData() {
   isLoading = true;
   try {
-    const authRes = await fetch('/api/auth/status');
-    const userData = await authRes.json();
+    const [historyRes, favoritesRes, ratingsRes] = await Promise.all([
+      actions.user.getContinueReading(),
+      actions.user.getFavorites(),
+      actions.user.getRatings(),
+    ]);
 
-    if (userData?.uid) {
-      isAuthenticated = true;
-
-      // Parallel fetch for better performance
-      const [histRes, favRes, ratRes] = await Promise.allSettled([
-        fetch('/api/user/progress'),
-        fetch('/api/user/favorites-full'),
-        fetch('/api/user/ratings'),
-      ]);
-
-      if (histRes.status === 'fulfilled' && histRes.value.ok) {
-        const data = await histRes.value.json();
-        historyItems = data.progress || [];
-      }
-
-      if (favRes.status === 'fulfilled' && favRes.value.ok) {
-        favoritesItems = await favRes.value.json();
-      }
-
-      if (ratRes.status === 'fulfilled' && ratRes.value.ok) {
-        ratingsItems = await ratRes.value.json();
-      }
-    } else {
-      isAuthenticated = false;
-    }
-  } catch (e) {
-    console.error('Library load error:', e);
+    if (!historyRes.error) historyItems = (historyRes.data as any) || [];
+    if (!favoritesRes.error) favoritesItems = (favoritesRes.data as any) || [];
+    if (!ratingsRes.error) ratingsItems = (ratingsRes.data as any) || [];
+  } catch (error) {
+    console.error('Error loading library data:', error);
+    toast.error('Error al cargar la biblioteca');
   } finally {
     isLoading = false;
   }
 }
 
+onMount(() => {
+  if (userStore.user) {
+    isAuthenticated = true;
+    loadLibraryData();
+  } else {
+    setTimeout(() => {
+      if (userStore.user) {
+        isAuthenticated = true;
+        loadLibraryData();
+      } else {
+        isLoading = false;
+      }
+    }, 1000);
+  }
+
+  const handleAuth = () => {
+    isAuthenticated = true;
+    loadLibraryData();
+  };
+  document.addEventListener('auth-success', handleAuth);
+  return () => document.removeEventListener('auth-success', handleAuth);
+});
+
 function handleLogin() {
   window.dispatchEvent(new CustomEvent('open-auth-modal', { detail: { view: 'login' } }));
 }
-
-onMount(() => {
-  loadData();
-  window.addEventListener('auth-success', loadData);
-  return () => window.removeEventListener('auth-success', loadData);
-});
 </script>
 
 <div class="library-container">
@@ -157,7 +161,7 @@ onMount(() => {
             {#each historyItems as item (item.series.slug)}
               <a href={item.nextChapter.url} class="history-card">
                 <div class="card-cover">
-                  <img src={item.series.cover} alt={item.series.title} loading="lazy" />
+                  <img src={getImageUrl(item.series.coverImageUrl)} alt={item.series.title} loading="lazy" />
                   <div class="overlay">
                     <div class="play-btn">
                       <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>

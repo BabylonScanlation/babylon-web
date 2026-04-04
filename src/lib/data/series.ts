@@ -180,7 +180,7 @@ export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsf
       .from(series)
       .where(and(...commonConditions.filter(Boolean)))
       .orderBy(desc(series.views))
-      .limit(6)
+      .limit(60)
       .all(),
 
     // Por cantidad de capítulos

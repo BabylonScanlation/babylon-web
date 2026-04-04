@@ -1287,8 +1287,12 @@ const joinedDate = userProfile?.createdAt
       btn.disabled = true;
       btn.innerHTML = '<span class="loading-spinner"></span> Guardando...';
 
+      const { data: nonce, error: nonceError } = await actions.auth.generateNonce();
+      if (nonceError) throw new Error('Error al generar token de seguridad');
+
       const formData = new FormData(form);
       const payload = Object.fromEntries(formData);
+      payload.nonce = nonce;
 
       const { error } = await actions.user.updateProfile(payload);
 
@@ -1325,7 +1329,10 @@ const joinedDate = userProfile?.createdAt
     toggle?.addEventListener('change', async (e) => {
       const isChecked = (e.target as HTMLInputElement).checked;
       try {
-        const { error } = await actions.user.updateProfile({ [payloadKey]: isChecked });
+        const { data: nonce, error: nonceError } = await actions.auth.generateNonce();
+        if (nonceError) throw new Error('Token de seguridad inválido');
+
+        const { error } = await actions.user.updateProfile({ [payloadKey]: isChecked, nonce });
         if (error) throw new Error(error.message);
         toast.success(isChecked ? successMsg[0] : successMsg[1]);
       } catch {

@@ -11,7 +11,7 @@ if (!fs.existsSync(target)) {
 
 const env = {
   ...process.env,
-  CONTEXT7_API_KEY: 'ctx7sk-8e08dbeb-53cc-47a0-a9d3-137982b76c7b',
+  CONTEXT7_API_KEY: process.env.CONTEXT7_API || 'ctx7sk-fallback',
   CLIENT_IP_ENCRYPTION_KEY: 'silence-warning-fix',
 };
 

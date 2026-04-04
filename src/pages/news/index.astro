@@ -130,7 +130,13 @@ if (newsItems.length > 0 && newsItems[0]) {
                       loading="lazy"
                     />
                   ) : (
-                    <div class="news-image-placeholder">{siteConfig.shortName} News</div>
+                    <div class="news-image-placeholder">
+                      <img 
+                        src={siteConfig.assets.logoEmpty.startsWith('/') ? `/api/assets/proxy${siteConfig.assets.logoEmpty}` : siteConfig.assets.logoEmpty} 
+                        alt="Babylon Logo" 
+                        class="placeholder-logo"
+                      />
+                    </div>
                   )}
                   {news.seriesTitle && (
                     <div class="series-badge">

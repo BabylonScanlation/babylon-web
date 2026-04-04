@@ -1,38 +1,20 @@
 <script lang="ts">
 import { actions } from 'astro:actions';
-import { onMount } from 'svelte';
 import { toast } from '../lib/stores.svelte';
 
 interface Props {
   seriesId: number;
   initialIsFavorite?: boolean;
+  isLoggedIn?: boolean;
 }
 
-let { seriesId, initialIsFavorite = false }: Props = $props();
+let { seriesId, initialIsFavorite = false, isLoggedIn = false }: Props = $props();
 
-let isFavorite = $state((() => initialIsFavorite)());
+let isFavorite = $state(false);
+let isLoading = $state(false);
+
 $effect(() => {
   isFavorite = initialIsFavorite;
-});
-let isLoading = $state(false);
-let isLoggedIn = $state(false);
-
-onMount(async () => {
-  try {
-    const res = await fetch('/api/auth/status');
-    const data = await res.json();
-    isLoggedIn = !!data.uid;
-
-    if (isLoggedIn) {
-      const favRes = await fetch(`/api/user/is-favorite/${seriesId}`);
-      if (favRes.ok) {
-        const favData = await favRes.json();
-        isFavorite = favData.isFavorite;
-      }
-    }
-  } catch (e) {
-    console.error('Error checking favorite status', e);
-  }
 });
 
 async function toggleFavorite() {
@@ -44,12 +26,17 @@ async function toggleFavorite() {
   if (isLoading) return;
   isLoading = true;
 
+  // Optimistic UI (Astra)
+  const previousState = isFavorite;
+  isFavorite = !isFavorite;
+
   try {
     const { error } = await actions.user.toggleFavorite({ type: 'series', id: seriesId });
 
-    if (error) throw new Error(error.message);
-
-    isFavorite = !isFavorite;
+    if (error) {
+      isFavorite = previousState;
+      throw new Error(error.message);
+    }
     toast.success(isFavorite ? 'Añadido a favoritos' : 'Eliminado de favoritos');
   } catch (e: any) {
     toast.error(e.message || 'Error al actualizar favoritos');

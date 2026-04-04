@@ -7,6 +7,7 @@ import { getDB } from '../lib/db';
 import { verifyFirebaseToken } from '../lib/firebase/server';
 import { deleteSession, setAuthCookie } from '../lib/session';
 import { generateRandomUsername, generateUUID } from '../lib/utils';
+import { createNonce } from '../lib/nonce';
 import type { AppDatabase, FirebaseDecodedToken, SessionContext } from '../types';
 
 async function determineUserRole(db: AppDatabase, uid: string, superAdminUid: string | undefined) {
@@ -22,6 +23,15 @@ async function determineUserRole(db: AppDatabase, uid: string, superAdminUid: st
 }
 
 export const authActions = {
+  generateNonce: defineAction({
+    handler: async (_, context) => {
+      const { user, runtime } = context.locals;
+      if (!user) throw new Error('Usuario no autenticado');
+      const secret = runtime.env.JWT_SECRET || 'nonce-secret-fallback';
+      return await createNonce(secret, user.uid);
+    },
+  }),
+
   logout: defineAction({
     handler: async (_, context) => {
       const { cookies, locals } = context;

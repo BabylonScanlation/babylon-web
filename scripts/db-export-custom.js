@@ -7,8 +7,8 @@ const DB_NAME = 'babylon-scanlation-prod';
 
 function runCommand(command) {
   try {
-    // Astra: Usamos un buffer más grande y capturamos stdout
-    return execSync(command, { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 });
+    // Orion: Aumentamos el buffer para dumps grandes
+    return execSync(command, { encoding: 'utf-8', maxBuffer: 100 * 1024 * 1024 });
   } catch (error) {
     console.error(`❌ Error ejecutando comando: ${command}`);
     if (error.stderr) console.error(error.stderr);
@@ -25,87 +25,76 @@ function escapeStringOneLine(val) {
 }
 
 async function main() {
-  console.log('⚡ ORION: Generando exportación con integridad referencial garantizada...');
+  console.log('⚡ ORION: Generando exportación completa de todas las tablas...');
 
   const query = (q) =>
     runCommand(`npx wrangler d1 execute ${DB_NAME} --remote --command "${q}" --json`);
 
+  // Obtener lista de todas las tablas de usuario
+  console.log('🔍 Listando tablas disponibles en D1 Remote...');
+  const tablesJson = query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'drizzle_%' AND name NOT LIKE '_cf_%' AND name NOT LIKE '%_fts_%'");
+  
+  if (!tablesJson) {
+    console.error('❌ No se pudieron obtener las tablas de la base de datos remota.');
+    process.exit(1);
+  }
+
+  const results = JSON.parse(tablesJson)[0].results;
+  const allTables = results.map(r => r.name);
+  console.log(`📑 Encontradas ${allTables.length} tablas de usuario.`);
+
   let sqlDump = 'PRAGMA foreign_keys = OFF;\n';
 
-  // 1. Users
-  console.log('📦 Exportando Users...');
-  const usersJson = query('SELECT * FROM Users');
-  if (usersJson) {
-    const rows = JSON.parse(usersJson)[0].results;
-    rows.forEach((row) => {
-      const cols = Object.keys(row);
-      const vals = cols.map((c) => escapeStringOneLine(row[c])).join(', ');
-      sqlDump += `INSERT OR IGNORE INTO "Users" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${vals});\n`;
-    });
+  // Orden prioritario para mitigar problemas de FK (aunque usemos FK OFF)
+  const priority = ['Users', 'Series', 'Chapters', 'Pages'];
+  const skip = new Set(['d1_migrations', '_cf_KV']);
+  const processed = new Set();
+
+  // 1. Exportar tablas prioritarias primero
+  for (const table of priority) {
+    if (allTables.includes(table)) {
+      console.log(`📦 Exportando ${table} (Prioridad)...`);
+      const data = query(`SELECT * FROM "${table}"`);
+      if (data) {
+        const rows = JSON.parse(data)[0].results;
+        rows.forEach((row) => {
+          const cols = Object.keys(row);
+          const vals = cols.map((c) => escapeStringOneLine(row[c])).join(', ');
+          sqlDump += `INSERT OR IGNORE INTO "${table}" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${vals});\n`;
+        });
+      }
+      processed.add(table);
+    }
   }
 
-  // 2. Series
-  console.log('📦 Exportando Series...');
-  const seriesJson = query('SELECT * FROM Series');
-  if (seriesJson) {
-    const rows = JSON.parse(seriesJson)[0].results;
-    rows.forEach((row) => {
-      const cols = Object.keys(row);
-      const vals = cols.map((c) => escapeStringOneLine(row[c])).join(', ');
-      sqlDump += `INSERT OR IGNORE INTO "Series" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${vals});\n`;
-    });
-  }
-
-  // 3. Chapters (Solo si la serie existe)
-  console.log('📦 Exportando Chapters (Clean)...');
-  const chaptersJson = query('SELECT * FROM Chapters WHERE series_id IN (SELECT id FROM Series)');
-  if (chaptersJson) {
-    const rows = JSON.parse(chaptersJson)[0].results;
-    rows.forEach((row) => {
-      const cols = Object.keys(row);
-      const vals = cols.map((c) => escapeStringOneLine(row[c])).join(', ');
-      sqlDump += `INSERT OR IGNORE INTO "Chapters" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${vals});\n`;
-    });
-  }
-
-  // 4. Pages (Solo si el capítulo existe)
-  console.log('📦 Exportando Pages (Clean)...');
-  const pagesJson = query('SELECT * FROM Pages WHERE chapter_id IN (SELECT id FROM Chapters)');
-  if (pagesJson) {
-    const rows = JSON.parse(pagesJson)[0].results;
-    rows.forEach((row) => {
-      const cols = Object.keys(row);
-      const vals = cols.map((c) => escapeStringOneLine(row[c])).join(', ');
-      sqlDump += `INSERT OR IGNORE INTO "Pages" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${vals});\n`;
-    });
-  }
-
-  // 5. Otras tablas menores (Sin filtros complejos para no eternizar)
-  const others = [
-    'AnonymousUsers',
-    'UserRoles',
-    'SeriesViews',
-    'ChapterViews',
-    'Comments',
-    'SeriesComments',
-    'Favorites',
-  ];
-  for (const table of others) {
-    console.log(`📦 Exportando ${table}...`);
-    const data = query(`SELECT * FROM ${table}`);
-    if (data) {
-      const rows = JSON.parse(data)[0].results;
-      rows.forEach((row) => {
-        const cols = Object.keys(row);
-        const vals = cols.map((c) => escapeStringOneLine(row[c])).join(', ');
-        sqlDump += `INSERT OR IGNORE INTO "${table}" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${vals});\n`;
-      });
+  // 2. Exportar el resto de tablas
+  for (const table of allTables) {
+    if (!processed.has(table) && !skip.has(table)) {
+      console.log(`📦 Exportando ${table}...`);
+      const data = query(`SELECT * FROM "${table}"`);
+      if (data) {
+        const result = JSON.parse(data)[0];
+        if (result && result.results) {
+          result.results.forEach((row) => {
+            const cols = Object.keys(row);
+            const vals = cols.map((c) => escapeStringOneLine(row[c])).join(', ');
+            sqlDump += `INSERT OR IGNORE INTO "${table}" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${vals});\n`;
+          });
+        }
+      }
+      processed.add(table);
     }
   }
 
   sqlDump += 'PRAGMA foreign_keys = ON;\n';
+  
+  if (!fs.existsSync(path.dirname(DUMP_PATH))) {
+    fs.mkdirSync(path.dirname(DUMP_PATH), { recursive: true });
+  }
+  
   fs.writeFileSync(DUMP_PATH, sqlDump);
-  console.log(`\n💾 Dump con integridad garantizada guardado.`);
+  console.log(`\n💾 Dump completo guardado en ${DUMP_PATH}`);
+  console.log(`✅ Sincronización preparada para ${processed.size} tablas.`);
 }
 
 main().catch((err) => console.error(err));

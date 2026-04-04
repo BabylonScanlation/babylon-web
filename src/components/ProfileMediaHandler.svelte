@@ -5,12 +5,12 @@ import { toast, userStore } from '../lib/stores.svelte';
 import ImageSelectorModal from './ImageSelectorModal.svelte';
 
 let showModal = $state(false);
-let modalType = $state<'avatar' | 'banner'>('avatar');
+let modalType: 'avatar' | 'banner' = $state('avatar');
 
 onMount(() => {
   // Expose function to window for legacy scripts to call
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).openProfileMediaModal = (type: 'avatar' | 'banner') => {
+  const globalWindow = window as any;
+  globalWindow.openProfileMediaModal = function(type: 'avatar' | 'banner') {
     modalType = type;
     showModal = true;
   };

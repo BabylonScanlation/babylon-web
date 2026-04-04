@@ -5,6 +5,10 @@ import { favorites, seriesRatings, userProgress, users } from '../db/schema';
 import { getDB } from '../lib/db';
 import { generateRandomUsername } from '../lib/utils';
 
+import { consumeNonce } from '../lib/nonce';
+import { desc } from 'drizzle-orm';
+import { series } from '../db/schema';
+
 const ProfileSchema = z.object({
   username: z
     .string()
@@ -18,22 +22,106 @@ const ProfileSchema = z.object({
   isNsfw: z.boolean().optional(),
   avatarUrl: z.string().url().optional(),
   bannerUrl: z.string().url().optional(),
+  nonce: z.string().optional(),
 });
 
 export const userActions = {
+  getContinueReading: defineAction({
+    handler: async (_, context) => {
+      const { user } = context.locals;
+      if (!user) return [];
+      const db = getDB(context.locals.runtime.env);
+      return await db
+        .select({
+          series: {
+            id: series.id,
+            title: series.title,
+            slug: series.slug,
+            coverImageUrl: series.coverImageUrl,
+          },
+          nextChapter: {
+            number: userProgress.chapterNumber,
+            url: sql`'/series/' || ${series.slug} || '/' || ${userProgress.chapterNumber}`,
+            createdAt: userProgress.lastReadAt,
+          },
+        })
+        .from(userProgress)
+        .innerJoin(series, eq(userProgress.seriesId, series.id))
+        .where(eq(userProgress.userId, user.uid))
+        .orderBy(desc(userProgress.lastReadAt))
+        .limit(10)
+        .all();
+    },
+  }),
+
+  getFavorites: defineAction({
+    handler: async (_, context) => {
+      const { user } = context.locals;
+      if (!user) return [];
+      const db = getDB(context.locals.runtime.env);
+      return await db
+        .select({
+          series: {
+            id: series.id,
+            title: series.title,
+            slug: series.slug,
+            coverImageUrl: series.coverImageUrl,
+          },
+          createdAt: favorites.createdAt,
+        })
+        .from(favorites)
+        .innerJoin(series, eq(favorites.seriesId, series.id))
+        .where(and(eq(favorites.userId, user.uid), eq(favorites.type, 'series')))
+        .orderBy(desc(favorites.createdAt))
+        .all();
+    },
+  }),
+
+  getRatings: defineAction({
+    handler: async (_, context) => {
+      const { user } = context.locals;
+      if (!user) return [];
+      const db = getDB(context.locals.runtime.env);
+      return await db
+        .select({
+          series: {
+            id: series.id,
+            title: series.title,
+            slug: series.slug,
+            coverImageUrl: series.coverImageUrl,
+          },
+          rating: seriesRatings.rating,
+          createdAt: seriesRatings.createdAt,
+        })
+        .from(seriesRatings)
+        .innerJoin(series, eq(seriesRatings.seriesId, series.id))
+        .where(eq(seriesRatings.userId, user.uid))
+        .orderBy(desc(seriesRatings.createdAt))
+        .all();
+    },
+  }),
+
   updateProfile: defineAction({
     input: ProfileSchema,
     handler: async (input, context) => {
-      const { user } = context.locals;
+      const { user, runtime } = context.locals;
       if (!user) throw new Error('Unauthorized');
 
-      const db = getDB(context.locals.runtime.env);
+      // Orion: Validación CSRF mediante Nonce
+      if (input.nonce) {
+        const secret = runtime.env.JWT_SECRET || 'nonce-secret-fallback';
+        const isValid = await consumeNonce(input.nonce, secret, user.uid);
+        if (!isValid) throw new Error('Security token invalid or expired');
+      }
 
-      if (input.username) {
+      const db = getDB(runtime.env);
+      const { nonce, ...updateData } = input;
+
+      if (updateData.username) {
         const existing = await db
           .select()
           .from(users)
-          .where(eq(users.username, input.username))
+          .where(eq(users.username, updateData.username))
           .get();
         if (existing && existing.id !== user.uid) throw new Error('Username taken');
       }
@@ -43,13 +131,13 @@ export const userActions = {
         .values({
           id: user.uid,
           email: user.email || 'no-email',
-          username: input.username || generateRandomUsername(),
-          ...input,
+          username: updateData.username || generateRandomUsername(),
+          ...updateData,
           updatedAt: new Date(),
         })
         .onConflictDoUpdate({
           target: users.id,
-          set: { ...input, updatedAt: new Date() },
+          set: { ...updateData, updatedAt: new Date() },
         })
         .run();
 

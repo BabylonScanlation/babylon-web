@@ -12,6 +12,9 @@ export default defineConfig({
   devToolbar: {
     enabled: false, // Astra: Apagar la toolbar para limpieza total de recursos
   },
+  security: {
+    checkOrigin: true,
+  },
   adapter: cloudflare({
     platformProxy: {
       enabled: true,

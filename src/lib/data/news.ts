@@ -45,15 +45,17 @@ export async function getNewsList(
 
     const results = await query
       .where(and(...conditions))
-      .orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`))
+      .orderBy(desc(news.createdAt))
       .all();
 
     const finalResults = [];
     for (const r of results) {
+      // Orion: Aseguramos que r.id sea tratado como string para la búsqueda
+      const currentId = String(r.id);
       const images = await db
         .select()
         .from(newsImage)
-        .where(eq(newsImage.newsId, r.id))
+        .where(eq(newsImage.newsId, currentId))
         .orderBy(newsImage.displayOrder)
         .all();
 
@@ -77,13 +79,13 @@ export async function getNewsList(
   } catch (error) {
     console.error('Error fetching news list with joins:', error);
 
-    // Fallback: Try fetching only news without joins if the complex query fails
+    // Fallback: Intentar recuperar noticias básicas pero sin romper el objeto de retorno
     try {
       const basicNews = await db
         .select()
         .from(news)
-        .where(and(...conditions))
-        .orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`))
+        .where(eq(news.status, status))
+        .orderBy(desc(news.createdAt))
         .all();
 
       return basicNews.map((n) => ({

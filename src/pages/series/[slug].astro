@@ -159,7 +159,8 @@ const reactions = [
                 <FavoriteButton
                   client:visible
                   seriesId={series.id}
-                  initialIsFavorite={series.stats.isFavorited}
+                  initialIsFavorite={series?.stats?.isFavorited || false}
+                  isLoggedIn={!!user}
                 />
 
                 <div class="rating-inline-header">

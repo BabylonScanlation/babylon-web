@@ -34,6 +34,8 @@ export interface Chapter {
   views: number | null;
   createdAt: string | null;
   messageThreadId: number | null;
+  isAppOnly?: boolean | null;
+  processing?: boolean | null;
 }
 
 export interface Series {

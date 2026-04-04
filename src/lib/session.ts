@@ -47,7 +47,7 @@ export function setSession(context: SessionContext, sessionValue: string): void 
   context.cookies.set('user_session', sessionValue, {
     httpOnly: true,
     path: '/',
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: 60 * 60 * 24 * 30,
     secure: isProduction && !isLocalIp,
     sameSite: 'lax',
   });
@@ -69,7 +69,7 @@ export async function setAuthCookie(
   context.cookies.set('user_auth', token, {
     httpOnly: true,
     path: '/',
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: 60 * 60 * 24 * 30,
     secure: isProduction && !isLocalIp,
     sameSite: 'lax',
   });

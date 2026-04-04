@@ -9,7 +9,7 @@ export { getDB };
 // --- Zod Schemas ---
 
 export const NewsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string(),
   title: z.string().min(1, 'El título es obligatorio'),
   content: z.string().min(1, 'El contenido es obligatorio'),
   createdAt: z.date(),
@@ -21,8 +21,8 @@ export const NewsSchema = z.object({
 });
 
 export const NewsImageSchema = z.object({
-  id: z.string().uuid(),
-  newsId: z.string().uuid(),
+  id: z.string(),
+  newsId: z.string(),
   r2Key: z.string().min(1),
   altText: z.string().nullable(),
   displayOrder: z.number().int().min(0),

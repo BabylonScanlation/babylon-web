@@ -2,11 +2,38 @@
 import type { APIContext, MiddlewareNext } from 'astro';
 import { siteConfig } from '../../site.config';
 
+// Orion: Rate Limiter en memoria (Burst Protection)
+// En Workers/Pages, este Map persiste durante el ciclo de vida del *isolate* (sandbox).
+// Es excelente para mitigar ráfagas rápidas de fuerza bruta o scraping.
+const RATE_LIMIT = new Map<string, { count: number; resetTime: number }>();
+const WINDOW_MS = 60 * 1000; // 1 minuto
+const MAX_REQ_PER_WINDOW = 200; // Máximo por IP
+
+function checkRateLimit(ip: string): boolean {
+  if (!ip) return true; // Si no hay IP, no bloqueamos (salvaguarda)
+
+  const now = Date.now();
+  const record = RATE_LIMIT.get(ip);
+
+  if (!record || now > record.resetTime) {
+    RATE_LIMIT.set(ip, { count: 1, resetTime: now + WINDOW_MS });
+    return true;
+  }
+
+  record.count++;
+  if (record.count > MAX_REQ_PER_WINDOW) {
+    return false; // Rate limit excedido
+  }
+
+  return true;
+}
+
 export async function shield(context: APIContext, next: MiddlewareNext) {
   const { request, url, locals } = context;
   const userAgent = request.headers.get('user-agent') || '';
   const lowerUa = userAgent.toLowerCase();
   const currentPath = url.pathname;
+  const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
 
   // 1. BYPASS para Googlebot y SEO (Esencial para indexación)
   const isGoogle = lowerUa.includes('google') || lowerUa.includes('sitemaps');
@@ -23,7 +50,15 @@ export async function shield(context: APIContext, next: MiddlewareNext) {
     return next();
   }
 
-  // 2. GEO-BLOCKING
+  // 2. RATE LIMITING (Protección contra DDoS/Fuerza bruta a nivel de aplicación)
+  if (!isGoogle && !checkRateLimit(clientIp)) {
+    return new Response(getBlockedHtml('Too Many Requests. Rate Limit Exceeded.', clientIp), {
+      status: 429,
+      headers: { 'Content-Type': 'text/html', 'Retry-After': '60' },
+    });
+  }
+
+  // 3. GEO-BLOCKING
   const country = request.headers.get('cf-ipcountry');
   const blacklistedCountries = siteConfig.security.blacklistedCountries;
 
