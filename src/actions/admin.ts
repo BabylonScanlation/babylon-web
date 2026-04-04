@@ -24,11 +24,11 @@ export const adminActions = {
 
       const cvDeleted = await db
         .delete(chapterViews)
-        .where(lt(chapterViews.viewedAt, thirtyDaysAgo.toISOString()))
+        .where(lt(chapterViews.viewedAt, thirtyDaysAgo))
         .run();
       const svDeleted = await db
         .delete(seriesViews)
-        .where(lt(seriesViews.viewedAt, thirtyDaysAgo.toISOString()))
+        .where(lt(seriesViews.viewedAt, thirtyDaysAgo))
         .run();
       const sessionsDeleted = await db
         .delete(sessions)

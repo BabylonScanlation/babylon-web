@@ -12,6 +12,7 @@ interface ProgressItem {
     title: string;
     slug: string;
     coverImageUrl: string | null;
+    views: number | null;
   };
   nextChapter: {
     number: number;
@@ -26,6 +27,7 @@ interface FavoriteItem {
     title: string;
     slug: string;
     coverImageUrl: string | null;
+    views: number | null;
   };
   createdAt: any;
 }
@@ -36,6 +38,7 @@ interface RatingItem {
     title: string;
     slug: string;
     coverImageUrl: string | null;
+    views: number | null;
   };
   rating: number;
   createdAt: any;
