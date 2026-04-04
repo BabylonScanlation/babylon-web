@@ -9,7 +9,8 @@ interface Props {
 let { initialCount = 0 }: Props = $props();
 
 onMount(() => {
-  if (initialCount > 0) {
+  // Orion: Solo usamos el contador inicial si el store está en cero (primera carga)
+  if (initialCount > 0 && newsStore.count === 0) {
     newsStore.setCount(initialCount);
   }
 
@@ -18,13 +19,14 @@ onMount(() => {
   if (isNewsPage) {
     newsStore.setCount(0);
   } else {
+    // Usamos el refresco cacheado (no disparará API si es reciente)
     void newsStore.refreshCount(fetch);
   }
 
   // Orion: Escuchar evento de creación para actualizar contador instantáneamente
   const handleRefresh = () => {
     if (!window.location.pathname.startsWith('/news')) {
-      void newsStore.refreshCount(fetch);
+      void newsStore.refreshCount(fetch, true); // Forzamos refresh al recibir evento
     }
   };
 

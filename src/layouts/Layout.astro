@@ -1,4 +1,5 @@
 ---
+import { ViewTransitions } from 'astro:transitions';
 import '../styles/global.css';
 import AdblockWall from '../components/AdblockWall.astro';
 import BottomNav from '../components/BottomNav.astro';
@@ -119,19 +120,23 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       })();
     </script>
     
-    <style is:global set:html={`
+    <style is:global define:vars={{ 
+      accent: siteConfig.theme.accent, 
+      accentGlow: siteConfig.theme.accentGlow,
+      bg: siteConfig.theme.background,
+      bgAlt: siteConfig.theme.backgroundAlt
+    }}>
       :root {
-        --accent-color: ${siteConfig.theme.accent};
-        --accent-glow: ${siteConfig.theme.accentGlow};
-        --bg-color: ${siteConfig.theme.background};
-        --bg-alt: ${siteConfig.theme.backgroundAlt};
+        --accent-color: var(--accent);
+        --accent-glow: var(--accentGlow);
+        --bg-color: var(--bg);
+        --bg-alt: var(--bgAlt);
       }
       
       html.nsfw-mode {
         --accent-color: #900000 !important;
         --accent-glow: rgba(144, 0, 0, 0.6) !important;
       }
-    `}>
     </style>
     <style is:global>
       /* Astra: Estilos críticos para imágenes de noticias (Carga prioritaria para evitar parpadeos) */
@@ -249,19 +254,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           });
         };
 
-        const refreshNewsCount = async () => {
-          try {
-            const res = await fetch('/api/news/count');
-            const data = await res.json();
-            if (typeof data.count === 'number') {
-              localStorage.setItem('babylon_news_count', data.count.toString());
-              updateBadges(data.count);
-            }
-          } catch (e) {}
-        };
-
         updateBadges(parseInt(localStorage.getItem('babylon_news_count') || '0', 10));
-        refreshNewsCount(); // Astra: Refresco nativo sin Svelte
         // @ts-ignore
         window.addEventListener('news-count-updated', (e: CustomEvent) => updateBadges(e.detail.count));
 

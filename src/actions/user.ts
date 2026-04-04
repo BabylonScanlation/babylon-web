@@ -35,10 +35,11 @@ export const userActions = {
             title: series.title,
             slug: series.slug,
             coverImageUrl: series.coverImageUrl,
+            views: series.views,
           },
           nextChapter: {
             number: userProgress.chapterNumber,
-            url: sql`'/series/' || ${series.slug} || '/' || ${userProgress.chapterNumber}`,
+            url: sql<string>`'/series/' || ${series.slug} || '/' || ${userProgress.chapterNumber}`,
             createdAt: userProgress.lastReadAt,
           },
         })
@@ -63,6 +64,7 @@ export const userActions = {
             title: series.title,
             slug: series.slug,
             coverImageUrl: series.coverImageUrl,
+            views: series.views,
           },
           createdAt: favorites.createdAt,
         })
@@ -86,6 +88,7 @@ export const userActions = {
             title: series.title,
             slug: series.slug,
             coverImageUrl: series.coverImageUrl,
+            views: series.views,
           },
           rating: seriesRatings.rating,
           createdAt: seriesRatings.createdAt,

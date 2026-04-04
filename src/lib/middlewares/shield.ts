@@ -39,6 +39,25 @@ export async function shield(context: APIContext, next: MiddlewareNext) {
   const isGoogle = lowerUa.includes('google') || lowerUa.includes('sitemaps');
   locals.isBot = isGoogle;
 
+  // 0. VERIFY REDIRECT (Optimización Crítica para evitar doble petición a la Home)
+  const isVerified = context.cookies.get('site_verified')?.value === 'true';
+  const isPublicPath =
+    currentPath === '/verify' ||
+    currentPath === '/terms' ||
+    currentPath === '/index.json' ||
+    currentPath.startsWith('/repo/') ||
+    currentPath.startsWith('/api/') ||
+    currentPath.startsWith('/_actions/') ||
+    currentPath.startsWith('/js/') ||
+    currentPath.startsWith('/_astro') ||
+    currentPath.startsWith('/favicon.png');
+
+  if (!isVerified && !isPublicPath && !isGoogle) {
+    // Orion: Usamos rewrite en lugar de redirect para servir el contenido de verificación
+    // instantáneamente sin disparar una segunda petición del navegador.
+    return context.rewrite('/verify');
+  }
+
   if (
     currentPath.endsWith('.xml') ||
     currentPath.includes('sitemap') ||
@@ -82,23 +101,6 @@ export async function shield(context: APIContext, next: MiddlewareNext) {
       status: 403,
       headers: { 'Content-Type': 'text/html' },
     });
-  }
-
-  // 4. VERIFY REDIRECT (Para usuarios que no han aceptado términos)
-  const isVerified = context.cookies.get('site_verified')?.value === 'true';
-  const isPublicPath =
-    currentPath === '/verify' ||
-    currentPath === '/terms' ||
-    currentPath === '/index.json' ||
-    currentPath.startsWith('/repo/') ||
-    currentPath.startsWith('/api/') ||
-    currentPath.startsWith('/_actions/') ||
-    currentPath.startsWith('/js/') ||
-    currentPath.startsWith('/_astro') ||
-    currentPath.startsWith('/favicon.png');
-
-  if (!isVerified && !isPublicPath && !isGoogle) {
-    return context.redirect('/verify');
   }
 
   return next();

@@ -52,7 +52,7 @@ let selectedStarFilter = $state<number | null>(null);
 
 // Orion: Normalizador de imágenes
 const getImageUrl = (path: string | null) => {
-  if (!path) return '';
+  if (!path) return 'https://placehold.jp/12/1a1a1a/ffffff/300x450.png?text=Sin%20Portada';
   if (path.startsWith('http')) return path;
   return `/api/assets/proxy/${path}`.replace(/([^:]\/)\/+/g, '$1');
 };
@@ -192,7 +192,7 @@ function handleLogin() {
             {#each favoritesItems as item (item.series.id)}
               <a href={`/series/${item.series.slug}`} class="manga-card">
                 <div class="card-cover">
-                  <img src={item.series.cover || '/covers/placeholder.jpg'} alt={item.series.title} loading="lazy" />
+                  <img src={getImageUrl(item.series.coverImageUrl)} alt={item.series.title} loading="lazy" />
                   <div class="views-badge">
                     <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     {item.series.views}
@@ -227,7 +227,7 @@ function handleLogin() {
             {#each filteredRatings as item (item.series.id)}
               <a href={`/series/${item.series.slug}`} class="manga-card rating-card">
                 <div class="card-cover">
-                  <img src={item.series.cover || '/covers/placeholder.jpg'} alt={item.series.title} loading="lazy" />
+                  <img src={getImageUrl(item.series.coverImageUrl)} alt={item.series.title} loading="lazy" />
                   <div class="rating-badge">{item.rating} ⭐</div>
                 </div>
                 <div class="card-info">

@@ -134,10 +134,14 @@ export const userStore = new UserStore();
 // 4. NEWS STORE
 class NewsStore {
   #count = $state(0);
+  #lastUpdated = 0;
+
   constructor() {
     if (typeof window !== 'undefined') {
       const s = localStorage.getItem('babylon_news_count');
       if (s) this.#count = parseInt(s, 10);
+      const lu = localStorage.getItem('babylon_news_last_updated');
+      if (lu) this.#lastUpdated = parseInt(lu, 10);
     }
   }
   get count() {
@@ -145,10 +149,18 @@ class NewsStore {
   }
   setCount(v: number) {
     this.#count = v;
+    this.#lastUpdated = Date.now();
     localStorage.setItem('babylon_news_count', v.toString());
+    localStorage.setItem('babylon_news_last_updated', this.#lastUpdated.toString());
     window.dispatchEvent(new CustomEvent('news-count-updated', { detail: { count: v } }));
   }
-  async refreshCount(f: any) {
+  async refreshCount(f: any, force = false) {
+    // Orion: Solo refrescar si han pasado más de 5 minutos o si se fuerza
+    const now = Date.now();
+    if (!force && now - this.#lastUpdated < 300000) {
+      return;
+    }
+
     try {
       const res = await f('/api/news/count');
       if (res.ok) {

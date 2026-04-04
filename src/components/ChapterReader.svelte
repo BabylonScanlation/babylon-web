@@ -466,6 +466,18 @@ import { actions } from 'astro:actions';
 function registerView() {
   if (chapterId) {
     actions.chapters.registerView({ chapterId }).catch(() => {});
+    
+    // Orion: Si el usuario está autenticado, guardamos su progreso de lectura
+    const bridge = document.getElementById('reader-data-bridge');
+    const seriesId = bridge ? parseInt(bridge.getAttribute('data-series-id') || '0') : 0;
+    
+    if (seriesId > 0) {
+      actions.user.updateProgress({
+        seriesId,
+        chapterId,
+        chapterNumber: parseFloat(chapter)
+      }).catch(err => console.warn('[Reader] Failed to update progress', err));
+    }
   }
 }
 

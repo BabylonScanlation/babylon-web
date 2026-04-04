@@ -116,35 +116,27 @@ if (newsItems.length > 0 && newsItems[0]) {
                 href={`/news/${news.id}`}
                 class="news-card-inner"
               >
-                <div class="news-card-image">
-                  {news.imageUrls && news.imageUrls.length > 0 ? (
-                    <img
-                      src={news.imageUrls[0]}
-                      alt={news.title}
-                      loading="lazy"
-                    />
-                  ) : news.seriesCover ? (
-                    <img
-                      src={news.seriesCover}
-                      alt={news.title}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div class="news-image-placeholder">
-                      <img 
-                        src={siteConfig.assets.logoEmpty.startsWith('/') ? `/api/assets/proxy${siteConfig.assets.logoEmpty}` : siteConfig.assets.logoEmpty} 
-                        alt="Babylon Logo" 
-                        class="placeholder-logo"
+                {(news.imageUrls && news.imageUrls.length > 0 || news.seriesCover) && (
+                  <div class="news-card-image">
+                    {news.imageUrls && news.imageUrls.length > 0 ? (
+                      <img
+                        src={news.imageUrls[0]}
+                        alt={news.title}
+                        loading="lazy"
                       />
-                    </div>
-                  )}
-                  {news.seriesTitle && (
-                    <div class="series-badge">
-                      {news.seriesTitle}
-                    </div>
-                  )}
-                </div>
+                    ) : (
+                      <img
+                        src={news.seriesCover}
+                        alt={news.title}
+                        loading="lazy"
+                      />
+                    )}
+                  </div>
+                )}
                 <div class="news-card-content">
+                  {news.seriesTitle && (
+                    <span class="series-label">{news.seriesTitle}</span>
+                  )}
                   <h2 class="news-card-title">{news.title}</h2>
                   <p class="news-card-excerpt">{stripMarkdown(news.content)}</p>
                   <div class="news-card-footer">
@@ -255,9 +247,9 @@ if (newsItems.length > 0 && newsItems[0]) {
   }
 
   .news-card-image {
-    width: 100px; /* Astra: Tamaño aún más reducido */
+    width: 140px; /* Astra: Aumentado para mayor impacto visual */
     height: auto;
-    min-height: 100px;
+    min-height: 140px;
     flex-shrink: 0;
     overflow: hidden;
     position: relative;
@@ -275,34 +267,27 @@ if (newsItems.length > 0 && newsItems[0]) {
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.2) 100%);
+    background: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 100%);
     pointer-events: none;
+    z-index: 2;
   }
 
-  .series-badge {
-    position: absolute;
-    top: 0.4rem;
-    left: 0.4rem;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(4px);
-    color: var(--accent-color);
-    padding: 0.15rem 0.4rem;
-    border-radius: 4px;
-    font-size: 0.55rem;
-    font-weight: 800;
+  .series-label {
+    display: inline-block;
+    color: var(--accent-color, #00bfff);
+    font-size: 0.65rem;
+    font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    z-index: 10;
-    border: 1px solid rgba(255,255,255,0.1);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.25rem;
+    opacity: 0.8;
   }
 
   .news-card-image img {
     width: 100%;
     height: 100%;
-    max-width: 85px;
-    max-height: 85px;
-    object-fit: contain; /* Astra: Imagen completa sin recortes */
-    transition: transform 0.6s ease;
+    object-fit: cover; /* Astra: Llenado total sin espacios vacíos */
+    transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
     z-index: 1;
   }
 

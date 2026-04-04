@@ -48,16 +48,6 @@ const initialComments = (await getCommentsForTarget(drizzleDb, 'news', id, user?
         </div>
       </div>
 
-      {newsItem.imageUrls && newsItem.imageUrls.length > 0 && (
-        <div class="news-image-container">
-          <img 
-            src={newsItem.imageUrls[0]} 
-            alt={newsItem.title} 
-            class="news-featured-image"
-          />
-        </div>
-      )}
-
       <div class="news-content-wrapper">
         <div class="news-content prose" set:html={renderedContent}></div>
       </div>
