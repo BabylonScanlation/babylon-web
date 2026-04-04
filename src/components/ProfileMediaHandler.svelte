@@ -10,7 +10,7 @@ let modalType: 'avatar' | 'banner' = $state('avatar');
 onMount(() => {
   // Expose function to window for legacy scripts to call
   const globalWindow = window as any;
-  globalWindow.openProfileMediaModal = function(type: 'avatar' | 'banner') {
+  globalWindow.openProfileMediaModal = (type: 'avatar' | 'banner') => {
     modalType = type;
     showModal = true;
   };

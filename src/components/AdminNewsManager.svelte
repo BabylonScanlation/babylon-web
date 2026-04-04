@@ -71,18 +71,18 @@ const predictedImagePath = $derived.by(() => {
   if (!formImage) return '';
   const cleanName = formImage.name.replace(/[^a-zA-Z0-9.]/g, '_');
   const id = editingNewsId || 'pending';
-  
+
   // Orion: Lógica de carpetas pre-existentes y prefijo de archivo para evitar subcarpetas
   const isGlobal = selectedSeriesId === -1;
   const folder = isGlobal ? 'news/global_news' : 'news';
   const fileName = `${id}_${cleanName}`;
-  
+
   // Astra: Si es el proxy interno, usamos ruta relativa "/" para que funcione en móviles en local
   const isInternalProxy = !r2PublicUrlAssets || r2PublicUrlAssets.includes('/api/assets/proxy');
   const base = isInternalProxy ? '/api/assets/proxy' : r2PublicUrlAssets;
-  
+
   const fullPath = `${base}/${folder}/${fileName}`.replace(/([^:]\/)\/+/g, '$1');
-  
+
   return fullPath;
 });
 

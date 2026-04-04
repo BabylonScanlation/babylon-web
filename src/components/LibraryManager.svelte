@@ -1,8 +1,8 @@
 <script lang="ts">
+import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
 import { fade } from 'svelte/transition';
 import { toast, userStore } from '../lib/stores.svelte';
-import { actions } from 'astro:actions';
 import { timeAgo } from '../lib/utils';
 
 // Tipos locales flexibilizados

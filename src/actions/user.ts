@@ -1,13 +1,10 @@
 import { defineAction } from 'astro:actions';
 import { z } from 'astro:schema';
-import { and, eq, sql } from 'drizzle-orm';
-import { favorites, seriesRatings, userProgress, users } from '../db/schema';
+import { and, desc, eq, sql } from 'drizzle-orm';
+import { favorites, series, seriesRatings, userProgress, users } from '../db/schema';
 import { getDB } from '../lib/db';
-import { generateRandomUsername } from '../lib/utils';
-
 import { consumeNonce } from '../lib/nonce';
-import { desc } from 'drizzle-orm';
-import { series } from '../db/schema';
+import { generateRandomUsername } from '../lib/utils';
 
 const ProfileSchema = z.object({
   username: z

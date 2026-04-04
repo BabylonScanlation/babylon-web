@@ -32,7 +32,7 @@ export function parseToTimestamp(dateInput: any): number {
     // Normalizar formato para Date()
     // Reemplazar espacio por T si parece una fecha ISO sin T
     if (s.includes(' ') && s.includes('-')) s = s.replace(' ', 'T');
-    
+
     let t = new Date(s).getTime();
 
     // Fallback para formatos raros o faltas de zona horaria
@@ -54,7 +54,7 @@ export function parseToTimestamp(dateInput: any): number {
  */
 export function timeAgo(dateVal: any): string {
   const timestamp = parseToTimestamp(dateVal);
-  
+
   // Si no hay fecha o es absurdamente antigua (era Unix), es "justo ahora"
   if (timestamp <= 0 || timestamp < 1000000000) return 'justo ahora';
 
@@ -64,7 +64,7 @@ export function timeAgo(dateVal: any): string {
 
   // 1. Manejo de futuro y desfases leves (hasta 2 minutos)
   if (diff < 0 && absDiff < 120000) return 'justo ahora';
-  
+
   // 2. Si la diferencia es de segundos
   const seconds = Math.floor(absDiff / 1000);
   if (seconds < 60) return 'justo ahora';

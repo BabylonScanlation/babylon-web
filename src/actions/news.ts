@@ -24,8 +24,10 @@ export const newsActions = {
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
       const { image, newsId } = input;
-      console.log(`[R2 Upload] Starting upload for news ${newsId}, file: ${image.name} (${image.size} bytes)`);
-      
+      console.log(
+        `[R2 Upload] Starting upload for news ${newsId}, file: ${image.name} (${image.size} bytes)`
+      );
+
       const r2Assets = context.locals.runtime.env.R2_ASSETS;
       const db = getDB(context.locals.runtime.env);
 
@@ -36,14 +38,18 @@ export const newsActions = {
 
       const arrayBuffer = await image.arrayBuffer();
       const cleanName = image.name.replace(/[^a-zA-Z0-9.]/g, '_');
-      
+
       // Orion: Determinamos la carpeta y usamos un prefijo para evitar subcarpetas nuevas
-      const newsItem = await db.select({ seriesId: schema.news.seriesId }).from(schema.news).where(eq(schema.news.id, newsId)).get();
+      const newsItem = await db
+        .select({ seriesId: schema.news.seriesId })
+        .from(schema.news)
+        .where(eq(schema.news.id, newsId))
+        .get();
       const isGlobal = !newsItem || newsItem.seriesId === null;
-      
+
       // Estructura plana: news/[global_news/]ID_filename
-      const r2Key = isGlobal 
-        ? `news/global_news/${newsId}_${cleanName}` 
+      const r2Key = isGlobal
+        ? `news/global_news/${newsId}_${cleanName}`
         : `news/${newsId}_${cleanName}`;
 
       try {

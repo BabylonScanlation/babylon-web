@@ -32,15 +32,17 @@ async function main() {
 
   // Obtener lista de todas las tablas de usuario
   console.log('🔍 Listando tablas disponibles en D1 Remote...');
-  const tablesJson = query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'drizzle_%' AND name NOT LIKE '_cf_%' AND name NOT LIKE '%_fts_%'");
-  
+  const tablesJson = query(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'drizzle_%' AND name NOT LIKE '_cf_%' AND name NOT LIKE '%_fts_%'"
+  );
+
   if (!tablesJson) {
     console.error('❌ No se pudieron obtener las tablas de la base de datos remota.');
     process.exit(1);
   }
 
   const results = JSON.parse(tablesJson)[0].results;
-  const allTables = results.map(r => r.name);
+  const allTables = results.map((r) => r.name);
   console.log(`📑 Encontradas ${allTables.length} tablas de usuario.`);
 
   let sqlDump = 'PRAGMA foreign_keys = OFF;\n';
@@ -74,7 +76,7 @@ async function main() {
       const data = query(`SELECT * FROM "${table}"`);
       if (data) {
         const result = JSON.parse(data)[0];
-        if (result && result.results) {
+        if (result?.results) {
           result.results.forEach((row) => {
             const cols = Object.keys(row);
             const vals = cols.map((c) => escapeStringOneLine(row[c])).join(', ');
@@ -87,11 +89,11 @@ async function main() {
   }
 
   sqlDump += 'PRAGMA foreign_keys = ON;\n';
-  
+
   if (!fs.existsSync(path.dirname(DUMP_PATH))) {
     fs.mkdirSync(path.dirname(DUMP_PATH), { recursive: true });
   }
-  
+
   fs.writeFileSync(DUMP_PATH, sqlDump);
   console.log(`\n💾 Dump completo guardado en ${DUMP_PATH}`);
   console.log(`✅ Sincronización preparada para ${processed.size} tablas.`);

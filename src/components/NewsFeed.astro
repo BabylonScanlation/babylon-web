@@ -24,9 +24,9 @@ try {
       newsForSeries.map(async (newsItem: NewsItem) => {
         const images = await getNewsImages(db, newsItem.id);
         const publicBase = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
-        
-        const imageUrls = images.map(
-          (img: NewsImageItem) => `${publicBase}/${img.r2Key}`.replace(/([^:]\/)\/+/g, '$1')
+
+        const imageUrls = images.map((img: NewsImageItem) =>
+          `${publicBase}/${img.r2Key}`.replace(/([^:]\/)\/+/g, '$1')
         );
 
         return {

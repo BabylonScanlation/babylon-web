@@ -5,9 +5,9 @@ import { anonymousUsers, sessions, userRoles, users } from '../db/schema';
 import { hashIpAddress } from '../lib/crypto';
 import { getDB } from '../lib/db';
 import { verifyFirebaseToken } from '../lib/firebase/server';
+import { createNonce } from '../lib/nonce';
 import { deleteSession, setAuthCookie } from '../lib/session';
 import { generateRandomUsername, generateUUID } from '../lib/utils';
-import { createNonce } from '../lib/nonce';
 import type { AppDatabase, FirebaseDecodedToken, SessionContext } from '../types';
 
 async function determineUserRole(db: AppDatabase, uid: string, superAdminUid: string | undefined) {
