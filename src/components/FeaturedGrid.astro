@@ -42,7 +42,7 @@ const displayMangas = mangas.slice(0, 6);
 
             <div class="card-badge-vistas">
               <div class="glass-tag">
-                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="3" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"/></svg>
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"/></svg>
                 <span>{manga.views?.toLocaleString() || 0}</span>
               </div>
             </div>
@@ -168,86 +168,117 @@ const displayMangas = mangas.slice(0, 6);
   }
 
   .manga-description {
-    color: rgba(255,255,255,0.6);
-    font-size: 0.85rem;
-    line-height: 1.4;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.82rem;
+    line-height: 1.35;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 5;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    opacity: 0;
-    transition: opacity 0.4s ease;
+    opacity: 1;
+    transition: color 0.4s ease;
   }
 
   .featured-card-premium:hover .manga-description {
-    opacity: 1;
+    color: #fff;
   }
 
-  .card-badge-vistas {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    z-index: 3;
+  /* Contenedores - Neutralizamos cualquier movimiento heredado */
+  .card-badge-vistas, .card-action-overlay {
+    display: contents !important;
+    transform: none !important; /* Orion: Bloqueamos desplazamientos verticales de global.css */
+    opacity: 1 !important;
   }
 
-  .glass-tag {
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(8px);
-    padding: 0.4rem 0.8rem;
-    border-radius: 100px;
-    border: 1px solid rgba(255,255,255,0.1);
-    color: var(--accent-color);
-    font-size: 0.75rem;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+  /* Elementos Finales (Forzamos posición exacta y estática) */
+  .featured-card-premium .glass-tag, 
+  .featured-card-premium .action-pill {
+    position: absolute !important;
+    top: 1rem !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 0.85rem !important;
+    border-radius: 100px !important;
+    font-size: 0.72rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    transition: transform 0.4s ease-out, color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease !important;
+    z-index: 50 !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    transform: translateY(0) scale(1) !important; /* Orion: Forzamos translateY(0) para evitar elevación */
   }
 
-  .card-action-overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 4;
-    opacity: 0;
-    transition: opacity 0.4s ease;
-    background: rgba(var(--accent-color-rgb, 0, 191, 255), 0.1);
+  .featured-card-premium .glass-tag {
+    right: 1rem !important;
+    left: auto !important;
+    background: rgba(0, 0, 0, 0.75) !important;
+    color: #fff !important;
   }
 
-  .featured-card-premium:hover .card-action-overlay {
-    opacity: 1;
+  .featured-card-premium .action-pill {
+    left: 1rem !important;
+    right: auto !important;
+    background: rgba(0, 0, 0, 0.75) !important;
+    color: #fff !important;
   }
 
-  .action-pill {
-    background: var(--accent-color);
-    color: #000;
-    padding: 0.8rem 1.5rem;
-    border-radius: 100px;
-    font-weight: 900;
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    box-shadow: 0 10px 30px var(--accent-glow);
-    transform: scale(0.9);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* Efecto Hover Sincronizado (Solo Escala, Cero Desplazamiento) */
+  .featured-card-premium:hover .glass-tag {
+    color: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 20px var(--accent-glow) !important;
+    transform: translateY(0) scale(1.04) !important;
   }
 
   .featured-card-premium:hover .action-pill {
-    transform: scale(1);
+    background: var(--accent-color) !important;
+    color: #000 !important;
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 20px var(--accent-glow) !important;
+    transform: translateY(0) scale(1.04) !important;
   }
 
   @media (max-width: 1024px) {
-    .featured-grid-3x2 { grid-template-columns: repeat(2, 1fr); }
+    .featured-grid-3x2 { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
   }
 
   @media (max-width: 768px) {
     .section-header.centered { grid-template-columns: auto 1fr; gap: 1rem; }
     .header-line { display: none; }
-    .featured-grid-3x2 { grid-template-columns: 1fr; gap: 1.5rem; }
-    .manga-title { font-size: 1.2rem; }
+    .featured-grid-3x2 { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .manga-title { font-size: 1.1rem; }
+    .manga-description { 
+      -webkit-line-clamp: 5; 
+      font-size: 0.7rem; 
+      line-height: 1.25; 
+      color: rgba(255, 255, 255, 0.8);
+    }
+    .featured-card-premium .glass-tag, 
+    .featured-card-premium .action-pill {
+      height: 24px !important;
+      padding: 0 0.5rem !important;
+      font-size: 0.58rem !important;
+      top: 0.5rem !important;
+    }
+    .featured-card-premium .glass-tag svg,
+    .featured-card-premium .action-pill svg {
+      width: 12px !important;
+      height: 12px !important;
+    }
+    .featured-card-premium .glass-tag { right: 0.5rem !important; }
+    .featured-card-premium .action-pill { left: 0.5rem !important; }
+  }
+
+  @media (max-width: 480px) {
+    .featured-grid-3x2 { gap: 0.75rem; }
+    .manga-title { font-size: 0.95rem; }
+    .card-info-content { padding: 1rem; }
   }
 </style>
 
