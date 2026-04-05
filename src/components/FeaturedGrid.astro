@@ -22,7 +22,7 @@ const displayMangas = mangas.slice(0, 6);
 
   <div class="featured-grid-3x2">
     {
-      displayMangas.map((manga, index) => (
+      displayMangas.map((manga) => (
         <div class="featured-card-wrapper">
           <a href={`/series/${manga.slug}`} class="featured-card-premium" data-astro-prefetch="false">
             <div class="card-art-box">

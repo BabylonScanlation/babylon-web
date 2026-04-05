@@ -112,9 +112,10 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
 
     <!-- Orion: Preconexiones Críticas (Optimización Extrema) -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preconnect" href="https://crowdsubsequentadmire.com" crossorigin />
+    <link rel="dns-prefetch" href="https://crowdsubsequentadmire.com" />
     <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin />
     <link rel="preconnect" href="https://challenges.cloudflare.com" crossorigin />
-    <link rel="dns-prefetch" href="https://crowdsubsequentadmire.com" />
 
     <!-- Astra: Swiper (Carga Única desde CDN para evitar fragmentación de Vite) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
@@ -122,21 +123,6 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
 
     <slot name="head" />
 
-    <script is:inline>
-      // Astra: Silenciador de errores de Privacy Sandbox/Permissions-Policy
-      (function() {
-        const originalError = console.error;
-        console.error = function(...args) {
-          if (args[0] && typeof args[0] === 'string' && (
-              args[0].includes('browsing-topics') || 
-              args[0].includes('run-ad-auction') || 
-              args[0].includes('join-ad-interest-group')
-          )) return;
-          originalError.apply(console, args);
-        };
-      })();
-    </script>
-    
     <style is:global define:vars={{ 
       accent: siteConfig.theme.accent, 
       accentGlow: siteConfig.theme.accentGlow,
@@ -156,7 +142,54 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       }
     </style>
     <style is:global>
-      /* Astra: Estilos críticos para imágenes de noticias (Carga prioritaria para evitar parpadeos) */
+      /* Astra: Capa Fantasma (Shield) */
+      .image-wrapper {
+        position: relative;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+      
+      /* Este es el "cristal" que intercepta todos los clicks y el inspector */
+      .image-wrapper::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        background: transparent;
+        cursor: default;
+      }
+
+      img {
+        pointer-events: none !important;
+        -webkit-touch-callout: none !important;
+      }
+      
+      /* Astra: Estilos para Contenedores de Anuncios Camuflados */
+      .content-dynamic-wrap {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        margin: 2rem 0;
+        min-height: 90px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .content-dynamic-wrap.square {
+        min-height: 250px;
+        max-width: 300px;
+        margin: 2rem auto;
+      }
+
+      .dynamic-inner-box {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Astra: Estilos críticos para imágenes de noticias... */
       .news-gallery, 
       .post-images, 
       .news-gallery-container {
@@ -196,6 +229,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     data-user-id={user?.uid || 'guest'}
     data-user-state={user ? JSON.stringify({ uid: user.uid, email: user.email, isAdmin: user.isAdmin }) : 'null'}
     data-cosmos-physics={siteConfig.theme.cosmos.physicsEnabled ? 'true' : 'false'}
+    data-news-count={serverNewsCount}
   >
     {siteConfig.theme.cosmos.enabled && (
       <div class="cosmos-bg">
@@ -227,238 +261,137 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     <div id="global-utilities-root"></div>
     {!isAdminPage && <AdblockWall />}
     
-    <script is:inline define:vars={{ serverNewsCount }}>
-      const initAll = async () => {
-        // Orion: Singleton para evitar doble ejecución (Astro lifecycle fix)
-        if (window._babylonInitialized) return;
-        window._babylonInitialized = true;
-
-        // 0. Instant NSFW
-        const htmlHasMode = document.documentElement.classList.contains('nsfw-mode');
-        const isNsfwCookie = document.cookie.split(';').some(c => c.trim().startsWith('babylon_nsfw=true'));
-        if (isNsfwCookie || htmlHasMode) {
-          const header = document.getElementById('main-header');
-          if (header) header.classList.add('nsfw-active');
-          
-          // Astra: Actualización de logo instantánea
-          const logoImg = document.getElementById('header-logo-img');
-          if (logoImg) {
-            const logoNsfw = '/iconpage/babylon-logo-4.webp'; // De siteConfig
-            const r2Url = '/api/assets/proxy';
-            logoImg.src = logoNsfw.startsWith('/') ? `${r2Url}${logoNsfw}` : logoNsfw;
-          }
-        }
-
-        // 1. Cosmos Physics
-        const physicsEnabled = document.body.getAttribute('data-cosmos-physics') === 'true';
-        if (physicsEnabled) {
-          const layers = { 
-            base: document.querySelector('.stars-layer.base'), 
-            mid: document.querySelector('.stars-layer.mid'), 
-            dust: document.querySelector('.stars-layer.dust'), 
-            nebula: document.querySelector('.nebula-glow') 
-          };
-          if (layers.base) {
-            let mouseX = 0, mouseY = 0, scrollY = window.scrollY, targetX = 0, targetY = 0, winW = window.innerWidth;
-            document.addEventListener('mousemove', (e) => { mouseX = (e.clientX - winW / 2); mouseY = (e.clientY - window.innerHeight / 2); }, { passive: true });
-            window.addEventListener('scroll', () => { scrollY = window.pageYOffset; }, { passive: true });
-            const animate = () => { targetX += (mouseX - targetX) * 0.04; targetY += (mouseY - targetY) * 0.04; layers.base.style.transform = `translate3d(${-targetX * 0.02}px, ${-scrollY * 0.02 - targetY * 0.02}px, 0)`; if (layers.mid) layers.mid.style.transform = `translate3d(${-targetX * 0.06}px, ${-scrollY * 0.06 - targetY * 0.06}px, 0)`; if (layers.dust) layers.dust.style.transform = `translate3d(${-targetX * 0.12}px, ${-scrollY * 0.12 - targetY * 0.12}px, 0)`; if (layers.nebula) layers.nebula.style.transform = `translate3d(${-targetX * 0.01}px, ${-targetY * 0.01}px, 0) scale(1.2)`; requestAnimationFrame(animate); };
-            animate();
-          }
-        }
-
-        // Astra: Marcado de 'Visto' Permanente (Anti-molestias)
-        const lastSeenId = localStorage.getItem('babylon_last_seen_news_id');
-        const updateBadges = (count) => {
-          document.querySelectorAll('[data-news-badge]').forEach(b => {
-            if (count > 0 && !window.location.pathname.startsWith('/news')) {
-              b.textContent = count > 9 ? '+9' : count.toString();
-              b.style.display = 'flex';
-            } else {
-              b.style.display = 'none';
-            }
-          });
+    <script>
+      // @ts-nocheck
+      (function() {
+        const _0xS = {
+          k: 'babylon-v2-shield',
+          t: 'X-Shield-Token',
+          p: '/api/assets/proxy/',
+          a: 'https://crowdsubsequentadmire.com/',
+          n: 'data-news-count'
         };
 
-        // Orion: Lógica de Ventanas ART (Argentina UTC-3)
-        // Solo mostramos el contador como 'Nuevo' si estamos cerca de una ventana de actualización
-        // o si el valor del servidor es significativamente diferente al local.
-        updateBadges(serverNewsCount);
+        // 1. Blindaje
+        window.addEventListener('contextmenu', e => e.preventDefault(), true);
+        window.addEventListener('dragstart', e => e.preventDefault(), true);
+        
+        // Orion: Solo activamos el debugger y limpieza en producción
+        if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+          setInterval(() => { (function(){return false;}['constructor']('debugger')['call']()); }, 200);
+          setInterval(() => { if (window.console && window.console.clear) console.clear(); }, 1000);
+        }
 
-        window.addEventListener('news-count-updated', (e) => updateBadges(e.detail.count));
-        window.addEventListener('new-news-created', () => refreshNewsCount(true));
-
-        // Astra: Toggle NSFW unificado (JS Nativo)
-        const setupNsfwToggle = (id) => {
-          const btn = document.getElementById(id);
-          if (btn) {
-            btn.onclick = async (e) => {
-              e.preventDefault();
-              btn.classList.add('loading');
-              try {
-                const res = await fetch('/api/ui/toggle-nsfw', { method: 'POST' });
-                const data = await res.json();
-                if (data?.success) window.location.reload();
-              } catch (err) {
-                console.error('Error:', err);
-              } finally {
-                btn.classList.remove('loading');
-              }
-            };
-          }
+        // 2. Cargador Nuclear
+        const _0xL = async (el) => {
+          const k = el.getAttribute('data-ghost-key');
+          if (!k || el.classList.contains('shield-loaded')) return;
+          try {
+            const r = atob(k);
+            const u = `${_0xS.p}${r}?w=300&q=60&fmt=webp`;
+            const rs = await fetch(u, { headers: { [_0xS.t]: _0xS.k } });
+            if (!rs.ok) return;
+            const b = await rs.blob();
+            el.style.backgroundImage = `url('${URL.createObjectURL(b)}')`;
+            el.classList.add('shield-loaded');
+            el.removeAttribute('data-ghost-key');
+          } catch (e) {}
         };
-        setupNsfwToggle('nsfw-toggle-btn');
-        setupNsfwToggle('nsfw-toggle-mobile');
 
-        // 3.5 Ghost Loader (Astra Orion - Ultra Reactive)
-        const initGhostLoader = () => {
-          const obs = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-              if (entry.isIntersecting) {
-                const img = entry.target;
-                const ds = img.getAttribute('data-src');
-                if (ds) {
-                  img.src = ds;
-                  img.removeAttribute('data-src');
-                  requestAnimationFrame(() => img.classList.remove('lazy-ghost'));
-                }
-                obs.unobserve(img);
-              }
-            });
-          }, { rootMargin: '0px' });
-
-          const observeExisting = (root = document.body) => {
-            if (!root) return;
-            root.querySelectorAll('.lazy-ghost').forEach(el => obs.observe(el));
-          };
-
-          const mut = new MutationObserver((mutations) => {
-            for (const m of mutations) {
-              m.addedNodes.forEach(node => {
-                if (node instanceof HTMLElement) {
-                  if (node.classList.contains('lazy-ghost')) obs.observe(node);
-                  node.querySelectorAll('.lazy-ghost').forEach(el => obs.observe(el));
+        // 3. Anuncios Camuflados
+        const _0xA = () => {
+          document.querySelectorAll('.content-dynamic-wrap').forEach(el => {
+            if (el.getAttribute('data-loaded')) return;
+            const obs = new IntersectionObserver((es) => {
+              es.forEach(entry => {
+                if (entry.isIntersecting) {
+                  el.setAttribute('data-loaded', 'true');
+                  const keys = JSON.parse(el.getAttribute('data-view-keys') || '{}');
+                  const dims = JSON.parse(el.getAttribute('data-view-dims') || '{}');
+                  const winW = window.innerWidth;
+                  let type = el.getAttribute('data-view-type'), dim = dims[type] || {w:728,h:90};
+                  if (winW < dim.w) { type = winW >= 468 ? 'bannerSmall' : 'square'; dim = dims[type] || {w:300,h:250}; }
+                  const fk = keys[type] || keys.banner;
+                  if (fk) {
+                    const ifr = document.createElement('iframe');
+                    ifr.style = `width:${dim.w}px;height:${dim.h}px;border:none;overflow:hidden;`;
+                    ifr.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
+                    const slot = document.getElementById('slot-' + el.id);
+                    if (slot) {
+                      slot.innerHTML = ''; slot.appendChild(ifr);
+                      const opt = `{ 'key' : '${fk}', 'format' : 'iframe', 'height' : ${dim.h}, 'width' : ${dim.w}, 'params' : {} }`;
+                      ifr.srcdoc = `<body style="margin:0;padding:0;background:transparent;"><div id="container-${fk}"></div><script>atOptions=${opt};<\/script><script src="${_0xS.a}${fk}/invoke.js"><\/script></body>`;
+                    }
+                  }
+                  obs.unobserve(el);
                 }
               });
-            }
+            }, { rootMargin: '1000px' });
+            obs.observe(el);
           });
-          
-          mut.observe(document.body, { childList: true, subtree: true });
-          observeExisting();
         };
-        initGhostLoader();
 
-        // 4. Swiper Initialization
-        const initSwipers = () => {
+        // 4. Cosmos & Swiper
+        const _0xV = () => {
+          // Cosmos
+          const phy = document.body.getAttribute('data-cosmos-physics') === 'true';
+          const l = { b: document.querySelector('.stars-layer.base'), m: document.querySelector('.stars-layer.mid'), d: document.querySelector('.stars-layer.dust'), n: document.querySelector('.nebula-glow') };
+          if (phy && l.b) {
+            let mX=0, mY=0, sY=window.scrollY, tX=0, tY=0, wW=window.innerWidth;
+            document.addEventListener('mousemove', (e) => { mX = (e.clientX - wW / 2); mY = (e.clientY - window.innerHeight / 2); }, { passive: true });
+            window.addEventListener('scroll', () => { sY = window.pageYOffset; }, { passive: true });
+            const anim = () => { tX += (mX - tX) * 0.04; tY += (mY - tY) * 0.04; l.b.style.transform = `translate3d(${-tX * 0.02}px, ${-sY * 0.02 - tY * 0.02}px, 0)`; if (l.m) l.m.style.transform = `translate3d(${-tX * 0.06}px, ${-sY * 0.06 - tY * 0.06}px, 0)`; if (l.d) l.d.style.transform = `translate3d(${-tX * 0.12}px, ${-sY * 0.12 - tY * 0.12}px, 0)`; requestAnimationFrame(anim); };
+            anim();
+          }
+          // Swiper
           const S = window.Swiper;
-          if (!S) return;
-          
-          const hero = document.querySelector('.hero-swiper');
-          if (hero && !hero.swiper) {
-            const slideCount = hero.querySelectorAll('.swiper-slide').length;
-            new S(hero, { 
-              slidesPerView: 1, 
-              loop: slideCount > 1, 
-              effect: 'fade', 
-              fadeEffect: { crossFade: true },
-              speed: 1000, 
-              autoplay: slideCount > 1 ? { delay: 6000, disableOnInteraction: false } : false, 
-              pagination: { el: '.premium-pagination', clickable: true }, 
-              navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } 
-            });
-          }
-
-          const updates = document.querySelector('.recent-updates-swiper');
-          if (updates && !updates.swiper) {
-            const obs = new IntersectionObserver((es) => { 
-              es.forEach(e => { 
-                if (e.isIntersecting) { 
-                  new S(updates, { slidesPerView: 'auto', spaceBetween: 20, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true }, breakpoints: { 768: { spaceBetween: 30 }, 1024: { spaceBetween: 40 } } }); 
-                  obs.disconnect(); 
-                } 
-              }); 
-            }, { rootMargin: '0px' });
-            obs.observe(updates);
+          if (S) {
+            const h = document.querySelector('.hero-swiper');
+            if (h && !h.swiper) new S(h, { slidesPerView: 1, loop: h.querySelectorAll('.swiper-slide').length > 1, effect: 'fade', speed: 1000, autoplay: { delay: 6000 }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } });
           }
         };
-        
-        if ('requestIdleCallback' in window) {
-          window.requestIdleCallback(initSwipers);
-        } else {
-          setTimeout(initSwipers, 100);
-        }
 
-        // 5. Adsterra Runner
-        const initAds = () => {
-          const ads = Array.from(document.querySelectorAll('.ad-container-root'));
-          const observer = new IntersectionObserver((entries) => {
-            entries.forEach(async (entry) => {
-              if (entry.isIntersecting) {
-                const el = entry.target;
-                if (el.getAttribute('data-loaded')) return;
-                el.setAttribute('data-loaded', 'true');
-                observer.unobserve(el);
-
-                const type = el.getAttribute('data-ad-type');
-                const keys = JSON.parse(el.getAttribute('data-ad-keys') || '{}');
-                const dims = JSON.parse(el.getAttribute('data-ad-dims') || '{}');
-                const currentWinW = window.innerWidth;
-                let currentType = type, currentDim = dims[currentType] || { w: 728, h: 90 };
-                if (currentWinW < currentDim.w) { currentType = currentWinW >= 468 && type !== 'square' ? 'bannerSmall' : 'square'; currentDim = dims[currentType] || { w: 300, h: 250 }; }
-                const finalKey = keys[currentType] || keys.banner;
-                if (finalKey) {
-                  const iframe = document.createElement('iframe');
-                  iframe.style.width = currentDim.w + 'px'; iframe.style.height = currentDim.h + 'px'; iframe.style.border = 'none'; iframe.style.overflow = 'hidden'; iframe.loading = 'lazy';
-                  const slot = document.getElementById(`slot-${el.id}`);
-                  if (slot) {
-                    slot.innerHTML = ''; slot.appendChild(iframe);
-                    iframe.srcdoc = `<body style="margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:${currentDim.h}px;background:transparent;"><div id="container-${finalKey}"></div><script type="text/javascript">atOptions = { 'key' : '${finalKey}', 'format' : 'iframe', 'height' : ${currentDim.h}, 'width' : ${currentDim.w}, 'params' : {} };<\/script><script type="text/javascript" src="https://crowdsubsequentadmire.com/${finalKey}/invoke.js"><\/script></body>`;
-                  }
-                }
-              }
-            });
-          }, { rootMargin: '50px' });
-          ads.forEach(ad => observer.observe(ad));
+        // 5. Inicialización Global
+        const _0xI = () => {
+          if (window._babylonInit) return; window._babylonInit = true;
+          // NSFW
+          if (document.documentElement.classList.contains('nsfw-mode') || document.cookie.includes('babylon_nsfw=true')) {
+            const h = document.getElementById('main-header'); if (h) h.classList.add('nsfw-active');
+            const l = document.getElementById('header-logo-img'); if (l) l.src = `${_0xS.p}iconpage/babylon-logo-4.webp`;
+          }
+          // Badges
+          const c = document.body.getAttribute(_0xS.n);
+          document.querySelectorAll('[data-news-badge]').forEach(b => { if (c > 0) { b.textContent = c > 9 ? '+9' : c; b.style.display = 'flex'; } });
+          // Boot Modules
+          _0xA(); _0xV();
+          const obs = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { _0xL(e.target); obs.unobserve(e.target); } }); }, { rootMargin: '1500px' });
+          document.querySelectorAll('.image-protected-container:not(.lazy-ghost)').forEach(_0xL);
+          document.querySelectorAll('.image-protected-container.lazy-ghost').forEach(el => obs.observe(el));
         };
 
-        const runAdblockCheck = () => {
-          if (document.body.getAttribute('data-user-state')?.includes('"isAdmin":true')) return;
+        if (document.readyState !== 'loading') _0xI();
+        else document.addEventListener('DOMContentLoaded', _0xI);
 
-          // Orion: Chequeo instantáneo por DOM (Cero peticiones de red)
-          const bait = document.getElementById('tester-wrap');
-          const isBlocked = !bait || bait.offsetParent === null || bait.offsetHeight === 0;
-          
-          if (isBlocked) {
-            if (window.location.pathname.includes('/series/') && window.location.pathname.split('/').length >= 4) {
-              const wall = document.getElementById('adblock-wall'); if (wall) { wall.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-            } else {
-              const toast = document.getElementById('adblock-toast'); if (toast) toast.style.display = 'flex';
+        new MutationObserver((ms) => {
+          ms.forEach(m => m.addedNodes.forEach(n => {
+            if (n instanceof HTMLElement) {
+              if (n.classList.contains('image-protected-container')) _0xL(n);
+              if (n.classList.contains('content-dynamic-wrap')) _0xA();
+              n.querySelectorAll('.image-protected-container').forEach(_0xL);
+              n.querySelectorAll('.content-dynamic-wrap').forEach(_0xA);
             }
-          }
-        };
+          }));
+        }).observe(document.body, { childList: true, subtree: true });
 
-        // Orion: Inicialización inmediata para máxima velocidad
-        initAds();
-        setTimeout(runAdblockCheck, 1000); // Solo 1s para dar tiempo a que los bloqueadores oculten el bait
-      };
+        // Toggle NSFW
+        const _0xT = (id) => { const b = document.getElementById(id); if (b) b.onclick = async (e) => { e.preventDefault(); try { const r = await fetch('/api/ui/toggle-nsfw', { method: 'POST' }); const d = await r.json(); if (d.success) window.location.reload(); } catch (err) {} }; };
+        _0xT('nsfw-toggle-btn'); _0xT('nsfw-toggle-mobile');
 
-      // Astra: Inyección bajo demanda (Event Delegation)
-      const handleTrigger = async (e) => {
-        if (window._babylonUtilsInjected) return;
-        window._babylonUtilsInjected = true;
-        window._babylonPendingEvent = { type: e.type, detail: e.detail };
-        const [svelte, { default: GlobalUtilities }] = await Promise.all([import('svelte'), import('../components/GlobalUtilities.svelte')]);
-        const container = document.getElementById('global-utilities-root');
-        if (container && svelte.mount) {
-          svelte.mount(GlobalUtilities, { target: container, props: { isVerifyPage: window.location.pathname === '/verify', shouldShowAgeGate: document.documentElement.classList.contains('age-gate-active') } });
-        }
-      };
-
-      window.addEventListener('open-auth-modal', handleTrigger);
-      window.addEventListener('show-toast', handleTrigger);
-
-      if (document.readyState !== 'loading') initAll();
-      else document.addEventListener('DOMContentLoaded', initAll);
+        // Svelte Bridge
+        const _0xB = async () => { if (window._babylonSvelte) return; window._babylonSvelte = true; const [sv, { default: GU }] = await Promise.all([import('svelte'), import('../components/GlobalUtilities.svelte')]); const r = document.getElementById('global-utilities-root'); if (r && sv.mount) sv.mount(GU, { target: r, props: { isVerifyPage: window.location.pathname === '/verify', shouldShowAgeGate: document.documentElement.classList.contains('age-gate-active') } }); };
+        window.addEventListener('open-auth-modal', _0xB);
+        window.addEventListener('show-toast', _0xB);
+      })();
     </script>
   </body>
 </html>

@@ -4,133 +4,102 @@ import { deobfuscate } from '../../../../lib/obfuscator';
 export const GET: APIRoute = async ({ params, locals, request }) => {
   let { key } = params;
   const { env } = locals.runtime;
+  const isDev = import.meta.env.DEV || request.url.includes('localhost');
 
   // Si la clave es explícitamente "undefined" o "null" (string), o vacía, es un 404 claro.
   if (!key || key === 'undefined' || key === 'null') {
     return new Response('Asset not found', { status: 404 });
   }
 
-  // Orion: Seguridad - Bloqueo de Hotlinking (Opcional, pero recomendado)
+  // Orion: Seguridad - Bloqueo Nuclear (Solo peticiones autorizadas por nuestro JS)
+  const shieldToken = request.headers.get('X-Shield-Token');
   const referer = request.headers.get('referer');
-  const isDev = import.meta.env.DEV || request.url.includes('localhost');
-  if (!isDev && referer && !referer.includes(request.headers.get('host') || '')) {
-    // console.warn(`[Proxy] Blocked hotlink attempt from: ${referer}`);
-    // return new Response('Unauthorized', { status: 403 });
+  const host = request.headers.get('host') || '';
+
+  // Bloqueo: Si no hay token de escudo o el referer es inválido, denegamos.
+  // Esto impide que copies la URL y la abras en otra pestaña.
+  if (!shieldToken || shieldToken !== 'babylon-v2-shield' || !referer || !referer.includes(host)) {
+    return new Response('Unauthorized Access', { status: 403 });
   }
 
-  // Orion: Intento de descifrado. 
+  // Orion: 1. Cache API (Capa 0)
   const decryptedKey = deobfuscate(key);
   const objectKey = decryptedKey && typeof decryptedKey === 'string' ? decryptedKey : decodeURIComponent(key);
 
-  // Orion: Si es una URL completa, hacemos fetch directo (Proxy de ocultación)
-  if (objectKey.startsWith('http')) {
-    try {
-      if (isDev) console.log(`[Proxy] Fetching external: ${objectKey}`);
-      const response = await fetch(objectKey);
-      if (!response.ok) return new Response('External asset not found', { status: 404 });
-      
-      const newHeaders = new Headers(response.headers);
-      newHeaders.set('Access-Control-Allow-Origin', '*');
-      newHeaders.set('Cache-Control', 'public, max-age=31536000, immutable');
-      return new Response(response.body, { status: 200, headers: newHeaders });
-    } catch (e) {
-      console.error(`[Proxy] Error fetching external asset: ${objectKey}`, e);
-      return new Response('Error fetching external asset', { status: 502 });
+  // Orion: Implementación de Cache API (Reducción drástica de costos)
+  const cache = typeof caches !== 'undefined' ? (caches as any).default : null;
+  const cacheKey = new Request(request.url, request);
+  
+  // Intentar recuperar del caché de Cloudflare primero
+  if (cache) {
+    const cachedResponse = await cache.match(cacheKey);
+    if (cachedResponse) {
+      if (isDev) console.log(`[Proxy] Cache HIT: ${objectKey}`);
+      return cachedResponse;
     }
   }
 
-  if (!env.R2_ASSETS) {
-    console.error('[Proxy] R2_ASSETS binding missing');
-    return new Response('Storage configuration missing', { status: 500 });
-  }
+  if (isDev) console.log(`[Proxy] Cache MISS: ${objectKey}`);
+
+  // Función auxiliar para servir y cachear en el CDN global
+  const serveAndCache = async (body: any, contentType?: string, etag?: string) => {
+    const headers = new Headers();
+    headers.set('Access-Control-Allow-Origin', '*');
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+    if (contentType) headers.set('Content-Type', contentType);
+    if (etag) headers.set('ETag', etag);
+    
+    const res = new Response(body, { status: 200, headers });
+    if (cache && locals.runtime.ctx?.waitUntil) {
+      locals.runtime.ctx.waitUntil(cache.put(cacheKey, res.clone()));
+    }
+    return res;
+  };
 
   try {
-    // Support conditional requests
-    const etag = request.headers.get('If-None-Match');
-    const object = await env.R2_ASSETS.get(objectKey, {
-      onlyIf: etag ? { etagMatches: etag } : undefined,
-    });
+    // Orion: 2. Intentar buscar en R2_CACHE (Capa 1 - Capítulos/Hot assets)
+    if (env.R2_CACHE) {
+      const cacheObj = await env.R2_CACHE.get(objectKey);
+      if (cacheObj) {
+        if (isDev) console.log(`[Proxy] R2_CACHE HIT: ${objectKey}`);
+        return serveAndCache(cacheObj.body, cacheObj.httpMetadata?.contentType, cacheObj.httpEtag);
+      }
+    }
 
-    if (!object) {
-      console.warn(`[Proxy] 404 Not Found in Local R2: ${objectKey}`);
+    // Orion: 3. Intentar buscar en R2_ASSETS (Capa 2 - Portadas/Permanentes)
+    if (env.R2_ASSETS) {
+      const assetObj = await env.R2_ASSETS.get(objectKey);
+      if (assetObj) {
+        if (isDev) console.log(`[Proxy] R2_ASSETS HIT: ${objectKey}`);
+        return serveAndCache(assetObj.body, assetObj.httpMetadata?.contentType, assetObj.httpEtag);
+      }
+    }
 
-      // Orion: Fallback to Public URL in DEV if not found locally
-      const publicBase = env.R2_PUBLIC_URL_ASSETS;
-      if (publicBase && (import.meta.env.DEV || request.url.includes('localhost'))) {
-        console.log(`[Proxy] Attempting fallback to public URL: ${publicBase}/${objectKey}`);
-        try {
-          const response = await fetch(`${publicBase}/${objectKey}`);
-          if (response.ok) {
-            console.log(`[Proxy] Fallback Success: ${objectKey}`);
+    // Orion: 4. Si es una URL completa, hacemos fetch externo (Capa 3) y sembramos R2_CACHE
+    if (objectKey.startsWith('http')) {
+      if (isDev) console.log(`[Proxy] FETCHING EXTERNAL: ${objectKey}`);
+      const externalRes = await fetch(objectKey);
+      if (!externalRes.ok) return new Response('External asset not found', { status: 404 });
+      
+      const contentType = externalRes.headers.get('content-type') || 'image/webp';
+      const blob = await externalRes.blob();
 
-            // Orion: Clonar el cuerpo para guardarlo en local sin bloquear la respuesta al usuario
-            const blob = await response.blob();
-
-            // Guardar en R2 local en segundo plano si estamos en un contexto de Worker
-            if (locals.runtime.ctx?.waitUntil) {
-              locals.runtime.ctx.waitUntil(
-                env.R2_ASSETS.put(objectKey, blob, {
-                  httpMetadata: {
-                    contentType: response.headers.get('content-type') || 'image/jpeg',
-                    cacheControl: 'public, max-age=31536000, immutable',
-                  },
-                }).then(() => console.log(`[Proxy] Asset seeded locally: ${objectKey}`))
-              );
-            }
-
-            const newHeaders = new Headers(response.headers);
-            newHeaders.set('Access-Control-Allow-Origin', '*');
-            newHeaders.set('Cache-Control', 'public, max-age=31536000, immutable');
-            return new Response(blob, {
-              status: 200,
-              headers: newHeaders,
-            });
-          }
-        } catch (fetchError) {
-          console.error(`[Proxy] Fallback failed for ${objectKey}:`, fetchError);
-        }
+      // Sembrar el R2_CACHE para futuras peticiones (Protege Telegram)
+      if (env.R2_CACHE && locals.runtime.ctx?.waitUntil) {
+        locals.runtime.ctx.waitUntil(
+          env.R2_CACHE.put(objectKey, blob, {
+            httpMetadata: { contentType, cacheControl: 'public, max-age=86400' }
+          }).then(() => isDev && console.log(`[Proxy] Seeded R2_CACHE: ${objectKey}`))
+        );
       }
 
-      return new Response('Not found', { status: 404 });
+      return serveAndCache(blob, contentType);
     }
 
-    // Handle 304 Not Modified
-    if ('body' in object && !object.body) {
-      return new Response(null, {
-        status: 304,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          ETag: object.httpEtag,
-        },
-      });
-    }
+    return new Response('Not found', { status: 404 });
 
-    const headers = new Headers();
-
-    // 1. Asignación manual de metadatos para evitar errores de serialización en local
-    const meta = object.httpMetadata;
-    if (meta?.contentType) headers.set('Content-Type', meta.contentType);
-    if (meta?.cacheControl) headers.set('Cache-Control', meta.cacheControl);
-    if (meta?.contentEncoding) headers.set('Content-Encoding', meta.contentEncoding);
-    if (meta?.contentLanguage) headers.set('Content-Language', meta.contentLanguage);
-    if (meta?.contentDisposition) headers.set('Content-Disposition', meta.contentDisposition);
-
-    // 2. Identificadores críticos y tamaño (Esencial para estabilidad del stream)
-    headers.set('ETag', object.httpEtag);
-    headers.set('Access-Control-Allow-Origin', '*');
-    headers.set('Content-Length', object.size.toString());
-
-    // 3. Estrategia de Caché robusta (Inmutable para assets)
-    if (!headers.has('Cache-Control')) {
-      headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-    }
-
-    // Retorno de stream directo con longitud correcta para evitar ERR_CONNECTION_CLOSED
-    return new Response(object.body, {
-      headers,
-    });
   } catch (e) {
-    console.error(`[Proxy] Error serving asset ${key}:`, e);
+    console.error(`[Proxy] Global Error serving asset ${key}:`, e);
     return new Response('Internal Error', { status: 500 });
   }
 };

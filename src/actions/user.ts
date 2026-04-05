@@ -209,27 +209,53 @@ export const userActions = {
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      if (!user) throw new Error('Unauthorized');
+      if (!user) return { success: false, error: 'Unauthorized' };
 
       const db = getDB(context.locals.runtime.env);
-      await db
-        .insert(userProgress)
-        .values({
-          userId: user.uid,
-          ...input,
-          lastReadAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: [userProgress.userId, userProgress.seriesId],
-          set: {
+      const now = new Date();
+
+      try {
+        // Orion: Asegurar existencia del usuario
+        await db
+          .insert(users)
+          .values({
+            id: user.uid,
+            email: user.email || `${user.uid}@firebase.auth`,
+            username: user.email ? user.email.split('@')[0] : `user_${user.uid.slice(0, 5)}`,
+            updatedAt: now,
+          })
+          .onConflictDoNothing()
+          .run();
+
+        // Orion: Upsert manual o robusto para UserProgress
+        // Intentamos insertar, si hay conflicto en (userId, seriesId), actualizamos
+        await db
+          .insert(userProgress)
+          .values({
+            userId: user.uid,
+            seriesId: input.seriesId,
             chapterId: input.chapterId,
             chapterNumber: input.chapterNumber,
-            lastReadAt: new Date(),
-          },
-        })
-        .run();
+            lastReadAt: now,
+          })
+          .onConflictDoUpdate({
+            target: [userProgress.userId, userProgress.seriesId],
+            set: {
+              chapterId: input.chapterId,
+              chapterNumber: input.chapterNumber,
+              lastReadAt: now,
+            },
+          })
+          .run();
 
-      return { success: true };
+        return { success: true };
+      } catch (err: any) {
+        console.error(`[UserAction] updateProgress Failed: ${err.message}`, {
+          uid: user.uid,
+          input,
+        });
+        return { success: false, error: err.message };
+      }
     },
   }),
 

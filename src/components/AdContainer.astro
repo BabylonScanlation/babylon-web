@@ -30,20 +30,16 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
 
 {_shouldShowAds && (
   <div 
-    class:list={["ad-container-root", type, _className]} 
+    class:list={["content-dynamic-wrap", type, _className]} 
     id={_instanceId}
-    data-ad-type={type}
-    data-ad-keys={JSON.stringify(adKeys)}
-    data-ad-dims={JSON.stringify(_dimensions)}
-    data-ad-initial={_adKey}
+    data-view-type={type}
+    data-view-keys={JSON.stringify(adKeys)}
+    data-view-dims={JSON.stringify(_dimensions)}
+    data-view-initial={_adKey}
   >
-    <div class="ad-inner-wrapper">
-      <div class="ad-content-slot" id={`slot-${_instanceId}`}>
-        <div id={`container-${_instanceId}`}></div>
-      </div>
-      
-      <div class="ad-info-overlay">
-        <span>AD</span>
+    <div class="dynamic-inner-box">
+      <div class="dynamic-content-slot" id={`slot-${_instanceId}`}>
+        <div id={`target-${_instanceId}`}></div>
       </div>
     </div>
   </div>

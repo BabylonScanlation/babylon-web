@@ -21,45 +21,61 @@ const {
   alt,
   class: className = '',
   loading = 'lazy',
-  fetchpriority = 'auto',
   width = 300,
   height = 450,
   style = '',
   forceLazy = false,
 } = Astro.props;
 
-const { runtime } = Astro.locals;
-
-function buildProtectedUrl(inputSrc: string) {
-  if (!inputSrc) return '';
-  
-  // Orion: Si ya tiene el formato webp de protección, lo dejamos
-  if (inputSrc.includes('fmt=webp') && inputSrc.startsWith('/api/')) return inputSrc;
-
-  // Orion: Cifrado de ruta para TODO (Interno y Externo)
-  // Limpiamos la ruta si es interna, o usamos la URL completa si es externa
-  const keyToEncrypt = inputSrc.startsWith('http') ? inputSrc : inputSrc.replace(/^\//, '');
-  const encryptedKey = obfuscate(keyToEncrypt);
-  
-  return `/api/assets/proxy/${encryptedKey}?w=300&q=60&fmt=webp`;
-}
-
-const finalUrl = buildProtectedUrl(src);
+// Astra Orion: Construcción de la clase manualmente para evitar errores de tipo en Astro
 const isGhost = loading === 'lazy' || forceLazy;
-
-// Astra: Construimos la clase manualmente para evitar errores de tipo en Astro
 const finalClass = `${className} ${isGhost ? 'lazy-ghost' : ''}`.trim();
+
+// Astra Orion: Generación de la KEY cifrada (Base64) para el cargador ofuscado
+const keyToEncrypt = src.startsWith('http') ? src : src.replace(/^\//, '');
+const encryptedKey = obfuscate(keyToEncrypt);
+const ghostKey = Buffer.from(encryptedKey).toString('base64');
 ---
 
-<img
-  src={isGhost ? 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' : finalUrl}
-  data-src={isGhost ? finalUrl : undefined}
-  alt={alt}
-  class={finalClass}
-  loading={loading}
-  fetchpriority={fetchpriority}
-  decoding="async"
-  width={width}
-  height={height}
-  style={`width: 100%; height: 100%; aspect-ratio: ${width} / ${height}; object-fit: cover; display: block; ${style}`}
-/>
+<div
+  role="img"
+  aria-label={alt}
+  class={`image-protected-container ${finalClass}`}
+  data-ghost-key={ghostKey}
+  style={`
+    width: 100%;
+    height: 100%;
+    aspect-ratio: ${width} / ${height};
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: block;
+    position: relative;
+    user-select: none;
+    pointer-events: none;
+    ${style}
+  `}
+>
+  <div class="shield-overlay" style="position: absolute; inset: 0; z-index: 20; background: transparent;"></div>
+</div>
+
+<style is:global>
+  /* Astra: Estilos para el nuevo componente blindado */
+  .image-protected-container {
+    transition: opacity 0.4s ease;
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+...
+  .image-protected-container.lazy-ghost {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+
+  /* Evitar que puedan arrastrar el contenedor */
+  .image-protected-container * {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+  }
+</style>
