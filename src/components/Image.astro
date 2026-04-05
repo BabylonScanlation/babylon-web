@@ -2,6 +2,8 @@
 // src/components/Image.astro
 // Astra: Componente de imagen responsivo y blindado contra desbordamientos.
 
+import { obfuscate } from '../lib/obfuscator';
+
 interface Props {
   src: string;
   alt: string;
@@ -27,19 +29,23 @@ const {
 } = Astro.props;
 
 const { runtime } = Astro.locals;
-const r2Base = runtime?.env?.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 
-function buildFinalUrl(inputSrc: string) {
+function buildProtectedUrl(inputSrc: string) {
   if (!inputSrc) return '';
-  if (inputSrc.includes('fmt=webp')) return inputSrc;
-  const base = r2Base.replace(/\/$/, '');
-  const path = inputSrc.startsWith('/') ? inputSrc : `/${inputSrc}`;
-  const url = inputSrc.startsWith('http') ? inputSrc : `${base}${path}`;
-  return `${url}${url.includes('?') ? '&' : '?'}w=300&q=60&fmt=webp`;
+  
+  // Orion: Si ya tiene el formato webp de protección, lo dejamos
+  if (inputSrc.includes('fmt=webp') && inputSrc.startsWith('/api/')) return inputSrc;
+
+  // Orion: Cifrado de ruta para TODO (Interno y Externo)
+  // Limpiamos la ruta si es interna, o usamos la URL completa si es externa
+  const keyToEncrypt = inputSrc.startsWith('http') ? inputSrc : inputSrc.replace(/^\//, '');
+  const encryptedKey = obfuscate(keyToEncrypt);
+  
+  return `/api/assets/proxy/${encryptedKey}?w=300&q=60&fmt=webp`;
 }
 
-const finalUrl = buildFinalUrl(src);
-const isGhost = forceLazy && loading !== 'eager';
+const finalUrl = buildProtectedUrl(src);
+const isGhost = loading === 'lazy' || forceLazy;
 
 // Astra: Construimos la clase manualmente para evitar errores de tipo en Astro
 const finalClass = `${className} ${isGhost ? 'lazy-ghost' : ''}`.trim();

@@ -30,7 +30,7 @@ const { slides = [], title } = Astro.props;
                   loading={index === 0 ? "eager" : "lazy"}
                   width={300}
                   height={450}
-                  forceLazy={true}
+                  forceLazy={index !== 0}
                 />
               </div>
               <div class="slide-overlay-master" />
@@ -48,7 +48,7 @@ const { slides = [], title } = Astro.props;
                       height={450}
                       loading={index === 0 ? "eager" : "lazy"}
                       fetchpriority={index === 0 ? "high" : "auto"}
-                      forceLazy={true}
+                      forceLazy={index !== 0}
                     />
                   </div>
                   
@@ -88,60 +88,3 @@ const { slides = [], title } = Astro.props;
     </div>
   </div>
 </section>
-
-<style is:global>
-  .premium-nav {
-    position: absolute !important;
-    width: 56px !important;
-    height: 56px !important;
-    background: rgba(10, 10, 15, 0.5) !important;
-    backdrop-filter: blur(15px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(15px) saturate(180%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 50% !important;
-    color: #fff !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    z-index: 100 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 0 !important; /* Astra: Eliminar padding para centrado real */
-    margin: 0 !important;
-    cursor: pointer !important;
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) !important;
-    line-height: 0 !important;
-  }
-
-  .premium-nav svg {
-    width: 32px !important; 
-    height: 32px !important;
-    display: block !important;
-    margin: 0 !important;
-    flex-shrink: 0 !important;
-    transition: color 0.3s ease, transform 0.3s ease !important;
-    filter: none !important;
-  }
-
-  .premium-nav:hover {
-    background: rgba(10, 10, 15, 0.5) !important;
-    border-color: var(--accent-color) !important;
-    transform: translateY(-50%) scale(1.1) !important;
-    /* Resplandor Externo del Círculo Reducido */
-    box-shadow: 0 0 10px var(--accent-color), 0 0 20px var(--accent-glow) !important;
-  }
-
-  .premium-nav:hover svg {
-    color: var(--accent-color) !important;
-    animation: none !important; /* Eliminado pulso interno */
-  }
-
-  .premium-nav::after { display: none !important; }
-
-  .prev { left: 2rem !important; }
-  .next { right: 2rem !important; }
-
-  @media (max-width: 900px) {
-    .premium-nav { display: none !important; }
-  }
-</style>

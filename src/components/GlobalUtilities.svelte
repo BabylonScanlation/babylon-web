@@ -32,13 +32,15 @@ onMount(() => {
     (window as any)._babylonPendingEvent = null;
   }
 
-  // Orion: Retrasar componentes secundarios para no inflar las peticiones iniciales
+  // Orion: Componentes CRÍTICOS sin delay
+  if (shouldShowAgeGate) {
+    import('./AgeGate.svelte').then((m) => (AgeGate = m.default));
+  }
+
+  // Orion: Retrasar solo componentes secundarios (App Banner)
   setTimeout(() => {
     if (!isVerifyPage && !localStorage.getItem('babylon_app_banner_closed')) {
       import('./AppBanner.svelte').then((m) => (AppBanner = m.default));
-    }
-    if (shouldShowAgeGate) {
-      import('./AgeGate.svelte').then((m) => (AgeGate = m.default));
     }
   }, 2000);
 });

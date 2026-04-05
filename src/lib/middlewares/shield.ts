@@ -44,6 +44,7 @@ export async function shield(context: APIContext, next: MiddlewareNext) {
   const isPublicPath =
     currentPath === '/verify' ||
     currentPath === '/terms' ||
+    currentPath.includes('manifest.json') ||
     currentPath === '/index.json' ||
     currentPath.startsWith('/repo/') ||
     currentPath.startsWith('/api/') ||

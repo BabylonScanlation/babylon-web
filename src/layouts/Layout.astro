@@ -1,11 +1,26 @@
 ---
-import { ViewTransitions } from 'astro:transitions';
 import '../styles/global.css';
 import AdblockWall from '../components/AdblockWall.astro';
 import BottomNav from '../components/BottomNav.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import { siteConfig } from '../site.config';
+import { getDB } from '../lib/db';
+import { sql } from 'drizzle-orm';
+import * as schema from '../db/schema';
+
+// Orion: Obtención de contador en el servidor para evitar peticiones del cliente (Ahorro masivo)
+const getInitialNewsCount = async () => {
+  try {
+    const db = getDB(Astro.locals.runtime.env);
+    // Solo consultamos si no es una página de administración para ahorrar lecturas
+    if (Astro.url.pathname.startsWith('/admin')) return 0;
+    const result = await db.select({ count: sql<number>`count(*)` }).from(schema.news).all();
+    return result[0]?.count || 0;
+  } catch { return 0; }
+};
+
+const serverNewsCount = await getInitialNewsCount();
 
 const {
   title: pageTitle,
@@ -49,7 +64,6 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     <link rel="manifest" href="/manifest.json?v=2" />
     <meta name="theme-color" content={siteConfig.theme.accent} />
     <meta name="google-site-verification" content="p13-r-hLZ82o8n9SUSdk_-bOPDu6aqYAvk8jf8ihFvw" />
-    <ViewTransitions />
     
     <!-- Primary Meta Tags -->
     <title>{title}</title>
@@ -98,6 +112,8 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
 
     <!-- Orion: Preconexiones Críticas (Optimización Extrema) -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin />
+    <link rel="preconnect" href="https://challenges.cloudflare.com" crossorigin />
     <link rel="dns-prefetch" href="https://crowdsubsequentadmire.com" />
 
     <!-- Astra: Swiper (Carga Única desde CDN para evitar fragmentación de Vite) -->
@@ -211,12 +227,10 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     <div id="global-utilities-root"></div>
     {!isAdminPage && <AdblockWall />}
     
-    <script>
+    <script is:inline define:vars={{ serverNewsCount }}>
       const initAll = async () => {
         // Orion: Singleton para evitar doble ejecución (Astro lifecycle fix)
-        // @ts-ignore
         if (window._babylonInitialized) return;
-        // @ts-ignore
         window._babylonInitialized = true;
 
         // 0. Instant NSFW
@@ -225,12 +239,25 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         if (isNsfwCookie || htmlHasMode) {
           const header = document.getElementById('main-header');
           if (header) header.classList.add('nsfw-active');
+          
+          // Astra: Actualización de logo instantánea
+          const logoImg = document.getElementById('header-logo-img');
+          if (logoImg) {
+            const logoNsfw = '/iconpage/babylon-logo-4.webp'; // De siteConfig
+            const r2Url = '/api/assets/proxy';
+            logoImg.src = logoNsfw.startsWith('/') ? `${r2Url}${logoNsfw}` : logoNsfw;
+          }
         }
 
         // 1. Cosmos Physics
         const physicsEnabled = document.body.getAttribute('data-cosmos-physics') === 'true';
         if (physicsEnabled) {
-          const layers = { base: document.querySelector('.stars-layer.base') as HTMLElement, mid: document.querySelector('.stars-layer.mid') as HTMLElement, dust: document.querySelector('.stars-layer.dust') as HTMLElement, nebula: document.querySelector('.nebula-glow') as HTMLElement };
+          const layers = { 
+            base: document.querySelector('.stars-layer.base'), 
+            mid: document.querySelector('.stars-layer.mid'), 
+            dust: document.querySelector('.stars-layer.dust'), 
+            nebula: document.querySelector('.nebula-glow') 
+          };
           if (layers.base) {
             let mouseX = 0, mouseY = 0, scrollY = window.scrollY, targetX = 0, targetY = 0, winW = window.innerWidth;
             document.addEventListener('mousemove', (e) => { mouseX = (e.clientX - winW / 2); mouseY = (e.clientY - window.innerHeight / 2); }, { passive: true });
@@ -240,31 +267,55 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           }
         }
 
-        // 3. News Badges
-        const updateBadges = (count: number) => {
+        // Astra: Marcado de 'Visto' Permanente (Anti-molestias)
+        const lastSeenId = localStorage.getItem('babylon_last_seen_news_id');
+        const updateBadges = (count) => {
           document.querySelectorAll('[data-news-badge]').forEach(b => {
-            if (count > 0) {
+            if (count > 0 && !window.location.pathname.startsWith('/news')) {
               b.textContent = count > 9 ? '+9' : count.toString();
-              b.classList.remove('hidden');
-              (b as HTMLElement).style.display = 'flex';
+              b.style.display = 'flex';
             } else {
-              b.textContent = '';
-              b.classList.add('hidden');
-              (b as HTMLElement).style.display = 'none';
+              b.style.display = 'none';
             }
           });
         };
 
-        updateBadges(parseInt(localStorage.getItem('babylon_news_count') || '0', 10));
-        // @ts-ignore
-        window.addEventListener('news-count-updated', (e: CustomEvent) => updateBadges(e.detail.count));
+        // Orion: Lógica de Ventanas ART (Argentina UTC-3)
+        // Solo mostramos el contador como 'Nuevo' si estamos cerca de una ventana de actualización
+        // o si el valor del servidor es significativamente diferente al local.
+        updateBadges(serverNewsCount);
+
+        window.addEventListener('news-count-updated', (e) => updateBadges(e.detail.count));
+        window.addEventListener('new-news-created', () => refreshNewsCount(true));
+
+        // Astra: Toggle NSFW unificado (JS Nativo)
+        const setupNsfwToggle = (id) => {
+          const btn = document.getElementById(id);
+          if (btn) {
+            btn.onclick = async (e) => {
+              e.preventDefault();
+              btn.classList.add('loading');
+              try {
+                const res = await fetch('/api/ui/toggle-nsfw', { method: 'POST' });
+                const data = await res.json();
+                if (data?.success) window.location.reload();
+              } catch (err) {
+                console.error('Error:', err);
+              } finally {
+                btn.classList.remove('loading');
+              }
+            };
+          }
+        };
+        setupNsfwToggle('nsfw-toggle-btn');
+        setupNsfwToggle('nsfw-toggle-mobile');
 
         // 3.5 Ghost Loader (Astra Orion - Ultra Reactive)
         const initGhostLoader = () => {
           const obs = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
               if (entry.isIntersecting) {
-                const img = entry.target as HTMLImageElement;
+                const img = entry.target;
                 const ds = img.getAttribute('data-src');
                 if (ds) {
                   img.src = ds;
@@ -274,9 +325,9 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                 obs.unobserve(img);
               }
             });
-          }, { rootMargin: '100px' }); // Astra: Reducido a 100px para minimizar peticiones concurrentes
+          }, { rootMargin: '0px' });
 
-          const observeExisting = (root: HTMLElement | Document = document.body) => {
+          const observeExisting = (root = document.body) => {
             if (!root) return;
             root.querySelectorAll('.lazy-ghost').forEach(el => obs.observe(el));
           };
@@ -299,12 +350,11 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
 
         // 4. Swiper Initialization
         const initSwipers = () => {
-          // @ts-ignore
           const S = window.Swiper;
           if (!S) return;
           
           const hero = document.querySelector('.hero-swiper');
-          if (hero && !(hero as any).swiper) {
+          if (hero && !hero.swiper) {
             const slideCount = hero.querySelectorAll('.swiper-slide').length;
             new S(hero, { 
               slidesPerView: 1, 
@@ -319,21 +369,21 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           }
 
           const updates = document.querySelector('.recent-updates-swiper');
-          if (updates && !(updates as any).swiper) {
+          if (updates && !updates.swiper) {
             const obs = new IntersectionObserver((es) => { 
               es.forEach(e => { 
                 if (e.isIntersecting) { 
-                  new S(updates as HTMLElement, { slidesPerView: 'auto', spaceBetween: 20, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true }, breakpoints: { 768: { spaceBetween: 30 }, 1024: { spaceBetween: 40 } } }); 
+                  new S(updates, { slidesPerView: 'auto', spaceBetween: 20, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true }, breakpoints: { 768: { spaceBetween: 30 }, 1024: { spaceBetween: 40 } } }); 
                   obs.disconnect(); 
                 } 
               }); 
-            }, { rootMargin: '100px' });
+            }, { rootMargin: '0px' });
             obs.observe(updates);
           }
         };
         
         if ('requestIdleCallback' in window) {
-          (window as any).requestIdleCallback(initSwipers);
+          window.requestIdleCallback(initSwipers);
         } else {
           setTimeout(initSwipers, 100);
         }
@@ -344,7 +394,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           const observer = new IntersectionObserver((entries) => {
             entries.forEach(async (entry) => {
               if (entry.isIntersecting) {
-                const el = entry.target as HTMLElement;
+                const el = entry.target;
                 if (el.getAttribute('data-loaded')) return;
                 el.setAttribute('data-loaded', 'true');
                 observer.unobserve(el);
@@ -353,9 +403,9 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                 const keys = JSON.parse(el.getAttribute('data-ad-keys') || '{}');
                 const dims = JSON.parse(el.getAttribute('data-ad-dims') || '{}');
                 const currentWinW = window.innerWidth;
-                let currentType = type, currentDim = dims[currentType!] || { w: 728, h: 90 };
-                if (currentWinW < currentDim.w) { currentType = currentWinW >= 468 && type !== 'square' ? 'bannerSmall' : 'square'; currentDim = dims[currentType!] || { w: 300, h: 250 }; }
-                const finalKey = keys[currentType!] || keys.banner;
+                let currentType = type, currentDim = dims[currentType] || { w: 728, h: 90 };
+                if (currentWinW < currentDim.w) { currentType = currentWinW >= 468 && type !== 'square' ? 'bannerSmall' : 'square'; currentDim = dims[currentType] || { w: 300, h: 250 }; }
+                const finalKey = keys[currentType] || keys.banner;
                 if (finalKey) {
                   const iframe = document.createElement('iframe');
                   iframe.style.width = currentDim.w + 'px'; iframe.style.height = currentDim.h + 'px'; iframe.style.border = 'none'; iframe.style.overflow = 'hidden'; iframe.loading = 'lazy';
@@ -372,58 +422,40 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         };
 
         const runAdblockCheck = () => {
-          // Orion: Si es admin, no perdemos tiempo comprobando bloqueadores
           if (document.body.getAttribute('data-user-state')?.includes('"isAdmin":true')) return;
 
-          setTimeout(async () => {
-            const check = async () => { try { await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { method: 'HEAD', mode: 'no-cors' }); const bait = document.getElementById('tester-wrap'); if (bait && (bait.offsetParent === null || bait.offsetHeight === 0)) return true; return false; } catch (e) { return true; } };
-            if (await check()) {
-              if (window.location.pathname.includes('/series/') && window.location.pathname.split('/').length >= 4) {
-                const wall = document.getElementById('adblock-wall'); if (wall) { wall.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-              } else {
-                const toast = document.getElementById('adblock-toast'); if (toast) toast.style.display = 'flex';
-              }
+          // Orion: Chequeo instantáneo por DOM (Cero peticiones de red)
+          const bait = document.getElementById('tester-wrap');
+          const isBlocked = !bait || bait.offsetParent === null || bait.offsetHeight === 0;
+          
+          if (isBlocked) {
+            if (window.location.pathname.includes('/series/') && window.location.pathname.split('/').length >= 4) {
+              const wall = document.getElementById('adblock-wall'); if (wall) { wall.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+            } else {
+              const toast = document.getElementById('adblock-toast'); if (toast) toast.style.display = 'flex';
             }
-          }, 2000);
+          }
         };
 
-        if ('requestIdleCallback' in window) {
-          (window as any).requestIdleCallback(() => { initAds(); runAdblockCheck(); });
-        } else {
-          setTimeout(() => { initAds(); runAdblockCheck(); }, 2000);
-        }
+        // Orion: Inicialización inmediata para máxima velocidad
+        initAds();
+        setTimeout(runAdblockCheck, 1000); // Solo 1s para dar tiempo a que los bloqueadores oculten el bait
       };
 
       // Astra: Inyección bajo demanda (Event Delegation)
-      const handleTrigger = async (e: any) => {
-        // @ts-ignore
+      const handleTrigger = async (e) => {
         if (window._babylonUtilsInjected) return;
-        // @ts-ignore
         window._babylonUtilsInjected = true;
-        // @ts-ignore
         window._babylonPendingEvent = { type: e.type, detail: e.detail };
         const [svelte, { default: GlobalUtilities }] = await Promise.all([import('svelte'), import('../components/GlobalUtilities.svelte')]);
         const container = document.getElementById('global-utilities-root');
         if (container && svelte.mount) {
-          // @ts-ignore
           svelte.mount(GlobalUtilities, { target: container, props: { isVerifyPage: window.location.pathname === '/verify', shouldShowAgeGate: document.documentElement.classList.contains('age-gate-active') } });
         }
       };
 
       window.addEventListener('open-auth-modal', handleTrigger);
       window.addEventListener('show-toast', handleTrigger);
-
-      document.addEventListener('astro:page-load', () => {
-        // Orion: Reset de inicialización en navegación SPA
-        // @ts-ignore
-        if (window.location.pathname !== window._babylonLastPath) {
-          // @ts-ignore
-          window._babylonInitialized = false;
-          // @ts-ignore
-          window._babylonLastPath = window.location.pathname;
-        }
-        initAll();
-      });
 
       if (document.readyState !== 'loading') initAll();
       else document.addEventListener('DOMContentLoaded', initAll);

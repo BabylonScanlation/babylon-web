@@ -96,32 +96,3 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
   }
 </Layout>
 
-<style>
-  .main-content-wrapper {
-    width: 100%;
-  }
-  .main-sections-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1rem;
-    width: 100%;
-    box-sizing: border-box;
-    overflow-x: hidden;
-    /* Astra: Espaciado compacto y elegante */
-    display: flex;
-    flex-direction: column;
-    gap: 2.5rem;
-  }
-
-  .discovery-zone {
-    display: flex;
-    flex-direction: column;
-    gap: 0; /* Astra: Espacio eliminado entre slider y botón */
-  }
-
-  .empty-state-container {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;

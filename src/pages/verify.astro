@@ -42,7 +42,12 @@ import LayoutVerify from '../layouts/LayoutVerify.astro';
         </div>
 
         <div class="captcha-area">
-          <div id="turnstile-container"></div>
+          <div 
+            class="cf-turnstile" 
+            data-sitekey={import.meta.env.DEV ? '1x00000000000000000000AA' : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY}
+            data-theme="dark"
+            data-callback="onloadTurnstileCallback"
+          ></div>
         </div>
 
         <button class="enter-btn" id="enter-btn" disabled>
@@ -58,7 +63,12 @@ import LayoutVerify from '../layouts/LayoutVerify.astro';
     const termsCheck = document.getElementById('check-terms');
     const enterBtn = document.getElementById('enter-btn');
 
-    // Astra: Función de validación expuesta globalmente para el callback de Turnstile
+    // Astra: Callback unificado para el auto-render de Turnstile
+    window.onloadTurnstileCallback = function(token) {
+      window.captchaToken = token;
+      window.validateCaptcha();
+    }
+
     window.validateCaptcha = function() {
       enterBtn.disabled = !(ageCheck.checked && termsCheck.checked && window.captchaToken);
     }

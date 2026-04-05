@@ -1,27 +1,42 @@
 import type { APIRoute } from 'astro';
+import { deobfuscate } from '../../../../lib/obfuscator';
 
 export const GET: APIRoute = async ({ params, locals, request }) => {
-  const { key } = params;
+  let { key } = params;
   const { env } = locals.runtime;
-
-  // Debug incoming request - RESTORED FOR DEBUGGING
-  console.log(`[Proxy] Request Key: "${key}"`);
 
   // Si la clave es explícitamente "undefined" o "null" (string), o vacía, es un 404 claro.
   if (!key || key === 'undefined' || key === 'null') {
     return new Response('Asset not found', { status: 404 });
   }
 
-  // --- CORS PREFLIGHT SUPPORT ---
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Max-Age': '86400',
-      },
-    });
+  // Orion: Seguridad - Bloqueo de Hotlinking (Opcional, pero recomendado)
+  const referer = request.headers.get('referer');
+  const isDev = import.meta.env.DEV || request.url.includes('localhost');
+  if (!isDev && referer && !referer.includes(request.headers.get('host') || '')) {
+    // console.warn(`[Proxy] Blocked hotlink attempt from: ${referer}`);
+    // return new Response('Unauthorized', { status: 403 });
+  }
+
+  // Orion: Intento de descifrado. 
+  const decryptedKey = deobfuscate(key);
+  const objectKey = decryptedKey && typeof decryptedKey === 'string' ? decryptedKey : decodeURIComponent(key);
+
+  // Orion: Si es una URL completa, hacemos fetch directo (Proxy de ocultación)
+  if (objectKey.startsWith('http')) {
+    try {
+      if (isDev) console.log(`[Proxy] Fetching external: ${objectKey}`);
+      const response = await fetch(objectKey);
+      if (!response.ok) return new Response('External asset not found', { status: 404 });
+      
+      const newHeaders = new Headers(response.headers);
+      newHeaders.set('Access-Control-Allow-Origin', '*');
+      newHeaders.set('Cache-Control', 'public, max-age=31536000, immutable');
+      return new Response(response.body, { status: 200, headers: newHeaders });
+    } catch (e) {
+      console.error(`[Proxy] Error fetching external asset: ${objectKey}`, e);
+      return new Response('Error fetching external asset', { status: 502 });
+    }
   }
 
   if (!env.R2_ASSETS) {
@@ -30,9 +45,6 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   }
 
   try {
-    // Decode URI component just in case
-    const objectKey = decodeURIComponent(key);
-
     // Support conditional requests
     const etag = request.headers.get('If-None-Match');
     const object = await env.R2_ASSETS.get(objectKey, {
