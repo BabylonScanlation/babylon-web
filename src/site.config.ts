@@ -10,6 +10,7 @@ export const siteConfig = {
   links: {
     telegram: 'https://t.me/babylon_scan',
     discord: 'https://discord.gg/babylon',
+    facebook: 'https://facebook.com/BabylonScanlation',
   },
 
   // Branding Assets (Usar URLs relativas o absolutas de R2 si es necesario)
