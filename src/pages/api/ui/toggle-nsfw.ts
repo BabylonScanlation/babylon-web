@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ cookies, locals }) => {
       await db.update(users).set({ isNsfw: newValue }).where(eq(users.id, user.uid)).run();
 
       const sessionId = cookies.get('user_session')?.value;
-      if (sessionId) clearSessionCache(sessionId);
+      if (sessionId) clearSessionCache({ cookies }, sessionId);
     } catch (e) {
       console.error('[API toggle-nsfw Error]:', e);
     }

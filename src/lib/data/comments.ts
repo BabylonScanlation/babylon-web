@@ -1,4 +1,4 @@
-import { desc, eq, inArray } from 'drizzle-orm';
+import { desc, eq, inArray, type SQL } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 import {
@@ -13,15 +13,18 @@ import {
 } from '../../db/schema';
 import { parseToTimestamp } from '../utils';
 
+type CommentTable = typeof comments | typeof seriesComments | typeof newsComments;
+type VoteTable = typeof commentVotes | typeof seriesCommentVotes | typeof newsCommentVotes;
+
 export async function getCommentsForTarget(
   db: DrizzleD1Database<typeof schema>,
   targetType: 'chapter' | 'series' | 'news',
   targetId: number | string,
   currentUserId?: string
 ) {
-  let table: any;
-  let voteTable: any;
-  let idFilter: any;
+  let table: CommentTable;
+  let voteTable: VoteTable;
+  let idFilter: SQL;
 
   if (targetType === 'series') {
     table = seriesComments;
@@ -60,20 +63,25 @@ export async function getCommentsForTarget(
     .orderBy(desc(table.isPinned), desc(table.createdAt))
     .all();
 
-  const commentIds = results.map((c) => c.id);
+  const commentIds = results.map((c) => c.id as number);
   const voteMap = new Map<number, { likes: number; dislikes: number; userVote: number }>();
 
   if (commentIds.length > 0) {
     const votes = await db
-      .select()
+      .select({
+        commentId: voteTable.commentId,
+        vote: voteTable.vote,
+        userId: voteTable.userId,
+      })
       .from(voteTable)
       .where(inArray(voteTable.commentId, commentIds))
       .all();
 
-    votes.forEach((v: any) => {
-      if (!voteMap.has(v.commentId))
-        voteMap.set(v.commentId, { likes: 0, dislikes: 0, userVote: 0 });
-      const stats = voteMap.get(v.commentId)!;
+    votes.forEach((v) => {
+      const cid = Number(v.commentId);
+      if (!voteMap.has(cid))
+        voteMap.set(cid, { likes: 0, dislikes: 0, userVote: 0 });
+      const stats = voteMap.get(cid)!;
       if (v.vote === 1) stats.likes++;
       if (v.vote === -1) stats.dislikes++;
       if (currentUserId && v.userId === currentUserId) stats.userVote = v.vote;
@@ -85,9 +93,9 @@ export async function getCommentsForTarget(
     userEmail: c.email,
     avatarUrl: c.avatarUrl,
     isOwner: currentUserId ? c.userId === currentUserId : false,
-    likes: voteMap.get(c.id)?.likes || 0,
-    dislikes: voteMap.get(c.id)?.dislikes || 0,
-    userVote: voteMap.get(c.id)?.userVote || 0,
+    likes: voteMap.get(c.id as number)?.likes || 0,
+    dislikes: voteMap.get(c.id as number)?.dislikes || 0,
+    userVote: voteMap.get(c.id as number)?.userVote || 0,
     isAdminComment: c.role === 'admin',
     // Normalizar a timestamps numéricos
     createdAt: parseToTimestamp(c.createdAt),

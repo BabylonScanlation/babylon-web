@@ -2,27 +2,26 @@
 import type { APIContext, MiddlewareNext } from 'astro';
 import { siteConfig } from '../../site.config';
 
-// Orion: Rate Limiter en memoria (Burst Protection)
-// En Workers/Pages, este Map persiste durante el ciclo de vida del *isolate* (sandbox).
-// Es excelente para mitigar ráfagas rápidas de fuerza bruta o scraping.
-const RATE_LIMIT = new Map<string, { count: number; resetTime: number }>();
-const WINDOW_MS = 60 * 1000; // 1 minuto
-const MAX_REQ_PER_WINDOW = 200; // Máximo por IP
+// Orion: Rate Limiter distribuido vía Cloudflare KV
+const MAX_REQ_PER_WINDOW = 200; // Máximo por IP en la ventana de tiempo
 
-function checkRateLimit(ip: string): boolean {
-  if (!ip) return true; // Si no hay IP, no bloqueamos (salvaguarda)
+async function checkRateLimit(ip: string, env: any): Promise<boolean> {
+  if (!ip || !env?.KV_VIEWS) return true; // Si no hay IP o KV, no bloqueamos (salvaguarda)
 
-  const now = Date.now();
-  const record = RATE_LIMIT.get(ip);
-
-  if (!record || now > record.resetTime) {
-    RATE_LIMIT.set(ip, { count: 1, resetTime: now + WINDOW_MS });
-    return true;
-  }
-
-  record.count++;
-  if (record.count > MAX_REQ_PER_WINDOW) {
-    return false; // Rate limit excedido
+  const key = `rl:${ip}`;
+  try {
+    const record = await env.KV_VIEWS.get(key);
+    const count = record ? parseInt(record) + 1 : 1;
+    
+    // Usamos expirationTtl para que la clave se borre automáticamente después de 1 minuto
+    await env.KV_VIEWS.put(key, count.toString(), { expirationTtl: 60 });
+    
+    if (count > MAX_REQ_PER_WINDOW) {
+      return false; // Rate limit excedido
+    }
+  } catch (e) {
+    console.error('[Shield] Rate Limit KV Error:', e);
+    return true; // En caso de error en KV, permitimos el paso por seguridad
   }
 
   return true;
@@ -30,6 +29,7 @@ function checkRateLimit(ip: string): boolean {
 
 export async function shield(context: APIContext, next: MiddlewareNext) {
   const { request, url, locals } = context;
+  const { env } = locals.runtime;
   const userAgent = request.headers.get('user-agent') || '';
   const lowerUa = userAgent.toLowerCase();
   const currentPath = url.pathname;
@@ -71,7 +71,7 @@ export async function shield(context: APIContext, next: MiddlewareNext) {
   }
 
   // 2. RATE LIMITING (Protección contra DDoS/Fuerza bruta a nivel de aplicación)
-  if (!isGoogle && !checkRateLimit(clientIp)) {
+  if (!isGoogle && !(await checkRateLimit(clientIp, env))) {
     return new Response(getBlockedHtml('Too Many Requests. Rate Limit Exceeded.', clientIp), {
       status: 429,
       headers: { 'Content-Type': 'text/html', 'Retry-After': '60' },

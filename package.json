@@ -17,7 +17,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write --unsafe .",
     "format": "biome format --write .",
-    "check": "astro check && svelte-check --tsconfig ./tsconfig.json && biome check . || echo Biome check failed but continuing build",
+    "check": "astro check && svelte-check --tsconfig ./tsconfig.json && biome check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "analyze": "vite-bundle-visualizer",

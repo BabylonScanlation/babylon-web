@@ -27,7 +27,8 @@ export const authActions = {
     handler: async (_, context) => {
       const { user, runtime } = context.locals;
       if (!user) throw new Error('Usuario no autenticado');
-      const secret = runtime.env.JWT_SECRET || 'nonce-secret-fallback';
+      const secret = runtime.env.JWT_SECRET;
+      if (!secret) throw new Error('JWT_SECRET is not configured');
       return await createNonce(secret, user.uid);
     },
   }),
@@ -118,17 +119,18 @@ export const authActions = {
       }
 
       const url = new URL(request.url);
-      const isLocalIp =
+      const isLocal =
+        url.hostname === 'localhost' ||
+        url.hostname === '127.0.0.1' ||
         url.hostname.startsWith('192.168.') ||
         url.hostname.startsWith('10.') ||
         url.hostname.startsWith('172.');
-      const isProduction = context.locals.runtime.env.PROD || false;
 
       cookies.set('guestId', guestId, {
         path: '/',
         maxAge: 60 * 60 * 24 * 365,
         httpOnly: false,
-        secure: isProduction && !isLocalIp,
+        secure: !isLocal,
         sameSite: 'lax',
       });
 
@@ -215,7 +217,7 @@ export const authActions = {
         .run();
 
       const isLocal = new URL(request.url).hostname === 'localhost';
-      const secureFlag = (context.locals.runtime.env.PROD || false) && !isLocal;
+      const secureFlag = !isLocal; // Cloudflare Pages siempre usa HTTPS, incluso en previews
 
       const cookieOptions = {
         path: '/',
@@ -228,7 +230,8 @@ export const authActions = {
       cookies.set('user_session', sessionId, cookieOptions);
       cookies.set('user_role', role, { ...cookieOptions, httpOnly: true });
 
-      const jwtSecret = env.JWT_SECRET || 'fallback-secret-change-me-in-production';
+      const jwtSecret = env.JWT_SECRET;
+      if (!jwtSecret) throw new Error('JWT_SECRET is not configured');
       await setAuthCookie(
         context as unknown as SessionContext,
         {
@@ -238,6 +241,7 @@ export const authActions = {
           displayName: existingUser?.displayName || decodedToken.name || null,
           role: role,
           isNsfw: existingUser?.isNsfw ?? false,
+          tokenVersion: existingUser?.tokenVersion ?? 1,
         },
         jwtSecret
       );

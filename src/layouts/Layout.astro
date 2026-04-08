@@ -53,6 +53,8 @@ const isNsfw =
 // Orion: URL Base para metadatos absolutos
 const siteUrl = siteConfig.url;
 const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
+
+const shieldToken = Astro.locals.runtime.env.SHIELD_TOKEN;
 ---
 
 <!doctype html>
@@ -234,6 +236,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     data-user-state={user ? JSON.stringify({ uid: user.uid, email: user.email, isAdmin: user.isAdmin }) : 'null'}
     data-cosmos-physics={siteConfig.theme.cosmos.physicsEnabled ? 'true' : 'false'}
     data-news-count={serverNewsCount}
+    data-shield-token={shieldToken}
   >
     {siteConfig.theme.cosmos.enabled && (
       <div class="cosmos-bg">
@@ -265,11 +268,11 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     <div id="global-utilities-root"></div>
     {!isAdminPage && <AdblockWall />}
     
-    <script>
-      // @ts-nocheck
+    <script is:inline>
       (function() {
+        const shieldToken = document.body.getAttribute('data-shield-token');
         const _0xS = {
-          k: 'babylon-v2-shield',
+          k: shieldToken,
           t: 'X-Shield-Token',
           p: '/api/assets/proxy/',
           a: 'https://crowdsubsequentadmire.com/',
@@ -280,9 +283,8 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         window.addEventListener('contextmenu', e => e.preventDefault(), true);
         window.addEventListener('dragstart', e => e.preventDefault(), true);
         
-        // Orion: Solo activamos el debugger y limpieza en producción
+        // Orion: Solo activamos la limpieza de consola en producción
         if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
-          setInterval(() => { (function(){return false;}['constructor']('debugger')['call']()); }, 200);
           setInterval(() => { if (window.console && window.console.clear) console.clear(); }, 1000);
         }
 

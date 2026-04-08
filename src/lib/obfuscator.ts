@@ -3,33 +3,50 @@
 const SALT = 'B4byl0n_V2_Nucl3ar_S3cur1ty_';
 
 /**
- * Astra Orion: Cifrado de Rotación Dinámica (Evita atob simple)
+ * Astra Orion: Ofuscación Nuclear (Rolling XOR)
+ * Optimizada para Cloudflare Workers (Máximo rendimiento con Uint8Array).
+ * Mucho más difícil de revertir que un XOR fijo.
  */
-function xorTransform(str: string): string {
-  const key = 42; // Llave de transformación nuclear
-  return str.split('').map(c => String.fromCharCode(c.charCodeAt(0) ^ key)).join('');
+function xorTransform(data: Uint8Array): Uint8Array {
+  const keyBuffer = new TextEncoder().encode(SALT);
+  const out = new Uint8Array(data.length);
+  for (let i = 0; i < data.length; i++) {
+    // Usamos el SALT como llave rotativa (Vigenère XOR)
+    const dataByte = data[i];
+    const keyByte = keyBuffer[i % keyBuffer.length];
+    if (dataByte !== undefined && keyByte !== undefined) {
+      out[i] = dataByte ^ keyByte;
+    }
+  }
+  return out;
 }
 
 /**
- * Obfuscates a string or object into a URL-safe Base64 string with a salt and XOR.
+ * Obfuscates data into a URL-safe Base64 string.
  */
 export function obfuscate(data: any): string {
   try {
     const str = typeof data === 'string' ? data : JSON.stringify(data);
     const salted = SALT + str;
-    const transformed = xorTransform(salted);
+    const dataBuffer = new TextEncoder().encode(salted);
+    const transformed = xorTransform(dataBuffer);
     
-    let base64: string;
-    if (typeof Buffer !== 'undefined') {
-      base64 = Buffer.from(transformed).toString('base64');
-    } else {
-      const bytes = new TextEncoder().encode(transformed);
-      const binString = Array.from(bytes, (byte) => String.fromCodePoint(byte)).join('');
-      base64 = btoa(binString);
+    // Convertir a Base64 de forma eficiente
+    let binary = '';
+    const len = transformed.byteLength;
+    for (let i = 0; i < len; i++) {
+      const byte = transformed[i];
+      if (byte !== undefined) {
+        binary += String.fromCharCode(byte);
+      }
     }
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    
+    return btoa(binary)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
   } catch (e) {
-    console.error('[Obfuscator] Error encrypting:', e);
+    console.error('[Obfuscator] Error obfuscating:', e);
     return '';
   }
 }
@@ -42,26 +59,20 @@ export function deobfuscate(encryptedStr: string): any {
     let base64 = encryptedStr.replace(/-/g, '+').replace(/_/g, '/');
     while (base64.length % 4) base64 += '=';
 
-    let decoded: string;
-    if (typeof Buffer !== 'undefined') {
-      decoded = Buffer.from(base64, 'base64').toString('utf-8');
-    } else if (typeof window !== 'undefined' && window.atob) {
-      const binaryStr = window.atob(base64);
-      const bytes = new Uint8Array(binaryStr.length);
-      for (let i = 0; i < binaryStr.length; i++) {
-        bytes[i] = binaryStr.charCodeAt(i);
-      }
-      decoded = new TextDecoder().decode(bytes);
-    } else {
+    const binaryStr = atob(base64);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+      bytes[i] = binaryStr.charCodeAt(i);
+    }
+
+    const decryptedBuffer = xorTransform(bytes);
+    const decoded = new TextDecoder().decode(decryptedBuffer);
+
+    if (!decoded.startsWith(SALT)) {
       return null;
     }
 
-    const untransformed = xorTransform(decoded);
-    if (!untransformed.startsWith(SALT)) {
-      return null;
-    }
-
-    const content = untransformed.slice(SALT.length);
+    const content = decoded.slice(SALT.length);
     try {
       return JSON.parse(content);
     } catch {

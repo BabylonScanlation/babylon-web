@@ -8,6 +8,7 @@ const JWKS_URL =
 
 interface Env {
   FIREBASE_PROJECT_ID: string;
+  KV_VIEWS?: any;
 }
 
 interface Jwk {
@@ -26,16 +27,30 @@ export async function verifyFirebaseToken(token: string, env: Env) {
     throw new Error('La variable de entorno FIREBASE_PROJECT_ID no está configurada.');
   }
 
-  const res = await fetch(JWKS_URL);
-  if (!res.ok) {
-    const errorBody = await res.text();
-    logError(new Error(errorBody), 'Error fetching JWKS', {
-      status: res.status,
-      statusText: res.statusText,
-    });
-    throw new Error('Error al obtener las claves de verificación de Firebase.');
+  let jwks: { keys: Jwk[] };
+  const CACHE_KEY = 'firebase_jwks';
+
+  try {
+    const cached = env.KV_VIEWS ? await env.KV_VIEWS.get(CACHE_KEY) : null;
+    if (cached) {
+      jwks = JSON.parse(cached);
+    } else {
+      const res = await fetch(JWKS_URL);
+      if (!res.ok) {
+        throw new Error(`Error fetching JWKS: ${res.statusText}`);
+      }
+      jwks = await res.json();
+      if (env.KV_VIEWS) {
+        await env.KV_VIEWS.put(CACHE_KEY, JSON.stringify(jwks), { expirationTtl: 3600 });
+      }
+    }
+  } catch (e) {
+    console.error('[Firebase] JWKS Cache Error:', e);
+    // Fallback: intentar fetch directo si falla el KV
+    const res = await fetch(JWKS_URL);
+    if (!res.ok) throw new Error('Error al obtener las claves de Firebase.');
+    jwks = await res.json();
   }
-  const jwks: { keys: Jwk[] } = await res.json();
 
   // Map kid to imported key
   const kidToKey: Record<string, CryptoKey> = {};

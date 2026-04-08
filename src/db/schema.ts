@@ -119,6 +119,7 @@ export const users = sqliteTable('Users', {
   preferences: text('preferences'),
   isPrivate: integer('is_private', { mode: 'boolean' }).default(false),
   isNsfw: integer('is_nsfw', { mode: 'boolean' }).default(false),
+  tokenVersion: integer('token_version').default(1).notNull(), // Orion: Para invalidación de sesiones
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(
     sql`(strftime('%s', 'now') * 1000)`
   ),

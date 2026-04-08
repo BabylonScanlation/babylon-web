@@ -16,8 +16,15 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   const referer = request.headers.get('referer');
   const host = request.headers.get('host') || '';
 
+  const configuredShieldToken = env.SHIELD_TOKEN;
+  
+  if (!configuredShieldToken) {
+    console.error('[SECURITY] SHIELD_TOKEN is not configured in production');
+    return new Response('Security Configuration Error', { status: 500 });
+  }
+
   // Bloqueo: Si no hay token de escudo Y el referer es inválido o falta, denegamos.
-  const isAuthorized = (shieldToken === 'babylon-v2-shield') || (referer && referer.includes(host));
+  const isAuthorized = (shieldToken === configuredShieldToken) || (referer && referer.includes(host));
 
   if (!isAuthorized) {
     return new Response('Unauthorized Access', { status: 403 });
@@ -26,6 +33,36 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   // Orion: 1. Cache API (Capa 0)
   const decryptedKey = deobfuscate(key);
   const objectKey = decryptedKey && typeof decryptedKey === 'string' ? decryptedKey : decodeURIComponent(key);
+
+  // Orion: SSRF Protection - Bloquear esquemas no-https y validar hosts externos
+  if (objectKey.startsWith('http')) {
+    if (!objectKey.startsWith('https://')) {
+      return new Response('Invalid scheme. Only HTTPS is allowed.', { status: 400 });
+    }
+
+    try {
+      const url = new URL(objectKey);
+      const allowedHosts = [
+        'api.telegram.org',
+        'telegra.ph',
+        'i.imgur.com',
+        'images.mangadex.org',
+        'mangadex.org'
+      ];
+      
+      // Bloquear IPs locales/privadas
+      if (/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(url.hostname) || url.hostname === 'localhost') {
+        return new Response('Forbidden Host', { status: 403 });
+      }
+
+      if (!allowedHosts.some(h => url.hostname === h || url.hostname.endsWith('.' + h))) {
+        if (isDev) console.warn(`[Proxy] Blocked external fetch to unauthorized host: ${url.hostname}`);
+        return new Response('Forbidden External Host', { status: 403 });
+      }
+    } catch (e) {
+      return new Response('Invalid URL', { status: 400 });
+    }
+  }
 
   // Orion: Implementación de Cache API (Reducción drástica de costos)
   const cache = typeof caches !== 'undefined' ? (caches as any).default : null;

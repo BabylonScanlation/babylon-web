@@ -2,12 +2,10 @@ export async function hashIpAddress(ip: string): Promise<string> {
   const encoder = new TextEncoder();
 
   // Obtener el salt de las variables de entorno (Prioridad Máxima)
-  const salt = import.meta.env.INTERNAL_CRYPTO_SALT || 'development-only-salt';
+  const salt = import.meta.env.INTERNAL_CRYPTO_SALT;
 
-  if (salt === 'development-only-salt' && import.meta.env.PROD) {
-    console.warn(
-      '[Security] Utilizando salt de desarrollo en producción. ¡Configura INTERNAL_CRYPTO_SALT!'
-    );
+  if (!salt) {
+    throw new Error('INTERNAL_CRYPTO_SALT is not configured');
   }
 
   const data = encoder.encode(ip + salt);

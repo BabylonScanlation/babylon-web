@@ -8,6 +8,7 @@ export interface UserSessionPayload {
   displayName: string | null;
   role: string;
   isNsfw: boolean;
+  tokenVersion: number;
 }
 
 export async function createToken(payload: UserSessionPayload, secret: string): Promise<string> {
@@ -38,17 +39,18 @@ export function getSession(context: SessionContext): string | undefined {
 
 export function setSession(context: SessionContext, sessionValue: string): void {
   const url = new URL(context.request.url);
-  const isLocalIp =
+  const isLocal =
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
     url.hostname.startsWith('192.168.') ||
     url.hostname.startsWith('10.') ||
     url.hostname.startsWith('172.');
-  const isProduction = import.meta.env.PROD;
 
   context.cookies.set('user_session', sessionValue, {
     httpOnly: true,
     path: '/',
     maxAge: 60 * 60 * 24 * 30,
-    secure: isProduction && !isLocalIp,
+    secure: !isLocal,
     sameSite: 'lax',
   });
 }
@@ -60,17 +62,18 @@ export async function setAuthCookie(
 ): Promise<void> {
   const token = await createToken(payload, secret);
   const url = new URL(context.request.url);
-  const isLocalIp =
+  const isLocal =
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
     url.hostname.startsWith('192.168.') ||
     url.hostname.startsWith('10.') ||
     url.hostname.startsWith('172.');
-  const isProduction = import.meta.env.PROD;
 
   context.cookies.set('user_auth', token, {
     httpOnly: true,
     path: '/',
     maxAge: 60 * 60 * 24 * 30,
-    secure: isProduction && !isLocalIp,
+    secure: !isLocal,
     sameSite: 'lax',
   });
 }

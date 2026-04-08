@@ -2,7 +2,7 @@
  * Convierte cualquier valor de fecha a un timestamp numérico (ms).
  * Optimizada para ser el estándar de comunicación entre servidor y cliente.
  */
-export function parseToTimestamp(dateInput: any): number {
+export function parseToTimestamp(dateInput: string | number | Date | null | undefined): number {
   if (!dateInput) return 0;
 
   // 1. Manejo de Números (Detección Segundos vs Milisegundos)
@@ -52,7 +52,7 @@ export function parseToTimestamp(dateInput: any): number {
 /**
  * Devuelve una etiqueta de tiempo relativo (ej. "hace 5 minutos").
  */
-export function timeAgo(dateVal: any): string {
+export function timeAgo(dateVal: string | number | Date | null | undefined): string {
   const timestamp = parseToTimestamp(dateVal);
 
   // Si no hay fecha o es absurdamente antigua (era Unix), es "justo ahora"

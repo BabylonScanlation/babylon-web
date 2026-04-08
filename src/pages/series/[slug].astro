@@ -12,6 +12,7 @@ import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
 import { formatFullDate, getImageUrl, timeAgo } from '../../lib/utils';
 import { siteConfig } from '../../site.config';
+import type { SeriesDetails, Comment } from '../../types';
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/404');
@@ -20,8 +21,8 @@ const user = Astro.locals.user;
 const r2PublicUrlAssets = Astro.locals.runtime.env?.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 const drizzleDb = getDB(Astro.locals.runtime.env);
 
-let series: any = null;
-let comments: any[] = [];
+let series: SeriesDetails | null = null;
+let comments: Comment[] = [];
 let error: string | null = null;
 
 try {
@@ -55,7 +56,7 @@ try {
 // Orion: Evitar caché de Cloudflare para mostrar vistas reales instantáneamente
 Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
 
-const formatDescription = (text: string | undefined) => {
+const formatDescription = (text: string | null | undefined) => {
   if (!text) return '';
   return text
     .replace(/</g, '&lt;')

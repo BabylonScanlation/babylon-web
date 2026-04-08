@@ -1,4 +1,4 @@
-import { desc, eq, inArray, or, sql } from 'drizzle-orm';
+import { desc, eq, inArray, or, sql, type SQL } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 import {
@@ -21,13 +21,28 @@ export async function getAdmins(db: DrizzleD1Database<typeof schema>) {
   return adminUids;
 }
 
+interface RawComment {
+  id: string | number;
+  text: string;
+  rawDate: string | number | null;
+  targetType: string;
+  targetName: string | number | null;
+  parentName: string | null;
+  seriesSlug: string | number | null;
+  chapterId: number | null;
+  userEmail: string | null;
+  userName: string | null;
+  userId: string;
+  isDeleted: boolean | null;
+}
+
 export async function getAdminCommentsActivity(db: DrizzleD1Database<typeof schema>) {
   // 1. Últimos comentarios de Capítulos (Solo Usuarios Reales)
   const chapComms = await db
     .select({
       id: comments.id,
       text: comments.commentText,
-      rawDate: sql`${comments.createdAt}`,
+      rawDate: sql<string | number | null>`${comments.createdAt}`,
       targetType: sql<string>`'chapter'`,
       targetName: chapters.chapterNumber,
       parentName: series.title,
@@ -35,6 +50,7 @@ export async function getAdminCommentsActivity(db: DrizzleD1Database<typeof sche
       chapterId: chapters.id,
       userEmail: users.email,
       userName: users.username,
+      userId: comments.userId,
       isDeleted: comments.isDeleted,
     })
     .from(comments)
@@ -50,7 +66,7 @@ export async function getAdminCommentsActivity(db: DrizzleD1Database<typeof sche
     .select({
       id: seriesComments.id,
       text: seriesComments.commentText,
-      rawDate: sql`${seriesComments.createdAt}`,
+      rawDate: sql<string | number | null>`${seriesComments.createdAt}`,
       targetType: sql<string>`'series'`,
       targetName: series.title,
       parentName: sql<string>`'Obra'`,
@@ -58,6 +74,7 @@ export async function getAdminCommentsActivity(db: DrizzleD1Database<typeof sche
       chapterId: sql<number>`NULL`,
       userEmail: users.email,
       userName: users.username,
+      userId: seriesComments.userId,
       isDeleted: seriesComments.isDeleted,
     })
     .from(seriesComments)
@@ -72,7 +89,7 @@ export async function getAdminCommentsActivity(db: DrizzleD1Database<typeof sche
     .select({
       id: newsComments.id,
       text: newsComments.commentText,
-      rawDate: sql`${newsComments.createdAt}`,
+      rawDate: sql<string | number | null>`${newsComments.createdAt}`,
       targetType: sql<string>`'news'`,
       targetName: news.title,
       parentName: sql<string>`'Noticia'`,
@@ -80,6 +97,7 @@ export async function getAdminCommentsActivity(db: DrizzleD1Database<typeof sche
       chapterId: sql<number>`NULL`,
       userEmail: users.email,
       userName: users.username,
+      userId: newsComments.userId,
       isDeleted: newsComments.isDeleted,
     })
     .from(newsComments)
@@ -89,7 +107,7 @@ export async function getAdminCommentsActivity(db: DrizzleD1Database<typeof sche
     .limit(300)
     .all();
 
-  const parseSafeDate = (raw: any): string => {
+  const parseSafeDate = (raw: string | number | Date | null): string => {
     if (!raw) return new Date(0).toISOString();
     if (raw instanceof Date && !isNaN(raw.getTime())) return raw.toISOString();
     let ts = Number(raw);
@@ -104,7 +122,7 @@ export async function getAdminCommentsActivity(db: DrizzleD1Database<typeof sche
   };
 
   return [...chapComms, ...serComms, ...newsComms]
-    .map((c: any) => ({
+    .map((c: RawComment) => ({
       ...c,
       createdAt: parseSafeDate(c.rawDate),
       // Si no hay datos del usuario (huérfano), mostramos el ID para poder rastrearlo
@@ -121,7 +139,7 @@ export async function getAdminSeriesWithChapters(
   _includeComments: boolean = false,
   searchQuery?: string
 ) {
-  let whereClause: any;
+  let whereClause: SQL | undefined;
   if (searchQuery && searchQuery.trim() !== '') {
     whereClause = or(
       sql`${series.title} LIKE ${`%${searchQuery}%`}`,

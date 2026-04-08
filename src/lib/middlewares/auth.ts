@@ -6,8 +6,10 @@ import { getDB } from '../db-client';
 import { logError } from '../logError';
 import { deleteSession, setAuthCookie, verifyToken } from '../session';
 
-export function clearSessionCache(_sessionId?: string) {
-  // Legacy stub: session cache removed to prevent memory leaks in isolates
+export function clearSessionCache(context: { cookies: any }, _sessionId?: string) {
+  // Borramos el cookie de auth para forzar al middleware a entrar en el SLOW-PATH (Lectura de DB)
+  // Esto asegura que cualquier cambio de estado (como NSFW o Roles) se refleje inmediatamente.
+  context.cookies.delete('user_auth', { path: '/' });
 }
 
 export async function authFlow(context: APIContext, next: MiddlewareNext) {
@@ -22,9 +24,11 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
 
   const authCookie = cookies.get('user_auth')?.value;
   const sessionId = cookies.get('user_session')?.value;
+  const isAdminRoute = currentPath.startsWith('/admin');
 
   // 1. FAST-PATH: Verificación JWT (Zero D1 Reads - 15 min expiración)
-  if (authCookie && runtime?.env?.JWT_SECRET) {
+  // Orion: Si es una ruta Admin, saltamos el Fast-Path para garantizar seguridad máxima
+  if (authCookie && runtime?.env?.JWT_SECRET && !isAdminRoute) {
     const payload = await verifyToken(authCookie, runtime.env.JWT_SECRET);
     if (payload) {
       locals.user = {
@@ -34,12 +38,13 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
         displayName: payload.displayName || undefined,
         isAdmin: payload.role === 'admin' || payload.uid === runtime.env.SUPER_ADMIN_UID,
         isNsfw: payload.isNsfw,
+        tokenVersion: payload.tokenVersion,
       };
     }
   }
 
-  // 2. SLOW-PATH: Verificación de sesión en D1 (Si el JWT expiró, no existe, o necesitamos revalidar)
-  if (!locals.user && sessionId && db && !locals.isBot) {
+  // 2. SLOW-PATH: Verificación de sesión en D1 (Si el JWT expiró, no existe, es ruta Admin, o necesitamos revalidar)
+  if ((!locals.user || isAdminRoute) && sessionId && db && !locals.isBot) {
     try {
       const result = await db
         .select({
@@ -61,6 +66,17 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
           runtime.env.SUPER_ADMIN_UID && uid === runtime.env.SUPER_ADMIN_UID
             ? 'admin'
             : result.role || 'user';
+        
+        // Orion: Validación de Seguridad Nuclear - Verificar tokenVersion si venimos de un JWT
+        if (authCookie && isAdminRoute && runtime?.env?.JWT_SECRET) {
+          const payload = await verifyToken(authCookie, runtime.env.JWT_SECRET);
+          if (payload && payload.tokenVersion !== result.user.tokenVersion) {
+            // La versión del token no coincide con la DB -> Sesión comprometida o revocada
+            deleteSession(context as any);
+            return context.redirect('/');
+          }
+        }
+
         const userObj = {
           uid,
           email: result.user.email,
@@ -70,6 +86,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
           isAdmin: role === 'admin',
           isNsfw: result.user.isNsfw ?? false,
           preferences: result.user.preferences || '{}',
+          tokenVersion: result.user.tokenVersion,
         };
         locals.user = userObj;
 
@@ -84,6 +101,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
               displayName: userObj.displayName || null,
               role: role,
               isNsfw: userObj.isNsfw,
+              tokenVersion: userObj.tokenVersion,
             },
             runtime.env.JWT_SECRET
           );

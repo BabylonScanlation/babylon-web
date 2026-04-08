@@ -3,6 +3,7 @@ import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 import { chapters, favorites, series, seriesRatings, seriesReactions } from '../../db/schema';
 import { parseToTimestamp } from '../utils';
+import type { RecentChapterSeries, SeriesDetails } from '../../types';
 
 /**
  * Orion: Obtiene los detalles de una serie.
@@ -11,7 +12,7 @@ export async function getSeriesDetails(
   db: DrizzleD1Database<typeof schema>,
   slug: string,
   user?: { uid: string; isAdmin: boolean }
-) {
+): Promise<SeriesDetails | null> {
   const seriesData = await db
     .select()
     .from(series)
@@ -35,6 +36,8 @@ export async function getSeriesDetails(
         urlPortada: chapters.urlPortada,
         createdAt: chapters.createdAt,
         views: chapters.views,
+        telegramFileId: chapters.telegramFileId,
+        messageThreadId: chapters.messageThreadId,
       })
       .from(chapters)
       .where(
@@ -210,7 +213,7 @@ export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsf
     popularSeries: popular,
     seriesByChapterCount: byChapters,
     seriesWithRecentChapters: recentChaptersData,
-    hasContent: popular.length > 0 || (recentChaptersData as any[]).length > 0,
+    hasContent: popular.length > 0 || recentChaptersData.length > 0,
   };
 }
 
@@ -306,6 +309,19 @@ export async function getPopularSeries(
     .all();
 }
 
+interface RecentChapterSeries {
+  id: number;
+  slug: string;
+  title: string;
+  coverImageUrl: string | null;
+  recentChapters: {
+    number: number;
+    title: string | null;
+    createdAt: string | null;
+  }[];
+  lastUpdate: string | null;
+}
+
 /**
  * Orion: Obtiene series con capítulos actualizados recientemente.
  * Utiliza 2 pasos optimizados para garantizar variedad de series sin sobrecargar memoria.
@@ -313,7 +329,7 @@ export async function getPopularSeries(
 export async function getSeriesWithRecentChapters(
   db: DrizzleD1Database<typeof schema>,
   allowNsfw: boolean = false
-) {
+): Promise<RecentChapterSeries[]> {
   const seriesConditions: (SQL | undefined)[] = [eq(series.isHidden, false)];
   if (allowNsfw) {
     seriesConditions.push(eq(series.isNsfw, true));
@@ -364,7 +380,7 @@ export async function getSeriesWithRecentChapters(
     .orderBy(desc(chapters.createdAt)) // Prioridad al tiempo de creación real
     .all();
 
-  const seriesMap = new Map();
+  const seriesMap = new Map<string, RecentChapterSeries>();
   for (const row of rawData) {
     if (!seriesMap.has(row.slug)) {
       seriesMap.set(row.slug, {
@@ -377,7 +393,7 @@ export async function getSeriesWithRecentChapters(
       });
     }
 
-    const entry = seriesMap.get(row.slug);
+    const entry = seriesMap.get(row.slug)!;
 
     // Actualizamos la fecha de la serie si este capítulo es más nuevo en tiempo
     const rowTime = parseToTimestamp(row.chapterCreatedAt);
@@ -388,7 +404,7 @@ export async function getSeriesWithRecentChapters(
 
     // Orion: Añadimos a la lista si no está ya (evitar duplicados por bug de DB)
     if (entry.recentChapters.length < 3) {
-      if (!entry.recentChapters.some((c: any) => c.number === row.chapterNumber)) {
+      if (!entry.recentChapters.some((c: { number: number }) => c.number === row.chapterNumber)) {
         entry.recentChapters.push({
           number: row.chapterNumber,
           title: row.chapterTitle,
@@ -399,7 +415,7 @@ export async function getSeriesWithRecentChapters(
   }
 
   // Ordenamos las series finales por su actualización más reciente en el tiempo
-  return Array.from(seriesMap.values()).sort((a: any, b: any) => {
+  return Array.from(seriesMap.values()).sort((a, b) => {
     return parseToTimestamp(b.lastUpdate) - parseToTimestamp(a.lastUpdate);
   });
 }
@@ -484,7 +500,7 @@ export async function searchSeries(
     conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
   }
 
-  // Orion: Usamos FTS5 si hay una consulta de texto, de lo contrario usamos filtros estándar
+  // Orion: Usamos any aquí porque Drizzle cambia el tipo de retorno dinámicamente al hacer joins
   let baseQuery: any = db.select().from(series).$dynamic();
   let countQuery: any = db.select({ count: sql<number>`count(*)` }).from(series).$dynamic();
 

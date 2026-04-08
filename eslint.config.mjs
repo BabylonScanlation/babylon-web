@@ -26,8 +26,8 @@ export default [
     },
     rules: {
       ...tseslint.configs.recommendedTypeChecked.rules,
-      // Deshabilitar temporalmente la regla no-explicit-any
-      '@typescript-eslint/no-explicit-any': 'off',
+      // Habilitar la regla no-explicit-any como advertencia
+      '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
 
@@ -49,6 +49,7 @@ export default [
     rules: {
       // Add or override specific Svelte rules here
       'svelte/no-at-html-tags': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
 
@@ -80,8 +81,8 @@ export default [
       // Deshabilitar temporalmente @typescript-eslint/no-unused-vars
       '@typescript-eslint/no-unused-vars': 'off',
       'no-unused-vars': 'off',
-      // Deshabilitar temporalmente la regla no-explicit-any
-      '@typescript-eslint/no-explicit-any': 'off',
+      // Habilitar la regla no-explicit-any como advertencia
+      '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
 

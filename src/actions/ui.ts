@@ -22,7 +22,7 @@ export const uiActions = {
 
           // Orion: CRITICO - Limpiar cache para que el middleware lea el nuevo valor de DB
           const sessionId = context.cookies.get('user_session')?.value;
-          clearSessionCache(sessionId);
+          clearSessionCache(context, sessionId);
         } catch (e) {
           console.error('[Action toggleNsfw DB Error]:', e);
         }

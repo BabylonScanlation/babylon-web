@@ -38,13 +38,26 @@ export interface Chapter {
   processing?: boolean | null;
 }
 
+export interface RecentChapterSeries {
+  id: number;
+  slug: string;
+  title: string;
+  coverImageUrl: string | null;
+  recentChapters: {
+    number: number;
+    title: string | null;
+    createdAt: string | null;
+  }[];
+  lastUpdate: string | null;
+}
+
 export interface Series {
   id: number;
   slug: string;
   title: string;
   coverImageUrl?: string | null;
   urlPortada?: string | null;
-  description?: string;
+  description?: string | null;
   demographic?: string | null;
   status?: string | null;
   type?: string | null;
@@ -55,6 +68,7 @@ export interface Series {
   alternativeNames?: string | null;
   serializedBy?: string | null;
   views?: number | null;
+  createdAt?: string | null;
   lastChapter?: string;
   lastChapterCreatedAt?: string;
   chapters?: Chapter[];
@@ -62,6 +76,25 @@ export interface Series {
   isNsfw?: boolean;
   isAppSeries?: boolean;
   chapterCount?: number;
+  stats?: {
+    averageRating: number;
+    totalVotes: number;
+    reactionCounts: Record<string, number>;
+    userVote: number | null;
+    userReaction: string | null;
+    isFavorited: boolean;
+  };
+}
+
+export interface SeriesDetails extends Series {
+  stats: {
+    averageRating: number;
+    totalVotes: number;
+    reactionCounts: Record<string, number>;
+    userVote: number | null;
+    userReaction: string | null;
+    isFavorited: boolean;
+  };
 }
 
 export interface User {
@@ -75,14 +108,15 @@ export interface User {
   emailVerified?: boolean;
   isNsfw?: boolean;
   preferences?: string;
+  tokenVersion: number;
 }
 
 export interface Comment {
   id: number;
   userId?: string;
   userEmail: string | null;
-  username?: string;
-  avatarUrl?: string;
+  username?: string | null;
+  avatarUrl?: string | null;
   commentText: string;
   createdAt: string | number;
   updatedAt?: string | number;
@@ -94,7 +128,7 @@ export interface Comment {
   isSpoiler?: boolean;
   parentId?: number | null;
   children?: Comment[];
-  isDeleted?: boolean;
+  isDeleted?: boolean | null;
   likes?: number;
   dislikes?: number;
   userVote?: number; // 1, -1, 0

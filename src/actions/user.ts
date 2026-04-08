@@ -109,7 +109,8 @@ export const userActions = {
 
       // Orion: Validación CSRF mediante Nonce
       if (input.nonce) {
-        const secret = runtime.env.JWT_SECRET || 'nonce-secret-fallback';
+        const secret = runtime.env.JWT_SECRET;
+        if (!secret) throw new Error('JWT_SECRET is not configured');
         const isValid = await consumeNonce(input.nonce, secret, user.uid);
         if (!isValid) throw new Error('Security token invalid or expired');
       }

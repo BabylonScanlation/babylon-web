@@ -67,7 +67,7 @@ export const siteConfig = {
 
   // Seguridad y Bloqueo
   security: {
-    blacklistedCountries: ['JP', 'KR', 'CN', 'US'],
+    blacklistedCountries: ['JP', 'KR', 'CN'],
     blockedBots: [
       'gptbot',
       'chatgpt',
