@@ -11,14 +11,15 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     return new Response('Asset not found', { status: 404 });
   }
 
-  // Orion: Seguridad - Bloqueo Nuclear (Solo peticiones autorizadas por nuestro JS)
+  // Orion: Seguridad - Bloqueo Nuclear (Solo peticiones autorizadas por nuestro JS o Referer propio)
   const shieldToken = request.headers.get('X-Shield-Token');
   const referer = request.headers.get('referer');
   const host = request.headers.get('host') || '';
 
-  // Bloqueo: Si no hay token de escudo o el referer es inválido, denegamos.
-  // Esto impide que copies la URL y la abras en otra pestaña.
-  if (!shieldToken || shieldToken !== 'babylon-v2-shield' || !referer || !referer.includes(host)) {
+  // Bloqueo: Si no hay token de escudo Y el referer es inválido o falta, denegamos.
+  const isAuthorized = (shieldToken === 'babylon-v2-shield') || (referer && referer.includes(host));
+
+  if (!isAuthorized) {
     return new Response('Unauthorized Access', { status: 403 });
   }
 
