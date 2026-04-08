@@ -2,8 +2,15 @@ import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const DUMP_PATH = path.join('db_snapshots', 'dump.sql');
+const DUMP_DIR = 'db_snapshots';
+const DUMP_PATH = path.join(DUMP_DIR, 'dump.sql');
 const DB_NAME = 'babylon-scanlation-prod';
+
+function getTimestamp() {
+  const now = new Date();
+  // Formato: YYYY-MM-DD_HH-mm-ss (compatible con nombres de archivo)
+  return now.toISOString().replace(/T/, '_').replace(/:/g, '-').slice(0, 19);
+}
 
 function runCommand(command) {
   try {
@@ -26,6 +33,9 @@ function escapeStringOneLine(val) {
 
 async function main() {
   console.log('⚡ ORION: Generando exportación completa de todas las tablas...');
+  
+  const timestamp = getTimestamp();
+  const timestampedPath = path.join(DUMP_DIR, `dump_${timestamp}.sql`);
 
   const query = (q) =>
     runCommand(`npx wrangler d1 execute ${DB_NAME} --remote --command "${q}" --json`);
@@ -90,13 +100,19 @@ async function main() {
 
   sqlDump += 'PRAGMA foreign_keys = ON;\n';
 
-  if (!fs.existsSync(path.dirname(DUMP_PATH))) {
-    fs.mkdirSync(path.dirname(DUMP_PATH), { recursive: true });
+  if (!fs.existsSync(DUMP_DIR)) {
+    fs.mkdirSync(DUMP_DIR, { recursive: true });
   }
 
+  // Guardar copia con timestamp (Backup real histórico)
+  fs.writeFileSync(timestampedPath, sqlDump);
+  console.log(`\n💾 Backup histórico guardado en ${timestampedPath}`);
+
+  // Guardar/Actualizar dump.sql (Para sincronización automática)
   fs.writeFileSync(DUMP_PATH, sqlDump);
-  console.log(`\n💾 Dump completo guardado en ${DUMP_PATH}`);
-  console.log(`✅ Sincronización preparada para ${processed.size} tablas.`);
+  console.log(`🔄 Archivo de sincronización actualizado en ${DUMP_PATH}`);
+  
+  console.log(`✅ Exportación completada para ${processed.size} tablas.`);
 }
 
 main().catch((err) => console.error(err));

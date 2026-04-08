@@ -335,7 +335,7 @@ export async function getSeriesWithRecentChapters(
     )
     .groupBy(chapters.seriesId)
     .orderBy(desc(sql`MAX(${chapters.createdAt})`))
-    .limit(20)
+    .limit(30)
     .all();
 
   const targetIds = recentSeriesIds.map((r) => r.seriesId).filter(Boolean) as number[];

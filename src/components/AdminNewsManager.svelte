@@ -159,6 +159,24 @@ async function handleDelete(newsId: string) {
   }
 }
 
+async function toggleNewsStatus(news: NewsItem) {
+  try {
+    const { error, data } = await actions.news.toggleStatus({
+      id: news.id,
+      currentStatus: (news.status as 'draft' | 'published') || 'published',
+    });
+
+    if (!error && data) {
+      newsItems = newsItems.map((n) => (n.id === news.id ? { ...n, status: data.status } : n));
+      toast.success(data.status === 'published' ? 'Noticia publicada' : 'Noticia en borrador');
+    } else {
+      toast.error(`Error: ${error?.message || 'No se pudo cambiar el estado'}`);
+    }
+  } catch {
+    toast.error('Error de conexión');
+  }
+}
+
 async function _handleImageUpload(newsId: string) {
   if (!formImage) return;
   const uploadData = new FormData();
@@ -244,8 +262,7 @@ function copyToClipboard(text: string) {
 
 <div class="news-manager">
   {#if !selectedSeriesId}
-    {@const globalStats = getStats(null, newsItems)}
-    <div class="series-grid" in:fade>
+    <div class="series-grid">
       <!-- Tarjeta para Noticias Globales -->
       <button class="series-card global-card" onclick={() => selectSeries(null)}>
         <div class="series-cover global-cover">
@@ -260,8 +277,8 @@ function copyToClipboard(text: string) {
           </div>
           <div class="gradient-overlay"></div>
           <div class="card-badges-right">
-            <span class="news-stat-badge published" title="Publicadas">{globalStats.published}</span>
-            <span class="news-stat-badge draft" title="Borradores">{globalStats.draft}</span>
+            <span class="news-stat-badge published" title="Publicadas">{getStats(null, newsItems).published}</span>
+            <span class="news-stat-badge draft" title="Borradores">{getStats(null, newsItems).draft}</span>
           </div>
           <div class="series-info-overlay">
             <h3>Noticias Globales</h3>
@@ -270,7 +287,6 @@ function copyToClipboard(text: string) {
       </button>
 
       {#each allSeries as series (series.id)}
-        {@const stats = getStats(series.id, newsItems)}
         <button class="series-card" onclick={() => selectSeries(series.id)}>
           <div class="series-cover">
             {#if series.coverImageUrl}
@@ -282,8 +298,8 @@ function copyToClipboard(text: string) {
             <div class="gradient-overlay"></div>
 
             <div class="card-badges-right">
-              <span class="news-stat-badge published" title="Publicadas">{stats.published}</span>
-              <span class="news-stat-badge draft" title="Borradores">{stats.draft}</span>
+              <span class="news-stat-badge published" title="Publicadas">{getStats(series.id, newsItems).published}</span>
+              <span class="news-stat-badge draft" title="Borradores">{getStats(series.id, newsItems).draft}</span>
             </div>
 
             {#if series.isNsfw}
@@ -451,14 +467,26 @@ function copyToClipboard(text: string) {
                     <p class="excerpt">{news.content.substring(0, 80)}...</p>
                   </div>
                   <div class="item-actions">
-                    <a href={`/news/${news.id}`} target="_blank" class="btn-preview" title="Previsualizar">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </a>
-                    <button class="btn-edit" onclick={() => startEdit(news)} aria-label="Editar">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <button 
+                      class="btn-toggle-status" 
+                      class:is-published={news.status === 'published'}
+                      onclick={() => toggleNewsStatus(news)} 
+                      title={news.status === 'published' ? 'Borrador' : 'Publicar'}
+                    >
+                      {#if news.status === 'published'}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      {:else}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                      {/if}
                     </button>
-                    <button class="btn-delete" onclick={() => handleDelete(news.id)} aria-label="Eliminar">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    <a href={`/news/${news.id}`} target="_blank" class="btn-preview" title="Previsualizar">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                    </a>
+                    <button class="btn-edit" onclick={() => startEdit(news)} title="Editar" aria-label="Editar">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="btn-delete" onclick={() => handleDelete(news.id)} title="Eliminar" aria-label="Eliminar">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                   </div>
                 </div>
@@ -718,6 +746,10 @@ function copyToClipboard(text: string) {
   .item-actions .btn-edit:hover { background: #2980b9; color: #fff; }
   .item-actions .btn-preview:hover { background: var(--accent-color); color: #000; }
   .item-actions .btn-delete:hover { background: #c0392b; color: #fff; }
+  
+  .btn-toggle-status:hover { background: #444; color: #fff; }
+  .btn-toggle-status.is-published { color: #22c55e; }
+  .btn-toggle-status.is-published:hover { background: rgba(34, 197, 94, 0.1); }
 
   .item-actions .btn-preview {
     background: #222;

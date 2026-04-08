@@ -168,25 +168,29 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       .content-dynamic-wrap {
         display: flex;
         justify-content: center;
-        align-items: center;
+        align-items: flex-start; /* Cambiado de center a flex-start para evitar cortes verticales */
         width: 100%;
-        margin: 2rem 0;
-        min-height: 90px;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 12px;
-        overflow: hidden;
+        margin: 2.5rem 0;
+        min-height: 50px; /* Reducido para permitir que crezca según contenido */
+        background: rgba(255, 255, 255, 0.01);
+        border-radius: 16px;
+        overflow: visible !important; /* Forzamos visibilidad total */
         position: relative;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .content-dynamic-wrap.square {
         min-height: 250px;
-        max-width: 300px;
-        margin: 2rem auto;
+        /* max-width: 100%; // Eliminamos el límite de 300px para permitir expansión si el diseño lo permite */
+        margin: 2.5rem auto;
       }
 
       .dynamic-inner-box {
         position: relative;
         z-index: 1;
+        width: 100%;
+        display: flex;
+        justify-content: center;
       }
 
       /* Astra: Estilos críticos para imágenes de noticias... */
@@ -308,25 +312,38 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                   el.setAttribute('data-loaded', 'true');
                   const keys = JSON.parse(el.getAttribute('data-view-keys') || '{}');
                   const dims = JSON.parse(el.getAttribute('data-view-dims') || '{}');
-                  const winW = window.innerWidth;
+                  const winW = el.offsetWidth; // Usamos el ancho del contenedor real en lugar de window
                   let type = el.getAttribute('data-view-type'), dim = dims[type] || {w:728,h:90};
-                  if (winW < dim.w) { type = winW >= 468 ? 'bannerSmall' : 'square'; dim = dims[type] || {w:300,h:250}; }
+                  
+                  // Optimización responsiva inteligente
+                  if (winW < dim.w) { 
+                    type = winW >= 468 ? 'bannerSmall' : 'square'; 
+                    dim = dims[type] || {w:300,h:250}; 
+                  }
+                  
                   const fk = keys[type] || keys.banner;
                   if (fk) {
                     const ifr = document.createElement('iframe');
-                    ifr.style = `width:${dim.w}px;height:${dim.h}px;border:none;overflow:hidden;`;
+                    // Dimensiones base para el script de anuncios
+                    ifr.width = dim.w;
+                    ifr.height = dim.h;
+                    // Estilo responsivo: ocupa el 100% del ancho disponible pero con un tope (max-width)
+                    ifr.style = `border:none;overflow:hidden;background:transparent;width:100%;max-width:${dim.w}px;height:${dim.h}px;display:block;margin:0 auto;`;
                     ifr.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
+                    ifr.setAttribute('scrolling', 'no');
                     const slot = document.getElementById('slot-' + el.id);
                     if (slot) {
                       slot.innerHTML = ''; slot.appendChild(ifr);
                       const opt = `{ 'key' : '${fk}', 'format' : 'iframe', 'height' : ${dim.h}, 'width' : ${dim.w}, 'params' : {} }`;
-                      ifr.srcdoc = `<body style="margin:0;padding:0;background:transparent;"><div id="container-${fk}"></div><script>atOptions=${opt};<\/script><script src="${_0xS.a}${fk}/invoke.js"><\/script></body>`;
+                      // Body con centrado interno
+                      ifr.srcdoc = `<body style="margin:0;padding:0;background:transparent;display:flex;justify-content:center;"><div id="container-${fk}" style="width:100%;max-width:${dim.w}px;"></div><script>atOptions=${opt};<\/script><script src="${_0xS.a}${fk}/invoke.js"><\/script></body>`;
+                      el.style.minHeight = `${dim.h}px`;
                     }
                   }
                   obs.unobserve(el);
                 }
               });
-            }, { rootMargin: '1000px' });
+            }, { rootMargin: '1200px' });
             obs.observe(el);
           });
         };
@@ -348,6 +365,9 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           if (S) {
             const h = document.querySelector('.hero-swiper');
             if (h && !h.swiper) new S(h, { slidesPerView: 1, loop: h.querySelectorAll('.swiper-slide').length > 1, effect: 'fade', speed: 1000, autoplay: { delay: 6000 }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } });
+            
+            const u = document.querySelector('.recent-updates-swiper');
+            if (u && !u.swiper) new S(u, { slidesPerView: 'auto', spaceBetween: 20, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true, hide: false }, mousewheel: { forceToAxis: true }, breakpoints: { 768: { spaceBetween: 30 }, 1024: { spaceBetween: 40 } } });
           }
         };
 

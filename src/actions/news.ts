@@ -153,4 +153,24 @@ export const newsActions = {
       return { success: true, id };
     },
   }),
+
+  toggleStatus: defineAction({
+    input: z.object({
+      id: z.string(),
+      currentStatus: z.enum(['draft', 'published']),
+    }),
+    handler: async (input, context) => {
+      const { user } = context.locals;
+      if (!user?.isAdmin) throw new Error('Unauthorized');
+
+      const { id, currentStatus } = input;
+      const newStatus = currentStatus === 'draft' ? 'published' : 'draft';
+      const db = getDB(context.locals.runtime.env);
+
+      const updatedNews = await updateNews(db, id, { status: newStatus });
+      if (!updatedNews) throw new Error('Noticia no encontrada');
+
+      return updatedNews;
+    },
+  }),
 };
