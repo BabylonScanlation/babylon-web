@@ -28,6 +28,7 @@ interface Props {
   initialLoadingMessage?: string | null;
   nextChapter?: { slug: string; chapter: string } | null;
   processing?: boolean;
+  salt?: string;
 }
 
 let {
@@ -42,6 +43,7 @@ let {
   initialLoadingMessage = null,
   nextChapter = null,
   processing = false,
+  salt,
 }: Props = $props();
 
 let pagesData = $state<Page[]>([]);
@@ -232,10 +234,11 @@ onMount(() => {
 
   // Lógica de hidratación diferida
   setTimeout(() => {
-    if (encryptedData && pagesData.length === 0) {
-      try {
-        console.log('[READER] Hydrating data...');
-        const decrypted = deobfuscate(encryptedData);
+  if (encryptedData && pagesData.length === 0) {
+    try {
+      console.log('[READER] Hydrating data...');
+      const decrypted = deobfuscate(encryptedData, salt);
+
         if (decrypted) {
           let incomingPages = [];
           if (decrypted.pages) incomingPages = decrypted.pages;
@@ -385,7 +388,7 @@ function setupSse(isRetry = false) {
     retryCount = 0;
     try {
       const rawData = JSON.parse(e.data);
-      const data = rawData.payload ? deobfuscate(rawData.payload) : rawData;
+      const data = rawData.payload ? deobfuscate(rawData.payload, salt) : rawData;
       if (data.message) loadingMessage = data.message;
     } catch {
       console.error('Error parsing SSE processing event');
@@ -397,7 +400,7 @@ function setupSse(isRetry = false) {
     isComplete = true;
     try {
       const rawData = JSON.parse(e.data);
-      const data = rawData.payload ? deobfuscate(rawData.payload) : rawData;
+      const data = rawData.payload ? deobfuscate(rawData.payload, salt) : rawData;
 
       clearInterval(progressInterval);
       simulatedProgress = 100;
@@ -434,7 +437,7 @@ function setupSse(isRetry = false) {
     clearInterval(progressInterval);
     try {
       const rawData = JSON.parse(e.data);
-      const data = rawData.payload ? deobfuscate(rawData.payload) : rawData;
+      const data = rawData.payload ? deobfuscate(rawData.payload, salt) : rawData;
       error = data.error || 'Error en el servidor de procesamiento.';
     } catch {
       error = 'Error desconocido en el servidor.';

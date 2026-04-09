@@ -33,7 +33,9 @@ const finalClass = `${className} ${isGhost ? 'lazy-ghost' : ''}`.trim();
 
 // Astra Orion: Generación de la KEY cifrada (Base64) para el cargador ofuscado
 const keyToEncrypt = src.startsWith('http') ? src : src.replace(/^\//, '');
-const encryptedKey = obfuscate(keyToEncrypt);
+const salt = Astro.locals.runtime.env.INTERNAL_CRYPTO_SALT;
+if (!salt) throw new Error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
+const encryptedKey = obfuscate(keyToEncrypt, salt);
 const ghostKey = Buffer.from(encryptedKey).toString('base64');
 ---
 

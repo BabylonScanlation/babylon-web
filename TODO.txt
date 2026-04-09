@@ -1,0 +1,281 @@
+Listo. He leído los prompts del repositorio de JeremyMorgan. Ahora ejecuto el code review completo de Babylon Scanlation siguiendo los frameworks de **Initial Security Analysis**, **Authentication Flow Review**, **Secrets Management**, y **Code Quality** del repositorio.
+
+---
+
+# 🔐 Babylon Scanlation — Code Review Completo
+
+**Risk Score Global: 6.8 / 10**
+*Stack: Astro SSR + Cloudflare Pages/D1/R2 + Svelte + Firebase Auth*
+
+---
+
+## 1. CRÍTICO — Fallback secrets hardcodeados (CWE-798)
+
+**Severidad:** Critical | **Archivos:** `src/actions/auth.ts`, `src/lib/session.ts`, `src/lib/nonce.ts`, `src/lib/crypto.ts`
+
+```ts
+// src/actions/auth.ts
+const jwtSecret = env.JWT_SECRET || 'fallback-secret-change-me-in-production';
+
+// src/lib/nonce.ts
+const secret = runtime.env.JWT_SECRET || 'nonce-secret-fallback';
+
+// src/lib/crypto.ts
+const salt = import.meta.env.INTERNAL_CRYPTO_SALT || 'development-only-salt';
+```
+
+Si `JWT_SECRET` no está configurado en producción, **cualquier atacante puede firmar JWTs válidos** con la cadena pública `'fallback-secret-change-me-in-production'`. Esto permite escalada de privilegios total (`isAdmin: true`).
+
+**Fix:**
+```ts
+const jwtSecret = env.JWT_SECRET;
+if (!jwtSecret) throw new Error('JWT_SECRET env var is required');
+```
+
+---
+
+## 2. CRÍTICO — Shield token hardcodeado en el cliente (CWE-798 / CWE-200)
+
+**Severidad:** Critical | **Archivos:** `src/layouts/Layout.astro`, `src/pages/api/assets/proxy/[...key].ts`
+
+El header `X-Shield-Token: 'babylon-v2-shield'` se compara en el proxy, pero el valor está expuesto en el JS del cliente (`Layout.astro`). Cualquier usuario puede leerlo en DevTools y hacer peticiones directas al proxy bypasseando la protección.
+
+**Impacto encadenado con SSRF:** El proxy acepta keys que empiezan con `http` y las fetcha externamente:
+```ts
+// src/pages/api/assets/proxy/[...key].ts
+if (objectKey.startsWith('http')) {
+  const externalRes = await fetch(objectKey); // SSRF si el token es bypasseable
+```
+
+Con el token visible en cliente, un atacante podría usar el proxy para hacer fetch de URLs internas de Cloudflare o metadatos del worker.
+
+**Fix mínimo:**
+```ts
+// Bloquear esquemas no-https y rangos IP privados antes del fetch externo
+if (!objectKey.startsWith('https://')) {
+  return new Response('Invalid scheme', { status: 400 });
+}
+// Validar host contra allowlist
+const allowed = ['api.telegram.org', 'cdn.ejemplo.com'];
+const url = new URL(objectKey);
+if (!allowed.includes(url.hostname)) {
+  return new Response('Forbidden host', { status: 403 });
+}
+```
+
+---
+
+## 3. ALTO — XOR "cifrado" trivialmente reversible (CWE-327)
+
+**Severidad:** High | **Archivo:** `src/lib/obfuscator.ts`
+
+```ts
+const SALT = 'B4byl0n_V2_Nucl3ar_S3cur1ty_';
+function xorTransform(str: string): string {
+  const key = 42; // Llave fija
+  return str.split('').map(c => String.fromCharCode(c.charCodeAt(0) ^ key)).join('');
+}
+```
+
+El XOR con clave fija 42 y salt estático es **seguridad por oscuridad**, no cifrado. Los manifiestos de capítulos (URLs firmadas de imágenes) se envían al cliente obfuscados con esto. Cualquier atacante puede revertirlo en segundos:
+
+```js
+// PoC en consola del navegador
+const SALT = 'B4byl0n_V2_Nucl3ar_S3cur1ty_';
+const decode = s => atob(s.replace(/-/g,'+').replace(/_/g,'/'));
+const xor = s => s.split('').map(c => String.fromCharCode(c.charCodeAt(0)^42)).join('');
+const result = xor(decode(encryptedStr)).slice(SALT.length);
+console.log(JSON.parse(result)); // URLs originales de R2
+```
+
+Las URLs ya van firmadas criptográficamente (`signManifest`), así que el obfuscador no añade seguridad real. Documentar esto como "ofuscación cosmética" y no depender de ella para controles de acceso.
+
+---
+
+## 4. ALTO — Rate limiter en memoria no funciona en Workers distribuidos (CWE-400)
+
+**Severidad:** High | **Archivo:** `src/lib/middlewares/shield.ts`
+
+```ts
+const RATE_LIMIT = new Map<string, { count: number; resetTime: number }>();
+```
+
+Los Workers de Cloudflare corren en múltiples instancias/isolates. El `Map` se reinicia en cada cold start y **no se comparte entre instancias**. Un atacante con múltiples IPs puede enviar miles de peticiones.
+
+**Fix:** Usar el KV binding ya disponible:
+```ts
+const record = await env.KV_VIEWS.get(`rl:${clientIp}`);
+const count = record ? parseInt(record) + 1 : 1;
+await env.KV_VIEWS.put(`rl:${clientIp}`, count.toString(), { expirationTtl: 60 });
+if (count > MAX_REQ_PER_WINDOW) return new Response('Too Many Requests', { status: 429 });
+```
+
+---
+
+## 5. ALTO — `clearSessionCache` es un stub no-op (CWE-613)
+
+**Severidad:** High | **Archivos:** `src/lib/middlewares/auth.ts`, `src/actions/ui.ts`
+
+```ts
+export function clearSessionCache(_sessionId?: string) {
+  // Legacy stub: session cache removed to prevent memory leaks in isolates
+}
+```
+
+Se llama tras el toggle de NSFW y se supone que invalida el JWT del usuario. Pero es una función vacía. El JWT del usuario **sigue siendo válido** durante sus 5 minutos aunque se haya modificado `isNsfw` en DB. En un flujo de moderación esto podría importar.
+
+**Fix:** Incrementar un campo `tokenVersion` en la tabla `Users` y verificarlo en el middleware:
+```ts
+// En authFlow: verificar tokenVersion del JWT contra DB si operación sensible
+if (payload.tokenVersion !== dbUser.tokenVersion) {
+  return deleteSession(context); // Forzar re-login
+}
+```
+
+---
+
+## 6. MEDIO — JWKS de Firebase sin caché (performance + disponibilidad)
+
+**Severidad:** Medium | **Archivo:** `src/lib/firebase/server.ts`
+
+```ts
+const res = await fetch(JWKS_URL); // fetch en cada verificación de token
+```
+
+Cada login hace un fetch externo a `googleapis.com`. Si Google responde lento o hay un fallo de red, el login falla. Además consume cuota de requests de Workers.
+
+**Fix:** Cachear en KV con TTL de 1 hora:
+```ts
+const cached = await env.KV_VIEWS.get('firebase_jwks');
+if (cached) return JSON.parse(cached);
+const fresh = await fetch(JWKS_URL).then(r => r.json());
+await env.KV_VIEWS.put('firebase_jwks', JSON.stringify(fresh), { expirationTtl: 3600 });
+```
+
+---
+
+## 7. MEDIO — Geo-blocking incluye EE.UU. en blacklist (lógica de negocio)
+
+**Severidad:** Medium | **Archivo:** `src/site.config.ts`
+
+```ts
+blacklistedCountries: ['JP', 'KR', 'CN', 'US'],
+```
+
+EE.UU. está bloqueado pero el código está desplegado en Cloudflare Pages con CDN global. Usuarios con VPN o Cloudflare Warp lo bypassean trivialmente. Además bloquea herramientas de monitoreo que operen desde EE.UU.
+
+---
+
+## 8. MEDIO — `Function constructor` como anti-debug (CWE-95 semántico)
+
+**Severidad:** Medium | **Archivo:** `src/layouts/Layout.astro`
+
+```js
+setInterval(() => { (function(){return false;}['constructor']('debugger')['call']()); }, 200);
+```
+
+Esta técnica usa `Function constructor` (equivalente a `eval`). Algunos WAFs/CSP la bloquean. Si tienes un CSP header que restringe `unsafe-eval`, este código falla silenciosamente. Más importante: **no detiene a ningún atacante real** — es trivial bypassearlo con `Object.defineProperty(window, 'debugger', {})` o simplemente con Puppeteer.
+
+Recomendar eliminarlo o reemplazarlo por protecciones más robustas a nivel de infraestructura.
+
+---
+
+## 9. BAJO — Cookies `secure: false` en detección de IP local incorrecta
+
+**Severidad:** Low | **Archivo:** `src/actions/auth.ts`
+
+```ts
+const isLocal = new URL(request.url).hostname === 'localhost';
+const secureFlag = (context.locals.runtime.env.PROD || false) && !isLocal;
+```
+
+Si `PROD` no está configurado (valor `undefined`/`false`) en el entorno de preview de Cloudflare Pages, las cookies de sesión se emiten sin `Secure`. Los ambientes de preview de Pages usan HTTPS pero `PROD` puede ser `false`.
+
+---
+
+## 10. CALIDAD — TypeScript: exceso de `any` (CWE-1173)
+
+**Severidad:** Low | **Múltiples archivos**
+
+```ts
+// src/lib/data/admin.ts
+let query: any;
+// src/pages/series/[slug].astro
+series: any = null;
+// src/actions/chapters.ts
+const tgResult = (await tgResponse.json()) as TelegramSendDocumentResponse;
+```
+
+Hay decenas de usos de `any` desactivados vía `@typescript-eslint/no-explicit-any: 'off'`. Esto elimina la verificación de tipos en zonas críticas como la respuesta de Telegram y queries de DB.
+
+---
+
+## 11. CALIDAD — `global.css` de 3,500+ líneas sin modularizar
+
+**Severidad:** Low | **Archivo:** `src/styles/global.css`
+
+El archivo contiene estilos de componentes específicos mezclados con estilos globales. Esto dificulta el mantenimiento y el tree-shaking de CSS. Algunos estilos de componentes están duplicados entre el `.astro`/`.svelte` del componente y el global.
+
+---
+
+## Checklist Pass/Fail
+
+| Área | Estado | Detalle |
+|---|---|---|
+| JWT secret fuerte en env | ❌ FAIL | Fallback hardcodeado |
+| Token TTL adecuado (5-15 min) | ✅ PASS | 5 minutos |
+| Session invalidación en cambio de estado | ⚠️ PARCIAL | clearSessionCache es no-op |
+| Rate limiting efectivo | ❌ FAIL | In-memory, no compartido |
+| SSRF prevention | ❌ FAIL | Proxy fetcha URLs externas sin allowlist |
+| Secrets en env vars | ⚠️ PARCIAL | Existen fallbacks hardcodeados |
+| HTTPS cookies | ✅ PASS | Mayormente, con excepción de preview |
+| HttpOnly session cookie | ✅ PASS | Sí |
+| SameSite en cookies | ✅ PASS | `lax` |
+| Input validation (Zod) | ✅ PASS | En actions |
+| SQL injection prevention | ✅ PASS | Drizzle ORM parameterizado |
+| Geo-blocking bypasseable | ⚠️ INFO | VPN trivial bypass |
+| JWKS cacheado | ❌ FAIL | Fetch en cada request |
+| Logging de datos sensibles | ✅ PASS | No se loguean tokens |
+| Testing coverage | ❌ FAIL | Solo 2 archivos de test |
+
+---
+
+## Top 5 fixes priorizados (mayor reducción de riesgo)
+
+1. **Eliminar todos los fallback secrets** — 10 minutos de trabajo, previene escalada de privilegios total.
+2. **Allowlist de hosts en el proxy SSRF** — evita exfiltración de metadatos internos.
+3. **Mover rate limiting a KV** — el shield actual no protege nada en producción.
+4. **Cachear JWKS de Firebase en KV** — mejora disponibilidad y reduce latencia de login.
+5. **Implementar `tokenVersion`** para invalidación real de sesión — reemplaza el stub no-op.
+
+  ✅ Implementado y Corregido
+   1. Secretos y Fallbacks (CWE-798): Se han eliminado los secretos hardcodeados en src/actions/auth.ts,
+      src/lib/crypto.ts y otros. Ahora el sistema lanza errores críticos si las variables de entorno (JWT_SECRET,
+      INTERNAL_CRYPTO_SALT, etc.) no están configuradas.
+   2. Prevención de SSRF (CWE-918): El proxy en src/pages/api/assets/proxy/[...key].ts ahora implementa una
+      allowlist de hosts (api.telegram.org, mangadex.org, etc.) y bloquea IPs locales/privadas, corrigiendo el
+      riesgo crítico de SSRF.
+   3. Rate Limiter Distribuido (CWE-400): Se ha migrado el limitador de tasa de memoria a Cloudflare KV en
+      src/lib/middlewares/shield.ts, lo que lo hace efectivo en entornos distribuidos de Workers.
+   4. Invalidación de Sesión Reall (CWE-613): clearSessionCache ya no es un stub; ahora elimina las cookies de
+      autenticación. Además, se ha implementado tokenVersion en el JWT y la base de datos para invalidar sesiones
+      de forma efectiva.
+   5. Caché de JWKS de Firebase: Se ha implementado almacenamiento en caché de las claves de Firebase en
+      Cloudflare KV (TTL 1h) en src/lib/firebase/server.ts, mejorando el rendimiento y la disponibilidad.
+   6. Geo-blocking: Se ha corregido la lista negra en src/site.config.ts, eliminando a US (EE.UU.) de los países
+      bloqueados.
+   7. Eliminación de Anti-debug Peligroso: Se ha eliminado el uso de Function constructor (similar a eval) en
+  ⚠️ Mejorado / Parcialmente Corregido
+   1. Exposición de Shield Token: Aunque ya no es una constante hardcodeada (ahora usa una variable de entorno),
+      el SHIELD_TOKEN sigue siendo visible en el DOM (data-shield-token). Sin embargo, el proxy ahora también
+      valida el referer como capa extra.
+   2. Ofuscación XOR: Se ha mejorado la lógica de XOR trivial a un Rolling XOR (Vigenère) en
+      src/lib/obfuscator.ts. Sigue siendo ofuscación cosmética, pero es más robusta que antes.
+   3. Tipado de TypeScript: Se ha reducido drásticamente el uso de any mediante la implementación de Zod Schemas
+      para validación de base de datos y tipos locales para respuestas de APIs externas (como Telegram).
+
+  ❌ Pendiente (Sin Cambios)
+   1. Modularización de CSS: src/styles/global.css sigue teniendo más de 3,300 líneas. No se ha realizado la
+      modularización de estilos por componentes.
+
+  Resumen: Se han corregido casi todos los riesgos críticos y de seguridad de alto impacto reportados.

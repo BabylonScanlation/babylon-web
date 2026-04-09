@@ -1,17 +1,13 @@
 // src/lib/obfuscator.ts
 
-const SALT = 'B4byl0n_V2_Nucl3ar_S3cur1ty_';
-
 /**
  * Astra Orion: Ofuscación Nuclear (Rolling XOR)
- * Optimizada para Cloudflare Workers (Máximo rendimiento con Uint8Array).
- * Mucho más difícil de revertir que un XOR fijo.
+ * Optimizada para Cloudflare Workers.
  */
-function xorTransform(data: Uint8Array): Uint8Array {
-  const keyBuffer = new TextEncoder().encode(SALT);
+function xorTransform(data: Uint8Array, salt: string): Uint8Array {
+  const keyBuffer = new TextEncoder().encode(salt);
   const out = new Uint8Array(data.length);
   for (let i = 0; i < data.length; i++) {
-    // Usamos el SALT como llave rotativa (Vigenère XOR)
     const dataByte = data[i];
     const keyByte = keyBuffer[i % keyBuffer.length];
     if (dataByte !== undefined && keyByte !== undefined) {
@@ -23,15 +19,21 @@ function xorTransform(data: Uint8Array): Uint8Array {
 
 /**
  * Obfuscates data into a URL-safe Base64 string.
+ * @param data Data to obfuscate
+ * @param salt Secret salt (must be provided from env)
  */
-export function obfuscate(data: any): string {
+export function obfuscate(data: any, salt: string): string {
+  if (!salt) {
+    console.error('[Obfuscator] No SALT provided for obfuscation');
+    return '';
+  }
+  
   try {
     const str = typeof data === 'string' ? data : JSON.stringify(data);
-    const salted = SALT + str;
+    const salted = salt + str;
     const dataBuffer = new TextEncoder().encode(salted);
-    const transformed = xorTransform(dataBuffer);
+    const transformed = xorTransform(dataBuffer, salt);
     
-    // Convertir a Base64 de forma eficiente
     let binary = '';
     const len = transformed.byteLength;
     for (let i = 0; i < len; i++) {
@@ -53,8 +55,12 @@ export function obfuscate(data: any): string {
 
 /**
  * De-obfuscates the payload.
+ * @param encryptedStr Obfuscated string
+ * @param salt Secret salt (must be provided from env)
  */
-export function deobfuscate(encryptedStr: string): any {
+export function deobfuscate(encryptedStr: string, salt: string): any {
+  if (!salt) return null;
+  
   try {
     let base64 = encryptedStr.replace(/-/g, '+').replace(/_/g, '/');
     while (base64.length % 4) base64 += '=';
@@ -65,14 +71,14 @@ export function deobfuscate(encryptedStr: string): any {
       bytes[i] = binaryStr.charCodeAt(i);
     }
 
-    const decryptedBuffer = xorTransform(bytes);
+    const decryptedBuffer = xorTransform(bytes, salt);
     const decoded = new TextDecoder().decode(decryptedBuffer);
 
-    if (!decoded.startsWith(SALT)) {
+    if (!decoded.startsWith(salt)) {
       return null;
     }
 
-    const content = decoded.slice(SALT.length);
+    const content = decoded.slice(salt.length);
     try {
       return JSON.parse(content);
     } catch {

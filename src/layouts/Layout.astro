@@ -236,7 +236,6 @@ const shieldToken = Astro.locals.runtime.env.SHIELD_TOKEN;
     data-user-state={user ? JSON.stringify({ uid: user.uid, email: user.email, isAdmin: user.isAdmin }) : 'null'}
     data-cosmos-physics={siteConfig.theme.cosmos.physicsEnabled ? 'true' : 'false'}
     data-news-count={serverNewsCount}
-    data-shield-token={shieldToken}
   >
     {siteConfig.theme.cosmos.enabled && (
       <div class="cosmos-bg">
@@ -270,10 +269,7 @@ const shieldToken = Astro.locals.runtime.env.SHIELD_TOKEN;
     
     <script is:inline>
       (function() {
-        const shieldToken = document.body.getAttribute('data-shield-token');
         const _0xS = {
-          k: shieldToken,
-          t: 'X-Shield-Token',
           p: '/api/assets/proxy/',
           a: 'https://crowdsubsequentadmire.com/',
           n: 'data-news-count'
@@ -295,7 +291,7 @@ const shieldToken = Astro.locals.runtime.env.SHIELD_TOKEN;
           try {
             const r = atob(k);
             const u = `${_0xS.p}${r}?w=300&q=60&fmt=webp`;
-            const rs = await fetch(u, { headers: { [_0xS.t]: _0xS.k } });
+            const rs = await fetch(u);
             if (!rs.ok) return;
             const b = await rs.blob();
             el.style.backgroundImage = `url('${URL.createObjectURL(b)}')`;

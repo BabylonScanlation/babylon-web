@@ -69,6 +69,8 @@ export async function getChapterPayload(
     }
   }
 
+  const salt = env.INTERNAL_CRYPTO_SALT;
+  if (!salt) throw new Error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
   if (manifestContent) {
     const signedManifest = await signManifest(manifestContent, env.AUTH_SECRET);
     return {
@@ -77,7 +79,7 @@ export async function getChapterPayload(
         seriesId: chapter.seriesId,
         chapterId: chapter.id,
         chapterCoverUrl: chapter.urlPortada,
-      }),
+      }, salt),
       processing: false,
       chapterId: chapter.id,
     };
@@ -89,7 +91,7 @@ export async function getChapterPayload(
       seriesId: chapter.seriesId,
       chapterId: chapter.id,
       chapterCoverUrl: chapter.urlPortada,
-    }),
+    }, salt),
     processing: true,
     chapterId: chapter.id,
   };

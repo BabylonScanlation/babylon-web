@@ -11,52 +11,87 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     return new Response('Asset not found', { status: 404 });
   }
 
-  // Orion: Seguridad - Bloqueo Nuclear (Solo peticiones autorizadas por nuestro JS o Referer propio)
+  // Orion: Seguridad - Bloqueo Nuclear
   const shieldToken = request.headers.get('X-Shield-Token');
   const referer = request.headers.get('referer');
   const host = request.headers.get('host') || '';
+  const isDevHost = host.includes('localhost') || host.includes('127.0.0.1');
 
   const configuredShieldToken = env.SHIELD_TOKEN;
-  
-  if (!configuredShieldToken) {
-    console.error('[SECURITY] SHIELD_TOKEN is not configured in production');
-    return new Response('Security Configuration Error', { status: 500 });
-  }
 
-  // Bloqueo: Si no hay token de escudo Y el referer es inválido o falta, denegamos.
-  const isAuthorized = (shieldToken === configuredShieldToken) || (referer && referer.includes(host));
+  // Bloqueo: Autorizamos si viene el token correcto O si el referer coincide con nuestro host (navegación legítima)
+  // En desarrollo permitimos un poco más de flexibilidad para pruebas locales
+  const isAuthorized =
+    (shieldToken &&
+      configuredShieldToken &&
+      shieldToken === configuredShieldToken) ||
+    (referer && referer.includes(host)) ||
+    (isDev && isDevHost);
 
-  if (!isAuthorized) {
+  if (!isAuthorized && !isDev) {
     return new Response('Unauthorized Access', { status: 403 });
   }
 
-  // Orion: 1. Cache API (Capa 0)
-  const decryptedKey = deobfuscate(key);
-  const objectKey = decryptedKey && typeof decryptedKey === 'string' ? decryptedKey : decodeURIComponent(key);
+  // Orion: 1. Desofuscación Inteligente
+  const salt = env.INTERNAL_CRYPTO_SALT;
+  if (!salt) {
+    console.error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
+    return new Response('Security Configuration Error', { status: 500 });
+  }
+
+  const decodedKey = decodeURIComponent(key);
+  let objectKey = decodedKey;
+
+  // Astra Orion: Solo intentamos desofuscar si la clave NO parece una ruta clara.
+  // Las rutas de noticias empiezan por 'news/', las de capítulos son un hash Base64 sin '/' internos usualmente.
+  if (!decodedKey.includes('/') || decodedKey.startsWith('http')) {
+    try {
+      const decrypted = deobfuscate(key, salt);
+      if (decrypted && typeof decrypted === 'string') {
+        objectKey = decrypted;
+        if (isDev) console.log(`[Proxy] De-obfuscated: ${key} -> ${objectKey}`);
+      }
+    } catch (e) {
+      // Ignoramos fallos de desofuscación para rutas claras
+    }
+  } else {
+    if (isDev) console.log(`[Proxy] Clear Path Detected: ${objectKey}`);
+  }
 
   // Orion: SSRF Protection - Bloquear esquemas no-https y validar hosts externos
   if (objectKey.startsWith('http')) {
     if (!objectKey.startsWith('https://')) {
-      return new Response('Invalid scheme. Only HTTPS is allowed.', { status: 400 });
+      return new Response('Invalid scheme. Only HTTPS is allowed.', {
+        status: 400,
+      });
     }
 
     try {
       const url = new URL(objectKey);
       const allowedHosts = [
         'api.telegram.org',
-        'telegra.ph',
-        'i.imgur.com',
-        'images.mangadex.org',
-        'mangadex.org'
+        'pub-2e7d3fdb6a36489c808eaae6d2263bc7.r2.dev', // Babylon Production R2
       ];
-      
+
       // Bloquear IPs locales/privadas
-      if (/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(url.hostname) || url.hostname === 'localhost') {
+      if (
+        /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(
+          url.hostname
+        ) ||
+        url.hostname === 'localhost'
+      ) {
         return new Response('Forbidden Host', { status: 403 });
       }
 
-      if (!allowedHosts.some(h => url.hostname === h || url.hostname.endsWith('.' + h))) {
-        if (isDev) console.warn(`[Proxy] Blocked external fetch to unauthorized host: ${url.hostname}`);
+      if (
+        !allowedHosts.some(
+          (h) => url.hostname === h || url.hostname.endsWith('.' + h)
+        )
+      ) {
+        if (isDev)
+          console.warn(
+            `[Proxy] Blocked external fetch to unauthorized host: ${url.hostname}`
+          );
         return new Response('Forbidden External Host', { status: 403 });
       }
     } catch (e) {
@@ -67,7 +102,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   // Orion: Implementación de Cache API (Reducción drástica de costos)
   const cache = typeof caches !== 'undefined' ? (caches as any).default : null;
   const cacheKey = new Request(request.url, request);
-  
+
   // Intentar recuperar del caché de Cloudflare primero
   if (cache) {
     const cachedResponse = await cache.match(cacheKey);
@@ -80,13 +115,17 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   if (isDev) console.log(`[Proxy] Cache MISS: ${objectKey}`);
 
   // Función auxiliar para servir y cachear en el CDN global
-  const serveAndCache = async (body: any, contentType?: string, etag?: string) => {
+  const serveAndCache = async (
+    body: any,
+    contentType?: string,
+    etag?: string
+  ) => {
     const headers = new Headers();
     headers.set('Access-Control-Allow-Origin', '*');
     headers.set('Cache-Control', 'public, max-age=31536000, immutable');
     if (contentType) headers.set('Content-Type', contentType);
     if (etag) headers.set('ETag', etag);
-    
+
     const res = new Response(body, { status: 200, headers });
     if (cache && locals.runtime.ctx?.waitUntil) {
       locals.runtime.ctx.waitUntil(cache.put(cacheKey, res.clone()));
@@ -100,8 +139,16 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       const cacheObj = await env.R2_CACHE.get(objectKey);
       if (cacheObj) {
         if (isDev) console.log(`[Proxy] R2_CACHE HIT: ${objectKey}`);
-        return serveAndCache(cacheObj.body, cacheObj.httpMetadata?.contentType, cacheObj.httpEtag);
+        return serveAndCache(
+          cacheObj.body,
+          cacheObj.httpMetadata?.contentType,
+          cacheObj.httpEtag
+        );
+      } else if (isDev) {
+        console.log(`[Proxy] R2_CACHE MISS for key: ${objectKey}`);
       }
+    } else if (isDev) {
+      console.warn('[Proxy] R2_CACHE binding is missing');
     }
 
     // Orion: 3. Intentar buscar en R2_ASSETS (Capa 2 - Portadas/Permanentes)
@@ -109,33 +156,69 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       const assetObj = await env.R2_ASSETS.get(objectKey);
       if (assetObj) {
         if (isDev) console.log(`[Proxy] R2_ASSETS HIT: ${objectKey}`);
-        return serveAndCache(assetObj.body, assetObj.httpMetadata?.contentType, assetObj.httpEtag);
+        return serveAndCache(
+          assetObj.body,
+          assetObj.httpMetadata?.contentType,
+          assetObj.httpEtag
+        );
+      } else if (isDev) {
+        console.log(`[Proxy] R2_ASSETS MISS for key: ${objectKey}`);
       }
+    } else if (isDev) {
+      console.warn('[Proxy] R2_ASSETS binding is missing');
     }
 
     // Orion: 4. Si es una URL completa, hacemos fetch externo (Capa 3) y sembramos R2_CACHE
     if (objectKey.startsWith('http')) {
       if (isDev) console.log(`[Proxy] FETCHING EXTERNAL: ${objectKey}`);
       const externalRes = await fetch(objectKey);
-      if (!externalRes.ok) return new Response('External asset not found', { status: 404 });
-      
-      const contentType = externalRes.headers.get('content-type') || 'image/webp';
+      if (!externalRes.ok)
+        return new Response('External asset not found', { status: 404 });
+
+      const contentType =
+        externalRes.headers.get('content-type') || 'image/webp';
       const blob = await externalRes.blob();
 
       // Sembrar el R2_CACHE para futuras peticiones (Protege Telegram)
       if (env.R2_CACHE && locals.runtime.ctx?.waitUntil) {
         locals.runtime.ctx.waitUntil(
           env.R2_CACHE.put(objectKey, blob, {
-            httpMetadata: { contentType, cacheControl: 'public, max-age=86400' }
-          }).then(() => isDev && console.log(`[Proxy] Seeded R2_CACHE: ${objectKey}`))
+            httpMetadata: {
+              contentType,
+              cacheControl: 'public, max-age=86400',
+            },
+          }).then(
+            () => isDev && console.log(`[Proxy] Seeded R2_CACHE: ${objectKey}`)
+          )
         );
       }
 
       return serveAndCache(blob, contentType);
     }
 
-    return new Response('Not found', { status: 404 });
+    // Orion: 5. Fallback para assets no encontrados localmente (Útil en Desarrollo)
+    // Si no se encuentra en R2 local, intentamos buscarlo en la URL pública de producción
+    const publicR2 = env.R2_PUBLIC_URL_ASSETS;
+    if (publicR2 && !objectKey.startsWith('http')) {
+      const fallbackUrl = `${publicR2}/${objectKey}`.replace(
+        /([^:]\/)\/+/g,
+        '$1'
+      );
+      if (isDev)
+        console.log(
+          `[Proxy] R2 MISS, trying production fallback: ${fallbackUrl}`
+        );
 
+      const externalRes = await fetch(fallbackUrl);
+      if (externalRes.ok) {
+        const contentType =
+          externalRes.headers.get('content-type') || 'image/webp';
+        const blob = await externalRes.blob();
+        return serveAndCache(blob, contentType);
+      }
+    }
+
+    return new Response('Not found', { status: 404 });
   } catch (e) {
     console.error(`[Proxy] Global Error serving asset ${key}:`, e);
     return new Response('Internal Error', { status: 500 });

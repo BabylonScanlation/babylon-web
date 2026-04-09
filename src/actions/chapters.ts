@@ -156,27 +156,33 @@ export const chapterActions = {
         }
       );
 
-      interface TelegramSendDocumentResponse {
-        ok: boolean;
-        description?: string;
-        result: {
-          document: {
-            file_id: string;
-          };
-        };
+      const TelegramResponseSchema = z.object({
+        ok: z.literal(true),
+        result: z.object({
+          document: z.object({
+            file_id: z.string(),
+          }),
+        }),
+      }).or(z.object({
+        ok: z.literal(false),
+        description: z.string().optional(),
+      }));
+
+      const rawResult = await tgResponse.json();
+      const tgResult = TelegramResponseSchema.safeParse(rawResult);
+
+      if (!tgResult.success || !tgResult.data.ok) {
+        const errorDescription = (!tgResult.success) ? 'Invalid API Response' : (tgResult.data as any).description;
+        logError(rawResult, 'Error de Telegram API');
+        throw new Error(`Telegram rechazó el archivo: ${errorDescription}`);
       }
 
-      const tgResult = (await tgResponse.json()) as TelegramSendDocumentResponse;
-      if (!tgResult.ok) {
-        logError(tgResult, 'Error de Telegram API');
-        throw new Error(`Telegram rechazó el archivo: ${tgResult.description}`);
-      }
+      const fileId = tgResult.data.result.document.file_id;
 
       const chapterNumberMatch = file.name.match(/(\d+(\.\d+)?)/);
       if (!chapterNumberMatch)
         throw new Error('No se pudo extraer el número del capítulo del nombre del archivo');
       const chapterNumber = parseFloat(chapterNumberMatch[0]);
-      const fileId = tgResult.result.document.file_id;
 
       let registeredChapterId: number;
       const existing = await db
