@@ -176,9 +176,10 @@ export const chapterActions = {
       const tgResult = TelegramResponseSchema.safeParse(rawResult);
 
       if (!tgResult.success || !tgResult.data.ok) {
-        const errorDescription = (!tgResult.success) 
-          ? 'Invalid API Response' 
-          : (tgResult.data as { ok: false; description?: string }).description || 'Unknown Telegram Error';
+        const errorDescription = !tgResult.success
+          ? 'Invalid API Response'
+          : (tgResult.data as { ok: false; description?: string }).description ||
+            'Unknown Telegram Error';
         logError(rawResult, 'Error de Telegram API');
         throw new Error(`Telegram rechazó el archivo: ${errorDescription}`);
       }

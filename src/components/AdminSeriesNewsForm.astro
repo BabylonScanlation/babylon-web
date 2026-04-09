@@ -7,6 +7,7 @@ interface Props {
   seriesCover?: string;
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: Usadas en el template de Astro
 const { seriesId, seriesTitle, userName = 'Staff', seriesCover } = Astro.props;
 ---
 

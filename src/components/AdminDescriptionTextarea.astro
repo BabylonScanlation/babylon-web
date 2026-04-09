@@ -8,6 +8,7 @@ interface Props {
   value: string;
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: Usadas en el template de Astro
 const { id, name, rows, required, value } = Astro.props;
 ---
 <textarea

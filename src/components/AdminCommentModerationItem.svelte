@@ -1,5 +1,6 @@
 <script lang="ts">
 import { actions } from 'astro:actions';
+// biome-ignore lint/correctness/noUnusedImports: Usado en el template como transition:_slide
 import { slide as _slide } from 'svelte/transition';
 import { toast } from '../lib/stores.svelte';
 

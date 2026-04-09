@@ -141,6 +141,7 @@ function _openCropper() {
   );
 }
 
+// svelte-ignore state_referenced_locally
 let title = $state(chapter.title || '');
 
 // Sincronizar título si el objeto chapter cambia desde el padre

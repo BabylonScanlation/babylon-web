@@ -618,6 +618,7 @@ function copyToClipboard(text: string) {
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
   }
 
@@ -643,7 +644,7 @@ function copyToClipboard(text: string) {
 
   .markdown-guide { background: rgba(0,0,0,0.2); border: 1px solid #333; border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; }
   .markdown-guide h4 { margin-top: 0; margin-bottom: 0.75rem; font-size: 0.9rem; color: var(--accent-color); }
-  .markdown-guide-pro { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; }
+  .guide-grid-pro { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; }
   .guide-section h5 { margin-top: 0; margin-bottom: 0.5rem; font-size: 0.75rem; color: #888; text-transform: uppercase; }
   .guide-row { font-size: 0.75rem; margin-bottom: 4px; color: #ccc; }
   .guide-row code { background: #000; padding: 2px 4px; border-radius: 4px; color: var(--accent-color); }
