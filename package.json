@@ -10,7 +10,8 @@
     "undici": "^7.19.2",
     "wrangler": "^4.61.1",
     "@tootallnate/once": "^3.0.1",
-    "yaml": "^2.8.3"
+    "yaml": "^2.8.3",
+    "drizzle-orm": "^0.45.2"
   },
   "scripts": {
     "dev": "astro dev",
@@ -59,7 +60,7 @@
     "chart.js": "^4.5.1",
     "cropperjs": "^1.5.13",
     "dotenv": "^17.2.1",
-    "drizzle-orm": "^0.45.1",
+    "drizzle-orm": "^0.45.2",
     "firebase": "^12.0.0",
     "firebase-admin": "^12.7.0",
     "jose": "^6.0.12",
