@@ -96,3 +96,72 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
   }
 </Layout>
 
+<style>
+  /* index.astro Styles */
+  .main-content-wrapper {
+    width: 100%;
+  }
+  .main-sections-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    /* Astra: Espaciado compacto y elegante */
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
+  .discovery-zone {
+    display: flex;
+    flex-direction: column;
+    gap: 0; /* Astra: Espacio eliminado entre slider y botón */
+  }
+
+  .empty-state-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    text-align: center;
+    padding: 1rem;
+  }
+
+  .empty-state-logo {
+    max-width: 500px;
+    width: 80%;
+    opacity: 0.8;
+    filter: drop-shadow(0 0 30px rgba(0, 191, 255, 0.2));
+    animation: pulse-logo 4s ease-in-out infinite;
+  }
+
+  @keyframes pulse-logo {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 1;
+    }
+  }
+
+  .empty-state-text {
+    color: #aaa;
+    font-size: 1.1rem;
+    max-width: 400px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .main-sections-container {
+      gap: 1.5rem;
+    }
+  }
+</style>
+

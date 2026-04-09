@@ -44,3 +44,102 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
     </div>
   </div>
 )}
+
+<style>
+  /* --- Ad Container (Modularized) --- */
+  .content-dynamic-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    margin: 2.5rem 0;
+    overflow: visible !important;
+    position: relative;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .content-dynamic-wrap.square {
+    min-height: 250px;
+    margin: 2.5rem auto;
+  }
+
+  /* Legacy / Root Styles from global.css */
+  .ad-container-root {
+    width: 100%;
+    max-width: 100vw;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    line-height: 0;
+    overflow: hidden;
+    min-height: 50px;
+  }
+
+  .ad-container-root.banner,
+  .ad-container-root.bannerLarge {
+    min-height: 90px;
+  }
+
+  .ad-container-root.bannerSmall {
+    min-height: 60px;
+  }
+
+  .ad-container-root.square {
+    min-height: 250px;
+  }
+
+  .ad-inner-wrapper, .dynamic-inner-box {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: #080808;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    max-width: 100vw;
+    min-width: 300px;
+    min-height: inherit;
+    transition: all 0.3s ease;
+  }
+
+  .ad-content-slot, .dynamic-content-slot {
+    padding: 0;
+    margin: 0;
+    display: block;
+    width: 100%;
+    line-height: normal;
+    font-size: 1rem;
+    overflow: visible !important;
+  }
+
+  :global(.ad-content-slot > div),
+  :global(.ad-content-slot iframe),
+  :global(.ad-content-slot ins),
+  :global(.dynamic-content-slot > div),
+  :global(.dynamic-content-slot iframe),
+  :global(.dynamic-content-slot ins) {
+    margin: 0 auto !important;
+    display: block !important;
+    max-width: 100vw !important;
+  }
+
+  .ad-info-overlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 2px 6px;
+    border-bottom-left-radius: 8px;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .ad-info-overlay span {
+    font-family: system-ui, sans-serif;
+    font-size: 7px;
+    font-weight: 900;
+    color: #444;
+    letter-spacing: 1px;
+  }
+</style>

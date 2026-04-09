@@ -165,69 +165,6 @@ const shieldToken = Astro.locals.runtime.env.SHIELD_TOKEN;
         pointer-events: none !important;
         -webkit-touch-callout: none !important;
       }
-      
-      /* Astra: Estilos para Contenedores de Anuncios Camuflados */
-      .content-dynamic-wrap {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start; /* Cambiado de center a flex-start para evitar cortes verticales */
-        width: 100%;
-        margin: 2.5rem 0;
-        min-height: 50px; /* Reducido para permitir que crezca según contenido */
-        background: rgba(255, 255, 255, 0.01);
-        border-radius: 16px;
-        overflow: visible !important; /* Forzamos visibilidad total */
-        position: relative;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .content-dynamic-wrap.square {
-        min-height: 250px;
-        /* max-width: 100%; // Eliminamos el límite de 300px para permitir expansión si el diseño lo permite */
-        margin: 2.5rem auto;
-      }
-
-      .dynamic-inner-box {
-        position: relative;
-        z-index: 1;
-        width: 100%;
-        display: flex;
-        justify-content: center;
-      }
-
-      /* Astra: Estilos críticos para imágenes de noticias... */
-      .news-gallery, 
-      .post-images, 
-      .news-gallery-container {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 2rem;
-        margin-top: 1.5rem;
-        width: 100%;
-      }
-      
-      /* Selectores de alta especificidad para garantizar el tamaño sin usar !important */
-      article.news-article .prose img,
-      .premium-news-post .news-gallery img,
-      .news-post .post-images img {
-        width: 100%;
-        height: auto;
-        max-height: 1200px;
-        object-fit: contain;
-        display: block;
-        margin: 2.5rem auto;
-      }
-
-      .news-gallery .image-wrapper, 
-      .post-images .image-wrapper {
-        position: relative;
-        border-radius: 20px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(0, 0, 0, 0.3);
-        width: 100%;
-        display: block;
-      }
     </style>
   </head>
   <body 
@@ -275,16 +212,15 @@ const shieldToken = Astro.locals.runtime.env.SHIELD_TOKEN;
           n: 'data-news-count'
         };
 
-        // 1. Blindaje
+        // 1. Blindaje Crítico
         window.addEventListener('contextmenu', e => e.preventDefault(), true);
         window.addEventListener('dragstart', e => e.preventDefault(), true);
         
-        // Orion: Solo activamos la limpieza de consola en producción
         if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
           setInterval(() => { if (window.console && window.console.clear) console.clear(); }, 1000);
         }
 
-        // 2. Cargador Nuclear
+        // 2. Cargador Nuclear (Inmediato para LCP)
         const _0xL = async (el) => {
           const k = el.getAttribute('data-ghost-key');
           if (!k || el.classList.contains('shield-loaded')) return;
@@ -300,88 +236,7 @@ const shieldToken = Astro.locals.runtime.env.SHIELD_TOKEN;
           } catch (e) {}
         };
 
-        // 3. Anuncios Camuflados
-        const _0xA = () => {
-          document.querySelectorAll('.content-dynamic-wrap').forEach(el => {
-            if (el.getAttribute('data-loaded')) return;
-            const obs = new IntersectionObserver((es) => {
-              es.forEach(entry => {
-                if (entry.isIntersecting) {
-                  el.setAttribute('data-loaded', 'true');
-                  const keys = JSON.parse(el.getAttribute('data-view-keys') || '{}');
-                  const dims = JSON.parse(el.getAttribute('data-view-dims') || '{}');
-                  const winW = el.offsetWidth; // Usamos el ancho del contenedor real en lugar de window
-                  let type = el.getAttribute('data-view-type'), dim = dims[type] || {w:728,h:90};
-                  
-                  // Optimización responsiva inteligente
-                  if (winW < dim.w) { 
-                    type = winW >= 468 ? 'bannerSmall' : 'square'; 
-                    dim = dims[type] || {w:300,h:250}; 
-                  }
-                  
-                  const fk = keys[type] || keys.banner;
-                  if (fk) {
-                    const ifr = document.createElement('iframe');
-                    // Dimensiones base para el script de anuncios
-                    ifr.width = dim.w;
-                    ifr.height = dim.h;
-                    // Estilo responsivo: ocupa el 100% del ancho disponible pero con un tope (max-width)
-                    ifr.style = `border:none;overflow:hidden;background:transparent;width:100%;max-width:${dim.w}px;height:${dim.h}px;display:block;margin:0 auto;`;
-                    ifr.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
-                    ifr.setAttribute('scrolling', 'no');
-                    const slot = document.getElementById('slot-' + el.id);
-                    if (slot) {
-                      slot.innerHTML = ''; slot.appendChild(ifr);
-                      const opt = `{ 'key' : '${fk}', 'format' : 'iframe', 'height' : ${dim.h}, 'width' : ${dim.w}, 'params' : {} }`;
-                      // Body con centrado interno
-                      ifr.srcdoc = `<body style="margin:0;padding:0;background:transparent;display:flex;justify-content:center;"><div id="container-${fk}" style="width:100%;max-width:${dim.w}px;"></div><script>atOptions=${opt};<\/script><script src="${_0xS.a}${fk}/invoke.js"><\/script></body>`;
-                      el.style.minHeight = `${dim.h}px`;
-                    }
-                  }
-                  obs.unobserve(el);
-                }
-              });
-            }, { rootMargin: '1200px' });
-            obs.observe(el);
-          });
-        };
-
-        // 4. Cosmos & Swiper
-        const _0xV = () => {
-          // Cosmos
-          const phy = document.body.getAttribute('data-cosmos-physics') === 'true';
-          const l = { b: document.querySelector('.stars-layer.base'), m: document.querySelector('.stars-layer.mid'), d: document.querySelector('.stars-layer.dust'), n: document.querySelector('.nebula-glow') };
-          if (phy && l.b) {
-            let mX=0, mY=0, sY=window.scrollY, tX=0, tY=0, wW=window.innerWidth;
-            document.addEventListener('mousemove', (e) => { mX = (e.clientX - wW / 2); mY = (e.clientY - window.innerHeight / 2); }, { passive: true });
-            window.addEventListener('scroll', () => { sY = window.pageYOffset; }, { passive: true });
-            const anim = () => { tX += (mX - tX) * 0.04; tY += (mY - tY) * 0.04; l.b.style.transform = `translate3d(${-tX * 0.02}px, ${-sY * 0.02 - tY * 0.02}px, 0)`; if (l.m) l.m.style.transform = `translate3d(${-tX * 0.06}px, ${-sY * 0.06 - tY * 0.06}px, 0)`; if (l.d) l.d.style.transform = `translate3d(${-tX * 0.12}px, ${-sY * 0.12 - tY * 0.12}px, 0)`; requestAnimationFrame(anim); };
-            anim();
-          }
-          // Swiper
-          const S = window.Swiper;
-          if (S) {
-            const h = document.querySelector('.hero-swiper');
-            if (h && !h.swiper) new S(h, { slidesPerView: 1, loop: h.querySelectorAll('.swiper-slide').length > 1, effect: 'fade', speed: 1000, autoplay: { delay: 6000 }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } });
-            
-            const u = document.querySelector('.recent-updates-swiper');
-            if (u && !u.swiper) new S(u, { slidesPerView: 'auto', spaceBetween: 20, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true, hide: false }, mousewheel: { forceToAxis: true }, breakpoints: { 768: { spaceBetween: 30 }, 1024: { spaceBetween: 40 } } });
-          }
-        };
-
-        // 5. Inicialización Global
         const _0xI = () => {
-          if (window._babylonInit) return; window._babylonInit = true;
-          // NSFW
-          if (document.documentElement.classList.contains('nsfw-mode') || document.cookie.includes('babylon_nsfw=true')) {
-            const h = document.getElementById('main-header'); if (h) h.classList.add('nsfw-active');
-            const l = document.getElementById('header-logo-img'); if (l) l.src = `${_0xS.p}iconpage/babylon-logo-4.webp`;
-          }
-          // Badges
-          const c = document.body.getAttribute(_0xS.n);
-          document.querySelectorAll('[data-news-badge]').forEach(b => { if (c > 0) { b.textContent = c > 9 ? '+9' : c; b.style.display = 'flex'; } });
-          // Boot Modules
-          _0xA(); _0xV();
           const obs = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { _0xL(e.target); obs.unobserve(e.target); } }); }, { rootMargin: '1500px' });
           document.querySelectorAll('.image-protected-container:not(.lazy-ghost)').forEach(_0xL);
           document.querySelectorAll('.image-protected-container.lazy-ghost').forEach(el => obs.observe(el));
@@ -394,22 +249,138 @@ const shieldToken = Astro.locals.runtime.env.SHIELD_TOKEN;
           ms.forEach(m => m.addedNodes.forEach(n => {
             if (n instanceof HTMLElement) {
               if (n.classList.contains('image-protected-container')) _0xL(n);
-              if (n.classList.contains('content-dynamic-wrap')) _0xA();
               n.querySelectorAll('.image-protected-container').forEach(_0xL);
-              n.querySelectorAll('.content-dynamic-wrap').forEach(_0xA);
             }
           }));
         }).observe(document.body, { childList: true, subtree: true });
-
-        // Toggle NSFW
-        const _0xT = (id) => { const b = document.getElementById(id); if (b) b.onclick = async (e) => { e.preventDefault(); try { const r = await fetch('/api/ui/toggle-nsfw', { method: 'POST' }); const d = await r.json(); if (d.success) window.location.reload(); } catch (err) {} }; };
-        _0xT('nsfw-toggle-btn'); _0xT('nsfw-toggle-mobile');
-
-        // Svelte Bridge
-        const _0xB = async () => { if (window._babylonSvelte) return; window._babylonSvelte = true; const [sv, { default: GU }] = await Promise.all([import('svelte'), import('../components/GlobalUtilities.svelte')]); const r = document.getElementById('global-utilities-root'); if (r && sv.mount) sv.mount(GU, { target: r, props: { isVerifyPage: window.location.pathname === '/verify', shouldShowAgeGate: document.documentElement.classList.contains('age-gate-active') } }); };
-        window.addEventListener('open-auth-modal', _0xB);
-        window.addEventListener('show-toast', _0xB);
       })();
     </script>
+
+    <script>
+      import { mount } from 'svelte';
+      import GlobalUtilities from '../components/GlobalUtilities.svelte';
+
+      const _0xS = {
+        p: '/api/assets/proxy/',
+        a: 'https://crowdsubsequentadmire.com/',
+        n: 'data-news-count'
+      };
+
+      // 3. Anuncios Camuflados
+      const _0xA = () => {
+        document.querySelectorAll('.content-dynamic-wrap').forEach(el => {
+          if (el.getAttribute('data-loaded')) return;
+          const obs = new IntersectionObserver((es) => {
+            es.forEach(entry => {
+              if (entry.isIntersecting) {
+                el.setAttribute('data-loaded', 'true');
+                const keys = JSON.parse(el.getAttribute('data-view-keys') || '{}');
+                const dims = JSON.parse(el.getAttribute('data-view-dims') || '{}');
+                const winW = (el as HTMLElement).offsetWidth;
+                let type = el.getAttribute('data-view-type') || 'banner', dim = dims[type] || {w:728,h:90};
+                
+                if (winW < dim.w) { 
+                  type = winW >= 468 ? 'bannerSmall' : 'square'; 
+                  dim = dims[type] || {w:300,h:250}; 
+                }
+                
+                const fk = keys[type] || keys.banner;
+                if (fk) {
+                  const ifr = document.createElement('iframe');
+                  ifr.width = dim.w.toString();
+                  ifr.height = dim.h.toString();
+                  ifr.style.cssText = `border:none;overflow:hidden;background:transparent;width:100%;max-width:${dim.w}px;height:${dim.h}px;display:block;margin:0 auto;`;
+                  ifr.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
+                  ifr.setAttribute('scrolling', 'no');
+                  const slot = document.getElementById('slot-' + el.id);
+                  if (slot) {
+                    slot.innerHTML = ''; slot.appendChild(ifr);
+                    const opt = `{ 'key' : '${fk}', 'format' : 'iframe', 'height' : ${dim.h}, 'width' : ${dim.w}, 'params' : {} }`;
+                    ifr.srcdoc = `<body style="margin:0;padding:0;background:transparent;display:flex;justify-content:center;"><div id="container-${fk}" style="width:100%;max-width:${dim.w}px;"></div><script>atOptions=${opt};<\/script><script src="${_0xS.a}${fk}/invoke.js"><\/script></body>`;
+                    (el as HTMLElement).style.minHeight = `${dim.h}px`;
+                  }
+                }
+                obs.unobserve(el);
+              }
+            });
+          }, { rootMargin: '1200px' });
+          obs.observe(el);
+        });
+      };
+
+      // 4. Cosmos & Swiper
+      const _0xV = () => {
+        const phy = document.body.getAttribute('data-cosmos-physics') === 'true';
+        const l = { 
+          b: document.querySelector('.stars-layer.base') as HTMLElement, 
+          m: document.querySelector('.stars-layer.mid') as HTMLElement, 
+          d: document.querySelector('.stars-layer.dust') as HTMLElement 
+        };
+        if (phy && l.b) {
+          let mX=0, mY=0, sY=window.scrollY, tX=0, tY=0, wW=window.innerWidth;
+          document.addEventListener('mousemove', (e) => { mX = (e.clientX - wW / 2); mY = (e.clientY - window.innerHeight / 2); }, { passive: true });
+          window.addEventListener('scroll', () => { sY = window.pageYOffset; }, { passive: true });
+          const anim = () => { tX += (mX - tX) * 0.04; tY += (mY - tY) * 0.04; l.b.style.transform = `translate3d(${-tX * 0.02}px, ${-sY * 0.02 - tY * 0.02}px, 0)`; if (l.m) l.m.style.transform = `translate3d(${-tX * 0.06}px, ${-sY * 0.06 - tY * 0.06}px, 0)`; if (l.d) l.d.style.transform = `translate3d(${-tX * 0.12}px, ${-sY * 0.12 - tY * 0.12}px, 0)`; requestAnimationFrame(anim); };
+          anim();
+        }
+        const S = (window as any).Swiper;
+        if (S) {
+          const h = document.querySelector('.hero-swiper') as HTMLElement;
+          if (h && !(h as any).swiper) new S(h, { slidesPerView: 1, loop: h.querySelectorAll('.swiper-slide').length > 1, effect: 'fade', speed: 1000, autoplay: { delay: 6000 }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } });
+          const u = document.querySelector('.recent-updates-swiper') as HTMLElement;
+          if (u && !(u as any).swiper) new S(u, { slidesPerView: 'auto', spaceBetween: 20, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true, hide: false }, mousewheel: { forceToAxis: true }, breakpoints: { 768: { spaceBetween: 30 }, 1024: { spaceBetween: 40 } } });
+        }
+      };
+
+      // 5. Svelte Bridge
+      const _0xB = async (e: any) => { 
+        if ((window as any)._babylonSvelte) return;
+        (window as any)._babylonSvelte = true;
+        (window as any)._babylonPendingEvent = { type: e.type, detail: e.detail };
+        
+        const r = document.getElementById('global-utilities-root');
+        if (r) {
+          mount(GlobalUtilities, { 
+            target: r, 
+            props: { 
+              isVerifyPage: window.location.pathname === '/verify', 
+              shouldShowAgeGate: document.documentElement.classList.contains('age-gate-active') 
+            } 
+          });
+        }
+      };
+
+      // 6. Inicialización Global
+      const _0xI = () => {
+        if ((window as any)._babylonInitMain) return; (window as any)._babylonInitMain = true;
+        if (document.documentElement.classList.contains('nsfw-mode') || document.cookie.includes('babylon_nsfw=true')) {
+          const h = document.getElementById('main-header'); if (h) h.classList.add('nsfw-active');
+          const l = document.getElementById('header-logo-img') as HTMLImageElement; if (l) l.src = `${_0xS.p}iconpage/babylon-logo-4.webp`;
+        }
+        const c = document.body.getAttribute(_0xS.n);
+        document.querySelectorAll('[data-news-badge]').forEach(b => { if (c && parseInt(c) > 0) { b.textContent = parseInt(c) > 9 ? '+9' : c; (b as HTMLElement).style.display = 'flex'; } });
+        _0xA(); _0xV();
+      };
+
+      window.addEventListener('open-auth-modal', _0xB);
+      window.addEventListener('show-toast', _0xB);
+      
+      if (document.readyState !== 'loading') _0xI();
+      else document.addEventListener('DOMContentLoaded', _0xI);
+
+      new MutationObserver((ms) => {
+        ms.forEach(m => m.addedNodes.forEach(n => {
+          if (n instanceof HTMLElement) {
+            if (n.classList.contains('content-dynamic-wrap')) _0xA();
+            n.querySelectorAll('.content-dynamic-wrap').forEach(_0xA);
+          }
+        }));
+      }).observe(document.body, { childList: true, subtree: true });
+
+      const _0xT = (id: string) => { const b = document.getElementById(id); if (b) b.onclick = async (e) => { e.preventDefault(); try { const r = await fetch('/api/ui/toggle-nsfw', { method: 'POST' }); const d = await r.json(); if (d.success) window.location.reload(); } catch (err) {} }; };
+      _0xT('nsfw-toggle-btn'); _0xT('nsfw-toggle-mobile');
+    </script>
+  </body>
+</html>
   </body>
 </html>

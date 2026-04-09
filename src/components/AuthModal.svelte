@@ -339,3 +339,301 @@ $effect(() => {
     </div>
   </div>
 {/if}
+
+<style>
+  /* --- Auth Modal --- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: #020205;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 1rem;
+  }
+
+  .auth-card {
+    position: relative;
+    padding: 2.5rem 2.5rem;
+    width: 100%;
+    max-width: 450px;
+    margin: auto;
+    background: rgba(20, 20, 25, 0.85);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 28px;
+    box-shadow:
+      0 25px 60px -15px rgba(0, 0, 0, 0.6),
+      0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    overflow: hidden;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: #999;
+    padding: 0.4rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  .close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    transform: rotate(90deg);
+  }
+
+  .auth-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .auth-header h2 {
+    font-size: 1.8rem;
+    font-weight: 900;
+    margin: 0 0 0.4rem 0;
+    background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    color: #888;
+    font-size: 0.85rem;
+    margin: 0;
+  }
+
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .forgot-password {
+    font-size: 0.7rem;
+    color: var(--accent-color);
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  .forgot-password:hover {
+    text-decoration: underline;
+  }
+
+  .input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    color: #fff;
+    font-size: 0.95rem;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 0 4px rgba(0, 191, 255, 0.15);
+    transform: translateY(-1px);
+  }
+
+  .disabled-input {
+    background: rgba(255, 255, 255, 0.05);
+    color: #666;
+    cursor: not-allowed;
+  }
+
+  .password-toggle {
+    position: absolute;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+  }
+
+  .password-toggle:hover {
+    color: #aaa;
+  }
+
+  .btn-submit {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 1.1rem;
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent-color) 0%, #0077ff 100%);
+    box-shadow: 0 10px 25px -5px rgba(0, 162, 255, 0.4);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: none;
+    color: #000;
+    cursor: pointer;
+  }
+
+  .btn-submit:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 15px 35px -5px rgba(0, 162, 255, 0.5);
+  }
+
+  .btn-submit:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .divider {
+    margin: 1.5rem 0;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    line-height: 0.1em;
+  }
+
+  .btn-google {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1.1rem;
+    border-radius: 18px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .btn-google:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .google-icon {
+    width: 22px;
+    height: 22px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  }
+
+  .form-footer {
+    margin-top: 2rem;
+    text-align: center;
+    color: #888;
+    font-size: 0.9rem;
+  }
+
+  .btn-link {
+    color: var(--accent-color);
+    font-weight: 600;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .btn-link:hover {
+    color: #33b5ff;
+    text-decoration: underline;
+  }
+
+  .button-loader {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .message-container {
+    min-height: 0;
+    margin-bottom: 1rem;
+  }
+
+  .alert {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  .alert-danger {
+    background: rgba(255, 107, 107, 0.15);
+    color: #ff8e8e;
+    border: 1px solid rgba(255, 107, 107, 0.2);
+  }
+
+  .alert-success {
+    background: rgba(46, 204, 113, 0.15);
+    color: #72f1a6;
+    border: 1px solid rgba(46, 204, 113, 0.2);
+  }
+
+  @media (max-width: 480px) {
+    .modal-overlay {
+      padding: 1rem;
+      align-items: center;
+    }
+    .auth-card {
+      padding: 2.5rem 1.5rem;
+      border-radius: 28px;
+      height: auto;
+      max-height: 90vh;
+      width: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+  }
+</style>

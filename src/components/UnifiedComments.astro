@@ -26,10 +26,30 @@ const safeComments = initialComments.map((c) => ({
 }));
 ---
 
-<CommentsWrapper
-  client:load
-  targetType={targetType}
-  targetId={targetId}
-  initialComments={safeComments}
-  user={user}
-/>
+<div class="comments-container-glass">
+  <CommentsWrapper
+    client:load
+    targetType={targetType}
+    targetId={targetId}
+    initialComments={safeComments}
+    user={user}
+  />
+</div>
+
+<style>
+  /* --- Comments Shared Styles --- */
+  .comments-container-glass {
+    background: rgba(255, 255, 255, 0.02);
+    border: none; /* Astra: Eliminado borde para limpieza total */
+    border-radius: 16px;
+    padding: 2rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  @media (max-width: 768px) {
+    .comments-container-glass {
+      padding: 1rem;
+    }
+  }
+</style>

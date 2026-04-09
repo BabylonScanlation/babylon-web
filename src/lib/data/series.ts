@@ -37,7 +37,6 @@ export async function getSeriesDetails(
         createdAt: chapters.createdAt,
         views: chapters.views,
         telegramFileId: chapters.telegramFileId,
-        messageThreadId: chapters.messageThreadId,
       })
       .from(chapters)
       .where(

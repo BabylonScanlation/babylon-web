@@ -23,14 +23,23 @@ $effect(() => {
 });
 
 onMount(() => {
-  // Orion: Procesar evento pendiente tras hidratación bajo demanda
+  // 1. Procesar evento pendiente tras hidratación bajo demanda
   const pending = (window as any)._babylonPendingEvent;
   if (pending) {
     if (pending.type === 'open-auth-modal') {
       authModal.open(pending.detail?.view || 'login', pending.detail?.message || '');
+    } else if (pending.type === 'show-toast') {
+      toast.show(pending.detail?.message || '', pending.detail?.type || 'info');
     }
     (window as any)._babylonPendingEvent = null;
   }
+
+  // 2. Listeners persistentes para clics externos (Header, Footer, etc.)
+  const handleAuth = (e: any) => authModal.open(e.detail?.view || 'login', e.detail?.message || '');
+  const handleToast = (e: any) => toast.show(e.detail?.message || '', e.detail?.type || 'info');
+
+  window.addEventListener('open-auth-modal', handleAuth);
+  window.addEventListener('show-toast', handleToast);
 
   // Orion: Componentes CRÍTICOS sin delay
   if (shouldShowAgeGate) {
