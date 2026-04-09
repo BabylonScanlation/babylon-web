@@ -1,13 +1,13 @@
 ---
 import '../styles/global.css';
+import { sql } from 'drizzle-orm';
 import AdblockWall from '../components/AdblockWall.astro';
 import BottomNav from '../components/BottomNav.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
-import { siteConfig } from '../site.config';
-import { getDB } from '../lib/db';
-import { sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
+import { getDB } from '../lib/db';
+import { siteConfig } from '../site.config';
 
 // Orion: Obtención de contador en el servidor para evitar peticiones del cliente (Ahorro masivo)
 const getInitialNewsCount = async () => {
@@ -17,7 +17,9 @@ const getInitialNewsCount = async () => {
     if (Astro.url.pathname.startsWith('/admin')) return 0;
     const result = await db.select({ count: sql<number>`count(*)` }).from(schema.news).all();
     return result[0]?.count || 0;
-  } catch { return 0; }
+  } catch {
+    return 0;
+  }
 };
 
 const serverNewsCount = await getInitialNewsCount();
@@ -53,8 +55,6 @@ const isNsfw =
 // Orion: URL Base para metadatos absolutos
 const siteUrl = siteConfig.url;
 const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
-
-const shieldToken = Astro.locals.runtime.env.SHIELD_TOKEN;
 ---
 
 <!doctype html>
@@ -340,7 +340,7 @@ const shieldToken = Astro.locals.runtime.env.SHIELD_TOKEN;
         
         const r = document.getElementById('global-utilities-root');
         if (r) {
-          mount(GlobalUtilities, { 
+          mount(GlobalUtilities as any, { 
             target: r, 
             props: { 
               isVerifyPage: window.location.pathname === '/verify', 

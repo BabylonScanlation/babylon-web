@@ -25,11 +25,11 @@ html.nsfw-mode {
 }
 
 /* Purga global de azul diamante en modo NSFW */
-.nsfw-mode [style*='0, 191, 255'],
-.nsfw-mode [style*='00bfff'],
-.nsfw-mode [class*='badge'],
-.nsfw-mode [class*='pill'],
-.nsfw-mode [class*='tag'] {
+.nsfw-mode [style*="0, 191, 255"],
+.nsfw-mode [style*="00bfff"],
+.nsfw-mode [class*="badge"],
+.nsfw-mode [class*="pill"],
+.nsfw-mode [class*="tag"] {
   border-color: var(--accent-color);
 }
 
@@ -109,7 +109,7 @@ html.nsfw-mode {
 body {
   background-color: transparent;
   color: var(--font-color);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: "Inter", system-ui, sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
   width: 100%;
@@ -148,26 +148,10 @@ body {
 
 .stars-layer.base {
   background-image:
-    radial-gradient(
-      1px 1px at 20px 30px,
-      rgba(255, 255, 255, 0.7),
-      rgba(0, 0, 0, 0)
-    ),
-    radial-gradient(
-      1px 1px at 40px 70px,
-      rgba(255, 255, 255, 0.7),
-      rgba(0, 0, 0, 0)
-    ),
-    radial-gradient(
-      1px 1px at 50px 160px,
-      rgba(255, 255, 255, 0.7),
-      rgba(0, 0, 0, 0)
-    ),
-    radial-gradient(
-      1px 1px at 90px 40px,
-      rgba(255, 255, 255, 0.7),
-      rgba(0, 0, 0, 0)
-    );
+    radial-gradient(1px 1px at 20px 30px, rgba(255, 255, 255, 0.7), rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 40px 70px, rgba(255, 255, 255, 0.7), rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 50px 160px, rgba(255, 255, 255, 0.7), rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 90px 40px, rgba(255, 255, 255, 0.7), rgba(0, 0, 0, 0));
   background-size: 200px 200px;
   opacity: 0.4;
   filter: blur(1.5px);
@@ -186,16 +170,8 @@ body {
 
 .stars-layer.dust {
   background-image:
-    radial-gradient(
-      1px 1px at 150px 80px,
-      rgba(255, 255, 255, 0.4),
-      rgba(0, 0, 0, 0)
-    ),
-    radial-gradient(
-      1.5px 1.5px at 400px 300px,
-      rgba(255, 255, 255, 0.3),
-      rgba(0, 0, 0, 0)
-    );
+    radial-gradient(1px 1px at 150px 80px, rgba(255, 255, 255, 0.4), rgba(0, 0, 0, 0)),
+    radial-gradient(1.5px 1.5px at 400px 300px, rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0));
   background-size: 600px 600px;
   opacity: 0.6;
 }

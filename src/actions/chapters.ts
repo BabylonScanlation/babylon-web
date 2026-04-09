@@ -156,23 +156,29 @@ export const chapterActions = {
         }
       );
 
-      const TelegramResponseSchema = z.object({
-        ok: z.literal(true),
-        result: z.object({
-          document: z.object({
-            file_id: z.string(),
+      const TelegramResponseSchema = z
+        .object({
+          ok: z.literal(true),
+          result: z.object({
+            document: z.object({
+              file_id: z.string(),
+            }),
           }),
-        }),
-      }).or(z.object({
-        ok: z.literal(false),
-        description: z.string().optional(),
-      }));
+        })
+        .or(
+          z.object({
+            ok: z.literal(false),
+            description: z.string().optional(),
+          })
+        );
 
       const rawResult = await tgResponse.json();
       const tgResult = TelegramResponseSchema.safeParse(rawResult);
 
       if (!tgResult.success || !tgResult.data.ok) {
-        const errorDescription = (!tgResult.success) ? 'Invalid API Response' : (tgResult.data as any).description;
+        const errorDescription = (!tgResult.success) 
+          ? 'Invalid API Response' 
+          : (tgResult.data as { ok: false; description?: string }).description || 'Unknown Telegram Error';
         logError(rawResult, 'Error de Telegram API');
         throw new Error(`Telegram rechazó el archivo: ${errorDescription}`);
       }

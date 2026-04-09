@@ -74,24 +74,30 @@ export async function getChapterPayload(
   if (manifestContent) {
     const signedManifest = await signManifest(manifestContent, env.AUTH_SECRET);
     return {
-      payload: obfuscate({
-        ...signedManifest,
-        seriesId: chapter.seriesId,
-        chapterId: chapter.id,
-        chapterCoverUrl: chapter.urlPortada,
-      }, salt),
+      payload: obfuscate(
+        {
+          ...signedManifest,
+          seriesId: chapter.seriesId,
+          chapterId: chapter.id,
+          chapterCoverUrl: chapter.urlPortada,
+        },
+        salt
+      ),
       processing: false,
       chapterId: chapter.id,
     };
   }
 
   return {
-    payload: obfuscate({
-      status: 'processing',
-      seriesId: chapter.seriesId,
-      chapterId: chapter.id,
-      chapterCoverUrl: chapter.urlPortada,
-    }, salt),
+    payload: obfuscate(
+      {
+        status: 'processing',
+        seriesId: chapter.seriesId,
+        chapterId: chapter.id,
+        chapterCoverUrl: chapter.urlPortada,
+      },
+      salt
+    ),
     processing: true,
     chapterId: chapter.id,
   };

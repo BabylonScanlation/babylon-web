@@ -33,7 +33,7 @@ export interface Chapter {
   status: string;
   views: number | null;
   createdAt: string | null;
-  messageThreadId: number | null;
+  messageThreadId?: number | null;
   isAppOnly?: boolean | null;
   processing?: boolean | null;
 }
@@ -72,9 +72,9 @@ export interface Series {
   lastChapter?: string;
   lastChapterCreatedAt?: string;
   chapters?: Chapter[];
-  isHidden?: boolean;
-  isNsfw?: boolean;
-  isAppSeries?: boolean;
+  isHidden?: boolean | null;
+  isNsfw?: boolean | null;
+  isAppSeries?: boolean | null;
   chapterCount?: number;
   stats?: {
     averageRating: number;
@@ -132,7 +132,7 @@ export interface Comment {
   likes?: number;
   dislikes?: number;
   userVote?: number; // 1, -1, 0
-  isPinned?: boolean;
+  isPinned?: boolean | null;
   isAdminComment?: boolean;
 }
 

@@ -79,8 +79,7 @@ export async function getCommentsForTarget(
 
     votes.forEach((v) => {
       const cid = Number(v.commentId);
-      if (!voteMap.has(cid))
-        voteMap.set(cid, { likes: 0, dislikes: 0, userVote: 0 });
+      if (!voteMap.has(cid)) voteMap.set(cid, { likes: 0, dislikes: 0, userVote: 0 });
       const stats = voteMap.get(cid)!;
       if (v.vote === 1) stats.likes++;
       if (v.vote === -1) stats.dislikes++;

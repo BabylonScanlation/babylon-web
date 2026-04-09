@@ -12,7 +12,7 @@ import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
 import { formatFullDate, getImageUrl, timeAgo } from '../../lib/utils';
 import { siteConfig } from '../../site.config';
-import type { SeriesDetails, Comment } from '../../types';
+import type { Comment, SeriesDetails } from '../../types';
 
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/404');

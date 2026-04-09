@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { deobfuscate } from '../../../../lib/obfuscator';
 
 export const GET: APIRoute = async ({ params, locals, request }) => {
-  let { key } = params;
+  const { key } = params;
   const { env } = locals.runtime;
   const isDev = import.meta.env.DEV || request.url.includes('localhost');
 
@@ -22,9 +22,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   // Bloqueo: Autorizamos si viene el token correcto O si el referer coincide con nuestro host (navegación legítima)
   // En desarrollo permitimos un poco más de flexibilidad para pruebas locales
   const isAuthorized =
-    (shieldToken &&
-      configuredShieldToken &&
-      shieldToken === configuredShieldToken) ||
+    (shieldToken && configuredShieldToken && shieldToken === configuredShieldToken) ||
     (referer && referer.includes(host)) ||
     (isDev && isDevHost);
 
@@ -75,23 +73,15 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
 
       // Bloquear IPs locales/privadas
       if (
-        /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(
-          url.hostname
-        ) ||
+        /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(url.hostname) ||
         url.hostname === 'localhost'
       ) {
         return new Response('Forbidden Host', { status: 403 });
       }
 
-      if (
-        !allowedHosts.some(
-          (h) => url.hostname === h || url.hostname.endsWith('.' + h)
-        )
-      ) {
+      if (!allowedHosts.some((h) => url.hostname === h || url.hostname.endsWith('.' + h))) {
         if (isDev)
-          console.warn(
-            `[Proxy] Blocked external fetch to unauthorized host: ${url.hostname}`
-          );
+          console.warn(`[Proxy] Blocked external fetch to unauthorized host: ${url.hostname}`);
         return new Response('Forbidden External Host', { status: 403 });
       }
     } catch (e) {
@@ -115,11 +105,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   if (isDev) console.log(`[Proxy] Cache MISS: ${objectKey}`);
 
   // Función auxiliar para servir y cachear en el CDN global
-  const serveAndCache = async (
-    body: any,
-    contentType?: string,
-    etag?: string
-  ) => {
+  const serveAndCache = async (body: any, contentType?: string, etag?: string) => {
     const headers = new Headers();
     headers.set('Access-Control-Allow-Origin', '*');
     headers.set('Cache-Control', 'public, max-age=31536000, immutable');
@@ -139,11 +125,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       const cacheObj = await env.R2_CACHE.get(objectKey);
       if (cacheObj) {
         if (isDev) console.log(`[Proxy] R2_CACHE HIT: ${objectKey}`);
-        return serveAndCache(
-          cacheObj.body,
-          cacheObj.httpMetadata?.contentType,
-          cacheObj.httpEtag
-        );
+        return serveAndCache(cacheObj.body, cacheObj.httpMetadata?.contentType, cacheObj.httpEtag);
       } else if (isDev) {
         console.log(`[Proxy] R2_CACHE MISS for key: ${objectKey}`);
       }
@@ -156,11 +138,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       const assetObj = await env.R2_ASSETS.get(objectKey);
       if (assetObj) {
         if (isDev) console.log(`[Proxy] R2_ASSETS HIT: ${objectKey}`);
-        return serveAndCache(
-          assetObj.body,
-          assetObj.httpMetadata?.contentType,
-          assetObj.httpEtag
-        );
+        return serveAndCache(assetObj.body, assetObj.httpMetadata?.contentType, assetObj.httpEtag);
       } else if (isDev) {
         console.log(`[Proxy] R2_ASSETS MISS for key: ${objectKey}`);
       }
@@ -172,11 +150,9 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     if (objectKey.startsWith('http')) {
       if (isDev) console.log(`[Proxy] FETCHING EXTERNAL: ${objectKey}`);
       const externalRes = await fetch(objectKey);
-      if (!externalRes.ok)
-        return new Response('External asset not found', { status: 404 });
+      if (!externalRes.ok) return new Response('External asset not found', { status: 404 });
 
-      const contentType =
-        externalRes.headers.get('content-type') || 'image/webp';
+      const contentType = externalRes.headers.get('content-type') || 'image/webp';
       const blob = await externalRes.blob();
 
       // Sembrar el R2_CACHE para futuras peticiones (Protege Telegram)
@@ -187,9 +163,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
               contentType,
               cacheControl: 'public, max-age=86400',
             },
-          }).then(
-            () => isDev && console.log(`[Proxy] Seeded R2_CACHE: ${objectKey}`)
-          )
+          }).then(() => isDev && console.log(`[Proxy] Seeded R2_CACHE: ${objectKey}`))
         );
       }
 
@@ -200,19 +174,12 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     // Si no se encuentra en R2 local, intentamos buscarlo en la URL pública de producción
     const publicR2 = env.R2_PUBLIC_URL_ASSETS;
     if (publicR2 && !objectKey.startsWith('http')) {
-      const fallbackUrl = `${publicR2}/${objectKey}`.replace(
-        /([^:]\/)\/+/g,
-        '$1'
-      );
-      if (isDev)
-        console.log(
-          `[Proxy] R2 MISS, trying production fallback: ${fallbackUrl}`
-        );
+      const fallbackUrl = `${publicR2}/${objectKey}`.replace(/([^:]\/)\/+/g, '$1');
+      if (isDev) console.log(`[Proxy] R2 MISS, trying production fallback: ${fallbackUrl}`);
 
       const externalRes = await fetch(fallbackUrl);
       if (externalRes.ok) {
-        const contentType =
-          externalRes.headers.get('content-type') || 'image/webp';
+        const contentType = externalRes.headers.get('content-type') || 'image/webp';
         const blob = await externalRes.blob();
         return serveAndCache(blob, contentType);
       }

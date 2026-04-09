@@ -66,7 +66,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
           runtime.env.SUPER_ADMIN_UID && uid === runtime.env.SUPER_ADMIN_UID
             ? 'admin'
             : result.role || 'user';
-        
+
         // Orion: Validación de Seguridad Nuclear - Verificar tokenVersion si venimos de un JWT
         if (authCookie && isAdminRoute && runtime?.env?.JWT_SECRET) {
           const payload = await verifyToken(authCookie, runtime.env.JWT_SECRET);

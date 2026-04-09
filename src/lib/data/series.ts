@@ -2,8 +2,8 @@ import { and, asc, desc, eq, inArray, isNull, or, type SQL, sql } from 'drizzle-
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 import { chapters, favorites, series, seriesRatings, seriesReactions } from '../../db/schema';
-import { parseToTimestamp } from '../utils';
 import type { RecentChapterSeries, SeriesDetails } from '../../types';
+import { parseToTimestamp } from '../utils';
 
 /**
  * Orion: Obtiene los detalles de una serie.

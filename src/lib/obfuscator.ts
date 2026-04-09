@@ -27,13 +27,13 @@ export function obfuscate(data: any, salt: string): string {
     console.error('[Obfuscator] No SALT provided for obfuscation');
     return '';
   }
-  
+
   try {
     const str = typeof data === 'string' ? data : JSON.stringify(data);
     const salted = salt + str;
     const dataBuffer = new TextEncoder().encode(salted);
     const transformed = xorTransform(dataBuffer, salt);
-    
+
     let binary = '';
     const len = transformed.byteLength;
     for (let i = 0; i < len; i++) {
@@ -42,11 +42,8 @@ export function obfuscate(data: any, salt: string): string {
         binary += String.fromCharCode(byte);
       }
     }
-    
-    return btoa(binary)
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
+
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   } catch (e) {
     console.error('[Obfuscator] Error obfuscating:', e);
     return '';
@@ -60,7 +57,7 @@ export function obfuscate(data: any, salt: string): string {
  */
 export function deobfuscate(encryptedStr: string, salt: string): any {
   if (!salt) return null;
-  
+
   try {
     let base64 = encryptedStr.replace(/-/g, '+').replace(/_/g, '/');
     while (base64.length % 4) base64 += '=';

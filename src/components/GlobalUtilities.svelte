@@ -29,14 +29,14 @@ onMount(() => {
     if (pending.type === 'open-auth-modal') {
       authModal.open(pending.detail?.view || 'login', pending.detail?.message || '');
     } else if (pending.type === 'show-toast') {
-      toast.show(pending.detail?.message || '', pending.detail?.type || 'info');
+      toast.add(pending.detail?.type || 'info', pending.detail?.message || '');
     }
     (window as any)._babylonPendingEvent = null;
   }
 
   // 2. Listeners persistentes para clics externos (Header, Footer, etc.)
   const handleAuth = (e: any) => authModal.open(e.detail?.view || 'login', e.detail?.message || '');
-  const handleToast = (e: any) => toast.show(e.detail?.message || '', e.detail?.type || 'info');
+  const handleToast = (e: any) => toast.add(e.detail?.type || 'info', e.detail?.message || '');
 
   window.addEventListener('open-auth-modal', handleAuth);
   window.addEventListener('show-toast', handleToast);

@@ -12,10 +12,10 @@ async function checkRateLimit(ip: string, env: any): Promise<boolean> {
   try {
     const record = await env.KV_VIEWS.get(key);
     const count = record ? parseInt(record) + 1 : 1;
-    
+
     // Usamos expirationTtl para que la clave se borre automáticamente después de 1 minuto
     await env.KV_VIEWS.put(key, count.toString(), { expirationTtl: 60 });
-    
+
     if (count > MAX_REQ_PER_WINDOW) {
       return false; // Rate limit excedido
     }

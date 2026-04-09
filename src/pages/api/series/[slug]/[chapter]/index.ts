@@ -165,11 +165,14 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       console.log('[API_CH] Delivery mode: JSON (202 Accepted)');
       return new Response(
         JSON.stringify({
-          payload: obfuscate({
-            status: 'processing',
-            seriesId: chapterData.seriesId,
-            chapterId: chapterData.chapterId,
-          }, salt),
+          payload: obfuscate(
+            {
+              status: 'processing',
+              seriesId: chapterData.seriesId,
+              chapterId: chapterData.chapterId,
+            },
+            salt
+          ),
         }),
         { status: 202 }
       );
@@ -202,7 +205,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
           const updatedManifest = await retryGetFromR2(manifestKey, 1).catch(() => null);
 
           const salt = env.INTERNAL_CRYPTO_SALT;
-      if (!salt) throw new Error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
+          if (!salt) throw new Error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
           if (updatedManifest) {
             console.log('[API_CH] ⚡ Lightspeed: Manifest DETECTED! Sending completed event.');
             const content = await updatedManifest.json();
@@ -234,7 +237,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         }
         console.warn('[API_CH] SSE Loop: Timeout reached. Informing client.');
         const salt = env.INTERNAL_CRYPTO_SALT;
-      if (!salt) throw new Error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
+        if (!salt) throw new Error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
         const timeoutMsg = `event: timeout\ndata: ${JSON.stringify({ payload: obfuscate({ message: 'El procesamiento está tardando más de lo esperado. Por favor, refresca en unos momentos.' }, salt) })}\n\n`;
         await writer.write(encoder.encode(timeoutMsg));
         await writer.close();

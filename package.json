@@ -15,7 +15,6 @@
   "scripts": {
     "dev": "astro dev",
     "lint": "biome check .",
-    "lint:fix": "biome check --write --unsafe .",
     "format": "biome format --write .",
     "check": "astro check && svelte-check --tsconfig ./tsconfig.json && biome check .",
     "test": "vitest run",

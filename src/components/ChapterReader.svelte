@@ -234,11 +234,10 @@ onMount(() => {
 
   // Lógica de hidratación diferida
   setTimeout(() => {
-  if (encryptedData && pagesData.length === 0) {
-    try {
-      console.log('[READER] Hydrating data...');
-      const decrypted = deobfuscate(encryptedData, salt);
-
+    if (encryptedData && pagesData.length === 0) {
+      try {
+        console.log('[READER] Hydrating data...');
+        const decrypted = deobfuscate(encryptedData, salt!);
         if (decrypted) {
           let incomingPages = [];
           if (decrypted.pages) incomingPages = decrypted.pages;
@@ -388,7 +387,7 @@ function setupSse(isRetry = false) {
     retryCount = 0;
     try {
       const rawData = JSON.parse(e.data);
-      const data = rawData.payload ? deobfuscate(rawData.payload, salt) : rawData;
+      const data = rawData.payload ? deobfuscate(rawData.payload, salt!) : rawData;
       if (data.message) loadingMessage = data.message;
     } catch {
       console.error('Error parsing SSE processing event');
@@ -400,7 +399,7 @@ function setupSse(isRetry = false) {
     isComplete = true;
     try {
       const rawData = JSON.parse(e.data);
-      const data = rawData.payload ? deobfuscate(rawData.payload, salt) : rawData;
+      const data = rawData.payload ? deobfuscate(rawData.payload, salt!) : rawData;
 
       clearInterval(progressInterval);
       simulatedProgress = 100;
@@ -437,7 +436,7 @@ function setupSse(isRetry = false) {
     clearInterval(progressInterval);
     try {
       const rawData = JSON.parse(e.data);
-      const data = rawData.payload ? deobfuscate(rawData.payload, salt) : rawData;
+      const data = rawData.payload ? deobfuscate(rawData.payload, salt!) : rawData;
       error = data.error || 'Error en el servidor de procesamiento.';
     } catch {
       error = 'Error desconocido en el servidor.';
@@ -469,17 +468,19 @@ import { actions } from 'astro:actions';
 function registerView() {
   if (chapterId) {
     actions.chapters.registerView({ chapterId }).catch(() => {});
-    
+
     // Orion: Si el usuario está autenticado, guardamos su progreso de lectura
     const bridge = document.getElementById('reader-data-bridge');
     const seriesId = bridge ? parseInt(bridge.getAttribute('data-series-id') || '0') : 0;
-    
+
     if (seriesId > 0) {
-      actions.user.updateProgress({
-        seriesId,
-        chapterId,
-        chapterNumber: parseFloat(chapter)
-      }).catch(err => console.warn('[Reader] Failed to update progress', err));
+      actions.user
+        .updateProgress({
+          seriesId,
+          chapterId,
+          chapterNumber: parseFloat(chapter),
+        })
+        .catch((err) => console.warn('[Reader] Failed to update progress', err));
     }
   }
 }

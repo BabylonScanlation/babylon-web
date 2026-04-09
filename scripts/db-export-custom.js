@@ -33,7 +33,7 @@ function escapeStringOneLine(val) {
 
 async function main() {
   console.log('⚡ ORION: Generando exportación completa de todas las tablas...');
-  
+
   const timestamp = getTimestamp();
   const timestampedPath = path.join(DUMP_DIR, `dump_${timestamp}.sql`);
 
@@ -111,7 +111,7 @@ async function main() {
   // Guardar/Actualizar dump.sql (Para sincronización automática)
   fs.writeFileSync(DUMP_PATH, sqlDump);
   console.log(`🔄 Archivo de sincronización actualizado en ${DUMP_PATH}`);
-  
+
   console.log(`✅ Exportación completada para ${processed.size} tablas.`);
 }
 
