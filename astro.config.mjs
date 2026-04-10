@@ -41,16 +41,8 @@ export default defineConfig({
     build: {
       // Orion: Endurecimiento de Seguridad (Hardening)
       sourcemap: false, // Nunca generar mapas de código en producción
-      cssCodeSplit: true,
       rollupOptions: {
         external: ['@cf-wasm/photon'],
-        output: {
-          // Agrupa todos los chunks de svelte internos en uno solo
-          manualChunks(id) {
-            if (id.includes('svelte')) return 'svelte-vendor';
-            if (id.includes('node_modules')) return 'vendor';
-          },
-        },
       },
     },
   },
