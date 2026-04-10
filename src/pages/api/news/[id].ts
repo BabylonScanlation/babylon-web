@@ -1,31 +1,24 @@
-import type { APIRoute } from 'astro';
-import { getDB, getNewsById, getNewsImages } from '../../../../src/lib/db';
-import { logError } from '../../../../src/lib/logError';
+import { getNewsById, getNewsImages } from '../../../../src/lib/data/news';
+import { createApiRoute } from '../../../../src/lib/api';
 
-export const GET: APIRoute = async ({ params, locals }) => {
+export const GET = createApiRoute({ auth: 'public' }, async ({ params, locals }) => {
   const { id } = params;
   if (!id) {
-    return new Response('News ID is required', { status: 400 });
+    return new Response(JSON.stringify({ error: 'News ID is required' }), { status: 400 });
   }
 
-  const drizzleDb = getDB(locals.runtime.env);
-  try {
-    const newsItem = await getNewsById(drizzleDb, id);
+  const newsItem = await getNewsById(locals.db, id);
 
-    if (!newsItem || newsItem.status !== 'published') {
-      return new Response('News item not found or not published', { status: 404 });
-    }
-
-    const images = await getNewsImages(drizzleDb, newsItem.id);
-    const imageUrls = images.map(
-      (img) => `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`
-    );
-
-    return new Response(JSON.stringify({ ...newsItem, imageUrls }), {
-      headers: { 'Content-Type': 'application/json' },
+  if (!newsItem || newsItem.status !== 'published') {
+    return new Response(JSON.stringify({ error: 'News item not found or not published' }), {
+      status: 404,
     });
-  } catch (error) {
-    logError(error, 'Error al obtener noticia pública', { newsId: id });
-    return new Response('Internal Server Error', { status: 500 });
   }
-};
+
+  const images = await getNewsImages(locals.db, newsItem.id);
+  const imageUrls = images.map((img) => `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`);
+
+  return new Response(JSON.stringify({ ...newsItem, imageUrls }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+});

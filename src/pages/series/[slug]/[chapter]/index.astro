@@ -254,7 +254,6 @@ if (error && currentChapterIndex !== -1) {
           data-loading-msg={loadingMessage}
           data-series-title={seriesTitle}
           data-watermark={watermark}
-          data-salt={env.INTERNAL_CRYPTO_SALT}
           style="display: none;"
         ></div>
         <ChapterReader 
@@ -268,7 +267,6 @@ if (error && currentChapterIndex !== -1) {
           seriesTitle={seriesTitle || undefined}
           watermark={watermark}
           nextChapter={nextChapterProp || undefined} 
-          salt={env.INTERNAL_CRYPTO_SALT}
         />
     )}
   </main>

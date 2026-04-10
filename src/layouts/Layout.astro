@@ -5,24 +5,13 @@ import AdblockWall from '../components/AdblockWall.astro';
 import BottomNav from '../components/BottomNav.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
-import * as schema from '../db/schema';
 import { getDB } from '../lib/db';
+import { getNewsCount } from '../lib/data/news';
 import { siteConfig } from '../site.config';
 
 // Orion: Obtención de contador en el servidor para evitar peticiones del cliente (Ahorro masivo)
-const getInitialNewsCount = async () => {
-  try {
-    const db = getDB(Astro.locals.runtime.env);
-    // Solo consultamos si no es una página de administración para ahorrar lecturas
-    if (Astro.url.pathname.startsWith('/admin')) return 0;
-    const result = await db.select({ count: sql<number>`count(*)` }).from(schema.news).all();
-    return result[0]?.count || 0;
-  } catch {
-    return 0;
-  }
-};
-
-const serverNewsCount = await getInitialNewsCount();
+const db = getDB(Astro.locals.runtime.env);
+const serverNewsCount = Astro.url.pathname.startsWith('/admin') ? 0 : await getNewsCount(db);
 
 const {
   title: pageTitle,
@@ -227,10 +216,34 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           try {
             const r = atob(k);
             const u = `${_0xS.p}${r}?w=300&q=60&fmt=webp`;
-            const rs = await fetch(u);
+            const rs = await fetch(u, {
+              headers: { 'X-Babylon-Service': 'nuclear-loader' }
+            });
             if (!rs.ok) return;
+            
+            // EL SECRETO NUCLEAR: createImageBitmap
+            // Esta API procesa la imagen directamente en la GPU/RAM sin crear una URL.
+            // Al no haber URL, NO APARECE en el Network como 'blob:'.
             const b = await rs.blob();
-            el.style.backgroundImage = `url('${URL.createObjectURL(b)}')`;
+            const bitmap = await createImageBitmap(b);
+            
+            const cvs = document.createElement('canvas');
+            cvs.width = bitmap.width;
+            cvs.height = bitmap.height;
+            cvs.style.width = '100%';
+            cvs.style.height = '100%';
+            cvs.style.objectFit = 'cover';
+            cvs.style.display = 'block';
+            
+            const ctx = cvs.getContext('2d', { alpha: false });
+            ctx.drawImage(bitmap, 0, 0);
+            
+            // Destruimos el rastro de memoria inmediatamente
+            bitmap.close();
+            
+            el.innerHTML = '';
+            el.appendChild(cvs);
+            el.style.backgroundImage = 'none';
             el.classList.add('shield-loaded');
             el.removeAttribute('data-ghost-key');
           } catch (e) {}

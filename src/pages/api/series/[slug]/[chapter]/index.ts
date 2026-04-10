@@ -20,8 +20,15 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   console.log(`[API_CH] Request received for: ${slug} / ${chapterNumberParam}`);
 
   const runtime = locals.runtime || {};
-  const env = runtime.env || (process.env as any);
-  const ctx = runtime.ctx || { waitUntil: (p: Promise<any>) => p };
+  const env = runtime.env;
+  const ctx = runtime.ctx;
+
+  if (!env) {
+    return new Response(JSON.stringify({ error: 'Environment configuration missing' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   if (!slug || !chapterNumberParam) {
     console.error('[API_CH] Error: Missing required params.');
@@ -108,18 +115,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         chapterCoverUrl: chapterData.chapterCoverUrl,
       };
 
-      const salt = env.INTERNAL_CRYPTO_SALT;
-      if (!salt) throw new Error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
-
-      if (wantsStream) {
-        console.log('[API_CH] Delivery mode: SSE Stream (Completed)');
-        const { readable, writable } = new TransformStream();
-        const writer = writable.getWriter();
-        const encoder = new TextEncoder();
-
-        writer.write(encoder.encode(': connected\n\n')).catch(() => {});
-
-        const message = `event: completed\ndata: ${JSON.stringify({ payload: obfuscate(responseData, salt) })}\n\n`;
+        const message = `event: completed\ndata: ${JSON.stringify({ payload: responseData })}\n\n`;
         writer
           .write(encoder.encode(message))
           .then(() => writer.close())
@@ -128,7 +124,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       }
 
       console.log('[API_CH] Delivery mode: JSON (200 OK)');
-      return new Response(JSON.stringify({ payload: obfuscate(responseData, salt) }), {
+      return new Response(JSON.stringify({ payload: responseData }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -160,19 +156,14 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     }
 
     if (!wantsStream) {
-      const salt = env.INTERNAL_CRYPTO_SALT;
-      if (!salt) throw new Error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
       console.log('[API_CH] Delivery mode: JSON (202 Accepted)');
       return new Response(
         JSON.stringify({
-          payload: obfuscate(
-            {
+          payload: {
               status: 'processing',
               seriesId: chapterData.seriesId,
               chapterId: chapterData.chapterId,
             },
-            salt
-          ),
         }),
         { status: 202 }
       );
@@ -204,13 +195,11 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
 
           const updatedManifest = await retryGetFromR2(manifestKey, 1).catch(() => null);
 
-          const salt = env.INTERNAL_CRYPTO_SALT;
-          if (!salt) throw new Error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
           if (updatedManifest) {
             console.log('[API_CH] ⚡ Lightspeed: Manifest DETECTED! Sending completed event.');
             const content = await updatedManifest.json();
             const signed = await signManifest(content, env.AUTH_SECRET);
-            const message = `event: completed\ndata: ${JSON.stringify({ payload: obfuscate({ ...signed, chapterId: chapterData.chapterId }, salt) })}\n\n`;
+            const message = `event: completed\ndata: ${JSON.stringify({ payload: { ...signed, chapterId: chapterData.chapterId } })}\n\n`;
             await writer.write(encoder.encode(message));
             await writer.close();
             return;
@@ -228,7 +217,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
             const msgIndex = Math.floor((attempts / 4) % messages.length);
             await writer.write(
               encoder.encode(
-                `event: processing\ndata: ${JSON.stringify({ payload: obfuscate({ message: messages[msgIndex] }, salt) })}\n\n`
+                `event: processing\ndata: ${JSON.stringify({ payload: { message: messages[msgIndex] } })}\n\n`
               )
             );
           }
@@ -236,9 +225,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
           await new Promise((r) => setTimeout(r, interval));
         }
         console.warn('[API_CH] SSE Loop: Timeout reached. Informing client.');
-        const salt = env.INTERNAL_CRYPTO_SALT;
-        if (!salt) throw new Error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
-        const timeoutMsg = `event: timeout\ndata: ${JSON.stringify({ payload: obfuscate({ message: 'El procesamiento está tardando más de lo esperado. Por favor, refresca en unos momentos.' }, salt) })}\n\n`;
+        const timeoutMsg = `event: timeout\ndata: ${JSON.stringify({ payload: { message: 'El procesamiento está tardando más de lo esperado. Por favor, refresca en unos momentos.' } })}\n\n`;
         await writer.write(encoder.encode(timeoutMsg));
         await writer.close();
       } catch (_streamErr) {
@@ -246,9 +233,11 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       }
     };
 
+
     ctx.waitUntil(checkProcessingStatus());
     return new Response(readable, { headers: sseHeaders });
-  } catch {
+  } catch (error) {
+    logError(error, 'Error crítico en API de capítulos', { slug, chapter: chapterNumberParam });
     return new Response(JSON.stringify({ error: 'Internal Error' }), { status: 500 });
   }
 };

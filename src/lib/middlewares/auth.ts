@@ -31,15 +31,23 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
   if (authCookie && runtime?.env?.JWT_SECRET && !isAdminRoute) {
     const payload = await verifyToken(authCookie, runtime.env.JWT_SECRET);
     if (payload) {
-      locals.user = {
-        uid: payload.uid,
-        email: payload.email,
-        username: payload.username || undefined,
-        displayName: payload.displayName || undefined,
-        isAdmin: payload.role === 'admin' || payload.uid === runtime.env.SUPER_ADMIN_UID,
-        isNsfw: payload.isNsfw,
-        tokenVersion: payload.tokenVersion,
-      };
+      // Verificación de Blacklist en KV (Revocación individual de JWTs)
+      const isRevoked = payload.jti ? await runtime?.env?.KV_VIEWS?.get(`revoked:${payload.jti}`) : false;
+      
+      if (!isRevoked) {
+        locals.user = {
+          uid: payload.uid,
+          email: payload.email,
+          username: payload.username || undefined,
+          displayName: payload.displayName || undefined,
+          isAdmin: payload.role === 'admin' || payload.uid === runtime.env.SUPER_ADMIN_UID,
+          isNsfw: payload.isNsfw,
+          tokenVersion: payload.tokenVersion,
+        };
+      } else {
+        // Token revocado -> Limpiar cookies
+        deleteSession(context as any);
+      }
     }
   }
 

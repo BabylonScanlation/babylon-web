@@ -6,7 +6,7 @@ import { siteConfig } from '../../site.config';
 const MAX_REQ_PER_WINDOW = 200; // Máximo por IP en la ventana de tiempo
 
 async function checkRateLimit(ip: string, env: any): Promise<boolean> {
-  if (!ip || !env?.KV_VIEWS) return true; // Si no hay IP o KV, no bloqueamos (salvaguarda)
+  if (!ip || !env?.KV_VIEWS) return false; // Fail-closed: Sin IP o KV, bloqueamos (Seguridad)
 
   const key = `rl:${ip}`;
   try {
@@ -21,7 +21,7 @@ async function checkRateLimit(ip: string, env: any): Promise<boolean> {
     }
   } catch (e) {
     console.error('[Shield] Rate Limit KV Error:', e);
-    return true; // En caso de error en KV, permitimos el paso por seguridad
+    return false; // Fail-closed: En caso de error en KV, bloqueamos por seguridad
   }
 
   return true;

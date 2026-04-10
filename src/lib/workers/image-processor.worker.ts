@@ -45,7 +45,9 @@ self.onmessage = async (e: MessageEvent) => {
 async function fetchBlob(url: string): Promise<Blob> {
   // Asegurar que la URL es absoluta para el fetch en el Worker
   const absoluteUrl = url.startsWith('/') ? self.location.origin + url : url;
-  const res = await fetch(absoluteUrl);
+  const res = await fetch(absoluteUrl, {
+    headers: { 'X-Babylon-Service': 'nuclear-loader' }
+  });
   if (!res.ok) {
     console.error(`[Worker] Fetch failed: ${res.status} ${res.statusText} for ${url}`);
     throw new Error(`Failed to load ${url}: ${res.status}`);

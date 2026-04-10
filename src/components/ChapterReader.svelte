@@ -237,7 +237,7 @@ onMount(() => {
     if (encryptedData && pagesData.length === 0) {
       try {
         console.log('[READER] Hydrating data...');
-        const decrypted = deobfuscate(encryptedData, salt!);
+        const decrypted = typeof encryptedData === 'string' ? JSON.parse(encryptedData) : encryptedData;
         if (decrypted) {
           let incomingPages = [];
           if (decrypted.pages) incomingPages = decrypted.pages;
@@ -254,8 +254,6 @@ onMount(() => {
           } else {
             console.warn('[READER] No pages found in decrypted payload');
           }
-        } else {
-          console.error('[READER] Failed to decrypt payload');
         }
       } catch (e) {
         console.error('[READER] Critical error during hydration:', e);
@@ -387,7 +385,7 @@ function setupSse(isRetry = false) {
     retryCount = 0;
     try {
       const rawData = JSON.parse(e.data);
-      const data = rawData.payload ? deobfuscate(rawData.payload, salt!) : rawData;
+      const data = rawData.payload || rawData;
       if (data.message) loadingMessage = data.message;
     } catch {
       console.error('Error parsing SSE processing event');
@@ -399,7 +397,7 @@ function setupSse(isRetry = false) {
     isComplete = true;
     try {
       const rawData = JSON.parse(e.data);
-      const data = rawData.payload ? deobfuscate(rawData.payload, salt!) : rawData;
+      const data = rawData.payload || rawData;
 
       clearInterval(progressInterval);
       simulatedProgress = 100;
@@ -436,7 +434,7 @@ function setupSse(isRetry = false) {
     clearInterval(progressInterval);
     try {
       const rawData = JSON.parse(e.data);
-      const data = rawData.payload ? deobfuscate(rawData.payload, salt!) : rawData;
+      const data = rawData.payload || rawData;
       error = data.error || 'Error en el servidor de procesamiento.';
     } catch {
       error = 'Error desconocido en el servidor.';

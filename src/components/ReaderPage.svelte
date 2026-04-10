@@ -194,11 +194,15 @@ function processWithWorker() {
   {/if}
 
   {#if useFallback}
-    <div class="fallback-wrapper">
-      <img src={page.imageUrl || page.url} {alt} class="fallback-img" loading={loading} decoding="async" onload={() => { isLoading = false; }} />
+    <div class="fallback-wrapper" style="background-image: url('{page.imageUrl || page.url}')" role="img" aria-label={alt}>
+      <div class="glass-shield"></div>
     </div>
   {:else}
-    <canvas bind:this={canvas} class:hidden={isLoading || error}></canvas>
+    <canvas 
+      bind:this={canvas} 
+      class:hidden={isLoading || error}
+      oncontextmenu={(e) => e.preventDefault()}
+    ></canvas>
   {/if}
 </div>
 
@@ -213,6 +217,25 @@ function processWithWorker() {
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .fallback-wrapper {
+    width: 100%;
+    height: 100%;
+    min-height: 60vh;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    position: relative;
+  }
+
+  .glass-shield {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    background: transparent;
   }
 
   /* Astra: Una vez cargada la imagen, quitamos el aspect-ratio fijo para que mande el contenido real */

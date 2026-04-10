@@ -1,192 +1,258 @@
-import { and, desc, eq, isNull, or, type SQL, sql } from 'drizzle-orm';
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import type * as schema from '../../db/schema';
-import { news, newsImage, series, users } from '../../db/schema';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { z } from 'zod';
+import * as schema from '../../db/schema';
+import { getDB } from '../db-client';
+import { generateUUID } from '../utils';
 
-export async function getNewsList(
-  db: DrizzleD1Database<typeof schema>,
-  status: 'draft' | 'published' = 'published',
-  seriesId?: number | null,
-  allowNsfw: boolean = false
-) {
-  const conditions: (SQL | undefined)[] = [eq(news.status, status)];
+// --- Zod Schemas ---
 
-  if (seriesId !== undefined) {
-    conditions.push(seriesId === null ? isNull(news.seriesId) : eq(news.seriesId, seriesId));
-  }
+export const NewsSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1, 'El título es obligatorio'),
+  content: z.string().min(1, 'El contenido es obligatorio'),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+  publishedBy: z.string(),
+  status: z.enum(['draft', 'published']).default('draft'),
+  seriesId: z.number().nullable(),
+  authorName: z.string().nullable(),
+});
 
-  // Orion: Modo Estricto para Noticias
-  if (allowNsfw) {
-    conditions.push(eq(series.isNsfw, true));
-  } else {
-    conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
-  }
+export const NewsImageSchema = z.object({
+  id: z.string(),
+  newsId: z.string(),
+  r2Key: z.string().min(1),
+  altText: z.string().nullable(),
+  displayOrder: z.number().int().min(0),
+});
 
-  try {
-    const query = db
-      .select({
-        id: news.id,
-        title: news.title,
-        content: news.content,
-        createdAt: news.createdAt,
-        updatedAt: news.updatedAt,
-        publishedBy: news.publishedBy,
-        seriesId: news.seriesId,
-        authorName: news.authorName,
-        status: news.status,
-        seriesCover: series.coverImageUrl,
-        seriesTitle: series.title,
-        seriesIsNsfw: series.isNsfw,
-        authorAvatar: users.avatarUrl,
-      })
-      .from(news)
-      .leftJoin(series, eq(news.seriesId, series.id))
-      .leftJoin(users, eq(news.publishedBy, users.id));
+// --- Types from Zod ---
+export type NewsItem = z.infer<typeof NewsSchema>;
+export type NewsImageItem = z.infer<typeof NewsImageSchema>;
 
-    const results = await query
-      .where(and(...conditions))
-      .orderBy(desc(news.createdAt))
-      .all();
+// Helper types for creation/update
+export type CreateNewsInput = Omit<NewsItem, 'id' | 'createdAt' | 'updatedAt'> & { id?: string };
 
-    const finalResults = [];
-    for (const r of results) {
-      // Orion: Aseguramos que r.id sea tratado como string para la búsqueda
-      const currentId = String(r.id);
-      const images = await db
-        .select()
-        .from(newsImage)
-        .where(eq(newsImage.newsId, currentId))
-        .orderBy(newsImage.displayOrder)
-        .all();
+export type CreateNewsImageInput = Omit<NewsImageItem, 'id'>;
 
-      finalResults.push({
-        ...r,
-        seriesCover: r.seriesCover
-          ? r.seriesCover.startsWith('http')
-            ? r.seriesCover
-            : `/api/assets/proxy/${r.seriesCover}`
-          : undefined,
-        seriesTitle: r.seriesTitle || undefined,
-        authorAvatar: r.authorAvatar || undefined,
-        images: images || [],
-        imageUrls: images.map((img) =>
-          img.r2Key.startsWith('http') ? img.r2Key : `/api/assets/proxy/${img.r2Key}`
-        ),
-      });
-    }
+export type NewsWithDetails = NewsItem & {
+  seriesCover?: string | null;
+  seriesTitle?: string | null;
+  authorAvatar?: string | null;
+};
 
-    return finalResults;
-  } catch (error) {
-    console.error('Error fetching news list with joins:', error);
+// --- Database Operations ---
 
-    // Fallback: Intentar recuperar noticias básicas pero sin romper el objeto de retorno
-    try {
-      const basicNews = await db
-        .select()
-        .from(news)
-        .where(eq(news.status, status))
-        .orderBy(desc(news.createdAt))
-        .all();
+export async function createNews(
+  drizzleDb: ReturnType<typeof getDB>,
+  newsData: CreateNewsInput
+): Promise<NewsItem> {
+  const id = newsData.id || generateUUID();
+  const now = new Date();
 
-      return basicNews.map((n) => ({
-        ...n,
-        seriesCover: undefined,
-        seriesTitle: undefined,
-        authorAvatar: undefined,
-        images: [],
-        imageUrls: [],
-      }));
-    } catch (fallbackError) {
-      console.error('Critical failure in news fallback:', fallbackError);
-      return [];
-    }
-  }
+  const newsItem = {
+    ...newsData,
+    id,
+    createdAt: now,
+    updatedAt: now,
+    seriesId: newsData.seriesId ?? null,
+    authorName: newsData.authorName ?? null,
+  };
+
+  const validated = NewsSchema.parse(newsItem);
+  await drizzleDb.insert(schema.news).values(validated);
+  return validated;
 }
 
-export async function getLatestNewsId(
-  db: DrizzleD1Database<typeof schema>,
-  allowNsfw: boolean = false
-) {
-  try {
-    const conditions: (SQL | undefined)[] = [eq(news.status, 'published')];
-    if (allowNsfw) {
-      conditions.push(eq(series.isNsfw, true));
-    } else {
-      conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
-    }
+export async function getNewsById(
+  drizzleDb: ReturnType<typeof getDB>,
+  id: string
+): Promise<(NewsItem & { seriesSlug?: string; seriesTitle?: string }) | null> {
+  const result = await drizzleDb
+    .select({
+      id: schema.news.id,
+      title: schema.news.title,
+      content: schema.news.content,
+      createdAt: schema.news.createdAt,
+      updatedAt: schema.news.updatedAt,
+      publishedBy: schema.news.publishedBy,
+      seriesId: schema.news.seriesId,
+      authorName: schema.news.authorName,
+      status: schema.news.status,
+      seriesSlug: schema.series.slug,
+      seriesTitle: schema.series.title,
+    })
+    .from(schema.news)
+    .leftJoin(schema.series, eq(schema.news.seriesId, schema.series.id))
+    .where(eq(schema.news.id, id))
+    .get();
 
-    const result = await db
-      .select({ id: news.id, createdAt: news.createdAt })
-      .from(news)
-      .leftJoin(series, eq(news.seriesId, series.id))
-      .where(and(...conditions))
-      .orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`))
-      .limit(1)
-      .get();
-    return result;
-  } catch {
+  if (!result) return null;
+
+  const parsedNews = NewsSchema.safeParse({
+    ...result,
+    createdAt: result.createdAt ? new Date(result.createdAt) : new Date(),
+    updatedAt: result.updatedAt ? new Date(result.updatedAt) : new Date(),
+  });
+
+  if (!parsedNews.success) {
+    console.error(`[DB Integrity Error] News ID ${id} has invalid data:`, parsedNews.error);
     return null;
   }
+
+  return {
+    ...parsedNews.data,
+    seriesSlug: result.seriesSlug ?? undefined,
+    seriesTitle: result.seriesTitle ?? undefined,
+  } as NewsItem & { seriesSlug?: string; seriesTitle?: string };
 }
 
-export async function getNewsDetail(db: DrizzleD1Database<typeof schema>, id: string) {
+export async function getAllNews(
+  drizzleDb: ReturnType<typeof getDB>,
+  status?: 'draft' | 'published',
+  seriesId?: number | null
+): Promise<NewsWithDetails[]> {
+  const conditions = [];
+
+  if (status) {
+    conditions.push(eq(schema.news.status, status));
+  }
+  if (seriesId !== undefined) {
+    conditions.push(
+      seriesId === null ? isNull(schema.news.seriesId) : eq(schema.news.seriesId, seriesId)
+    );
+  }
+
   try {
-    const result = await db
+    const results = await drizzleDb
       .select({
-        id: news.id,
-        title: news.title,
-        content: news.content,
-        createdAt: news.createdAt,
-        updatedAt: news.updatedAt,
-        publishedBy: news.publishedBy,
-        seriesId: news.seriesId,
-        authorName: news.authorName,
-        status: news.status,
-        seriesSlug: series.slug,
-        seriesTitle: series.title,
+        id: schema.news.id,
+        title: schema.news.title,
+        content: schema.news.content,
+        createdAt: schema.news.createdAt,
+        updatedAt: schema.news.updatedAt,
+        publishedBy: schema.news.publishedBy,
+        seriesId: schema.news.seriesId,
+        authorName: schema.news.authorName,
+        status: schema.news.status,
+        seriesCover: schema.series.coverImageUrl,
+        seriesTitle: schema.series.title,
+        authorAvatar: schema.users.avatarUrl,
       })
-      .from(news)
-      .leftJoin(series, eq(news.seriesId, series.id))
-      .where(eq(news.id, id))
-      .get();
-
-    if (!result) return null;
-
-    const images = await db
-      .select()
-      .from(newsImage)
-      .where(eq(newsImage.newsId, id))
-      .orderBy(newsImage.displayOrder)
+      .from(schema.news)
+      .leftJoin(schema.series, eq(schema.news.seriesId, schema.series.id))
+      .leftJoin(schema.users, eq(schema.news.publishedBy, schema.users.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(sql`CAST(${schema.news.createdAt} AS INTEGER)`))
       .all();
 
-    return {
-      ...result,
-      seriesSlug: result.seriesSlug || undefined,
-      seriesTitle: result.seriesTitle || undefined,
-      images: images || [],
-      imageUrls: images.map((img) =>
-        img.r2Key.startsWith('http') ? img.r2Key : `/api/assets/proxy/${img.r2Key}`
-      ),
-    };
-  } catch (error) {
-    console.error('Error fetching news detail with joins:', error);
+    const validatedItems = results.map((r) => {
+      const validation = NewsSchema.safeParse({
+        ...r,
+        createdAt: r.createdAt ? new Date(r.createdAt) : new Date(),
+        updatedAt: r.updatedAt ? new Date(r.updatedAt) : new Date(),
+      });
 
-    // Fallback: Basic news detail
-    try {
-      const basicResult = await db.select().from(news).where(eq(news.id, id)).get();
+      if (!validation.success) {
+        console.warn(`[DB Skip] Skipping invalid news item ${r.id}:`, validation.error);
+        return null;
+      }
 
-      if (!basicResult) return null;
-
-      return {
-        ...basicResult,
-        seriesSlug: undefined,
-        seriesTitle: undefined,
-        images: [],
-        imageUrls: [],
+      const item: NewsWithDetails = {
+        ...validation.data,
+        seriesCover: r.seriesCover ?? null,
+        seriesTitle: r.seriesTitle ?? null,
+        authorAvatar: r.authorAvatar ?? null,
       };
-    } catch (fallbackError) {
-      console.error('Critical failure in news detail fallback:', fallbackError);
-      return null;
-    }
+      return item;
+    });
+
+    return validatedItems.filter((item): item is NewsWithDetails => item !== null);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Database Error in getAllNews:', message);
+    return [];
+  }
+}
+
+export async function updateNews(
+  drizzleDb: ReturnType<typeof getDB>,
+  id: string,
+  updates: Partial<NewsItem>
+): Promise<NewsItem | null> {
+  const validatedUpdates = NewsSchema.partial().parse(updates);
+
+  const now = new Date();
+  const updateData = {
+    ...validatedUpdates,
+    updatedAt: now,
+  };
+
+  await drizzleDb.update(schema.news).set(updateData).where(eq(schema.news.id, id));
+
+  return getNewsById(drizzleDb, id);
+}
+
+export async function deleteNews(
+  drizzleDb: ReturnType<typeof getDB>,
+  id: string
+): Promise<boolean> {
+  const result = await drizzleDb.delete(schema.news).where(eq(schema.news.id, id)).run();
+  return result.changes > 0;
+}
+
+export async function addNewsImage(
+  drizzleDb: ReturnType<typeof getDB>,
+  image: CreateNewsImageInput
+): Promise<NewsImageItem> {
+  const id = generateUUID();
+  const newsImageItem = { ...image, id };
+  const validated = NewsImageSchema.parse(newsImageItem);
+
+  await drizzleDb.insert(schema.newsImage).values(validated);
+  return validated;
+}
+
+export async function getNewsImages(
+  drizzleDb: ReturnType<typeof getDB>,
+  newsId: string
+): Promise<NewsImageItem[]> {
+  const results = await drizzleDb
+    .select()
+    .from(schema.newsImage)
+    .where(eq(schema.newsImage.newsId, newsId))
+    .orderBy(schema.newsImage.displayOrder)
+    .all();
+
+  return results
+    .map((img) => {
+      const validation = NewsImageSchema.safeParse(img);
+      return validation.success ? validation.data : null;
+    })
+    .filter((img): img is NewsImageItem => img !== null);
+}
+
+export async function deleteNewsImage(
+  drizzleDb: ReturnType<typeof getDB>,
+  id: string
+): Promise<boolean> {
+  const result = await drizzleDb.delete(schema.newsImage).where(eq(schema.newsImage.id, id)).run();
+  return result.changes > 0;
+}
+
+/**
+ * Orion: Obtiene el conteo total de noticias publicadas.
+ */
+export async function getNewsCount(drizzleDb: ReturnType<typeof getDB>): Promise<number> {
+  try {
+    const result = await drizzleDb
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.news)
+      .where(eq(schema.news.status, 'published'))
+      .all();
+    return result[0]?.count || 0;
+  } catch (error) {
+    console.error('Error fetching news count:', error);
+    return 0;
   }
 }

@@ -9,12 +9,15 @@ export interface UserSessionPayload {
   role: string;
   isNsfw: boolean;
   tokenVersion: number;
+  jti?: string;
 }
 
 export async function createToken(payload: UserSessionPayload, secret: string): Promise<string> {
   const secretKey = new TextEncoder().encode(secret);
-  return await new SignJWT({ ...payload })
+  const jti = crypto.randomUUID();
+  return await new SignJWT({ ...payload, jti })
     .setProtectedHeader({ alg: 'HS256' })
+    .setJti(jti)
     .setIssuedAt()
     .setExpirationTime('5m')
     .sign(secretKey);

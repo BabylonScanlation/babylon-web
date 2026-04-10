@@ -11,20 +11,36 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     return new Response('Asset not found', { status: 404 });
   }
 
+  // ASTRA: Bloqueo de Navegación Directa (Anti-New Tab / Anti-Download)
+  // Rechazamos peticiones que el navegador identifica como navegación de usuario.
+  const secDest = request.headers.get('Sec-Fetch-Dest');
+  const secMode = request.headers.get('Sec-Fetch-Mode');
+  const secSite = request.headers.get('Sec-Fetch-Site');
+  const babylonService = request.headers.get('X-Babylon-Service');
+
+  // EL MURO DEFINITIVO: Solo permitimos peticiones que traigan nuestro encabezado secreto.
+  // Un usuario abriendo una pestaña nueva NUNCA podrá enviar este encabezado.
+  if (babylonService !== 'nuclear-loader') {
+    if (isDev) console.warn(`[Proxy] Blocked access without Service Header for: ${key}`);
+    return new Response('Forbidden: Internal Service Only', { status: 403 });
+  }
+
+  // Si el destino es 'document' o el modo es 'navigate', es un "Abrir en nueva pestaña".
+  if (secDest === 'document' || secMode === 'navigate' || (secSite && secSite !== 'same-origin')) {
+    if (isDev) console.warn(`[Proxy] Blocked unauthorized direct navigation for: ${key}`);
+    return new Response('Direct access forbidden.', { status: 403 });
+  }
+
   // Orion: Seguridad - Bloqueo Nuclear
   const shieldToken = request.headers.get('X-Shield-Token');
   const referer = request.headers.get('referer');
   const host = request.headers.get('host') || '';
-  const isDevHost = host.includes('localhost') || host.includes('127.0.0.1');
 
   const configuredShieldToken = env.SHIELD_TOKEN;
 
-  // Bloqueo: Autorizamos si viene el token correcto O si el referer coincide con nuestro host (navegación legítima)
-  // En desarrollo permitimos un poco más de flexibilidad para pruebas locales
-  const isAuthorized =
-    (shieldToken && configuredShieldToken && shieldToken === configuredShieldToken) ||
-    (referer && referer.includes(host)) ||
-    (isDev && isDevHost);
+  // Bloqueo: Autorizamos si viene el token correcto.
+  // YA NO HAY BYPASS PARA LOCALHOST (Seguridad Real en Pruebas)
+  const isAuthorized = (shieldToken && configuredShieldToken && shieldToken === configuredShieldToken);
 
   if (!isAuthorized && !isDev) {
     return new Response('Unauthorized Access', { status: 403 });

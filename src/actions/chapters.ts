@@ -84,10 +84,16 @@ export const chapterActions = {
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      if (!user?.isAdmin) throw new Error('Unauthorized');
+      const { env } = context.locals.runtime;
+      const db = getDB(env);
+
+      // Orion: Verificación de Seguridad Nuclear (Slow-Path DB Check)
+      if (!user) throw new Error('Unauthorized');
+      const { checkAdminDB } = await import('../lib/db');
+      const isActuallyAdmin = await checkAdminDB(db, user.uid, env);
+      if (!isActuallyAdmin) throw new Error('Unauthorized: Admin role required from DB');
 
       const { chapterIds } = input;
-      const db = getDB(context.locals.runtime.env);
       const r2Cache = context.locals.runtime.env.R2_CACHE;
 
       for (const id of chapterIds) {

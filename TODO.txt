@@ -1,0 +1,264 @@
+Ahora leo todos los prompts del repositorio para aplicarlos correctamente.Tengo suficiente contexto de los prompts. Ahora hago el code review completo de Babylon aplicando todos los frameworks del repositorio.
+
+---
+
+# Code Review: Babylon Scanlation — Auditoría Completa
+
+**Score de riesgo global: 6.8 / 10**
+
+---
+
+## PARTE 1 — ANÁLISIS INICIAL DE ARQUITECTURA
+
+### Patrón arquitectónico identificado
+La app usa un patrón **SSR Layered** (Astro + Cloudflare Workers): páginas SSR → actions/API routes → lib/data → DB. Es razonablemente limpio pero con varios problemas de acoplamiento.
+
+**Modularity score: 6 / 10.** La separación es buena en teoría pero la práctica revela fugas de responsabilidad.
+
+### Hallazgos de diseño
+
+**1. God modules — `src/lib/db.ts` + `src/lib/db-client.ts`**
+Importancia: 7/10. `db.ts` mezcla operaciones CRUD de News, validación con Zod, generación de UUIDs y re-exporta `getDB`. `db-client.ts` hace lo mismo pero sin la lógica. Hay duplicación directa de `getDB`:
+
+```ts
+// db-client.ts
+export function getDB(env: { DB: D1Database }) { ... }
+// db.ts
+export { getDB }; // re-exporta desde db-client, pero también tiene su propio código de DB
+```
+
+Fix: `db-client.ts` es la fuente de verdad de `getDB`. Todo lo que está en `db.ts` que no sea operaciones de News debería vivir en `src/lib/data/news.ts`.
+
+**2. Circular concern — Layout.astro con lógica de negocio**
+Importancia: 5/10. `Layout.astro` hace una query de DB directamente (`getInitialNewsCount`) dentro del layout base. Un layout no debería conocer la capa de datos.
+
+**3. Anti-patrón: Copy-paste de `getDB` check en múltiples API routes**
+Importancia: 4/10. Casi todas las API routes hacen `const db = getDB(locals.runtime.env)` sin un wrapper central de error. El middleware `createApiRoute` en `api.ts` existe pero no se usa consistentemente — varios archivos como `src/pages/api/news/[id].ts` no lo usan.
+
+---
+
+## PARTE 2 — SEGURIDAD
+
+### Hallazgo 1 — CRÍTICO: Proxy R2 sin autenticación real en producción
+
+**Archivo:** `src/pages/api/assets/proxy/[...key].ts`
+**CWE:** CWE-306 (Missing Authentication)
+
+```ts
+const isAuthorized =
+  (shieldToken && configuredShieldToken && shieldToken === configuredShieldToken) ||
+  (referer && referer.includes(host)) ||  // ← BYPASS trivial
+  (isDev && isDevHost);
+```
+
+El `referer` header es completamente controlable por el cliente. Un atacante puede poner cualquier valor en `Referer`. En producción, cualquiera puede hacer `fetch('/api/assets/proxy/covers/algo.jpg', { headers: { Referer: 'https://babylon-scanlation.pages.dev/algo' }})` y saltarse la protección.
+
+**Severidad: Critical**
+**Fix:**
+```ts
+// Eliminar la condición de referer. Solo permitir via SHIELD_TOKEN o firma criptográfica
+const isAuthorized = shieldToken && configuredShieldToken && shieldToken === configuredShieldToken;
+if (!isAuthorized && !isDev) {
+  return new Response('Unauthorized', { status: 403 });
+}
+```
+
+---
+
+### Hallazgo 2 — HIGH: JWT con TTL de 5 minutos pero refresh silencioso sin revocación real
+
+**Archivo:** `src/lib/session.ts` + `src/lib/middlewares/auth.ts`
+**CWE:** CWE-613 (Insufficient Session Expiration)
+
+```ts
+// session.ts
+.setExpirationTime('5m')  // JWT dura 5 min
+
+// auth.ts — se re-emite automáticamente en cada request si la sesión D1 es válida
+await setAuthCookie(context as any, { ... }, runtime.env.JWT_SECRET);
+```
+
+El JWT se re-emite silenciosamente en cada request autenticado. Si una sesión D1 es válida, el JWT se renueva infinitamente. No hay `jti` (JWT ID) ni blacklist. Si un token es robado, sigue siendo válido hasta que la sesión D1 expire.
+
+**Fix:** Agregar `jti` al JWT y validarlo contra KV:
+```ts
+// En createToken:
+.setJti(generateUUID())
+
+// En verifyToken, agregar lookup a KV para blacklist:
+const revoked = await env.KV_VIEWS?.get(`revoked:${payload.jti}`);
+if (revoked) return null;
+```
+
+---
+
+### Hallazgo 3 — HIGH: XOR "encryption" para datos de capítulos no es cifrado
+
+**Archivo:** `src/lib/obfuscator.ts`
+**CWE:** CWE-327 (Use of a Broken or Risky Cryptographic Algorithm)
+
+```ts
+function xorTransform(data: Uint8Array, salt: string): Uint8Array {
+  // XOR rolling con la clave — esto es ofuscación, NO cifrado
+}
+```
+
+El XOR con clave fija es trivialmente reversible. Cualquiera que inspeccione el tráfico y conozca el salt (que viene en el HTML como `data-salt`) puede descifrar todo el payload de páginas.
+
+```astro
+<!-- src/pages/series/[slug]/[chapter]/index.astro -->
+data-salt={env.INTERNAL_CRYPTO_SALT}  // ← el salt está en el DOM público
+```
+
+**Severidad:** High — el salt expuesto en el DOM hace que toda la "protección" sea ilusoria.
+
+**Fix mínimo:** No exponer el salt en el DOM. Usar AES-GCM via Web Crypto API para el payload, o simplemente confiar en que las URLs firmadas con HMAC (que ya existe en `signUrl`) son suficiente protección.
+
+---
+
+### Hallazgo 4 — HIGH: Rate limiter con KV puede ser bypasseado
+
+**Archivo:** `src/lib/middlewares/shield.ts`
+
+```ts
+async function checkRateLimit(ip: string, env: any): Promise<boolean> {
+  if (!ip || !env?.KV_VIEWS) return true; // ← Si no hay KV, NO limitamos
+```
+
+Si `KV_VIEWS` no está configurado (e.g., en un deployment mal configurado), el rate limiter retorna `true` (permite todo). Esto es fail-open.
+
+**Fix:** Cambiar a fail-closed:
+```ts
+if (!env?.KV_VIEWS) return false; // Si no hay KV, rechazar como precaución
+```
+
+---
+
+### Hallazgo 5 — MEDIUM: INTERNAL_CRYPTO_SALT expuesto en el DOM del cliente
+
+**Archivo:** `src/pages/series/[slug]/[chapter]/index.astro` línea ~180
+
+```astro
+data-salt={env.INTERNAL_CRYPTO_SALT}
+```
+
+Un secreto de servidor se pasa directamente al HTML renderizado. Cualquier usuario puede hacer `document.querySelector('#reader-data-bridge').dataset.salt` y obtener la clave de cifrado del servidor.
+
+**Fix:** El salt no debe abandonar el servidor. El `ChapterReader.svelte` debería recibir el payload ya cifrado (sin el salt) o la verificación debe hacerse server-side.
+
+---
+
+### Hallazgo 6 — MEDIUM: Validación de admin solo por `user?.isAdmin` sin re-verificar en DB para operaciones destructivas
+
+**Archivo:** `src/actions/chapters.ts`, `src/actions/series.ts`
+
+```ts
+handler: async (input, context) => {
+  const { user } = context.locals;
+  if (!user?.isAdmin) throw new Error('Unauthorized');
+  // Procede a eliminar datos...
+```
+
+`user.isAdmin` viene del JWT (Fast-Path), que puede estar stale. Para acciones destructivas (deleteBulk, delete series), se debería verificar contra la DB.
+
+**Fix:**
+```ts
+// Para operaciones destructivas, usar el Slow-Path:
+if (!user?.isAdmin) throw new Error('Unauthorized');
+// Verificación adicional para ops destructivas:
+const dbRole = await db.select().from(userRoles).where(eq(userRoles.userId, user.uid)).get();
+if (dbRole?.role !== 'admin') throw new Error('Unauthorized');
+```
+
+---
+
+### Hallazgo 7 — MEDIUM: Secrets management — Checklist
+
+| Check | Estado |
+|-------|--------|
+| No hardcoded secrets en código | ✅ Pass (usan env vars) |
+| Salt expuesto en DOM del cliente | ❌ **FAIL** |
+| JWT secret en env var | ✅ Pass |
+| Separación de secrets por ambiente | Unable to verify (sin `.env.example`) |
+| `INTERNAL_CRYPTO_SALT` documentado | ❌ FAIL — no hay `.env.example` |
+
+---
+
+## PARTE 3 — CALIDAD DE CÓDIGO
+
+### Hallazgo 8 — Error Handling inconsistente
+
+**Archivo:** Múltiples API routes
+
+Patrón en `src/pages/api/news/[id].ts`:
+```ts
+} catch (error) {
+  logError(error, 'Error al actualizar noticia', { newsId: id, userId: locals.user?.uid });
+  return new Response('Internal Server Error', { status: 500 });
+}
+```
+
+Pero en `src/pages/api/series/[slug]/[chapter]/index.ts`:
+```ts
+} catch {
+  return new Response(JSON.stringify({ error: 'Internal Error' }), { status: 500 });
+}
+```
+
+Sin `logError`, sin contexto. Si un capítulo falla de procesar, no hay trazabilidad.
+
+**Fix:** Usar `createApiRoute` consistentemente o extraer un helper `apiError(err, context)` centralizado.
+
+---
+
+### Hallazgo 9 — Testing: Cobertura crítica ausente
+
+**Archivos:** `src/lib/__tests__/`, `src/test/`
+
+Solo hay 2 archivos de test (`newsStore.test.ts`, `utils.test.ts`) para un proyecto de esta envergadura. No hay tests para:
+- Flujo de autenticación (el más crítico)
+- `obfuscator.ts` (XOR bidireccional)
+- `chapterProcessing.ts` (lógica de negocio central)
+- Middleware de shield/auth
+
+**Importancia: 8/10** — Sin tests de seguridad, los hallazgos 1-6 son difíciles de regresar tras un fix.
+
+---
+
+### Hallazgo 10 — `any` excesivo en código crítico
+
+**Archivo:** `src/pages/api/series/[slug]/[chapter]/index.ts`
+
+```ts
+const runtime = locals.runtime || {};
+const env = runtime.env || (process.env as any);
+```
+
+Si `runtime.env` no existe, usa `process.env` casteado como `any`. En Cloudflare Workers no existe `process.env`. Esto puede enmascarar errores de configuración silenciosamente.
+
+---
+
+## TOP 5 FIXES PRIORITIZADOS (mayor reducción de riesgo)
+
+1. **Eliminar `data-salt` del DOM** (`[chapter]/index.astro`) — 30 min de trabajo, elimina el vector más directo de compromiso.
+2. **Reparar la validación del proxy R2** — eliminar la condición de `referer` del check de autorización.
+3. **Agregar `jti` al JWT + blacklist en KV** — protege contra tokens robados.
+4. **Cambiar `checkRateLimit` a fail-closed** — una línea, evita bypass por misconfiguration.
+5. **Agregar tests para auth middleware y `obfuscator`** — detectaría los hallazgos 1-3 automáticamente en CI.
+
+---
+
+## CHECKLIST RESUMEN
+
+| Área | Estado |
+|------|--------|
+| Autenticación JWT con TTL | ✅ Implementado, ⚠️ sin jti/blacklist |
+| Refresh token rotation | ❌ No hay refresh tokens explícitos |
+| Admin verificado en DB para ops destructivas | ❌ Solo JWT |
+| Secrets fuera del código fuente | ✅ Pass |
+| Salt fuera del DOM cliente | ❌ **FAIL — CRÍTICO** |
+| Rate limiting fail-closed | ❌ FAIL |
+| Proxy assets autenticado correctamente | ❌ FAIL (referer bypass) |
+| Cobertura de tests > 40% | ❌ FAIL |
+| Logging estructurado en todas las rutas | ⚠️ Parcial |
+| Input validation con Zod en actions | ✅ Pass |

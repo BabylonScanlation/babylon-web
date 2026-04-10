@@ -205,11 +205,16 @@ export const seriesActions = {
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      if (!user?.isAdmin) throw new Error('Unauthorized');
-
-      const { seriesId } = input;
       const { env } = context.locals.runtime;
       const db = getDB(env);
+
+      // Orion: Verificación de Seguridad Nuclear (Slow-Path DB Check)
+      if (!user) throw new Error('Unauthorized');
+      const { checkAdminDB } = await import('../lib/db');
+      const isActuallyAdmin = await checkAdminDB(db, user.uid, env);
+      if (!isActuallyAdmin) throw new Error('Unauthorized: Admin role required from DB');
+
+      const { seriesId } = input;
       const { R2_CACHE: r2Cache, R2_ASSETS: r2Assets } = env;
 
       const seriesData = await db.select().from(series).where(eq(series.id, seriesId)).get();
