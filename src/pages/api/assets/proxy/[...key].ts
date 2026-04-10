@@ -22,9 +22,9 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   // Un usuario abriendo una pestaña nueva NUNCA podrá enviar este encabezado.
   if (babylonService !== 'nuclear-loader') {
     // Astra: Bloqueo radical. Sin el header no hay imagen, punto.
-    return new Response('Forbidden: Internal Service Only', { 
+    return new Response('Forbidden: Internal Service Only', {
       status: 403,
-      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' },
     });
   }
 

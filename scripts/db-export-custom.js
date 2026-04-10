@@ -31,14 +31,33 @@ function escapeStringOneLine(val) {
   return `'${str}'`;
 }
 
+function query(q) {
+  return runCommand(`npx wrangler d1 execute ${DB_NAME} --remote --command "${q}" --json`);
+}
+
+function exportTable(table) {
+  let tableSql = '';
+  console.log(`📦 Exportando ${table}...`);
+  const data = query(`SELECT * FROM "${table}"`);
+
+  if (data) {
+    const results = JSON.parse(data)[0].results;
+    if (results) {
+      for (const row of results) {
+        const cols = Object.keys(row);
+        const vals = cols.map((c) => escapeStringOneLine(row[c])).join(', ');
+        tableSql += `INSERT OR IGNORE INTO "${table}" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${vals});\n`;
+      }
+    }
+  }
+  return tableSql;
+}
+
 async function main() {
   console.log('⚡ ORION: Generando exportación completa de todas las tablas...');
 
   const timestamp = getTimestamp();
   const timestampedPath = path.join(DUMP_DIR, `dump_${timestamp}.sql`);
-
-  const query = (q) =>
-    runCommand(`npx wrangler d1 execute ${DB_NAME} --remote --command "${q}" --json`);
 
   // Obtener lista de todas las tablas de usuario
   console.log('🔍 Listando tablas disponibles en D1 Remote...');
@@ -65,16 +84,7 @@ async function main() {
   // 1. Exportar tablas prioritarias primero
   for (const table of priority) {
     if (allTables.includes(table)) {
-      console.log(`📦 Exportando ${table} (Prioridad)...`);
-      const data = query(`SELECT * FROM "${table}"`);
-      if (data) {
-        const rows = JSON.parse(data)[0].results;
-        rows.forEach((row) => {
-          const cols = Object.keys(row);
-          const vals = cols.map((c) => escapeStringOneLine(row[c])).join(', ');
-          sqlDump += `INSERT OR IGNORE INTO "${table}" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${vals});\n`;
-        });
-      }
+      sqlDump += exportTable(table);
       processed.add(table);
     }
   }
@@ -82,18 +92,7 @@ async function main() {
   // 2. Exportar el resto de tablas
   for (const table of allTables) {
     if (!processed.has(table) && !skip.has(table)) {
-      console.log(`📦 Exportando ${table}...`);
-      const data = query(`SELECT * FROM "${table}"`);
-      if (data) {
-        const result = JSON.parse(data)[0];
-        if (result?.results) {
-          result.results.forEach((row) => {
-            const cols = Object.keys(row);
-            const vals = cols.map((c) => escapeStringOneLine(row[c])).join(', ');
-            sqlDump += `INSERT OR IGNORE INTO "${table}" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${vals});\n`;
-          });
-        }
-      }
+      sqlDump += exportTable(table);
       processed.add(table);
     }
   }

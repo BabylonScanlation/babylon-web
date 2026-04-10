@@ -7,6 +7,30 @@ import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
 import { siteConfig } from '../site.config';
 
+async function clearSeriesR2Data(
+  slug: string | null,
+  cover: string | null,
+  env: { R2_CACHE: any; R2_ASSETS: any }
+) {
+  const { R2_CACHE: r2Cache, R2_ASSETS: r2Assets } = env;
+
+  if (slug) {
+    let truncated = true;
+    let cursor: string | undefined;
+    while (truncated) {
+      const list = await r2Cache.list({ prefix: `${slug}/`, cursor });
+      const keys = list.objects.map((obj: { key: string }) => obj.key);
+      if (keys.length > 0) await r2Cache.delete(keys);
+      truncated = list.truncated;
+      cursor = list.truncated ? list.cursor : undefined;
+    }
+  }
+
+  if (cover && !cover.includes('placeholder')) {
+    await r2Assets.delete(cover);
+  }
+}
+
 export const seriesActions = {
   create: defineAction({
     accept: 'form',
@@ -215,29 +239,12 @@ export const seriesActions = {
       if (!isActuallyAdmin) throw new Error('Unauthorized: Admin role required from DB');
 
       const { seriesId } = input;
-      const { R2_CACHE: r2Cache, R2_ASSETS: r2Assets } = env;
 
       const seriesData = await db.select().from(series).where(eq(series.id, seriesId)).get();
       if (!seriesData) throw new Error('Serie no encontrada');
 
-      if (seriesData.slug) {
-        let truncated = true;
-        let cursor: string | undefined;
-        while (truncated) {
-          const list = await r2Cache.list({ prefix: `${seriesData.slug}/`, cursor });
-          const keys = list.objects.map((obj: { key: string }) => obj.key);
-          if (keys.length > 0) await r2Cache.delete(keys);
-          truncated = list.truncated;
-          cursor = list.truncated ? list.cursor : undefined;
-        }
-      }
-
-      if (seriesData.coverImageUrl && !seriesData.coverImageUrl.includes('placeholder')) {
-        const coverKey = seriesData.coverImageUrl.includes('/')
-          ? seriesData.coverImageUrl
-          : seriesData.coverImageUrl;
-        await r2Assets.delete(coverKey);
-      }
+      // Limpieza de R2 (Capítulos y Portada)
+      await clearSeriesR2Data(seriesData.slug, seriesData.coverImageUrl, env);
 
       await db.delete(chapters).where(eq(chapters.seriesId, seriesId)).run();
       await db.delete(series).where(eq(series.id, seriesId)).run();

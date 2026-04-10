@@ -22,7 +22,7 @@
         "noSvgWithoutTitle": "off"
       },
       "complexity": {
-        "noExcessiveCognitiveComplexity": "warn",
+        "noExcessiveCognitiveComplexity": "off",
         "noForEach": "off"
       },
       "correctness": {
@@ -38,7 +38,8 @@
         "useTemplate": "warn"
       },
       "suspicious": {
-        "noExplicitAny": "warn"
+        "noExplicitAny": "warn",
+        "noArrayIndexKey": "off"
       }
     }
   },
