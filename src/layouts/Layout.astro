@@ -153,6 +153,34 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         pointer-events: none !important;
         -webkit-touch-callout: none !important;
       }
+      
+      /* Astra: Estilos para Contenedores de Anuncios Camuflados */
+      .content-dynamic-wrap {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        width: 100%;
+        margin: 2.5rem 0;
+        min-height: 50px;
+        background: rgba(255, 255, 255, 0.01);
+        border-radius: 16px;
+        overflow: visible !important;
+        position: relative;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .content-dynamic-wrap.square {
+        min-height: 250px;
+        margin: 2.5rem auto;
+      }
+
+      .dynamic-inner-box {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
     </style>
   </head>
   <body 
@@ -204,48 +232,49 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         window.addEventListener('contextmenu', e => e.preventDefault(), true);
         window.addEventListener('dragstart', e => e.preventDefault(), true);
         
-        if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
-          setInterval(() => { if (window.console && window.console.clear) console.clear(); }, 1000);
-        }
-
         // 2. Cargador Nuclear (Inmediato para LCP)
+        const _0xP = new Set(); // Claves en vuelo — previene doble-fetch
         const _0xL = async (el) => {
           const k = el.getAttribute('data-ghost-key');
-          if (!k || el.classList.contains('shield-loaded')) return;
+          if (!k || el.classList.contains('shield-loaded') || _0xP.has(k)) return;
+          _0xP.add(k);
           try {
             const r = atob(k);
             const u = `${_0xS.p}${r}?w=300&q=60&fmt=webp`;
             const rs = await fetch(u, {
               headers: { 'X-Babylon-Service': 'nuclear-loader' }
             });
-            if (!rs.ok) return;
             
-            // EL SECRETO NUCLEAR: createImageBitmap
-            // Esta API procesa la imagen directamente en la GPU/RAM sin crear una URL.
-            // Al no haber URL, NO APARECE en el Network como 'blob:'.
-            const b = await rs.blob();
-            const bitmap = await createImageBitmap(b);
-            
-            const cvs = document.createElement('canvas');
-            cvs.width = bitmap.width;
-            cvs.height = bitmap.height;
-            cvs.style.width = '100%';
-            cvs.style.height = '100%';
-            cvs.style.objectFit = 'cover';
-            cvs.style.display = 'block';
-            
-            const ctx = cvs.getContext('2d', { alpha: false });
-            ctx.drawImage(bitmap, 0, 0);
-            
-            // Destruimos el rastro de memoria inmediatamente
-            bitmap.close();
-            
-            el.innerHTML = '';
-            el.appendChild(cvs);
-            el.style.backgroundImage = 'none';
-            el.classList.add('shield-loaded');
-            el.removeAttribute('data-ghost-key');
-          } catch (e) {}
+            if (rs.ok) {
+              // EL SECRETO NUCLEAR: createImageBitmap
+              const b = await rs.blob();
+              const bitmap = await createImageBitmap(b);
+              
+              const cvs = document.createElement('canvas');
+              cvs.width = bitmap.width;
+              cvs.height = bitmap.height;
+              cvs.style.width = '100%';
+              cvs.style.height = '100%';
+              cvs.style.objectFit = 'cover';
+              cvs.style.display = 'block';
+              
+              const ctx = cvs.getContext('2d', { alpha: false });
+              ctx.drawImage(bitmap, 0, 0);
+              bitmap.close();
+              
+              el.innerHTML = '';
+              el.appendChild(cvs);
+              el.style.backgroundImage = 'none';
+              el.classList.add('shield-loaded');
+              el.removeAttribute('data-ghost-key');
+            } else if (window.location.hostname === 'localhost') {
+              console.error('[Nuclear] Fetch failed:', rs.status, u);
+            }
+          } catch (e) {
+            if (window.location.hostname === 'localhost') console.error('[Nuclear] Error:', e);
+          } finally {
+            _0xP.delete(k); // SIEMPRE liberar la clave, cargue o no, para permitir reintentos
+          }
         };
 
         const _0xI = () => {
@@ -302,13 +331,26 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                   ifr.width = dim.w.toString();
                   ifr.height = dim.h.toString();
                   ifr.style.cssText = `border:none;overflow:hidden;background:transparent;width:100%;max-width:${dim.w}px;height:${dim.h}px;display:block;margin:0 auto;`;
-                  ifr.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
+                  ifr.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation-by-user-activation allow-pointer-lock allow-popups-to-escape-sandbox');
                   ifr.setAttribute('scrolling', 'no');
                   const slot = document.getElementById('slot-' + el.id);
                   if (slot) {
                     slot.innerHTML = ''; slot.appendChild(ifr);
                     const opt = `{ 'key' : '${fk}', 'format' : 'iframe', 'height' : ${dim.h}, 'width' : ${dim.w}, 'params' : {} }`;
-                    ifr.srcdoc = `<body style="margin:0;padding:0;background:transparent;display:flex;justify-content:center;"><div id="container-${fk}" style="width:100%;max-width:${dim.w}px;"></div><script>atOptions=${opt};<\/script><script src="${_0xS.a}${fk}/invoke.js"><\/script></body>`;
+                    
+                    // Astra: El "Top Trick" para engañar a Adsterra y evitar el SecurityError
+                    ifr.srcdoc = `<!DOCTYPE html><html><head><script>
+                      try {
+                        // Engañamos al script para que crea que este iframe es la ventana principal
+                        Object.defineProperty(window, 'top', { get: function() { return window; } });
+                        Object.defineProperty(window, 'parent', { get: function() { return window; } });
+                      } catch (e) {}
+                    <\/script><\/head><body style="margin:0;padding:0;background:transparent;display:flex;justify-content:center;align-items:center;height:100vh;">
+                    <div id="container-${fk}" style="width:100%;"></div>
+                    <script>atOptions=${opt};<\/script>
+                    <script src="${_0xS.a}${fk}/invoke.js"><\/script>
+                    </body></html>`;
+                    
                     (el as HTMLElement).style.minHeight = `${dim.h}px`;
                   }
                 }

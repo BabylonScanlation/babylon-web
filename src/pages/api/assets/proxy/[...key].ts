@@ -21,8 +21,11 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   // EL MURO DEFINITIVO: Solo permitimos peticiones que traigan nuestro encabezado secreto.
   // Un usuario abriendo una pestaña nueva NUNCA podrá enviar este encabezado.
   if (babylonService !== 'nuclear-loader') {
-    if (isDev) console.warn(`[Proxy] Blocked access without Service Header for: ${key}`);
-    return new Response('Forbidden: Internal Service Only', { status: 403 });
+    // Astra: Bloqueo radical. Sin el header no hay imagen, punto.
+    return new Response('Forbidden: Internal Service Only', { 
+      status: 403,
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' }
+    });
   }
 
   // Si el destino es 'document' o el modo es 'navigate', es un "Abrir en nueva pestaña".
@@ -47,25 +50,20 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
 
   // Orion: 1. Desofuscación Inteligente
   const salt = env.INTERNAL_CRYPTO_SALT;
-  if (!salt) {
-    console.error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
-    return new Response('Security Configuration Error', { status: 500 });
-  }
-
   const decodedKey = decodeURIComponent(key);
   let objectKey = decodedKey;
 
   // Astra Orion: Solo intentamos desofuscar si la clave NO parece una ruta clara.
-  // Las rutas de noticias empiezan por 'news/', las de capítulos son un hash Base64 sin '/' internos usualmente.
   if (!decodedKey.includes('/') || decodedKey.startsWith('http')) {
     try {
-      const decrypted = deobfuscate(key, salt);
+      // Si hay salt, intentamos desofuscar. Si no hay salt, usamos la key tal cual.
+      const decrypted = salt ? deobfuscate(key, salt) : null;
       if (decrypted && typeof decrypted === 'string') {
         objectKey = decrypted;
         if (isDev) console.log(`[Proxy] De-obfuscated: ${key} -> ${objectKey}`);
       }
     } catch (e) {
-      // Ignoramos fallos de desofuscación para rutas claras
+      // Ignoramos fallos de desofuscación
     }
   } else {
     if (isDev) console.log(`[Proxy] Clear Path Detected: ${objectKey}`);
@@ -124,6 +122,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     const headers = new Headers();
     headers.set('Access-Control-Allow-Origin', '*');
     headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+    headers.set('Vary', 'X-Babylon-Service'); // Astra: Clave para particionar el caché del navegador
     if (contentType) headers.set('Content-Type', contentType);
     if (etag) headers.set('ETag', etag);
 
