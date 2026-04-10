@@ -1,7 +1,6 @@
 <script lang="ts">
 import { onMount } from 'svelte';
 import { fade, fly } from 'svelte/transition';
-import { deobfuscate } from '../lib/obfuscator';
 import ReaderPage from './ReaderPage.svelte';
 
 interface Page {
@@ -21,7 +20,7 @@ interface Props {
   chapter?: string;
   initialPages?: Page[];
   initialImageUrls?: string[];
-  encryptedData?: string | null;
+  chapterPayload?: any;
   chapterId?: number | null;
   seriesTitle?: string | null;
   watermark?: string;
@@ -36,14 +35,13 @@ let {
   chapter = '',
   initialPages = [],
   initialImageUrls = [],
-  encryptedData = null,
+  chapterPayload = null,
   chapterId = null,
   seriesTitle = '',
   watermark = '',
   initialLoadingMessage = null,
   nextChapter = null,
   processing = false,
-  salt,
 }: Props = $props();
 
 let pagesData = $state<Page[]>([]);
@@ -147,8 +145,14 @@ onMount(() => {
   if (bridge) {
     slug = bridge.getAttribute('data-slug') || slug;
     chapter = bridge.getAttribute('data-chapter') || chapter;
-    const bridgeEncrypted = bridge.getAttribute('data-encrypted');
-    if (bridgeEncrypted) encryptedData = bridgeEncrypted;
+    const bridgePayload = bridge.getAttribute('data-payload');
+    if (bridgePayload) {
+      try {
+        chapterPayload = JSON.parse(bridgePayload);
+      } catch (e) {
+        console.error('Error parsing bridge payload', e);
+      }
+    }
 
     const rawId = bridge.getAttribute('data-chapter-id');
     if (rawId) chapterId = parseInt(rawId);
@@ -234,10 +238,10 @@ onMount(() => {
 
   // Lógica de hidratación diferida
   setTimeout(() => {
-    if (encryptedData && pagesData.length === 0) {
+    if (chapterPayload && pagesData.length === 0) {
       try {
         console.log('[READER] Hydrating data...');
-        const decrypted = typeof encryptedData === 'string' ? JSON.parse(encryptedData) : encryptedData;
+        const decrypted = chapterPayload;
         if (decrypted) {
           let incomingPages = [];
           if (decrypted.pages) incomingPages = decrypted.pages;
@@ -252,12 +256,12 @@ onMount(() => {
             // console.log('[READER] Sequence:', pagesData.map(p => p.pageNumber).join(', '));
             if (isProcessing) isProcessing = false;
           } else {
-            console.warn('[READER] No pages found in decrypted payload');
+            console.warn('[READER] No pages found in payload');
           }
         }
       } catch (e) {
         console.error('[READER] Critical error during hydration:', e);
-        error = 'Error de seguridad al cargar el contenido.';
+        error = 'Error al cargar el contenido del capítulo.';
       }
     }
 
@@ -510,7 +514,7 @@ function saveSettings() {
 }
 
 // Orion: Detectar si el capítulo es solo para la app (Protección de contenido)
-const isInAppOnly = $derived(encryptedData === 'inapp' || loadingMessage === 'inapp');
+const isInAppOnly = $derived(chapterPayload === 'inapp' || loadingMessage === 'inapp');
 
 import { siteConfig } from '../site.config';
 </script>

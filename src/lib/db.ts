@@ -25,4 +25,3 @@ export async function checkAdminDB(
 
   return result?.role === 'admin';
 }
-

@@ -1,5 +1,5 @@
-import { getNewsById, getNewsImages } from '../../../../src/lib/data/news';
 import { createApiRoute } from '../../../../src/lib/api';
+import { getNewsById, getNewsImages } from '../../../../src/lib/data/news';
 
 export const GET = createApiRoute({ auth: 'public' }, async ({ params, locals }) => {
   const { id } = params;

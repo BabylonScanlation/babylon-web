@@ -5,7 +5,6 @@ import type * as schema from '../../db/schema';
 import { chapters, series } from '../../db/schema';
 import type { BabylonEnv, ChapterManifest } from '../../types';
 import { signManifest } from '../crypto';
-import { obfuscate } from '../obfuscator';
 
 export async function getChapterPayload(
   db: DrizzleD1Database<typeof schema>,
@@ -69,8 +68,6 @@ export async function getChapterPayload(
     }
   }
 
-  const salt = env.INTERNAL_CRYPTO_SALT;
-  if (!salt) throw new Error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
   if (manifestContent) {
     const signedManifest = await signManifest(manifestContent, env.AUTH_SECRET);
     return {

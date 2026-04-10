@@ -2,19 +2,14 @@
 import { eq } from 'drizzle-orm';
 import { users } from '../../db/schema';
 import Layout from '../../layouts/Layout.astro';
-import { getNewsList } from '../../lib/data/news';
+import { getAllNews, type NewsWithDetails } from '../../lib/data/news';
 import { getDB } from '../../lib/db';
 import { siteConfig } from '../../site.config';
 
 const drizzleDb = getDB(Astro.locals.runtime.env);
-const { user } = Astro.locals;
+const { user, runtime } = Astro.locals;
 
-// Astra: El modo NSFW ahora es global vía cookies (logo del header)
-const nsfwCookieValue = Astro.cookies.get('babylon_nsfw')?.value;
-const allowNsfw =
-  typeof nsfwCookieValue === 'string' ? nsfwCookieValue === 'true' : user?.isNsfw || false;
-
-const newsItems = (await getNewsList(drizzleDb, 'published', undefined, allowNsfw)) || [];
+const newsItems = (await getAllNews(drizzleDb, 'published', undefined, runtime.env)) || [];
 
 // Orion: Limpiador de Markdown para extractos
 function stripMarkdown(text: string) {
@@ -110,7 +105,7 @@ if (newsItems.length > 0 && newsItems[0]) {
             <p>No hay noticias publicadas aún en este momento.</p>
           </div>
         ) : (
-          newsItems.map((news) => (
+          newsItems.map((news: NewsWithDetails) => (
             <div class="news-card-wrapper">
               <a
                 href={`/news/${news.id}`}

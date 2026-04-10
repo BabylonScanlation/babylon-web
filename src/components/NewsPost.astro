@@ -1,6 +1,6 @@
 ---
 // src/components/NewsPost.astro
-import type { NewsItem } from '../lib/db';
+import type { NewsItem } from '../lib/data/news';
 
 interface Props {
   newsItem: NewsItem & { imageUrls: string[]; authorName: string };
@@ -31,7 +31,7 @@ function formatDate(date: Date | string | number) {
   </div>
   {newsItem.imageUrls && newsItem.imageUrls.length > 0 && (
     <div class="post-images">
-      {newsItem.imageUrls.map(url => (
+      {newsItem.imageUrls.map((url: string) => (
         <a href={url} target="_blank" rel="noopener noreferrer">
           <img src={url} alt="Imagen de la noticia" loading="lazy" />
         </a>

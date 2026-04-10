@@ -1,20 +1,10 @@
 ---
-import { deleteNews, getAllNews, getDB } from '../lib/db';
+import { getAllNews, type NewsWithDetails } from '../lib/data/news';
+import { getDB } from '../lib/db';
 
 const drizzleDb = getDB(Astro.locals.runtime.env);
 
 let newsItems = await getAllNews(drizzleDb);
-if (Astro.request.method === 'POST') {
-  const formData = await Astro.request.formData();
-  const action = formData.get('action');
-  const newsId = formData.get('newsId');
-
-  if (action === 'delete' && newsId) {
-    await deleteNews(drizzleDb, newsId.toString());
-    // Re-fetch news after deletion
-    newsItems = await getAllNews(drizzleDb);
-  }
-}
 ---
 
 <div class="bg-white shadow-md rounded-lg p-4">
@@ -23,7 +13,7 @@ if (Astro.request.method === 'POST') {
       <p>No hay noticias aún.</p>
     ) : (
       <ul>
-        {newsItems.map((news) => (
+        {newsItems.map((news: NewsWithDetails) => (
           <li class="border-b py-2 flex justify-between items-center">
             <div>
               <h3 class="text-lg font-semibold">{news.title}</h3>

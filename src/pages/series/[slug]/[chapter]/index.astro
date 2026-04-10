@@ -20,7 +20,7 @@ const drizzleDb = getDB(Astro.locals.runtime.env);
 const env = Astro.locals.runtime.env;
 
 // --- Variables de Estado ---
-let encryptedData: string | null = null;
+let chapterPayload: any = null;
 let error: string | null = null;
 let isAppOnly = false;
 let loadingMessage: string | null = null;
@@ -70,7 +70,7 @@ try {
   );
 
   if (chapterResult) {
-    encryptedData = chapterResult.payload;
+    chapterPayload = chapterResult.payload;
     chapterId = chapterResult.chapterId;
     isProcessing = chapterResult.processing;
 
@@ -247,7 +247,7 @@ if (error && currentChapterIndex !== -1) {
           id="reader-data-bridge" 
           data-slug={slug}
           data-chapter={chapter}
-          data-encrypted={encryptedData}
+          data-payload={JSON.stringify(chapterPayload)}
           data-chapter-id={chapterId}
           data-series-id={seriesData?.id}
           data-processing={isProcessing ? 'true' : 'false'}
@@ -260,7 +260,7 @@ if (error && currentChapterIndex !== -1) {
           client:load 
           slug={slug || ''}
           chapter={chapter || ''}
-          encryptedData={encryptedData || undefined}
+          chapterPayload={chapterPayload}
           chapterId={chapterId || undefined}
           processing={isProcessing}
           initialLoadingMessage={loadingMessage || undefined}

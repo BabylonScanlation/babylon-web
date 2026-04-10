@@ -33,14 +33,13 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
 
   // Orion: Seguridad - Bloqueo Nuclear
   const shieldToken = request.headers.get('X-Shield-Token');
-  const referer = request.headers.get('referer');
-  const host = request.headers.get('host') || '';
 
   const configuredShieldToken = env.SHIELD_TOKEN;
 
   // Bloqueo: Autorizamos si viene el token correcto.
   // YA NO HAY BYPASS PARA LOCALHOST (Seguridad Real en Pruebas)
-  const isAuthorized = (shieldToken && configuredShieldToken && shieldToken === configuredShieldToken);
+  const isAuthorized =
+    shieldToken && configuredShieldToken && shieldToken === configuredShieldToken;
 
   if (!isAuthorized && !isDev) {
     return new Response('Unauthorized Access', { status: 403 });

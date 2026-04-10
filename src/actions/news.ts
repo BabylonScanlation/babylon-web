@@ -6,12 +6,11 @@ import {
   addNewsImage,
   createNews,
   deleteNews,
-  getDB,
   getNewsImages,
   type NewsImageItem,
   updateNews,
-} from '../lib/db';
-
+} from '../lib/data/news';
+import { getDB } from '../lib/db';
 export const newsActions = {
   uploadImage: defineAction({
     accept: 'form',

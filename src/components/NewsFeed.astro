@@ -1,5 +1,6 @@
 ---
-import { getAllNews, getDB, getNewsImages, type NewsImageItem, type NewsItem } from '../lib/db';
+import { getAllNews, getNewsImages, type NewsImageItem, type NewsItem } from '../lib/data/news';
+import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
 import { siteConfig } from '../site.config';
 import type { User } from '../types';

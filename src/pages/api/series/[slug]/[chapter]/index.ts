@@ -7,7 +7,6 @@ import { processAndCacheChapter } from '../../../../../lib/chapterProcessing';
 import { signManifest } from '../../../../../lib/crypto';
 import { getDB } from '../../../../../lib/db';
 import { logError } from '../../../../../lib/logError';
-import { obfuscate } from '../../../../../lib/obfuscator';
 
 const sseHeaders = {
   'Content-Type': 'text/event-stream; charset=utf-8',
@@ -115,11 +114,25 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         chapterCoverUrl: chapterData.chapterCoverUrl,
       };
 
-        const message = `event: completed\ndata: ${JSON.stringify({ payload: responseData })}\n\n`;
-        writer
-          .write(encoder.encode(message))
-          .then(() => writer.close())
-          .catch(() => {});
+      if (wantsStream) {
+        console.log('[API_CH] Delivery mode: SSE Stream (Manifest found)');
+        const { readable, writable } = new TransformStream();
+        const writer = writable.getWriter();
+        const encoder = new TextEncoder();
+
+        ctx.waitUntil(
+          (async () => {
+            try {
+              await writer.write(encoder.encode(': connected\n\n'));
+              const message = `event: completed\ndata: ${JSON.stringify({ payload: responseData })}\n\n`;
+              await writer.write(encoder.encode(message));
+              await writer.close();
+            } catch (e) {
+              console.error('[API_CH] SSE Direct Manifest Error:', e);
+            }
+          })()
+        );
+
         return new Response(readable, { headers: sseHeaders });
       }
 
@@ -160,10 +173,10 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       return new Response(
         JSON.stringify({
           payload: {
-              status: 'processing',
-              seriesId: chapterData.seriesId,
-              chapterId: chapterData.chapterId,
-            },
+            status: 'processing',
+            seriesId: chapterData.seriesId,
+            chapterId: chapterData.chapterId,
+          },
         }),
         { status: 202 }
       );
@@ -232,7 +245,6 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         console.warn('[API_CH] SSE Loop: Stream interrupted.');
       }
     };
-
 
     ctx.waitUntil(checkProcessingStatus());
     return new Response(readable, { headers: sseHeaders });

@@ -1,12 +1,12 @@
 import type { APIRoute } from 'astro';
 import {
   deleteNews,
-  getDB,
   getNewsById,
   getNewsImages,
   type NewsImageItem,
   updateNews,
-} from '../../../../lib/db';
+} from '../../../../lib/data/news';
+import { getDB } from '../../../../lib/db';
 import { logError } from '../../../../lib/logError';
 
 export const GET: APIRoute = async ({ params, locals }) => {

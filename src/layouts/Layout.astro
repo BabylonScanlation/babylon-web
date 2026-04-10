@@ -1,12 +1,11 @@
 ---
 import '../styles/global.css';
-import { sql } from 'drizzle-orm';
 import AdblockWall from '../components/AdblockWall.astro';
 import BottomNav from '../components/BottomNav.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
-import { getDB } from '../lib/db';
 import { getNewsCount } from '../lib/data/news';
+import { getDB } from '../lib/db';
 import { siteConfig } from '../site.config';
 
 // Orion: Obtención de contador en el servidor para evitar peticiones del cliente (Ahorro masivo)
@@ -393,7 +392,5 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       const _0xT = (id: string) => { const b = document.getElementById(id); if (b) b.onclick = async (e) => { e.preventDefault(); try { const r = await fetch('/api/ui/toggle-nsfw', { method: 'POST' }); const d = await r.json(); if (d.success) window.location.reload(); } catch (err) {} }; };
       _0xT('nsfw-toggle-btn'); _0xT('nsfw-toggle-mobile');
     </script>
-  </body>
-</html>
   </body>
 </html>

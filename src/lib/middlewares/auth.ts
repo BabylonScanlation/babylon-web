@@ -32,8 +32,10 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
     const payload = await verifyToken(authCookie, runtime.env.JWT_SECRET);
     if (payload) {
       // Verificación de Blacklist en KV (Revocación individual de JWTs)
-      const isRevoked = payload.jti ? await runtime?.env?.KV_VIEWS?.get(`revoked:${payload.jti}`) : false;
-      
+      const isRevoked = payload.jti
+        ? await runtime?.env?.KV_VIEWS?.get(`revoked:${payload.jti}`)
+        : false;
+
       if (!isRevoked) {
         locals.user = {
           uid: payload.uid,

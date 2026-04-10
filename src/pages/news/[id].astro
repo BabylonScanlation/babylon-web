@@ -3,7 +3,7 @@ import snarkdown from 'snarkdown';
 import UnifiedComments from '../../components/UnifiedComments.astro';
 import Layout from '../../layouts/Layout.astro';
 import { getCommentsForTarget } from '../../lib/data/comments';
-import { getNewsDetail } from '../../lib/data/news';
+import { getNewsById } from '../../lib/data/news';
 import { getDB } from '../../lib/db';
 import { siteConfig } from '../../site.config';
 import type { Comment } from '../../types';
@@ -14,7 +14,7 @@ if (!id) return Astro.redirect('/404');
 const user = Astro.locals.user;
 const drizzleDb = getDB(Astro.locals.runtime.env);
 
-const newsItem = await getNewsDetail(drizzleDb, id);
+const newsItem = await getNewsById(drizzleDb, id);
 
 if (!newsItem) {
   return Astro.redirect('/news');

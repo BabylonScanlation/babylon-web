@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import * as schema from '../../db/schema';
-import { getDB } from '../db-client';
+import type { getDB } from '../db-client';
 import { generateUUID } from '../utils';
 
 // --- Zod Schemas ---
@@ -39,6 +39,7 @@ export type NewsWithDetails = NewsItem & {
   seriesCover?: string | null;
   seriesTitle?: string | null;
   authorAvatar?: string | null;
+  imageUrls?: string[];
 };
 
 // --- Database Operations ---
@@ -110,7 +111,8 @@ export async function getNewsById(
 export async function getAllNews(
   drizzleDb: ReturnType<typeof getDB>,
   status?: 'draft' | 'published',
-  seriesId?: number | null
+  seriesId?: number | null,
+  env?: any
 ): Promise<NewsWithDetails[]> {
   const conditions = [];
 
@@ -146,26 +148,35 @@ export async function getAllNews(
       .orderBy(desc(sql`CAST(${schema.news.createdAt} AS INTEGER)`))
       .all();
 
-    const validatedItems = results.map((r) => {
-      const validation = NewsSchema.safeParse({
-        ...r,
-        createdAt: r.createdAt ? new Date(r.createdAt) : new Date(),
-        updatedAt: r.updatedAt ? new Date(r.updatedAt) : new Date(),
-      });
+    const validatedItems = await Promise.all(
+      results.map(async (r) => {
+        const validation = NewsSchema.safeParse({
+          ...r,
+          createdAt: r.createdAt ? new Date(r.createdAt) : new Date(),
+          updatedAt: r.updatedAt ? new Date(r.updatedAt) : new Date(),
+        });
 
-      if (!validation.success) {
-        console.warn(`[DB Skip] Skipping invalid news item ${r.id}:`, validation.error);
-        return null;
-      }
+        if (!validation.success) {
+          console.warn(`[DB Skip] Skipping invalid news item ${r.id}:`, validation.error);
+          return null;
+        }
 
-      const item: NewsWithDetails = {
-        ...validation.data,
-        seriesCover: r.seriesCover ?? null,
-        seriesTitle: r.seriesTitle ?? null,
-        authorAvatar: r.authorAvatar ?? null,
-      };
-      return item;
-    });
+        const item: NewsWithDetails = {
+          ...validation.data,
+          seriesCover: r.seriesCover ?? null,
+          seriesTitle: r.seriesTitle ?? null,
+          authorAvatar: r.authorAvatar ?? null,
+          imageUrls: [],
+        };
+
+        if (env) {
+          const images = await getNewsImages(drizzleDb, item.id);
+          item.imageUrls = images.map((img) => `${env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`);
+        }
+
+        return item;
+      })
+    );
 
     return validatedItems.filter((item): item is NewsWithDetails => item !== null);
   } catch (err: unknown) {
