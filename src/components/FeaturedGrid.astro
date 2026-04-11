@@ -32,10 +32,9 @@ const displayMangas = mangas.slice(0, 6);
                 class="card-image"
                 width={300}
                 height={450}
-                loading="lazy"
+                loading="eager"
                 style={`transition-name: cover-${manga.slug}`}
-                fetchpriority="auto"
-                forceLazy={true}
+                fetchpriority="high"
               />
               <div class="card-overlay-gradient"></div>
             </div>

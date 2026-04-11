@@ -30,21 +30,20 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
 
 {_shouldShowAds && (
   <div 
-    class:list={["content-dynamic-wrap", type, _className]} 
+    class:list={["ad-container-root", type, _className]} 
     id={_instanceId}
-    data-view-type={type}
-    data-view-keys={JSON.stringify(adKeys)}
-    data-view-dims={JSON.stringify(_dimensions)}
-    data-view-initial={_adKey}
+    data-ad-type={type}
+    data-ad-keys={JSON.stringify(adKeys)}
+    data-ad-dims={JSON.stringify(_dimensions)}
+    data-ad-initial={_adKey}
   >
-    <div class="dynamic-inner-box">
-      <div class="dynamic-content-slot" id={`slot-${_instanceId}`}>
-        <div id={`target-${_instanceId}`}></div>
+    <div class="ad-inner-wrapper">
+      <div class="ad-content-slot" id={`slot-${_instanceId}`}>
+        <div id={`container-${_instanceId}`}></div>
       </div>
     </div>
   </div>
 )}
-
 <style>
   /* --- Ad Container (Modularized) --- */
   .content-dynamic-wrap {
@@ -72,9 +71,8 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
     display: flex;
     justify-content: center;
     align-items: center;
-    line-height: 0;
-    overflow: hidden;
-    min-height: 50px;
+    overflow: visible !important;
+    min-height: 90px;
   }
 
   .ad-container-root.banner,
@@ -94,6 +92,8 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
     position: relative;
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    align-items: center;
     background: #080808;
     border-radius: 16px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
@@ -101,6 +101,7 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
     min-width: 300px;
     min-height: inherit;
     transition: all 0.3s ease;
+    overflow: visible !important;
   }
 
   .ad-content-slot, .dynamic-content-slot {
@@ -124,22 +125,4 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
     max-width: 100vw !important;
   }
 
-  .ad-info-overlay {
-    position: absolute;
-    top: 0;
-    right: 0;
-    background: rgba(0, 0, 0, 0.6);
-    padding: 2px 6px;
-    border-bottom-left-radius: 8px;
-    z-index: 10;
-    pointer-events: none;
-  }
-
-  .ad-info-overlay span {
-    font-family: system-ui, sans-serif;
-    font-size: 7px;
-    font-weight: 900;
-    color: #444;
-    letter-spacing: 1px;
-  }
 </style>

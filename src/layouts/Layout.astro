@@ -132,6 +132,17 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       }
     </style>
     <style is:global>
+      /* Astra: Limpieza de Slides para el Hero (Evita superposición translúcida) */
+      .hero-swiper .swiper-slide {
+        opacity: 0 !important;
+        transition: opacity 0.6s ease-in-out !important;
+        pointer-events: none;
+      }
+      .hero-swiper .swiper-slide-active {
+        opacity: 1 !important;
+        pointer-events: auto;
+      }
+
       /* Astra: Capa Fantasma (Shield) */
       .image-wrapper {
         position: relative;
@@ -154,14 +165,14 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         -webkit-touch-callout: none !important;
       }
       
-      /* Astra: Estilos para Contenedores de Anuncios Camuflados */
-      .content-dynamic-wrap {
+      /* Astra: Estilos para Contenedores de Anuncios */
+      .ad-container-root {
         display: flex;
         justify-content: center;
-        align-items: flex-start;
+        align-items: center;
         width: 100%;
         margin: 2.5rem 0;
-        min-height: 50px;
+        min-height: 90px;
         background: rgba(255, 255, 255, 0.01);
         border-radius: 16px;
         overflow: visible !important;
@@ -169,17 +180,18 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      .content-dynamic-wrap.square {
+      .ad-container-root.square {
         min-height: 250px;
         margin: 2.5rem auto;
       }
 
-      .dynamic-inner-box {
+      .ad-inner-wrapper {
         position: relative;
         z-index: 1;
         width: 100%;
         display: flex;
         justify-content: center;
+        align-items: center;
       }
     </style>
   </head>
@@ -232,68 +244,65 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         window.addEventListener('contextmenu', e => e.preventDefault(), true);
         window.addEventListener('dragstart', e => e.preventDefault(), true);
         
-        // 2. Cargador Nuclear (Inmediato para LCP)
-        const _0xP = new Set(); // Claves en vuelo — previene doble-fetch
-        const _0xL = async (el) => {
+        // 2. Cargador Nuclear Global con Caché Compartida
+        const _0xC = new Map(); 
+        window._babylonL = async (el) => {
           const k = el.getAttribute('data-ghost-key');
-          if (!k || el.classList.contains('shield-loaded') || _0xP.has(k)) return;
-          _0xP.add(k);
+          if (!k || el.classList.contains('shield-loaded')) return;
+          
           try {
-            const r = atob(k);
-            const u = `${_0xS.p}${r}?w=300&q=60&fmt=webp`;
-            const rs = await fetch(u, {
-              headers: { 'X-Babylon-Service': 'nuclear-loader' }
-            });
+            let bitmap;
+            if (_0xC.has(k)) {
+              bitmap = await _0xC.get(k);
+            } else {
+              const loadPromise = (async () => {
+                const r = atob(k);
+                const u = `${_0xS.p}${r}?w=300&q=60&fmt=webp`;
+                const rs = await fetch(u, { headers: { 'X-Babylon-Service': 'nuclear-loader' } });
+                if (!rs.ok) throw new Error();
+                const b = await rs.blob();
+                return await createImageBitmap(b);
+              })();
+              _0xC.set(k, loadPromise);
+              bitmap = await loadPromise;
+            }
             
-            if (rs.ok) {
-              // EL SECRETO NUCLEAR: createImageBitmap
-              const b = await rs.blob();
-              const bitmap = await createImageBitmap(b);
-              
+            if (bitmap) {
               const cvs = document.createElement('canvas');
-              cvs.width = bitmap.width;
-              cvs.height = bitmap.height;
-              cvs.style.width = '100%';
-              cvs.style.height = '100%';
-              cvs.style.objectFit = 'cover';
-              cvs.style.display = 'block';
-              
+              cvs.width = bitmap.width; cvs.height = bitmap.height;
+              cvs.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
               const ctx = cvs.getContext('2d', { alpha: false });
               ctx.drawImage(bitmap, 0, 0);
-              bitmap.close();
-              
-              el.innerHTML = '';
-              el.appendChild(cvs);
-              el.style.backgroundImage = 'none';
+              el.innerHTML = ''; el.appendChild(cvs);
               el.classList.add('shield-loaded');
               el.removeAttribute('data-ghost-key');
-            } else if (window.location.hostname === 'localhost') {
-              console.error('[Nuclear] Fetch failed:', rs.status, u);
             }
-          } catch (e) {
-            if (window.location.hostname === 'localhost') console.error('[Nuclear] Error:', e);
-          } finally {
-            _0xP.delete(k); // SIEMPRE liberar la clave, cargue o no, para permitir reintentos
-          }
+          } catch (e) { _0xC.delete(k); }
         };
 
         const _0xI = () => {
-          const obs = new IntersectionObserver((es) => { es.forEach(e => { if (e.isIntersecting) { _0xL(e.target); obs.unobserve(e.target); } }); }, { rootMargin: '1500px' });
-          document.querySelectorAll('.image-protected-container:not(.lazy-ghost)').forEach(_0xL);
-          document.querySelectorAll('.image-protected-container.lazy-ghost').forEach(el => obs.observe(el));
+          const obs = new IntersectionObserver((es) => { 
+            es.forEach(e => { if (e.isIntersecting) { window._babylonL(e.target); obs.unobserve(e.target); } }); 
+          }, { rootMargin: '1200px' });
+
+          const refresh = () => {
+            document.querySelectorAll('.image-protected-container:not(.shield-loaded)').forEach(el => obs.observe(el));
+          };
+
+          refresh();
+          
+          new MutationObserver((ms) => {
+            ms.forEach(m => m.addedNodes.forEach(n => {
+              if (n.nodeType === 1) {
+                if (n.classList.contains('image-protected-container')) obs.observe(n);
+                n.querySelectorAll('.image-protected-container').forEach(el => obs.observe(el));
+              }
+            }));
+          }).observe(document.body, { childList: true, subtree: true });
         };
 
         if (document.readyState !== 'loading') _0xI();
         else document.addEventListener('DOMContentLoaded', _0xI);
-
-        new MutationObserver((ms) => {
-          ms.forEach(m => m.addedNodes.forEach(n => {
-            if (n instanceof HTMLElement) {
-              if (n.classList.contains('image-protected-container')) _0xL(n);
-              n.querySelectorAll('.image-protected-container').forEach(_0xL);
-            }
-          }));
-        }).observe(document.body, { childList: true, subtree: true });
       })();
     </script>
 
@@ -309,48 +318,27 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
 
       // 3. Anuncios Camuflados
       const _0xA = () => {
-        document.querySelectorAll('.content-dynamic-wrap').forEach(el => {
+        document.querySelectorAll('.ad-container-root').forEach(el => {
           if (el.getAttribute('data-loaded')) return;
           const obs = new IntersectionObserver((es) => {
             es.forEach(entry => {
               if (entry.isIntersecting) {
                 el.setAttribute('data-loaded', 'true');
-                const keys = JSON.parse(el.getAttribute('data-view-keys') || '{}');
-                const dims = JSON.parse(el.getAttribute('data-view-dims') || '{}');
-                const winW = (el as HTMLElement).offsetWidth;
-                let type = el.getAttribute('data-view-type') || 'banner', dim = dims[type] || {w:728,h:90};
-                
-                if (winW < dim.w) { 
-                  type = winW >= 468 ? 'bannerSmall' : 'square'; 
-                  dim = dims[type] || {w:300,h:250}; 
-                }
-                
+                const keys = JSON.parse(el.getAttribute('data-ad-keys') || '{}');
+                const dims = JSON.parse(el.getAttribute('data-ad-dims') || '{}');
+                const winW = window.innerWidth;
+                let type = el.getAttribute('data-ad-type') || 'banner', dim = dims[type] || {w:728,h:90};
+                if (winW < dim.w) { type = winW >= 468 ? 'bannerSmall' : 'square'; dim = dims[type] || {w:300,h:250}; }
                 const fk = keys[type] || keys.banner;
                 if (fk) {
                   const ifr = document.createElement('iframe');
-                  ifr.width = dim.w.toString();
-                  ifr.height = dim.h.toString();
-                  ifr.style.cssText = `border:none;overflow:hidden;background:transparent;width:100%;max-width:${dim.w}px;height:${dim.h}px;display:block;margin:0 auto;`;
-                  ifr.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation-by-user-activation allow-pointer-lock allow-popups-to-escape-sandbox');
-                  ifr.setAttribute('scrolling', 'no');
+                  ifr.width = dim.w.toString(); ifr.height = dim.h.toString();
+                  ifr.style.cssText = `border:none;overflow:hidden;background:transparent;width:${dim.w}px;height:${dim.h}px;display:block;margin:0 auto;`;
                   const slot = document.getElementById('slot-' + el.id);
                   if (slot) {
                     slot.innerHTML = ''; slot.appendChild(ifr);
                     const opt = `{ 'key' : '${fk}', 'format' : 'iframe', 'height' : ${dim.h}, 'width' : ${dim.w}, 'params' : {} }`;
-                    
-                    // Astra: El "Top Trick" para engañar a Adsterra y evitar el SecurityError
-                    ifr.srcdoc = `<!DOCTYPE html><html><head><script>
-                      try {
-                        // Engañamos al script para que crea que este iframe es la ventana principal
-                        Object.defineProperty(window, 'top', { get: function() { return window; } });
-                        Object.defineProperty(window, 'parent', { get: function() { return window; } });
-                      } catch (e) {}
-                    <\/script><\/head><body style="margin:0;padding:0;background:transparent;display:flex;justify-content:center;align-items:center;height:100vh;">
-                    <div id="container-${fk}" style="width:100%;"></div>
-                    <script>atOptions=${opt};<\/script>
-                    <script src="${_0xS.a}${fk}/invoke.js"><\/script>
-                    </body></html>`;
-                    
+                    ifr.srcdoc = `<!DOCTYPE html><html><head><style>body{margin:0;padding:0;overflow:hidden;display:flex;justify-content:center;align-items:center;height:${dim.h}px;}<\/style><script>try{Object.defineProperty(window,'top',{get:function(){return window;}});Object.defineProperty(window,'parent',{get:function(){return window;}});}catch(e){}<\/script><\/head><body><div id="container-${fk}"><\/div><script>atOptions=${opt};<\/script><script src="${_0xS.a}${fk}/invoke.js"><\/script><\/body><\/html>`;
                     (el as HTMLElement).style.minHeight = `${dim.h}px`;
                   }
                 }
@@ -365,24 +353,30 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       // 4. Cosmos & Swiper
       const _0xV = () => {
         const phy = document.body.getAttribute('data-cosmos-physics') === 'true';
-        const l = { 
-          b: document.querySelector('.stars-layer.base') as HTMLElement, 
-          m: document.querySelector('.stars-layer.mid') as HTMLElement, 
-          d: document.querySelector('.stars-layer.dust') as HTMLElement 
-        };
+        const l = { b: document.querySelector('.stars-layer.base') as HTMLElement, m: document.querySelector('.stars-layer.mid') as HTMLElement, d: document.querySelector('.stars-layer.dust') as HTMLElement };
         if (phy && l.b) {
-          let mX=0, mY=0, sY=window.scrollY, tX=0, tY=0, wW=window.innerWidth;
-          document.addEventListener('mousemove', (e) => { mX = (e.clientX - wW / 2); mY = (e.clientY - window.innerHeight / 2); }, { passive: true });
+          let mX=0, mY=0, sY=window.scrollY, tX=0, tY=0; const wW=window.innerWidth, wH=window.innerHeight;
+          window.addEventListener('mousemove', (e) => { mX = (e.clientX - wW / 2); mY = (e.clientY - wH / 2); }, { passive: true });
           window.addEventListener('scroll', () => { sY = window.pageYOffset; }, { passive: true });
-          const anim = () => { tX += (mX - tX) * 0.04; tY += (mY - tY) * 0.04; l.b.style.transform = `translate3d(${-tX * 0.02}px, ${-sY * 0.02 - tY * 0.02}px, 0)`; if (l.m) l.m.style.transform = `translate3d(${-tX * 0.06}px, ${-sY * 0.06 - tY * 0.06}px, 0)`; if (l.d) l.d.style.transform = `translate3d(${-tX * 0.12}px, ${-sY * 0.12 - tY * 0.12}px, 0)`; requestAnimationFrame(anim); };
-          anim();
+          const anim = () => { tX += (mX - tX) * 0.05; tY += (mY - tY) * 0.05; l.b.style.transform = `translate3d(${-tX * 0.02}px, ${-sY * 0.02 - tY * 0.02}px, 0)`; if (l.m) l.m.style.transform = `translate3d(${-tX * 0.06}px, ${-sY * 0.06 - tY * 0.06}px, 0)`; if (l.d) l.d.style.transform = `translate3d(${-tX * 0.12}px, ${-sY * 0.12 - tY * 0.12}px, 0)`; requestAnimationFrame(anim); };
+          requestAnimationFrame(anim);
         }
         const S = (window as any).Swiper;
         if (S) {
+          const loadImages = (s: any) => s.el.querySelectorAll('.image-protected-container').forEach((el: any) => (window as any)._babylonL(el));
           const h = document.querySelector('.hero-swiper') as HTMLElement;
-          if (h && !(h as any).swiper) new S(h, { slidesPerView: 1, loop: h.querySelectorAll('.swiper-slide').length > 1, effect: 'fade', speed: 1000, autoplay: { delay: 6000 }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' } });
+          if (h && !(h as any).swiper) new S(h, { slidesPerView: 1, loop: h.querySelectorAll('.swiper-slide').length > 1, effect: 'fade', speed: 1000, autoplay: { delay: 6000 }, pagination: { el: '.premium-pagination', clickable: true }, navigation: { prevEl: '.premium-nav.prev', nextEl: '.premium-nav.next' }, on: { init: loadImages, slideChange: loadImages } });
           const u = document.querySelector('.recent-updates-swiper') as HTMLElement;
-          if (u && !(u as any).swiper) new S(u, { slidesPerView: 'auto', spaceBetween: 20, freeMode: true, scrollbar: { el: '.premium-scrollbar', draggable: true, hide: false }, mousewheel: { forceToAxis: true }, breakpoints: { 768: { spaceBetween: 30 }, 1024: { spaceBetween: 40 } } });
+          if (u && !(u as any).swiper) new S(u, { 
+            slidesPerView: 'auto', 
+            spaceBetween: 20, 
+            freeMode: true,
+            scrollbar: { el: '.premium-scrollbar', draggable: true, hide: false },
+            mousewheel: { releaseOnEdges: true, sensitivity: 1 },
+            passiveListeners: true,
+            breakpoints: { 768: { spaceBetween: 30 }, 1024: { spaceBetween: 40 } },
+            on: { init: loadImages, slideChange: loadImages }
+          });
         }
       };
 
@@ -422,11 +416,11 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       if (document.readyState !== 'loading') _0xI();
       else document.addEventListener('DOMContentLoaded', _0xI);
 
+      // Astra: MutationObserver unificado para inyecciones dinámicas de Svelte
       new MutationObserver((ms) => {
         ms.forEach(m => m.addedNodes.forEach(n => {
           if (n instanceof HTMLElement) {
-            if (n.classList.contains('content-dynamic-wrap')) _0xA();
-            n.querySelectorAll('.content-dynamic-wrap').forEach(_0xA);
+            if (n.classList.contains('ad-container-root') || n.querySelector('.ad-container-root')) _0xA();
           }
         }));
       }).observe(document.body, { childList: true, subtree: true });
