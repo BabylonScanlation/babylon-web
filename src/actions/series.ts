@@ -10,7 +10,20 @@ import { siteConfig } from '../site.config';
 async function clearSeriesR2Data(
   slug: string | null,
   cover: string | null,
-  env: { R2_CACHE: { get: Function; put: Function; delete: Function }; R2_ASSETS: { get: Function; put: Function; delete: Function } }
+  env: {
+    R2_CACHE: {
+      get: (...args: unknown[]) => unknown;
+      put: (...args: unknown[]) => unknown;
+      delete: (...args: unknown[]) => unknown;
+      list: (...args: unknown[]) => any;
+    };
+    R2_ASSETS: {
+      get: (...args: unknown[]) => unknown;
+      put: (...args: unknown[]) => unknown;
+      delete: (...args: unknown[]) => unknown;
+      list: (...args: unknown[]) => any;
+    };
+  }
 ) {
   const { R2_CACHE: r2Cache, R2_ASSETS: r2Assets } = env;
 
