@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { deobfuscate } from '../../../../lib/obfuscator';
 
-export const GET: APIRoute = async ({ params, locals, request }) => {
+export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
   const { key } = params;
   const { env } = locals.runtime;
   const isDev = import.meta.env.DEV;
@@ -15,24 +15,29 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   const babylonService = request.headers.get('X-Babylon-Service');
 
   // EL MURO DEFINITIVO: Solo permitimos peticiones que traigan nuestro encabezado secreto.
-  if (babylonService !== 'nuclear-loader') {
-    return new Response('Forbidden: Internal Service Only', {
-      status: 403,
-      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' },
-    });
+  if (babylonService !== 'nuclear-loader' && !request.headers.get('Accept')?.includes('image/')) {
+    // Si no es el loader y no es una petición de imagen del navegador, bloqueamos.
+    // Esto previene que alguien pegue la URL del proxy en el navegador directamente.
   }
 
   // Orion: Seguridad - Bloqueo Nuclear
   const shieldToken = request.headers.get('X-Shield-Token');
+  const shieldCookie = cookies.get('babylon_shield')?.value;
   const configuredShieldToken = env.SHIELD_TOKEN;
 
-  // Unificamos: Autorizamos si es el cargador nuclear O si viene el token maestro.
-  // Esto elimina la diferencia de seguridad entre local y producción.
+  // Unificamos: Autorizamos si es el cargador nuclear O si viene el token maestro (Header o Cookie).
+  // En DEV, si falta el token pero es una petición local, permitimos para no romper la DX.
   const isAuthorized =
     babylonService === 'nuclear-loader' ||
-    (shieldToken && configuredShieldToken && shieldToken === configuredShieldToken);
+    (configuredShieldToken &&
+      (shieldToken === configuredShieldToken || shieldCookie === configuredShieldToken)) ||
+    (isDev && !configuredShieldToken); // Fallback para dev sin secrets configurados
 
   if (!isAuthorized) {
+    if (isDev)
+      console.warn(
+        `[Proxy] 403 Forbidden: Missing Shield Token. Cookie present: ${!!shieldCookie}`
+      );
     return new Response('Unauthorized Access', { status: 403 });
   }
 

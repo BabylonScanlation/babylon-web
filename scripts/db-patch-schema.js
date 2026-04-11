@@ -41,7 +41,7 @@ async function patchSchema() {
         `npx wrangler d1 execute ${DB_NAME} --local --command="PRAGMA table_info(${tableName});"`,
         { encoding: 'utf8' }
       );
-    } catch (e) {
+    } catch (_e) {
       console.warn(`⚠️  No se pudo consultar '${tableName}'. Es probable que aún no exista.`);
       continue;
     }
@@ -80,7 +80,7 @@ async function patchSchema() {
             `npx wrangler d1 execute ${DB_NAME} --local --command="ALTER TABLE ${tableName} ADD COLUMN ${col} ${type} DEFAULT ${defaultValue};"`,
             { stdio: 'inherit' }
           );
-        } catch (e) {
+        } catch (_e) {
           console.warn(`⚠️  No se pudo añadir ${col} a ${tableName}: ${e.message}`);
         }
       }

@@ -12,7 +12,7 @@ interface Props {
 let { chapter, seriesSlug, r2PublicUrlAssets }: Props = $props();
 
 let _isLoading = $state(false);
-let isEditing = $state(false);
+let _isEditing = $state(false);
 let isSelected = $state(false);
 let deleteState = $state<'idle' | 'confirm' | 'deleting'>('idle');
 let _message = $state({ type: '', text: '' });
@@ -53,7 +53,7 @@ function dispatchSelection() {
 
 async function _saveTitle() {
   if (title === chapter.title) {
-    isEditing = false;
+    _isEditing = false;
     return;
   }
   _isLoading = true;
@@ -67,7 +67,7 @@ async function _saveTitle() {
     if (error) throw new Error(error.message);
 
     chapter.title = title;
-    isEditing = false;
+    _isEditing = false;
     showMessage('success', 'Guardado');
   } catch {
     showMessage('error', 'Error');
@@ -172,7 +172,7 @@ const _finalUrl = $derived.by(() => {
     </div>
 
     <div class="card-main">
-        {#if isEditing}
+        {#if _isEditing}
             <div class="title-edit-wrap">
                 <input
                     type="text"
@@ -183,7 +183,7 @@ const _finalUrl = $derived.by(() => {
                 />
             </div>
         {:else}
-            <div class="title-display" onclick={() => (isEditing = true)} aria-hidden="true">
+            <div class="title-display" onclick={() => (_isEditing = true)} aria-hidden="true">
                 <span class="chapter-num">Cap. {chapter.chapterNumber}</span>
                 <h4 class="chapter-title">{chapter.title || 'Sin título'}</h4>
             </div>

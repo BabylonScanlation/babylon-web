@@ -10,7 +10,7 @@ import { siteConfig } from '../site.config';
 async function clearSeriesR2Data(
   slug: string | null,
   cover: string | null,
-  env: { R2_CACHE: any; R2_ASSETS: any }
+  env: { R2_CACHE: { get: Function; put: Function; delete: Function }; R2_ASSETS: { get: Function; put: Function; delete: Function } }
 ) {
   const { R2_CACHE: r2Cache, R2_ASSETS: r2Assets } = env;
 
