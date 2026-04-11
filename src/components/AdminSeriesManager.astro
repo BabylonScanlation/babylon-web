@@ -12,9 +12,8 @@ interface Props {
 
 const { series, r2PublicUrlAssets } = Astro.props;
 
-// Orion: Construcción robusta de URL.
-const isDev = import.meta.env.DEV;
-const assetsBase = isDev ? '/api/assets/proxy' : r2PublicUrlAssets || '/api/assets/proxy';
+// Orion: Construcción unificada de URL usando el proxy de activos.
+const assetsBase = r2PublicUrlAssets || '/api/assets/proxy';
 
 const coverUrl = series.coverImageUrl?.startsWith('http')
   ? series.coverImageUrl

@@ -43,10 +43,10 @@ import LayoutVerify from '../layouts/LayoutVerify.astro';
 
         <div class="captcha-area">
           <div 
-            class="cf-turnstile" 
-            data-sitekey={import.meta.env.DEV ? '1x00000000000000000000AA' : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY}
+            class="cf-turnstile"
+            data-sitekey={import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
             data-theme="dark"
-            data-callback="onloadTurnstileCallback"
+            data-callback="onTurnstileSuccess"
           ></div>
         </div>
 

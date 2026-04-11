@@ -4,7 +4,7 @@ import { deobfuscate } from '../../../../lib/obfuscator';
 export const GET: APIRoute = async ({ params, locals, request }) => {
   const { key } = params;
   const { env } = locals.runtime;
-  const isDev = import.meta.env.DEV || request.url.includes('localhost');
+  const isDev = import.meta.env.DEV;
 
   // Si la clave es explícitamente "undefined" o "null" (string), o vacía, es un 404 claro.
   if (!key || key === 'undefined' || key === 'null') {
@@ -12,38 +12,27 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   }
 
   // ASTRA: Bloqueo de Navegación Directa (Anti-New Tab / Anti-Download)
-  // Rechazamos peticiones que el navegador identifica como navegación de usuario.
-  const secDest = request.headers.get('Sec-Fetch-Dest');
-  const secMode = request.headers.get('Sec-Fetch-Mode');
-  const secSite = request.headers.get('Sec-Fetch-Site');
   const babylonService = request.headers.get('X-Babylon-Service');
 
   // EL MURO DEFINITIVO: Solo permitimos peticiones que traigan nuestro encabezado secreto.
-  // Un usuario abriendo una pestaña nueva NUNCA podrá enviar este encabezado.
   if (babylonService !== 'nuclear-loader') {
-    // Astra: Bloqueo radical. Sin el header no hay imagen, punto.
     return new Response('Forbidden: Internal Service Only', {
       status: 403,
       headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' },
     });
   }
 
-  // Si el destino es 'document' o el modo es 'navigate', es un "Abrir en nueva pestaña".
-  if (secDest === 'document' || secMode === 'navigate' || (secSite && secSite !== 'same-origin')) {
-    if (isDev) console.warn(`[Proxy] Blocked unauthorized direct navigation for: ${key}`);
-    return new Response('Direct access forbidden.', { status: 403 });
-  }
-
   // Orion: Seguridad - Bloqueo Nuclear
   const shieldToken = request.headers.get('X-Shield-Token');
   const configuredShieldToken = env.SHIELD_TOKEN;
 
-  // Bloqueo: Autorizamos si viene el token correcto O si es nuestro servicio interno de carga.
+  // Unificamos: Autorizamos si es el cargador nuclear O si viene el token maestro.
+  // Esto elimina la diferencia de seguridad entre local y producción.
   const isAuthorized =
-    babylonService === 'nuclear-loader' || 
+    babylonService === 'nuclear-loader' ||
     (shieldToken && configuredShieldToken && shieldToken === configuredShieldToken);
 
-  if (!isAuthorized && !isDev) {
+  if (!isAuthorized) {
     return new Response('Unauthorized Access', { status: 403 });
   }
 
