@@ -8,12 +8,11 @@ interface Props {
   src: string;
   alt: string;
   class?: string;
-  loading?: 'lazy' | 'eager';
   fetchpriority?: 'high' | 'low' | 'auto';
   width?: number;
   height?: number;
   style?: string;
-  forceLazy?: boolean;
+  eager?: boolean;
 }
 
 const {
@@ -24,6 +23,7 @@ const {
   width = 300,
   height = 450,
   style = '',
+  eager = false,
 } = Astro.props;
 
 const keyToEncrypt = src.startsWith('http') ? src : src.replace(/^\//, '');
@@ -48,15 +48,15 @@ const proxyUrl = `/api/assets/proxy/${encryptedKey}?w=${width}&q=60&fmt=webp`;
   `}
 >
   <img
-    data-src={proxyUrl}
-    src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+    src={eager ? proxyUrl : "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"}
+    data-src={!eager ? proxyUrl : undefined}
     alt={alt}
-    loading="lazy"
+    loading={eager ? "eager" : "lazy"}
     width={width}
     height={height}
     fetchpriority={fetchpriority}
-    class="protected-img lazy-img"
-    style="width:100%; height:100%; object-fit:cover; display:block; user-select:none; -webkit-user-drag:none; opacity: 0; transition: opacity 0.5s ease-in-out;"
+    class:list={["protected-img", { "lazy-img": !eager }]}
+    style={`width:100%; height:100%; object-fit:cover; display:block; user-select:none; -webkit-user-drag:none; opacity: ${eager ? '1' : '0'}; transition: opacity 0.5s ease-in-out;`}
   />
   <div class="shield-overlay" style="position: absolute; inset: 0; z-index: 20; background: transparent;"></div>
 </div>

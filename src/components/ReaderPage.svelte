@@ -1,7 +1,34 @@
+<script lang="ts" module>
+// Orion: Shared state strictly outside the Svelte component lifecycle
+let globalWorker: Worker | null = null;
+const globalWorkerQueue: (() => void)[] = [];
+let isGlobalWorkerBusy = false;
+
+function getSharedWorker() {
+  if (typeof Worker === 'undefined') return null;
+  if (!globalWorker) {
+    try {
+      globalWorker = new Worker(
+        new URL('../lib/workers/image-processor.worker.ts', import.meta.url),
+        { type: 'module' }
+      );
+    } catch {
+      return null;
+    }
+  }
+  return globalWorker;
+}
+
+function processSharedQueue() {
+  if (isGlobalWorkerBusy || globalWorkerQueue.length === 0) return;
+  const nextTask = globalWorkerQueue.shift();
+  if (nextTask) nextTask();
+}
+</script>
+
 <script lang="ts">
 import { onDestroy, onMount } from 'svelte';
 import { fade } from 'svelte/transition';
-import ImageWorker from '../lib/workers/image-processor.worker?worker';
 
 interface PageData {
   imageUrl?: string;
@@ -36,7 +63,8 @@ let error = $state(false);
 let useFallback = $state(false);
 
 let observer: IntersectionObserver | undefined;
-let worker: Worker | null = null;
+let isLocalTaskQueued = false;
+let loadTimeout: number;
 
 onMount(() => {
   window.addEventListener('pageLoaded', handleGlobalPageLoad as EventListener);
@@ -45,7 +73,7 @@ onMount(() => {
     void loadPageData();
   } else {
     const pageNum = getPageNum();
-    if (pageNum <= 5) {
+    if (pageNum <= 2) { 
       void loadPageData();
       return;
     }
@@ -53,11 +81,14 @@ onMount(() => {
     observer = new IntersectionObserver(
       ([entry], _self) => {
         if (entry?.isIntersecting) {
-          void loadPageData();
+          clearTimeout(loadTimeout);
+          loadTimeout = window.setTimeout(() => {
+            void loadPageData();
+          }, 50);
           _self.disconnect();
         }
       },
-      { rootMargin: '1200px' }
+      { rootMargin: '800px' }
     );
     if (container) observer.observe(container);
   }
@@ -65,11 +96,9 @@ onMount(() => {
 
 onDestroy(() => {
   window.removeEventListener('pageLoaded', handleGlobalPageLoad as EventListener);
+  clearTimeout(loadTimeout);
   if (observer) observer.disconnect();
-  if (worker) {
-    worker.terminate();
-    worker = null;
-  }
+  isLocalTaskQueued = false;
 });
 
 function getPageNum(): number {
@@ -90,6 +119,7 @@ async function loadPageData(retries = 2) {
   if (!isLoading && !error) return;
 
   try {
+    error = false;
     await processWithWorker();
     window.dispatchEvent(new CustomEvent('pageLoaded', { detail: { pageNum: getPageNum() } }));
   } catch (e) {
@@ -100,70 +130,133 @@ async function loadPageData(retries = 2) {
       }, 1500);
       return;
     }
-    useFallback = true;
+    // Astra: Show the error message UI first
+    error = true;
     isLoading = false;
-    error = false;
   }
+}
+
+// Astra: Provide a function to trigger fallback manually from the error UI
+function handleFallback() {
+  useFallback = true;
+  error = false;
 }
 
 function processWithWorker() {
   return new Promise<void>((resolve, reject) => {
+    if (isLocalTaskQueued) return resolve();
+    
     if (typeof Worker === 'undefined' || !window.OffscreenCanvas) {
       return reject('Environment not supported');
     }
 
+    const worker = getSharedWorker();
     if (!worker) {
-      try {
-        worker = new ImageWorker();
-      } catch {
-        return reject('Failed to initialize worker');
-      }
+      isLocalTaskQueued = false;
+      return reject('Worker not available');
     }
 
-    if (!worker) return reject('Worker not available');
+    isLocalTaskQueued = true;
 
-    worker.onmessage = (ev: MessageEvent) => {
-      const { success, bitmap, error: workerError } = ev.data;
-      if (success && bitmap && canvas) {
-        canvas.width = (bitmap as ImageBitmap).width;
-        canvas.height = (bitmap as ImageBitmap).height;
-        const ctx = canvas.getContext('2d', { alpha: false });
-        if (ctx) {
-          ctx.drawImage(bitmap as ImageBitmap, 0, 0);
-          (bitmap as ImageBitmap).close();
-          isLoading = false;
-          resolve();
-        } else {
-          reject('Canvas context failed');
+    const task = () => {
+      // If component unmounted while queued, abort processing
+      if (!isLocalTaskQueued) {
+         processSharedQueue();
+         return resolve();
+      }
+
+      isGlobalWorkerBusy = true;
+      
+      const messageHandler = (ev: MessageEvent) => {
+        const { success, bitmap, error: workerError, url } = ev.data;
+        
+        const finalUrl = page.imageUrl || page.url;
+        const expectedUrl = resolveUrl(finalUrl as string);
+        
+        if (url && url !== expectedUrl) {
+           // Not for us. Since we use a queue, this shouldn't happen, but ignore just in case
+           return;
         }
+        
+        worker.removeEventListener('message', messageHandler);
+        worker.removeEventListener('error', errorHandler);
+        
+        if (success && bitmap && canvas) {
+          setTimeout(() => {
+            if (!canvas || !isLocalTaskQueued) {
+               (bitmap as ImageBitmap).close();
+               isGlobalWorkerBusy = false;
+               processSharedQueue();
+               return resolve();
+            }
+            canvas.width = (bitmap as ImageBitmap).width;
+            canvas.height = (bitmap as ImageBitmap).height;
+            const ctx = canvas.getContext('2d', { alpha: false });
+            if (ctx) {
+              ctx.drawImage(bitmap as ImageBitmap, 0, 0);
+              (bitmap as ImageBitmap).close();
+              isLoading = false;
+              isLocalTaskQueued = false;
+              isGlobalWorkerBusy = false;
+              processSharedQueue();
+              resolve();
+            } else {
+              (bitmap as ImageBitmap).close();
+              isLocalTaskQueued = false;
+              isGlobalWorkerBusy = false;
+              processSharedQueue();
+              reject('Canvas context failed');
+            }
+          }, 0);
+        } else {
+          isLocalTaskQueued = false;
+          isGlobalWorkerBusy = false;
+          processSharedQueue();
+          reject(workerError || 'Worker returned failure');
+        }
+      };
+
+      const errorHandler = (ev: ErrorEvent) => {
+        worker.removeEventListener('message', messageHandler);
+        worker.removeEventListener('error', errorHandler);
+        isLocalTaskQueued = false;
+        isGlobalWorkerBusy = false;
+        processSharedQueue(); // Orion: Continúa con la cola incluso si hay error
+        reject(ev.message || 'Worker error');
+      };
+
+      worker.addEventListener('message', messageHandler);
+      worker.addEventListener('error', errorHandler);
+
+      const resolveUrl = (rel: string) => {
+        if (rel.startsWith('http') || rel.startsWith('/'))
+          return new URL(rel, window.location.href).href;
+        return new URL(`/${rel}`, window.location.origin).href;
+      };
+      const finalUrl = page.imageUrl || page.url;
+
+      const message: WorkerMessage = { watermark };
+      if (page.tiles && (page.tiles as string[]).length > 0) {
+        message.type = 'tiled';
+        message.data = { ...page, tiles: (page.tiles as string[]).map(resolveUrl), url: finalUrl ? resolveUrl(finalUrl as string) : undefined };
+      } else if (finalUrl) {
+        message.type = 'single';
+        message.data = { url: resolveUrl(finalUrl as string) };
       } else {
-        reject(workerError || 'Worker returned failure');
+        isLocalTaskQueued = false;
+        isGlobalWorkerBusy = false;
+        worker.removeEventListener('message', messageHandler);
+        worker.removeEventListener('error', errorHandler);
+        processSharedQueue();
+        reject('Missing data');
+        return;
       }
+      
+      worker.postMessage(message);
     };
 
-    worker.onerror = (ev: ErrorEvent) => {
-      reject(ev.message || 'Worker error');
-    };
-
-    const resolveUrl = (rel: string) => {
-      if (rel.startsWith('http') || rel.startsWith('/'))
-        return new URL(rel, window.location.href).href;
-      return new URL(`/${rel}`, window.location.origin).href;
-    };
-    const finalUrl = page.imageUrl || page.url;
-
-    const message: WorkerMessage = { watermark };
-    if (page.tiles && (page.tiles as string[]).length > 0) {
-      message.type = 'tiled';
-      message.data = { ...page, tiles: (page.tiles as string[]).map(resolveUrl) };
-    } else if (finalUrl) {
-      message.type = 'single';
-      message.data = { url: resolveUrl(finalUrl as string) };
-    } else {
-      reject('Missing data');
-      return;
-    }
-    worker.postMessage(message);
+    globalWorkerQueue.push(task);
+    processSharedQueue();
   });
 }
 </script>
@@ -188,7 +281,10 @@ function processWithWorker() {
     <div class="error-wrapper" in:fade>
         <div class="error-card">
             <span class="error-title">Error de Carga</span>
-            <button class="retry-btn" onclick={() => { void loadPageData(); }}>Reintentar</button>
+            <div style="display: flex; gap: 0.5rem; justify-content: center;">
+              <button class="retry-btn" onclick={() => { void loadPageData(); }}>Reintentar</button>
+              <button class="retry-btn fallback-btn" onclick={handleFallback}>Modo Básico</button>
+            </div>
         </div>
     </div>
   {/if}

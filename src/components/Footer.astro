@@ -33,6 +33,9 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
           <a href={siteConfig.links.facebook} class="social-pill facebook" aria-label="Facebook" target="_blank" rel="noopener noreferrer">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M22.675 0h-21.35C.585 0 0 .585 0 1.325v21.351C0 23.415.585 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.74 0 1.325-.585 1.325-1.325V1.325C24 .585 23.415 0 22.675 0z"/></svg>
           </a>
+          <a href={siteConfig.links.twitter} class="social-pill twitter" aria-label="X (Twitter)" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.292 19.49h2.039L6.486 3.24H4.298l13.311 17.403z"/></svg>
+          </a>
         </div>
       </div>
 
@@ -210,6 +213,9 @@ const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy
   }
   .facebook:hover {
     color: #1877f2;
+  }
+  .twitter:hover {
+    color: #fff;
   }
 
   :global(.nsfw-mode) .social-pill:hover {

@@ -57,9 +57,11 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
             />
           )}
 
-        <div class="main-sections-container">
-
+        <div class="top-ad-banner">
           <AdContainer type="bannerLarge" />
+        </div>
+
+        <div class="main-sections-container">
 
           {featuredGridData.length > 0 && (
             <FeaturedGrid mangas={featuredGridData.map((m) => ({...m, loading: 'lazy'}))} />
@@ -101,6 +103,14 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
   .main-content-wrapper {
     width: 100%;
   }
+  .top-ad-banner {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+  }
   .main-sections-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -108,10 +118,10 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
     width: 100%;
     box-sizing: border-box;
     overflow-x: hidden;
-    /* Astra: Espaciado compacto y elegante */
+    /* Astra: Espaciado ultra-compacto */
     display: flex;
     flex-direction: column;
-    gap: 2.5rem;
+    gap: 1rem;
   }
 
   .discovery-zone {

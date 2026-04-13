@@ -35,10 +35,10 @@ self.onmessage = async (e: MessageEvent) => {
     sourceBitmap.close(); // Clean up source
 
     // console.timeEnd(`[Worker] Process ${data.url.split('/').pop()}`);
-    (self as any).postMessage({ success: true, bitmap }, [bitmap]);
+    (self as any).postMessage({ success: true, bitmap, url: data.url }, [bitmap]);
   } catch (error: any) {
     console.error(`[Worker] Error processing ${data.url}:`, error);
-    (self as any).postMessage({ success: false, error: error.message });
+    (self as any).postMessage({ success: false, error: error.message, url: data.url });
   }
 };
 

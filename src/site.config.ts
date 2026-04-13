@@ -11,6 +11,7 @@ export const siteConfig = {
     telegram: 'https://t.me/babylon_scan',
     discord: 'https://discord.gg/babylon',
     facebook: 'https://facebook.com/BabylonScanlation',
+    twitter: 'https://x.com/babylonscan',
   },
 
   // Branding Assets (Usar URLs relativas o absolutas de R2 si es necesario)
@@ -106,6 +107,7 @@ export const siteConfig = {
       bannerLarge: import.meta.env.PUBLIC_ADSTERRA_BANNER_LARGE_ID,
       bannerSmall: import.meta.env.PUBLIC_ADSTERRA_BANNER_SMALL_ID,
       square: import.meta.env.PUBLIC_ADSTERRA_SQUARE_ID,
+      native: import.meta.env.PUBLIC_ADSTERRA_NATIVE_ID,
     },
   },
 };

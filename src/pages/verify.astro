@@ -1,5 +1,10 @@
 ---
 import LayoutVerify from '../layouts/LayoutVerify.astro';
+
+const isDev = import.meta.env.DEV;
+const turnstileSiteKey = isDev 
+  ? import.meta.env.PUBLIC_TURNSTILE_DEV_SITE_KEY 
+  : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
 ---
 
 <LayoutVerify title="Verificación de Seguridad">
@@ -42,12 +47,7 @@ import LayoutVerify from '../layouts/LayoutVerify.astro';
         </div>
 
         <div class="captcha-area">
-          <div 
-            class="cf-turnstile"
-            data-sitekey={import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
-            data-theme="dark"
-            data-callback="onTurnstileSuccess"
-          ></div>
+          <div id="turnstile-container"></div>
         </div>
 
         <button class="enter-btn" id="enter-btn" disabled>
@@ -58,25 +58,64 @@ import LayoutVerify from '../layouts/LayoutVerify.astro';
   </div>
 
   <script is:inline>
-    // Orion: Vanilla JS puro para evitar bundles pesados
+    // Orion: Definición inmediata del estado global
+    window.captchaToken = null;
+    
     const ageCheck = document.getElementById('check-age');
     const termsCheck = document.getElementById('check-terms');
     const enterBtn = document.getElementById('enter-btn');
 
-    // Astra: Callback unificado para el auto-render de Turnstile
-    window.onloadTurnstileCallback = function(token) {
-      window.captchaToken = token;
-      window.validateCaptcha();
-    }
-
+    // Astra: Función de validación centralizada
     window.validateCaptcha = function() {
       enterBtn.disabled = !(ageCheck.checked && termsCheck.checked && window.captchaToken);
+    }
+
+    // Callback global para Turnstile
+    window.onTurnstileVerify = function(token) {
+      window.captchaToken = token;
+      window.validateCaptcha();
     }
 
     ageCheck.addEventListener('change', window.validateCaptcha);
     termsCheck.addEventListener('change', window.validateCaptcha);
 
-    enterBtn.onclick = async () => {
+    // Orion: Renderizado Explícito para evitar fallos de carga async
+    function initTurnstile() {
+      if (window.turnstile) {
+        window.turnstile.render('#turnstile-container', {
+          sitekey: document.getElementById('turnstile-container').parentElement.dataset.sitekey,
+          theme: 'dark',
+          callback: 'onTurnstileVerify',
+        });
+      } else {
+        setTimeout(initTurnstile, 100);
+      }
+    }
+  </script>
+
+  <div style="display:none" id="turnstile-data" data-sitekey={turnstileSiteKey}></div>
+
+  <script is:inline>
+    // Iniciar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', () => {
+      const container = document.getElementById('turnstile-container');
+      const sitekey = document.getElementById('turnstile-data').dataset.sitekey;
+      
+      const render = () => {
+        if (window.turnstile) {
+          window.turnstile.render('#turnstile-container', {
+            sitekey: sitekey,
+            theme: 'dark',
+            callback: window.onTurnstileVerify,
+          });
+        } else {
+          setTimeout(render, 100);
+        }
+      };
+      render();
+    });
+
+    document.getElementById('enter-btn').onclick = async () => {
       try {
         const res = await fetch('/_actions/auth.verifyAge', { method: 'POST' });
         if (res.ok) {

@@ -30,6 +30,7 @@ const title = pageTitle ? `${pageTitle} | ${siteConfig.shortName}` : siteConfig.
 
 const isAdminPage = Astro.url.pathname.startsWith('/admin');
 const isVerifyPage = Astro.url.pathname === '/verify';
+const isHome = Astro.url.pathname === '/';
 
 const isVerified = Astro.cookies.get('site_verified')?.value === 'true';
 const isBot = (Astro.locals as any).isBot;
@@ -182,19 +183,18 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         justify-content: center;
         align-items: center;
         width: 100%;
-        margin: 2.5rem 0;
-        min-height: 90px;
-        background: rgba(255, 255, 255, 0.01);
+        margin: 0;
+        min-height: 0;
+        background: transparent;
         border-radius: 16px;
-        overflow: visible !important;
+        overflow: hidden !important;
         position: relative;
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        content-visibility: auto; /* Orion: Optimización de renderizado off-screen */
       }
 
       .ad-container-root.square {
         min-height: 250px;
-        margin: 2.5rem auto;
+        margin: 0 auto;
       }
 
       .ad-inner-wrapper {
@@ -205,8 +205,23 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         justify-content: center;
         align-items: center;
       }
+
+      /* --- CRITICAL SKELETON (Prevent FOUC) --- */
+      body { background-color: #020205; margin: 0; color: #fff; font-family: system-ui, sans-serif; }
+      .site-header { height: 90px; width: 100%; background: #020205; position: absolute; top: 0; z-index: 5000; }
+      .hero-carousel-section { min-height: 520px; background: #000; width: 100vw; overflow: hidden; }
+      .site-main-content { min-height: 100vh; display: flex; flex-direction: column; }
+      @media (max-width: 1023px) { .site-header { height: 80px; position: relative; } }
+
+      /* Orion: Padding condicional para páginas que no son la Home */
+      @media (min-width: 1024px) {
+        .padded-content {
+          padding-top: 90px;
+        }
+      }
     </style>
-    </head>
+  </head>
+  <body 
     class="cosmos-theme" 
     data-user-id={user?.uid || 'guest'}
     data-user-state={user ? JSON.stringify({ uid: user.uid, email: user.email, isAdmin: user.isAdmin }) : 'null'}
@@ -266,6 +281,8 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         n: 'data-news-count'
       };
 
+      const isDev = document.body.getAttribute('data-is-dev') === 'true';
+
       // 2. Cargador de Imágenes Proactivo (Astra Orion: Ultra-Lazy)
       const _0xL = (root = document.body) => {
         const obs = new IntersectionObserver((es) => {
@@ -282,11 +299,11 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
               obs.unobserve(img);
             }
           });
-        }, { rootMargin: '600px' });
+        }, { rootMargin: '200px' });
         root.querySelectorAll('.lazy-img').forEach(i => obs.observe(i));
       };
 
-      // 3. Anuncios Camuflados (Orion: Carga Bajo Demanda)
+      // 3. Anuncios Camuflados (Orion: Carga Bajo Demanda con Fallback)
       const _0xA = () => {
         document.querySelectorAll('.ad-container-root').forEach(el => {
           if (el.getAttribute('data-loaded')) return;
@@ -297,20 +314,77 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                 const keys = JSON.parse(el.getAttribute('data-ad-keys') || '{}');
                 const dims = JSON.parse(el.getAttribute('data-ad-dims') || '{}');
                 const winW = window.innerWidth;
-                let type = el.getAttribute('data-ad-type') || 'banner', dim = dims[type] || {w:728,h:90};
-                if (winW < dim.w) { type = winW >= 468 ? 'bannerSmall' : 'square'; dim = dims[type] || {w:300,h:250}; }
-                const fk = keys[type] || keys.banner;
-                if (fk) {
-                  const ifr = document.createElement('iframe');
-                  ifr.width = dim.w.toString(); ifr.height = dim.h.toString();
-                  ifr.style.cssText = `border:none;overflow:hidden;background:transparent;width:${dim.w}px;height:${dim.h}px;display:block;margin:0 auto;`;
-                  const slot = document.getElementById('slot-' + el.id);
-                  if (slot) {
-                    slot.innerHTML = ''; slot.appendChild(ifr);
-                    const opt = `{ 'key' : '${fk}', 'format' : 'iframe', 'height' : ${dim.h}, 'width' : ${dim.w}, 'params' : {} }`;
-                    ifr.srcdoc = `<!DOCTYPE html><html><head><style>body{margin:0;padding:0;overflow:hidden;display:flex;justify-content:center;align-items:center;height:${dim.h}px;}<\/style><script>try{Object.defineProperty(window,'top',{get:function(){return window;}});Object.defineProperty(window,'parent',{get:function(){return window;}});}catch(e){}<\/script><\/head><body><div id="container-${fk}"><\/div><script>atOptions=${opt};<\/script><script src="${_0xS.a}${fk}/invoke.js"><\/script><\/body><\/html>`;
-                    (el as HTMLElement).style.minHeight = `${dim.h}px`;
+                let type = el.getAttribute('data-ad-type') || 'banner';
+                let dim = dims[type] || {w:728,h:90};
+                
+                // Orion: Adaptabilidad Proactiva (Responsive)
+                if (winW < dim.w) { 
+                  if (winW >= 768) {
+                    type = 'banner'; dim = dims.banner || {w:728,h:90};
+                  } else if (winW >= 468) { 
+                    type = 'bannerSmall'; dim = dims.bannerSmall || {w:468,h:60}; 
+                  } else { 
+                    type = 'square'; dim = dims.square || {w:300,h:250}; 
                   }
+                }
+                const fk = keys[type] || keys.banner;
+                
+                const slot = el.querySelector('.ad-content-slot');
+                if (slot && fk) {
+                  const ifr = document.createElement('iframe');
+                  const isLarge = type === 'bannerLarge';
+                  
+                  // Orion: Dimensiones nativas exactas (BannerLarge estándar es 250h)
+                  const nativeW = isLarge ? 970 : dim.w;
+                  const nativeH = isLarge ? 250 : dim.h;
+
+                  // Astra: Escalado matemático perfecto para llenar 1200px (1200 / 970 = 1.237)
+                  const scale = (isLarge && winW >= 1200) ? 1.237 : 1;
+                  const visualH = Math.ceil(nativeH * scale);
+
+                  ifr.width = nativeW.toString();
+                  ifr.height = nativeH.toString();
+                  
+                  ifr.style.cssText = `border:none;background:transparent;width:${nativeW}px;height:${nativeH}px;display:block;margin:0 auto;transition:height 0.3s ease;`;
+                  
+                  if (scale > 1) {
+                    ifr.style.transform = `scale(${scale})`;
+                    ifr.style.transformOrigin = "top center";
+                  }
+
+                  const opt = `{ 'key' : '${fk}', 'format' : 'iframe', 'height' : ${nativeH}, 'width' : ${nativeW}, 'params' : {} }`;
+                  ifr.srcdoc = `<!DOCTYPE html><html><head><style>body{margin:0;padding:0;overflow:hidden;display:flex;justify-content:center;align-items:flex-start;background:transparent;height:auto;pointer-events:none !important;} #container-${fk} { display: inline-block !important; width: auto !important; max-width: 100%; height: auto !important; pointer-events: none !important; } #container-${fk} a, #container-${fk} img, #container-${fk} iframe, #container-${fk} ins { pointer-events: auto !important; } <\/style><script>try{Object.defineProperty(window,'top',{get:function(){return window;}});Object.defineProperty(window,'parent',{get:function(){return window;}});}catch(e){}<\/script><\/head><body><div id="container-${fk}"><\/div><script>atOptions=${opt};<\/script><script src="https://crowdsubsequentadmire.com/${fk}/invoke.js" onerror="window.parent.postMessage('ad-blocked-${el.id}', '*')"><\/script><script>window.onload=function(){let lastH=0;const r=()=>{const c=document.getElementById('container-${fk}');if(!c)return;const imgs=Array.from(c.querySelectorAll('img, iframe, a, ins'));if(imgs.length===0){const h=document.body.scrollHeight;if(h!==lastH&&h>10){lastH=h;window.parent.postMessage({type:'ad-resize',id:'${el.id}',h:h},'*');}return;}let maxB=0;imgs.forEach(i=>{const b=i.getBoundingClientRect().bottom;if(b>maxB)maxB=b;});if(maxB!==lastH&&maxB>10){lastH=maxB;window.parent.postMessage({type:'ad-resize',id:'${el.id}',h:maxB},'*');}};r();setTimeout(r,1500);setInterval(r,3000);};<\/script><\/body><\/html>`;
+                  
+                  slot.innerHTML = ''; slot.appendChild(ifr);
+                  (el as HTMLElement).style.height = 'auto';
+                  (el as HTMLElement).style.minHeight = '0px';
+                  (el as HTMLElement).style.overflow = "hidden";
+                  (el as HTMLElement).style.background = "transparent";
+                  (el as HTMLElement).style.alignItems = "flex-start";
+
+                  // Orion: Detección de Adblock y Anuncios Vacíos
+                  ifr.onload = () => {
+                    setTimeout(() => {
+                      try {
+                        if (el.offsetHeight === 0 || window.getComputedStyle(el).display === 'none') {
+                          el.classList.add('fallback-active');
+                          return;
+                        }
+                        
+                        const doc = ifr.contentWindow?.document;
+                        if (doc) {
+                          const adContainer = doc.getElementById(`container-${fk}`);
+                          const clone = doc.createElement('div');
+                          clone.innerHTML = adContainer ? adContainer.innerHTML : doc.body.innerHTML;
+                          clone.querySelectorAll('script, style, meta, link').forEach(n => n.remove());
+                          const hasVisibleAd = clone.innerHTML.trim() !== '' || doc.querySelectorAll('iframe:not([src="about:blank"]), img, a').length > 0;
+                          if (!hasVisibleAd) el.classList.add('ad-empty');
+                        }
+                      } catch (e) {}
+                    }, 2000);
+                  };
+                } else {
+                  el.classList.add('fallback-active');
                 }
                 obs.unobserve(el);
               }
@@ -320,15 +394,47 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         });
       };
 
+      // Escuchar mensajes desde el iframe (Bloqueo y Resize)
+      window.addEventListener('message', (e) => {
+        if (typeof e.data === 'object' && e.data.type === 'ad-resize') {
+          const el = document.getElementById(e.data.id);
+          const ifr = el?.querySelector('iframe');
+          if (el && ifr && e.data.h > 20) {
+            const h = Math.min(e.data.h, 280); // Astra: Hard cap de 280px
+            ifr.style.height = h + 'px';
+            ifr.height = h;
+            el.style.height = h + 'px';
+            el.style.minHeight = '0px';
+          }
+        }
+        if (typeof e.data === 'string' && e.data.startsWith('ad-blocked-')) {
+          const id = e.data.replace('ad-blocked-', '');
+          document.getElementById(id)?.classList.add('fallback-active');
+        }
+      });
+
       // 4. Cosmos & Swiper (Astra: Animaciones Fluidas con Carga Diferida)
       const _0xV = async () => {
         const phy = document.body.getAttribute('data-cosmos-physics') === 'true';
-        if (phy) {
+        const isReader = document.body.getAttribute('data-reader-active') === 'true';
+        
+        if (phy && !isReader) { // Orion: Solo activamos física si NO estamos en el lector
           const root = document.documentElement;
           let mX=0, mY=0, sY=window.scrollY, tX=0, tY=0; const wW=window.innerWidth, wH=window.innerHeight;
-          window.addEventListener('mousemove', (e) => { mX = (e.clientX - wW / 2); mY = (e.clientY - wH / 2); }, { passive: true });
-          window.addEventListener('scroll', () => { sY = window.scrollY; }, { passive: true });
+          
+          const onMove = (e: MouseEvent) => { mX = (e.clientX - wW / 2); mY = (e.clientY - wH / 2); };
+          const onScroll = () => { sY = window.scrollY; };
+          
+          window.addEventListener('mousemove', onMove, { passive: true });
+          window.addEventListener('scroll', onScroll, { passive: true });
+          
           const anim = () => { 
+            // Orion: Si entramos al lector después de iniciar, limpiamos y salimos
+            if (document.body.getAttribute('data-reader-active') === 'true') {
+              window.removeEventListener('mousemove', onMove);
+              window.removeEventListener('scroll', onScroll);
+              return; 
+            }
             tX += (mX - tX) * 0.05; tY += (mY - tY) * 0.05; 
             root.style.setProperty('--cosmos-tx', `${tX}px`);
             root.style.setProperty('--cosmos-ty', `${tY}px`);
@@ -338,7 +444,6 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           requestAnimationFrame(anim);
         }
         
-        // Orion: Carga dinámica de Swiper solo si es necesario
         if (document.querySelector('.swiper')) {
           if (!(window as any).Swiper) {
             const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css'; document.head.appendChild(link);
@@ -366,7 +471,6 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         const type = e.type;
         const detail = e.detail;
 
-        // Importación dinámica para no cargar Svelte si no se usa
         const [{ mount }, { default: GlobalUtilitiesComp }] = await Promise.all([
           import('svelte'),
           import('../components/GlobalUtilities.svelte')
@@ -375,7 +479,6 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         const r = document.getElementById('global-utilities-root');
         if (r) {
           mount(GlobalUtilitiesComp as any, { target: r, props: { isVerifyPage: window.location.pathname === '/verify', shouldShowAgeGate: document.documentElement.classList.contains('age-gate-active') } });
-          // Astra: Re-disparamos el evento original para que el componente recién montado lo ejecute
           setTimeout(() => { window.dispatchEvent(new CustomEvent(type, { detail })); }, 50);
         }
       };

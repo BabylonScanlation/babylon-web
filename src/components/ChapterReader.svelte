@@ -1,5 +1,5 @@
 <script lang="ts">
-import { onMount } from 'svelte';
+import { onMount, onDestroy } from 'svelte';
 import { fade, fly } from 'svelte/transition';
 import ReaderPage from './ReaderPage.svelte';
 
@@ -49,6 +49,11 @@ let loadingMessage = $state<string | null>(null);
 let isProcessing = $state(false);
 let error = $state<string | null>(null);
 let isComplete = $state(false);
+
+// Orion: Flags para evitar peticiones redundantes
+let viewRegistered = false;
+let progressSaved = false;
+let hasReadThreshold = false;
 
 // Astra: Sincronización inicial silenciosa
 onMount(() => {
@@ -194,18 +199,25 @@ onMount(() => {
 
   const handleScroll = () => {
     if (!ticking) {
+      ticking = true;
       window.requestAnimationFrame(() => {
-        if (document.body.getAttribute('data-reader-modal') === 'open') {
+        // --- READS ---
+        const isModalOpen = document.body.getAttribute('data-reader-modal') === 'open';
+        const currentScroll = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight;
+        const winHeight = window.innerHeight;
+        
+        // --- WRITES & LOGIC ---
+        if (isModalOpen) {
           ticking = false;
           return;
         }
 
-        const currentScroll = window.scrollY;
-        const docHeight = document.documentElement.scrollHeight;
-        const winHeight = window.innerHeight;
         const scrollHeight = docHeight - winHeight;
-
         scrollProgress = scrollHeight > 0 ? (currentScroll / scrollHeight) * 100 : 0;
+
+        // Orion: Activar umbral de lectura
+        if (scrollProgress > 40) hasReadThreshold = true;
 
         // Prefetch Trigger
         if (scrollProgress > 80 && !hasPrefetched && nextChapter) {
@@ -229,7 +241,6 @@ onMount(() => {
         lastScrollY = currentScroll;
         ticking = false;
       });
-      ticking = true;
     }
   };
 
@@ -253,7 +264,6 @@ onMount(() => {
             pagesData = incomingPages.sort(
               (a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0)
             );
-            // console.log('[READER] Sequence:', pagesData.map(p => p.pageNumber).join(', '));
             if (isProcessing) isProcessing = false;
           } else {
             console.warn('[READER] No pages found in payload');
@@ -267,26 +277,23 @@ onMount(() => {
 
     if (isProcessing) setupSse();
 
-    if (chapterId && !isProcessing) {
-      if (document.visibilityState === 'visible') registerView();
-      else
-        document.addEventListener(
-          'visibilitychange',
-          () => {
-            if (document.visibilityState === 'visible') registerView();
-          },
-          { once: true }
-        );
-    }
-  }, 50);
+    // Astra: Registrar vista diferida al cerrar/desmontar
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') registerView();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
-  return () => {
-    window.removeEventListener('scroll', handleScroll);
-    window.removeEventListener('keydown', handleKeydown);
-    document.body.removeAttribute('data-reader-active');
-    document.body.removeAttribute('data-reader-modal');
-    if (eventSource) eventSource.close();
-  };
+    // Save cleanup to remove listener
+    return () => {
+      registerView(); // Registrar al desmontar el componente (Astro View Transitions)
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('keydown', handleKeydown);
+      document.body.removeAttribute('data-reader-active');
+      document.body.removeAttribute('data-reader-modal');
+      if (eventSource) eventSource.close();
+    };
+  }, 100);
 });
 
 function handleGlobalClick(e: MouseEvent) {
@@ -368,6 +375,7 @@ function changePage(delta: number) {
   const newIndex = currentPageIndex + delta;
   if (newIndex >= 0 && newIndex < pagesData.length) {
     currentPageIndex = newIndex;
+    if (newIndex > 0) hasReadThreshold = true;
   }
 }
 
@@ -468,23 +476,39 @@ function setupSse(isRetry = false) {
 import { actions } from 'astro:actions';
 
 function registerView() {
-  if (chapterId) {
-    actions.chapters.registerView({ chapterId }).catch(() => {});
+  if (!chapterId || !hasReadThreshold || viewRegistered) return;
+  viewRegistered = true;
 
-    // Orion: Si el usuario está autenticado, guardamos su progreso de lectura
+  // Tarea 1: Registrar vista (Prioridad media)
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(() => {
+      actions.chapters.registerView({ chapterId }).catch(() => {});
+    });
+  } else {
+    actions.chapters.registerView({ chapterId }).catch(() => {});
+  }
+
+  // Tarea 2: Actualizar progreso (Prioridad baja)
     const bridge = document.getElementById('reader-data-bridge');
     const seriesId = bridge ? parseInt(bridge.getAttribute('data-series-id') || '0') : 0;
 
     if (seriesId > 0) {
-      actions.user
-        .updateProgress({
-          seriesId,
-          chapterId,
-          chapterNumber: parseFloat(chapter),
-        })
-        .catch((err) => console.warn('[Reader] Failed to update progress', err));
+      const task = () => {
+        actions.user
+          .updateProgress({
+            seriesId,
+            chapterId,
+            chapterNumber: parseFloat(chapter),
+          })
+          .catch((err) => console.warn('[Reader] Failed to update progress', err));
+      };
+
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(task, { timeout: 5000 });
+      } else {
+        setTimeout(task, 2000);
+      }
     }
-  }
 }
 
 function startProgressSimulation() {
@@ -529,7 +553,7 @@ import { siteConfig } from '../site.config';
   tabindex="-1"
   bind:this={readerEl}
 >
-  <div class="top-progress-bar" style="width: {scrollProgress}%"></div>
+  <div class="top-progress-bar" style="transform: scaleX({scrollProgress / 100})"></div>
 
   <div class="reader-container" style="width: {isMobile ? 100 : readerWidth}%">
     {#if isInAppOnly}
@@ -582,7 +606,7 @@ import { siteConfig } from '../site.config';
             {/key}
             <div class="progress-section">
               <div class="bar-container">
-                <div class="bar-fill" style="width: {simulatedProgress}%"></div>
+                <div class="bar-fill" style="transform: scaleX({simulatedProgress / 100})"></div>
               </div>
               <div class="progress-meta">
                 <span class="status-dot"></span>
@@ -714,10 +738,12 @@ import { siteConfig } from '../site.config';
     top: 0;
     left: 0;
     height: 3px;
+    width: 100%;
     background: var(--accent-color);
     box-shadow: none; /* Astra: Eliminada sombra que parece línea */
     z-index: 2000;
-    transition: width 0.2s ease;
+    transform-origin: left;
+    transition: transform 0.2s ease;
   }
 
   .reader-container {
@@ -1126,7 +1152,7 @@ import { siteConfig } from '../site.config';
   }
 
   .bar-container { background: rgba(255, 255, 255, 0.05); height: 6px; border-radius: 100px; overflow: hidden; margin-bottom: 1rem; }
-  .bar-fill { background: var(--accent-color); height: 100%; transition: width 0.4s cubic-bezier(0.1, 0.7, 0.1, 1); box-shadow: 0 0 20px var(--accent-color); }
+  .bar-fill { background: var(--accent-color); height: 100%; transform-origin: left; transition: transform 0.4s cubic-bezier(0.1, 0.7, 0.1, 1); box-shadow: 0 0 20px var(--accent-color); }
 
   .progress-meta {
     display: flex;

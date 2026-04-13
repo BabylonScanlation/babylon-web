@@ -189,7 +189,7 @@ if (error && currentChapterIndex !== -1) {
   <main class="reader-container" id="reader-container">
     {siteConfig.ads.enabled && !user?.isAdmin && (
       <div class="reader-top-ad">
-        <AdContainer type="banner" />
+        <AdContainer type="native" />
       </div>
     )}
 
@@ -372,6 +372,15 @@ if (error && currentChapterIndex !== -1) {
 
   .reader-top-ad {
     margin-bottom: 1.5rem;
+    max-height: 280px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+  }
+
+  .reader-top-ad :global(.ad-container-root) {
+    max-height: 280px !important;
+    min-height: 90px !important;
   }
 
   .reader-bottom-ad {
