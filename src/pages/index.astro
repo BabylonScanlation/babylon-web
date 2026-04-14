@@ -10,7 +10,8 @@ import { logError } from '../lib/logError';
 import { siteConfig } from '../site.config';
 
 const { runtime } = Astro.locals;
-const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
+const r2PublicUrlAssets =
+  runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
 
 // Astra: El modo NSFW ahora es global vía cookies (Exclusivo)
 const allowNsfw = Astro.cookies.get('babylon_nsfw')?.value === 'true';
@@ -42,11 +43,13 @@ const featuredGridData = popularSeries.slice(0, 6);
 featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
 ---
 
-<Layout 
+<Layout
   title={`${siteConfig.name} - Leer Manga, Manhwa y Manhua Online Gratis`}
   description={`La mejor plataforma para leer Manga, Manhwa y Manhua online en español. Capítulos diarios, alta calidad visual y la mejor comunidad. ¡Lee gratis ahora en ${siteConfig.shortName}!`}
 >
-  <h1 class="sr-only">{siteConfig.name} - Tu plataforma premium para leer Manga, Manhwa y Manhua online gratis</h1>
+  <h1 class="sr-only" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;">
+    {siteConfig.name} - Tu plataforma premium para leer Manga, Manhwa y Manhua online gratis
+  </h1>
   {
     hasContent ? (
       <div class="main-content-wrapper">
@@ -57,11 +60,10 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
             />
           )}
 
-        <div class="top-ad-banner">
-          <AdContainer type="bannerLarge" />
-        </div>
-
         <div class="main-sections-container">
+          <div class="top-ad-banner">
+            <AdContainer type="bannerLarge" />
+          </div>
 
           {featuredGridData.length > 0 && (
             <FeaturedGrid mangas={featuredGridData.map((m) => ({...m, loading: 'lazy'}))} />
@@ -84,7 +86,11 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
     ) : (
       <div class="empty-state-container">
         <img
-          src={siteConfig.assets.logoEmpty.startsWith('/') ? `${r2PublicUrlAssets}${siteConfig.assets.logoEmpty}` : siteConfig.assets.logoEmpty}
+          src={
+            siteConfig.assets.logoEmpty.startsWith('/')
+              ? `${r2PublicUrlAssets}${siteConfig.assets.logoEmpty}`
+              : siteConfig.assets.logoEmpty
+          }
           alt={`${siteConfig.name} Logo`}
           class="empty-state-logo"
         />
@@ -110,24 +116,27 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
     padding: 0;
     margin: 0;
     background: transparent;
-  }
-  .main-sections-container {
+    line-height: 0;
+    height: auto;
+    /* Astra: Eliminamos min-height para que no ocupe espacio si no hay contenido aún */
+    transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }  .main-sections-container {
     max-width: 1200px;
-    margin: 0 auto;
+    margin: 1.25rem auto 0; /* Astra: Separación sutil para despegar el anuncio del carrusel */
     padding: 0 1rem;
     width: 100%;
     box-sizing: border-box;
     overflow-x: hidden;
-    /* Astra: Espaciado ultra-compacto */
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1rem; /* Astra: Gap compacto para evitar el espacio gigante */
   }
 
   .discovery-zone {
     display: flex;
     flex-direction: column;
-    gap: 0; /* Astra: Espacio eliminado entre slider y botón */
+    gap: 0;
+    margin-bottom: 0rem; /* Astra: Margen negativo sutil para acercar el anuncio square */
   }
 
   .empty-state-container {
@@ -174,4 +183,3 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
     }
   }
 </style>
-

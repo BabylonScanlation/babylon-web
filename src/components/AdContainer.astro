@@ -16,7 +16,7 @@ const _adKey = adKeys[type as keyof typeof adKeys] || adKeys.banner;
 
 const _dimensions = {
   banner: { w: 728, h: 90 },
-  bannerLarge: { w: 1200, h: 280 },
+  bannerLarge: { w: 970, h: 90 },
   bannerSmall: { w: 468, h: 60 },
   square: { w: 300, h: 250 },
   native: { w: 728, h: 180 },
@@ -73,11 +73,11 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
     transition: all 0.4s ease;
   }
 
-  .ad-container-root.banner { min-height: 90px; }
-  .ad-container-root.bannerSmall { min-height: 60px; }
-  .ad-container-root.square { min-height: 250px; }
+  .ad-container-root.banner { height: auto; }
+  .ad-container-root.bannerSmall { height: auto; }
+  .ad-container-root.square { height: auto; }
   .ad-container-root.bannerLarge { 
-    min-height: 250px; 
+    height: auto; 
     width: 100%;
   }
 
@@ -112,16 +112,21 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
     width: 100% !important;
   }
 
-  /* Astra: Manejo de anuncios vacíos */
-  :global(.ad-container-root.ad-empty) {
+  /* Astra: Manejo de anuncios vacíos sin causar Layout Shift */
+  :global(.ad-container-root.ad-empty) .ad-inner-wrapper {
     display: none !important;
   }
+  :global(.ad-container-root.ad-empty) .ad-fallback-card {
+    display: flex !important;
+    opacity: 0.5;
+  }
 
-  /* Astra: Fallback UI */
+  /* Astra: Fallback UI estable */
   .ad-fallback-card {
     display: none;
-    position: absolute;
-    inset: 0;
+    position: relative; /* Astra: Ahora es relativo para ocupar espacio en el flujo */
+    width: 100%;
+    height: auto;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 20px;
@@ -130,7 +135,7 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 1.5rem;
+    padding: 1rem;
   }
 
   .ad-container-root.fallback-active .ad-fallback-card { display: flex !important; }
