@@ -1,5 +1,5 @@
 <script lang="ts">
-import { onMount, onDestroy } from 'svelte';
+import { onMount } from 'svelte';
 import { fade, fly } from 'svelte/transition';
 import ReaderPage from './ReaderPage.svelte';
 
@@ -52,7 +52,6 @@ let isComplete = $state(false);
 
 // Orion: Flags para evitar peticiones redundantes
 let viewRegistered = false;
-let progressSaved = false;
 let hasReadThreshold = false;
 
 // Astra: Sincronización inicial silenciosa
@@ -206,7 +205,7 @@ onMount(() => {
         const currentScroll = window.scrollY;
         const docHeight = document.documentElement.scrollHeight;
         const winHeight = window.innerHeight;
-        
+
         // --- WRITES & LOGIC ---
         if (isModalOpen) {
           ticking = false;
@@ -477,38 +476,39 @@ import { actions } from 'astro:actions';
 
 function registerView() {
   if (!chapterId || !hasReadThreshold || viewRegistered) return;
+  const cid = chapterId; // Astra: Garantizamos que es number para TS
   viewRegistered = true;
 
   // Tarea 1: Registrar vista (Prioridad media)
   if ('requestIdleCallback' in window) {
     window.requestIdleCallback(() => {
-      actions.chapters.registerView({ chapterId }).catch(() => {});
+      actions.chapters.registerView({ chapterId: cid }).catch(() => {});
     });
   } else {
-    actions.chapters.registerView({ chapterId }).catch(() => {});
+    actions.chapters.registerView({ chapterId: cid }).catch(() => {});
   }
 
   // Tarea 2: Actualizar progreso (Prioridad baja)
-    const bridge = document.getElementById('reader-data-bridge');
-    const seriesId = bridge ? parseInt(bridge.getAttribute('data-series-id') || '0') : 0;
+  const bridge = document.getElementById('reader-data-bridge');
+  const seriesId = bridge ? parseInt(bridge.getAttribute('data-series-id') || '0') : 0;
 
-    if (seriesId > 0) {
-      const task = () => {
-        actions.user
-          .updateProgress({
-            seriesId,
-            chapterId,
-            chapterNumber: parseFloat(chapter),
-          })
-          .catch((err) => console.warn('[Reader] Failed to update progress', err));
-      };
+  if (seriesId > 0) {
+    const task = () => {
+      actions.user
+        .updateProgress({
+          seriesId,
+          chapterId: cid,
+          chapterNumber: parseFloat(chapter),
+        })
+        .catch((err) => console.warn('[Reader] Failed to update progress', err));
+    };
 
-      if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(task, { timeout: 5000 });
-      } else {
-        setTimeout(task, 2000);
-      }
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(task, { timeout: 5000 });
+    } else {
+      setTimeout(task, 2000);
     }
+  }
 }
 
 function startProgressSimulation() {

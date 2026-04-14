@@ -30,7 +30,6 @@ const title = pageTitle ? `${pageTitle} | ${siteConfig.shortName}` : siteConfig.
 
 const isAdminPage = Astro.url.pathname.startsWith('/admin');
 const isVerifyPage = Astro.url.pathname === '/verify';
-const isHome = Astro.url.pathname === '/';
 
 const isVerified = Astro.cookies.get('site_verified')?.value === 'true';
 const isBot = (Astro.locals as any).isBot;
@@ -368,8 +367,6 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         n: 'data-news-count'
       };
 
-      const isDev = document.body.getAttribute('data-is-dev') === 'true';
-
       // 2. Cargador de Imágenes Proactivo (Astra Orion: Ultra-Lazy)
       const _0xL = (root = document.body) => {
         const obs = new IntersectionObserver((es) => {
@@ -419,7 +416,6 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                 const slot = el.querySelector('.ad-content-slot');
                 if (slot && fk) {
                   const ifr = document.createElement('iframe');
-                  const isLarge = type === 'bannerLarge';
                   
                   // Orion: Dimensiones desde configuración
                   const nativeW = dim.w;
@@ -450,7 +446,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                   ifr.onload = () => {
                     setTimeout(() => {
                       try {
-                        if (el.offsetHeight === 0 || window.getComputedStyle(el).display === 'none') {
+                        if ((el as HTMLElement).offsetHeight === 0 || window.getComputedStyle(el).display === 'none') {
                           el.classList.add('fallback-active');
                         }
                       } catch (e) {}

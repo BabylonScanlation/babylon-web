@@ -15,13 +15,13 @@ async function clearSeriesR2Data(
       get: (...args: unknown[]) => unknown;
       put: (...args: unknown[]) => unknown;
       delete: (...args: unknown[]) => unknown;
-      list: (...args: unknown[]) => any;
+      list: (...args: unknown[]) => unknown;
     };
     R2_ASSETS: {
       get: (...args: unknown[]) => unknown;
       put: (...args: unknown[]) => unknown;
       delete: (...args: unknown[]) => unknown;
-      list: (...args: unknown[]) => any;
+      list: (...args: unknown[]) => unknown;
     };
   }
 ) {
@@ -31,8 +31,12 @@ async function clearSeriesR2Data(
     let truncated = true;
     let cursor: string | undefined;
     while (truncated) {
-      const list = await r2Cache.list({ prefix: `${slug}/`, cursor });
-      const keys = list.objects.map((obj: { key: string }) => obj.key);
+      const list = (await r2Cache.list({ prefix: `${slug}/`, cursor })) as {
+        objects: { key: string }[];
+        truncated: boolean;
+        cursor?: string;
+      };
+      const keys = list.objects.map((obj) => obj.key);
       if (keys.length > 0) await r2Cache.delete(keys);
       truncated = list.truncated;
       cursor = list.truncated ? list.cursor : undefined;
