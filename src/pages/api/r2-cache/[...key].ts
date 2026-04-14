@@ -15,6 +15,13 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   if (!key) return new Response('Key required', { status: 400 });
 
   const env = locals.runtime.env;
+  const publicAssetsUrl = env.R2_PUBLIC_URL_ASSETS;
+  
+  // 0. PRE-CHECK: Evitar doble caché si la 'key' es una URL que ya pertenece a nuestro bucket de Assets
+  if (key.includes('http') && publicAssetsUrl && key.includes(publicAssetsUrl)) {
+    return Response.redirect(key, 302);
+  }
+
   const R2Cache = env.R2_CACHE;
 
   const url = new URL(request.url);
@@ -32,26 +39,44 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   if (!isValid) return new Response('Invalid Signature', { status: 403 });
 
   try {
-    // 2. INTENTO DESDE R2 (Capa 1)
     const etag = request.headers.get('If-None-Match');
-    const object = await R2Cache.get(key, {
+
+    // 2. INTENTO DESDE R2_CACHE (Capa 1)
+    const cachedObject = await R2Cache.get(key, {
       onlyIf: etag ? { etagMatches: etag } : undefined,
     });
 
-    if (object && 'body' in object && !object.body) {
-      return new Response(null, { status: 304 });
-    }
-
-    if (object) {
-      return new Response(object.body, {
+    if (cachedObject) {
+      if ('body' in cachedObject && !cachedObject.body) return new Response(null, { status: 304 });
+      return new Response(cachedObject.body, {
         headers: {
-          'Content-Type': object.httpMetadata?.contentType || 'image/jpeg',
+          'Content-Type': cachedObject.httpMetadata?.contentType || 'image/jpeg',
           'Cache-Control': 'public, max-age=31536000, s-maxage=2592000, immutable',
-          ETag: object.httpEtag,
+          ETag: cachedObject.httpEtag,
           'Access-Control-Allow-Origin': '*',
-          'X-Cache-Status': 'HIT_R2',
+          'X-Cache-Status': 'HIT_CACHE',
         },
       });
+    }
+
+    // 2.1. INTENTO DESDE R2_ASSETS (Capa 1.5) - Orion: Si ya está en Assets, no duplicar en Cache
+    const R2Assets = env.R2_ASSETS;
+    if (R2Assets) {
+      const assetObject = await R2Assets.get(key, {
+        onlyIf: etag ? { etagMatches: etag } : undefined,
+      });
+      if (assetObject) {
+        if ('body' in assetObject && !assetObject.body) return new Response(null, { status: 304 });
+        return new Response(assetObject.body, {
+          headers: {
+            'Content-Type': assetObject.httpMetadata?.contentType || 'image/jpeg',
+            'Cache-Control': 'public, max-age=31536000, s-maxage=2592000, immutable',
+            ETag: assetObject.httpEtag,
+            'Access-Control-Allow-Origin': '*',
+            'X-Cache-Status': 'HIT_ASSETS',
+          },
+        });
+      }
     }
 
     // 3. JIT RECOVERY DESDE TELEGRAM (Capa 2)
@@ -112,7 +137,11 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         ? 'image/png'
         : 'image/jpeg';
 
-    if (locals.runtime.ctx?.waitUntil) {
+    // ORION: Solo guardamos en R2 si la KEY es una ruta limpia, no una URL completa.
+    // Esto previene la creación de carpetas 'http' o 'https'.
+    const isFullUrl = key.includes('://') || key.startsWith('http');
+
+    if (locals.runtime.ctx?.waitUntil && !isFullUrl) {
       locals.runtime.ctx.waitUntil(
         R2Cache.put(key, buffer, {
           httpMetadata: {

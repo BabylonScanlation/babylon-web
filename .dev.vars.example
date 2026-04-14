@@ -1,0 +1,22 @@
+# === APP SECRETS EXAMPLE (.dev.vars.example) ===
+# Copia este archivo a .dev.vars y completa los valores
+
+# --- SEGURIDAD ---
+AUTH_SECRET="your_long_random_string_here"
+JWT_SECRET="your_jwt_signing_key_here"
+SHIELD_TOKEN="your_shield_token_here"
+INTERNAL_CRYPTO_SALT="your_long_random_salt_here"
+TURNSTILE_SECRET_KEY="0x4AAAAAA..."
+
+# --- TELEGRAM BOT ---
+TELEGRAM_BOT_TOKEN="12345678:ABCDE..."
+TELEGRAM_WEBHOOK_SECRET="random_webhook_secret_here"
+TELEGRAM_CHAT_ID="-100..."
+
+# --- FIREBASE (Backend / Admin SDK) ---
+FIREBASE_PROJECT_ID="your_project_id_here"
+FIREBASE_CLIENT_EMAIL="firebase-adminsdk-...@your_project.iam.gserviceaccount.com"
+
+# --- R2 ASSETS & CACHE ---
+R2_PUBLIC_URL_ASSETS="https://your-assets.r2.dev"
+R2_PUBLIC_URL_CACHE="https://your-cache.r2.dev"

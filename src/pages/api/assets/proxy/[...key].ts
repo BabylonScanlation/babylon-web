@@ -72,9 +72,12 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
 
     try {
       const url = new URL(objectKey);
+      const publicR2 = env.R2_PUBLIC_URL_ASSETS;
+      const r2Host = publicR2 ? new URL(publicR2).hostname : null;
+
       const allowedHosts = [
         'api.telegram.org',
-        'pub-2e7d3fdb6a36489c808eaae6d2263bc7.r2.dev', // Babylon Production R2
+        ...(r2Host ? [r2Host] : []),
       ];
 
       // Bloquear IPs locales/privadas

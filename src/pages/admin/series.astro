@@ -6,7 +6,7 @@ import { getAdminSeriesWithChapters } from '../../lib/data/admin';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
 
-const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
+const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
 
 const limit = 12;
 const offsetParam = Astro.url.searchParams.get('offset');

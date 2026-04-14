@@ -92,12 +92,70 @@ const displayMangas = mangas.slice(0, 20);
   }
 </section>
 
+<script>
+  import Swiper from 'swiper';
+  import { Scrollbar, FreeMode, Mousewheel } from 'swiper/modules';
+  import 'swiper/css';
+  import 'swiper/css/scrollbar';
+
+  function initRecentUpdatesSwiper() {
+    // Buscamos todos los swipers de actualizaciones (por si acaso hay más de uno)
+    const swiperElements = document.querySelectorAll('.recent-updates-swiper');
+    
+    swiperElements.forEach((el) => {
+      // Evitar doble inicialización
+      if ((el as any).swiper) return;
+
+      new Swiper(el as HTMLElement, {
+        modules: [Scrollbar, FreeMode, Mousewheel],
+        slidesPerView: 'auto',
+        spaceBetween: 10, // Astra: Espacio reducido para mayor densidad visual
+        freeMode: {
+          enabled: true,
+          sticky: false,
+          momentumBounce: true,
+        },
+        mousewheel: {
+          forceToAxis: true,
+          sensitivity: 1,
+        },
+        scrollbar: {
+          el: el.parentElement?.querySelector('.premium-scrollbar') as HTMLElement || '.premium-scrollbar',
+          draggable: true,
+          hide: false,
+          snapOnRelease: false,
+        },
+        breakpoints: {
+          768: {
+            spaceBetween: 12, // Astra: Compacto en tablets
+          },
+          1024: {
+            spaceBetween: 16, // Astra: Elegante pero unido en escritorio
+          },
+        },
+        // Orion: Garantizar visibilidad inmediata
+        observer: true,
+        observeParents: true,
+      });
+    });
+  }
+
+  // Inicializar en carga inicial
+  initRecentUpdatesSwiper();
+
+  // Reinicializar tras cada navegación de Astro (View Transitions)
+  document.addEventListener('astro:page-load', () => {
+    initRecentUpdatesSwiper();
+  });
+</script>
+
 <style is:inline>
   /* --- Recent Updates Grid --- */
   .updates-premium-section {
     width: 100%;
-    margin: 0;
+    margin: 0; /* Astra: Eliminado el margen para control total desde el padre */
     position: relative;
+    overflow: visible !important;
   }
 
   .section-header.centered {
@@ -105,7 +163,7 @@ const displayMangas = mangas.slice(0, 20);
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: 2rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem; /* Astra: Reducido al mínimo */
     width: 100%;
   }
 
@@ -142,44 +200,55 @@ const displayMangas = mangas.slice(0, 20);
     position: relative;
     width: 100%;
     padding: 0;
+    overflow: visible !important;
   }
 
   .recent-updates-swiper {
     width: 100%;
-    height: auto;
     overflow: visible !important;
-    padding-bottom: 3.5rem !important;
-    position: relative;
-    display: block;
-  }
-
-  .recent-updates-swiper:not(.swiper-initialized) .swiper-wrapper {
-    display: flex;
-    gap: 20px;
-  }
-
-  @media (min-width: 768px) {
-    .recent-updates-swiper:not(.swiper-initialized) .swiper-wrapper {
-      gap: 30px;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .recent-updates-swiper:not(.swiper-initialized) .swiper-wrapper {
-      gap: 40px;
-    }
+    padding-bottom: 1rem !important;
   }
 
   .custom-slide {
     flex-shrink: 0;
     width: 240px !important;
-    height: auto;
-    transform: none;
-    -webkit-font-smoothing: antialiased;
-    backface-visibility: hidden;
   }
 
-  /* --- Inlined Update Card Styles --- */
+  /* --- Scrollbar Visual Fix (Visible & Integrated) --- */
+  .premium-scrollbar-external-box {
+    width: 100%;
+    height: 30px;
+    margin-top: 30px;
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 100 !important;
+  }
+
+  :global(.premium-scrollbar.swiper-scrollbar) {
+    background: rgba(255, 255, 255, 0.1) !important;
+    height: 6px !important;
+    position: relative !important;
+    width: 80% !important;
+    border-radius: 100px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  }
+
+  :global(.premium-scrollbar .swiper-scrollbar-drag) {
+    background: var(--accent-color) !important;
+    height: 100% !important;
+    border-radius: 100px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    box-shadow: 0 0 15px var(--accent-color) !important;
+    cursor: grab !important;
+  }
+
+  /* --- Premium Card Styles (Restored) --- */
   .premium-update-card-wrapper {
     position: relative;
     width: 100%;
@@ -203,19 +272,6 @@ const displayMangas = mangas.slice(0, 20);
     transform: translateY(-8px);
     border-color: var(--accent-color);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
-  }
-
-  .cover-link {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    text-decoration: none;
-    color: inherit;
-  }
-
-  .art-box {
-    width: 100%;
-    height: 100%;
   }
 
   .main-cover {
@@ -253,11 +309,6 @@ const displayMangas = mangas.slice(0, 20);
     pointer-events: none;
   }
 
-  .series-title-link {
-    text-decoration: none;
-    pointer-events: auto;
-  }
-
   .series-name-title {
     font-size: 1.1rem;
     font-weight: 900;
@@ -269,9 +320,6 @@ const displayMangas = mangas.slice(0, 20);
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-    transform: translateZ(0);
   }
 
   .recent-chapters-stack {
@@ -279,7 +327,6 @@ const displayMangas = mangas.slice(0, 20);
     flex-direction: column;
     gap: 0.4rem;
     pointer-events: auto;
-    transform: translateZ(0);
   }
 
   .chapter-pill {
@@ -294,9 +341,6 @@ const displayMangas = mangas.slice(0, 20);
     border-radius: 12px;
     text-decoration: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    -webkit-font-smoothing: antialiased;
-    backface-visibility: hidden;
-    transform: translateZ(0);
   }
 
   .chapter-pill:hover {
@@ -309,7 +353,6 @@ const displayMangas = mangas.slice(0, 20);
     font-size: 0.75rem;
     font-weight: 900;
     color: var(--accent-color);
-    letter-spacing: 0.05em;
     transition: color 0.3s;
   }
 
@@ -322,7 +365,6 @@ const displayMangas = mangas.slice(0, 20);
     font-weight: 700;
     color: #888;
     text-transform: uppercase;
-    transition: all 0.3s ease;
   }
 
   .chapter-pill:hover .time-text {
@@ -330,61 +372,10 @@ const displayMangas = mangas.slice(0, 20);
     opacity: 0.8;
   }
 
-  .no-chapters-msg {
-    font-size: 0.75rem;
-    color: #444;
-    font-weight: 800;
-    text-transform: uppercase;
-    text-align: center;
-    padding: 0.5rem;
-  }
-
-  /* --- Scrollbar Styles --- */
-  :global(.premium-scrollbar) {
-    position: absolute !important;
-    bottom: 15px !important;
-    left: 10% !important;
-    width: 80% !important;
-    height: 6px !important;
-    background: rgba(255, 255, 255, 0.02) !important;
-    border-radius: 100px !important;
-    border: 1px solid rgba(255, 255, 255, 0.03) !important;
-    overflow: visible !important;
-    opacity: 1 !important;
-  }
-
-  :global(.premium-scrollbar .swiper-scrollbar-drag) {
-    background: var(--accent-color) !important;
-    border-radius: 100px !important;
-    height: 100% !important;
-    position: relative !important;
-    cursor: grab !important;
-    transition: background 0.3s, box-shadow 0.3s, filter 0.3s !important;
-    will-change: transform;
-    box-shadow: 0 0 8px var(--accent-glow) !important;
-  }
-
-  :global(.premium-scrollbar:hover .swiper-scrollbar-drag),
-  :global(.premium-scrollbar .swiper-scrollbar-drag:active) {
-    filter: brightness(1.3);
-    box-shadow: 0 0 10px var(--accent-color), 0 0 20px var(--accent-glow) !important;
-    cursor: grabbing !important;
-  }
-
-  .empty-updates {
-    text-align: center;
-    padding: 4rem;
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 24px;
-    color: #444;
-    font-weight: 700;
-  }
-
   @media (max-width: 768px) {
-    .premium-scrollbar-external-box { display: none !important; }
-    .recent-updates-swiper { padding-bottom: 0.5rem !important; }
     .section-title { font-size: 1.1rem; letter-spacing: 0.1em; }
     .header-line { display: none; }
     .updates-premium-section { margin: 2.5rem 0; }
+    .premium-scrollbar-external-box { margin-top: 15px; }
   }
 </style>

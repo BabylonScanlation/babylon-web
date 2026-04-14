@@ -11,7 +11,7 @@ import { siteConfig } from '../site.config';
 
 const { runtime } = Astro.locals;
 const r2PublicUrlAssets =
-  runtime.env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
+  runtime.env.R2_PUBLIC_URL_ASSETS;
 
 // Astra: El modo NSFW ahora es global vía cookies (Exclusivo)
 const allowNsfw = Astro.cookies.get('babylon_nsfw')?.value === 'true';
@@ -66,10 +66,14 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
           </div>
 
           {featuredGridData.length > 0 && (
-            <FeaturedGrid mangas={featuredGridData.map((m) => ({...m, loading: 'lazy'}))} />
+            <div class="featured-grid-wrapper">
+              <FeaturedGrid mangas={featuredGridData.map((m) => ({...m, loading: 'lazy'}))} />
+            </div>
           )}
 
-          <AdContainer type="bannerSmall" />
+          <div class="middle-ad-wrapper">
+            <AdContainer type="bannerSmall" />
+          </div>
 
           <div class="discovery-zone">
             {seriesWithRecentChapters.length > 0 && (
@@ -80,7 +84,9 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
             )}
           </div>
 
-          <AdContainer type="square" />
+          <div class="bottom-ad-wrapper">
+            <AdContainer type="square" />
+          </div>
         </div>
       </div>
     ) : (
@@ -122,21 +128,29 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
     transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }  .main-sections-container {
     max-width: 1200px;
-    margin: 1.25rem auto 0; /* Astra: Separación sutil para despegar el anuncio del carrusel */
+    margin: 0 auto;
     padding: 0 1rem;
     width: 100%;
     box-sizing: border-box;
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    gap: 1rem; /* Astra: Gap compacto para evitar el espacio gigante */
+    gap: 1.5rem; /* Astra: Espaciado uniforme para centrado visual */
+  }
+
+  .featured-grid-wrapper,
+  .middle-ad-wrapper,
+  .discovery-zone,
+  .bottom-ad-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
   }
 
   .discovery-zone {
-    display: flex;
     flex-direction: column;
-    gap: 0;
-    margin-bottom: 0rem; /* Astra: Margen negativo sutil para acercar el anuncio square */
   }
 
   .empty-state-container {

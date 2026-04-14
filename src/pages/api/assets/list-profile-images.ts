@@ -34,7 +34,7 @@ export const GET: APIRoute = async ({ locals }) => {
   // Lista manual de Banners
   const banners = ['moon.jpg', 'tokiri.jpg'];
 
-  const publicUrl = env.R2_PUBLIC_URL_ASSETS || '/api/assets/proxy';
+  const publicUrl = env.R2_PUBLIC_URL_ASSETS;
 
   // Generamos las URLs completas
   const ManualAvatars: string[] = animals.map(

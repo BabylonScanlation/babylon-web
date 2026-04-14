@@ -14,7 +14,6 @@ interface RuntimeEnv {
   TELEGRAM_WEBHOOK_SECRET: string;
   R2_PUBLIC_URL_CACHE: string;
   R2_PUBLIC_URL_ASSETS: string;
-  ADMIN_PASSWORD: string;
 }
 
 export async function processAndCacheChapter(
