@@ -135,7 +135,7 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem; /* Astra: Espaciado uniforme para centrado visual */
+    gap: 1rem; /* Astra: Espaciado global más ajustado */
   }
 
   .featured-grid-wrapper,
@@ -151,6 +151,7 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
 
   .discovery-zone {
     flex-direction: column;
+    margin-top: -0.5rem; /* Astra: Compensación para "pegar" el título al anuncio superior */
   }
 
   .empty-state-container {
