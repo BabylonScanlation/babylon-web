@@ -123,15 +123,75 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       bg: siteConfig.theme.background,
       bgAlt: siteConfig.theme.backgroundAlt
     }}>
+      /* --- CRITICAL CSS (Prevent FOUC) --- */
       :root {
         --accent-color: var(--accent);
         --accent-glow: var(--accentGlow);
         --bg-color: var(--bg);
         --bg-alt: var(--bgAlt);
-        --cosmos-tx: 0px;
-        --cosmos-ty: 0px;
-        --cosmos-sy: 0px;
       }
+
+      /* Bloqueo inmediato del fondo y color base */
+      html { background-color: #020205 !important; color: #fff; }
+      body { 
+        margin: 0; 
+        padding: 0; 
+        background-color: #020205; 
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+      }
+
+      /* Reserva de espacio para Header y Hero para evitar saltos */
+      .site-header { 
+        height: 90px; 
+        background: #020205; 
+        position: fixed; 
+        top: 0; 
+        width: 100%; 
+        z-index: 5000; 
+      }
+      
+      .hero-carousel-section { 
+        min-height: 520px; 
+        background: #000; 
+        width: 100%;
+      }
+
+      /* Esqueleto de Grillas (Featured y Updates) */
+      .featured-grid-3x2 {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 1.5rem !important;
+        min-height: 600px;
+      }
+
+      .recent-updates-swiper:not(.swiper-initialized) .swiper-wrapper {
+        display: flex !important;
+        gap: 20px !important;
+        overflow: hidden !important;
+        min-height: 350px;
+      }
+
+      .custom-slide {
+        flex-shrink: 0 !important;
+        width: 240px !important;
+      }
+
+      @media (max-width: 1100px) {
+        .featured-grid-3x2 { grid-template-columns: repeat(2, 1fr) !important; }
+      }
+
+      @media (max-width: 768px) {
+        .site-header { height: 80px; position: relative; }
+        .featured-grid-3x2 { grid-template-columns: repeat(2, 1fr) !important; gap: 1rem !important; }
+        .recent-updates-swiper:not(.swiper-initialized) .swiper-wrapper { gap: 15px !important; }
+        .custom-slide { width: 160px !important; }
+      }
+
+      /* Ocultar contenido hasta que el navegador procese el CSS principal si es necesario */
+      .site-main-content { visibility: visible; opacity: 1; }
 
       html.nsfw-mode {
         --accent-color: #900000 !important;
