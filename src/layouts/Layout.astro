@@ -179,6 +179,19 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         width: 240px !important;
       }
 
+      /* Esqueleto de Cards (Evita el colapso interno) */
+      .premium-update-card-wrapper, .featured-card-wrapper {
+        aspect-ratio: 2 / 3 !important;
+        background: rgba(255, 255, 255, 0.03) !important;
+        border-radius: 24px !important;
+        overflow: hidden !important;
+      }
+
+      .featured-card-wrapper {
+        height: 320px !important;
+        aspect-ratio: auto !important; /* Featured usa altura fija */
+      }
+
       @media (max-width: 1100px) {
         .featured-grid-3x2 { grid-template-columns: repeat(2, 1fr) !important; }
       }
@@ -283,12 +296,26 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
   </head>
   <body 
     class="cosmos-theme" 
+    style="opacity: 0; transition: opacity 0.2s ease;"
     data-user-id={user?.uid || 'guest'}
     data-user-state={user ? JSON.stringify({ uid: user.uid, email: user.email, isAdmin: user.isAdmin }) : 'null'}
     data-cosmos-physics={siteConfig.theme.cosmos.physicsEnabled ? 'true' : 'false'}
     data-news-count={serverNewsCount}
     data-is-dev={import.meta.env.DEV ? 'true' : 'false'}
   >
+    <script is:inline>
+      // Astra: Blindaje Anti-FOUC Nuclear
+      (function() {
+        const show = () => document.body.style.opacity = '1';
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', show);
+        } else {
+          show();
+        }
+        // Fallback de seguridad por si algo falla
+        setTimeout(show, 150);
+      })();
+    </script>
     {siteConfig.theme.cosmos.enabled && (
       <div class="cosmos-bg">
         <div class="stars-layer base" style="transform: translate3d(calc(var(--cosmos-tx) * -0.02), calc(var(--cosmos-sy) * -0.02 + var(--cosmos-ty) * -0.02), 0)"></div>
