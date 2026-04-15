@@ -26,9 +26,14 @@ onMount(() => {
 
 function renderWidget() {
   const isDev = import.meta.env.DEV;
-  const sitekey = isDev
+  const sitekey = (isDev
     ? import.meta.env.PUBLIC_TURNSTILE_DEV_SITE_KEY
-    : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+    : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY) || '';
+
+  if (!sitekey) {
+    console.error('[Cloudflare Turnstile] Sitekey is missing. Check environment variables.');
+    return;
+  }
 
   // @ts-expect-error Global turnstile
   window.turnstile.render(`#${containerId}`, {

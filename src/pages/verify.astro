@@ -2,9 +2,9 @@
 import LayoutVerify from '../layouts/LayoutVerify.astro';
 
 const isDev = import.meta.env.DEV;
-const turnstileSiteKey = isDev
+const turnstileSiteKey = (isDev
   ? import.meta.env.PUBLIC_TURNSTILE_DEV_SITE_KEY
-  : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+  : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY) || '';
 ---
 
 <LayoutVerify title="Verificación de Seguridad">
@@ -57,6 +57,8 @@ const turnstileSiteKey = isDev
     </div>
   </div>
 
+  <div style="display:none" id="turnstile-data" data-sitekey={turnstileSiteKey}></div>
+
   <script is:inline>
     // Orion: Definición inmediata del estado global
     window.captchaToken = null;
@@ -79,28 +81,15 @@ const turnstileSiteKey = isDev
     ageCheck.addEventListener('change', window.validateCaptcha);
     termsCheck.addEventListener('change', window.validateCaptcha);
 
-    // Orion: Renderizado Explícito para evitar fallos de carga async
-    function initTurnstile() {
-      if (window.turnstile) {
-        window.turnstile.render('#turnstile-container', {
-          sitekey: document.getElementById('turnstile-container').parentElement.dataset.sitekey,
-          theme: 'dark',
-          callback: 'onTurnstileVerify',
-        });
-      } else {
-        setTimeout(initTurnstile, 100);
-      }
-    }
-  </script>
-
-  <div style="display:none" id="turnstile-data" data-sitekey={turnstileSiteKey}></div>
-
-  <script is:inline>
     // Iniciar cuando el DOM esté listo
     document.addEventListener('DOMContentLoaded', () => {
-      const container = document.getElementById('turnstile-container');
       const sitekey = document.getElementById('turnstile-data').dataset.sitekey;
       
+      if (!sitekey || sitekey === 'undefined') {
+        console.error('[Cloudflare Turnstile] Sitekey is missing or undefined. Check environment variables.');
+        return;
+      }
+
       const render = () => {
         if (window.turnstile) {
           window.turnstile.render('#turnstile-container', {
