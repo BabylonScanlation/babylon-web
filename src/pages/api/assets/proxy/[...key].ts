@@ -75,10 +75,7 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
       const publicR2 = env.R2_PUBLIC_URL_ASSETS;
       const r2Host = publicR2 ? new URL(publicR2).hostname : null;
 
-      const allowedHosts = [
-        'api.telegram.org',
-        ...(r2Host ? [r2Host] : []),
-      ];
+      const allowedHosts = ['api.telegram.org', ...(r2Host ? [r2Host] : [])];
 
       // Bloquear IPs locales/privadas
       if (

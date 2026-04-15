@@ -16,7 +16,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
 
   const env = locals.runtime.env;
   const publicAssetsUrl = env.R2_PUBLIC_URL_ASSETS;
-  
+
   // 0. PRE-CHECK: Evitar doble caché si la 'key' es una URL que ya pertenece a nuestro bucket de Assets
   if (key.includes('http') && publicAssetsUrl && key.includes(publicAssetsUrl)) {
     return Response.redirect(key, 302);

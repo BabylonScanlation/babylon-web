@@ -2,9 +2,10 @@
 import LayoutVerify from '../layouts/LayoutVerify.astro';
 
 const isDev = import.meta.env.DEV;
-const turnstileSiteKey = (isDev
-  ? import.meta.env.PUBLIC_TURNSTILE_DEV_SITE_KEY
-  : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY) || '';
+const turnstileSiteKey =
+  (isDev
+    ? import.meta.env.PUBLIC_TURNSTILE_DEV_SITE_KEY
+    : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY) || '';
 ---
 
 <LayoutVerify title="Verificación de Seguridad">

@@ -1308,7 +1308,6 @@ import { siteConfig } from '../site.config';
     .floating-hud { bottom: 1rem; width: 95%; }
     .hud-glass { padding: 0.5rem 1rem; gap: 0.5rem; }
     .s-title { max-width: 100px; }
-    .action-pill-btn { padding: 0.6rem 1rem; }
   }
 
   .cancel-load-btn {
@@ -1336,7 +1335,5 @@ import { siteConfig } from '../site.config';
   }
 
   @media (max-width: 480px) {
-    .action-pill-btn span { display: none; }
-    .action-pill-btn { padding: 0.6rem; }
   }
 </style>

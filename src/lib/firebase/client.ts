@@ -3,16 +3,20 @@ import { getApp, getApps, initializeApp } from 'firebase/app';
 import { logError } from '../logError';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
+  apiKey: import.meta.env.FIREBASE_API_KEY || import.meta.env.PUBLIC_FIREBASE_API_KEY,
   authDomain:
+    import.meta.env.FIREBASE_AUTH_DOMAIN ||
     import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN ||
-    (import.meta.env.PUBLIC_FIREBASE_PROJECT_ID
-      ? `${import.meta.env.PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com`
+    (import.meta.env.FIREBASE_PROJECT_ID || import.meta.env.PUBLIC_FIREBASE_PROJECT_ID
+      ? `${import.meta.env.FIREBASE_PROJECT_ID || import.meta.env.PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com`
       : ''),
-  projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.PUBLIC_FIREBASE_APP_ID,
+  projectId: import.meta.env.FIREBASE_PROJECT_ID || import.meta.env.PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket:
+    import.meta.env.FIREBASE_STORAGE_BUCKET || import.meta.env.PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId:
+    import.meta.env.FIREBASE_MESSAGING_SENDER_ID ||
+    import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.FIREBASE_APP_ID || import.meta.env.PUBLIC_FIREBASE_APP_ID,
 };
 
 // Inicializar app si no existe (Ligero)

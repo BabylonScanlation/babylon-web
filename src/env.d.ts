@@ -20,9 +20,18 @@ declare global {
         TELEGRAM_WEBHOOK_SECRET?: string;
         R2_PUBLIC_URL_ASSETS?: string;
         R2_PUBLIC_URL_CACHE?: string;
+        FIREBASE_API_KEY?: string;
+        FIREBASE_AUTH_DOMAIN?: string;
+        FIREBASE_STORAGE_BUCKET?: string;
+        FIREBASE_MESSAGING_SENDER_ID?: string;
+        FIREBASE_APP_ID?: string;
         FIREBASE_PROJECT_ID?: string;
         FIREBASE_CLIENT_EMAIL?: string;
         FIREBASE_PRIVATE_KEY?: string;
+        ADSTERRA_BANNER_ID?: string;
+        ADSTERRA_BANNER_LARGE_ID?: string;
+        ADSTERRA_BANNER_SMALL_ID?: string;
+        ADSTERRA_SQUARE_ID?: string;
         SUPER_ADMIN_UID?: string;
         JWT_SECRET?: string;
         AUTH_SECRET?: string;
