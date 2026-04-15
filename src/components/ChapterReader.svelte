@@ -26,6 +26,7 @@ interface Props {
   watermark?: string;
   initialLoadingMessage?: string | null;
   nextChapter?: { slug: string; chapter: string } | null;
+  prevChapter?: { slug: string; chapter: string } | null;
   processing?: boolean;
   salt?: string;
 }
@@ -41,6 +42,7 @@ let {
   watermark = '',
   initialLoadingMessage = null,
   nextChapter = null,
+  prevChapter = null,
   processing = false,
 }: Props = $props();
 
@@ -668,13 +670,21 @@ import { siteConfig } from '../site.config';
       </div>
 
       <div class="hud-section central">
-        <button class="action-pill-btn" onclick={scrollToComments}>
-          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-          <span>Comentarios</span>
-        </button>
+        <div class="hud-nav-group">
+          <a href={prevChapter ? `/series/${prevChapter.slug}/${prevChapter.chapter}` : '#'} class="hud-nav-btn prev" class:disabled={!prevChapter} title="Capítulo Anterior">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="3"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </a>
+          <div class="hud-sep"></div>
+          <a href={nextChapter ? `/series/${nextChapter.slug}/${nextChapter.chapter}` : '#'} class="hud-nav-btn next" class:disabled={!nextChapter} title="Capítulo Siguiente">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="3"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
+        </div>
       </div>
 
       <div class="hud-section tools">
+        <button class="tool-btn comment-trigger" onclick={scrollToComments} title="Comentarios">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        </button>
         <button class="tool-btn" onclick={(e) => {
           e.stopPropagation();
           showConfig = true;
@@ -850,16 +860,16 @@ import { siteConfig } from '../site.config';
   }
 
   .hud-glass {
-    background: rgba(20, 20, 20, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 24px;
+    background: rgba(20, 20, 20, 0.75);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 28px;
     padding: 0.75rem 1.25rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: none; /* Astra: Eliminada sombra que parece línea */
+    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
   }
 
   .hud-section { display: flex; align-items: center; gap: 1rem; }
@@ -876,39 +886,60 @@ import { siteConfig } from '../site.config';
     transition: all 0.2s;
   }
 
-  .back-pill:hover { background: rgba(255, 255, 255, 0.15); color: var(--accent-color); }
-
-  .chapter-label { display: flex; flex-direction: column; }
-  .s-title { font-size: 0.65rem; font-weight: 800; color: #555; text-transform: uppercase; letter-spacing: 0.05em; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .c-num { font-size: 0.9rem; font-weight: 700; color: #fff; }
-
-  .action-pill-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #fff;
-    padding: 0.6rem 1.2rem;
-    border-radius: 100px;
-    font-size: 0.8rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    cursor: pointer;
-    transition: all 0.3s;
+  .back-pill:hover { 
+    background: rgba(0, 191, 255, 0.1); 
+    color: var(--accent-color); 
+    border-color: var(--accent-color);
   }
 
-  .action-pill-btn:hover {
-    background: rgba(0, 191, 255, 0.1);
-    border-color: var(--accent-color);
-    color: var(--accent-color);
-    transform: translateY(-2px);
+  .chapter-label { display: flex; flex-direction: column; }
+  .s-title { font-size: 0.65rem; font-weight: 800; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .c-num { font-size: 0.9rem; font-weight: 700; color: #fff; }
+
+  /* HUD Central Navigation */
+  .hud-nav-group {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    border-radius: 100px;
+    padding: 4px;
+  }
+
+  .hud-nav-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border-radius: 50%;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+
+  .hud-nav-btn:hover:not(.disabled) {
+    background: var(--accent-color);
+    color: #000;
+    transform: scale(1.1);
+  }
+
+  .hud-nav-btn.disabled {
+    opacity: 0.15;
+    pointer-events: none;
+  }
+
+  .hud-sep {
+    width: 1px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0 4px;
   }
 
   .tool-btn {
     background: rgba(255, 255, 255, 0.05);
-    border: none;
-    color: #666;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #888;
     width: 40px;
     height: 40px;
     border-radius: 12px;
@@ -919,7 +950,15 @@ import { siteConfig } from '../site.config';
     justify-content: center;
   }
 
-  .tool-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.1); transform: rotate(30deg); }
+  .tool-btn:hover { 
+    color: var(--accent-color); 
+    border-color: var(--accent-color); 
+    background: rgba(0, 191, 255, 0.1); 
+    transform: translateY(-2px);
+  }
+  
+  .tool-btn:active { transform: scale(0.9); }
+
 
   /* Error State */
   .glass-error {

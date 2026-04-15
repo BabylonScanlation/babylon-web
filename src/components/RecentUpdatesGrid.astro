@@ -109,15 +109,21 @@ const displayMangas = mangas.slice(0, 20);
       new Swiper(el as HTMLElement, {
         modules: [Scrollbar, FreeMode, Mousewheel],
         slidesPerView: 'auto',
-        spaceBetween: 10, // Astra: Espacio reducido para mayor densidad visual
+        spaceBetween: 12,
+        grabCursor: true,
+        resistance: true,
+        resistanceRatio: 0.85,
         freeMode: {
           enabled: true,
           sticky: false,
-          momentumBounce: true,
+          momentum: true,
+          momentumRatio: 2.5, // Astra: Mucho más inercia
+          momentumVelocityRatio: 2.5, // Astra: Deslizamiento más rápido y natural
+          minimumVelocity: 0.02,
         },
         mousewheel: {
           forceToAxis: true,
-          sensitivity: 1,
+          sensitivity: 2, // Astra: Sensibilidad aumentada para escritorio
         },
         scrollbar: {
           el: el.parentElement?.querySelector('.premium-scrollbar') as HTMLElement || '.premium-scrollbar',
@@ -126,16 +132,15 @@ const displayMangas = mangas.slice(0, 20);
           snapOnRelease: false,
         },
         breakpoints: {
-          768: {
-            spaceBetween: 12, // Astra: Compacto en tablets
-          },
-          1024: {
-            spaceBetween: 16, // Astra: Elegante pero unido en escritorio
-          },
+          320: { spaceBetween: 10 },
+          768: { spaceBetween: 15 },
+          1024: { spaceBetween: 20 },
         },
-        // Orion: Garantizar visibilidad inmediata
         observer: true,
         observeParents: true,
+        watchSlidesProgress: true,
+        roundLengths: true, // Astra: Evita vibraciones de texto por sub-píxeles
+        touchRatio: 1.5, // Astra: Más responsivo al tacto en móvil
       });
     });
   }
@@ -209,12 +214,21 @@ const displayMangas = mangas.slice(0, 20);
     overflow: hidden !important;
     padding: 10px 0 25px 0 !important; /* Astra: Compactado */
     margin: -10px 0 0 0;
+    /* Astra: Forzar capa de composición */
+    transform: translateZ(0);
+  }
+
+  .swiper-wrapper {
+    will-change: transform;
   }
 
   .custom-slide {
     flex-shrink: 0;
     width: 240px !important;
     height: auto;
+    /* Astra: Aceleración por hardware */
+    backface-visibility: hidden;
+    transform: translateZ(0);
   }
 
   /* --- Scrollbar Visual Fix (Visible & Integrated) --- */
@@ -341,14 +355,14 @@ const displayMangas = mangas.slice(0, 20);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(20, 20, 20, 0.9); /* Astra: Fondo sólido para máximo rendimiento */
     border: 1px solid rgba(255, 255, 255, 0.08);
     padding: 8px 12px;
     border-radius: 12px;
     text-decoration: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Astra: Prevenir parpadeos */
+    backface-visibility: hidden;
   }
 
   .chapter-pill:hover {

@@ -267,6 +267,7 @@ if (error && currentChapterIndex !== -1) {
           seriesTitle={seriesTitle || undefined}
           watermark={watermark}
           nextChapter={nextChapterProp || undefined} 
+          prevChapter={prevChapterUrl ? { slug: slug!, chapter: allChapters[currentChapterIndex + 1]?.chapterNumber.toString() } : undefined}
         />
     )}
   </main>
@@ -371,11 +372,18 @@ if (error && currentChapterIndex !== -1) {
   }
 
   .reader-top-ad {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
     max-height: 280px;
     overflow: hidden;
     display: flex;
     justify-content: center;
+  }
+
+  .reader-top-ad :global(.ad-container-root),
+  .reader-top-ad :global(.ad-inner-wrapper),
+  .reader-top-ad :global([class*="__stand"]) {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
   }
 
   .reader-top-ad :global(.ad-container-root) {
@@ -410,7 +418,7 @@ if (error && currentChapterIndex !== -1) {
     top: 0; /* Astra: Ahora se pega al techo absoluto */
     z-index: 800;
     width: 100%;
-    padding: 15px 1rem;
+    padding: 10px 1rem 5px 1rem;
     pointer-events: none; /* Let clicks pass through empty areas */
   }
 
