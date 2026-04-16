@@ -1,5 +1,4 @@
 <script lang="ts">
-/* eslint-disable svelte/prefer-writable-derived */
 import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
 import type { Chapter } from '../types';
@@ -142,10 +141,9 @@ function _openCropper() {
   );
 }
 
-// svelte-ignore state_referenced_locally
+// eslint-disable-next-line svelte/prefer-writable-derived
 let title = $state(chapter.title || '');
 
-// eslint-disable-next-line svelte/prefer-writable-derived
 $effect(() => {
   title = chapter.title || '';
 });

@@ -60,31 +60,35 @@ const turnstileSiteKey =
 
   <div style="display:none" id="turnstile-data" data-sitekey={turnstileSiteKey}></div>
 
-  <script is:inline>
-    // Orion: Definición inmediata del estado global
-    window.captchaToken = null;
+  <script>
+    import { actions } from 'astro:actions';
 
-    const ageCheck = document.getElementById('check-age');
-    const termsCheck = document.getElementById('check-terms');
-    const enterBtn = document.getElementById('enter-btn');
+    // Orion: Definición inmediata del estado local
+    let captchaToken: string | null = null;
+
+    const ageCheck = document.getElementById('check-age') as HTMLInputElement;
+    const termsCheck = document.getElementById('check-terms') as HTMLInputElement;
+    const enterBtn = document.getElementById('enter-btn') as HTMLButtonElement;
 
     // Astra: Función de validación centralizada
-    window.validateCaptcha = function() {
-      enterBtn.disabled = !(ageCheck.checked && termsCheck.checked && window.captchaToken);
+    const validateCaptcha = () => {
+      enterBtn.disabled = !(ageCheck.checked && termsCheck.checked && captchaToken);
     }
 
-    // Callback global para Turnstile
-    window.onTurnstileVerify = function(token) {
-      window.captchaToken = token;
-      window.validateCaptcha();
+    // Callback para Turnstile (lo asignamos a window para que el SDK de CF lo encuentre si es necesario, 
+    // aunque aquí lo manejamos mediante el render directo)
+    const onTurnstileVerify = (token: string) => {
+      captchaToken = token;
+      validateCaptcha();
     }
 
-    ageCheck.addEventListener('change', window.validateCaptcha);
-    termsCheck.addEventListener('change', window.validateCaptcha);
+    ageCheck?.addEventListener('change', validateCaptcha);
+    termsCheck?.addEventListener('change', validateCaptcha);
 
     // Iniciar cuando el DOM esté listo
     document.addEventListener('DOMContentLoaded', () => {
-      const sitekey = document.getElementById('turnstile-data').dataset.sitekey;
+      const turnstileData = document.getElementById('turnstile-data');
+      const sitekey = turnstileData?.dataset.sitekey;
 
       if (!sitekey || sitekey === 'undefined') {
         console.error('[Cloudflare Turnstile] Sitekey is missing or undefined.');
@@ -93,18 +97,22 @@ const turnstileSiteKey =
 
       let renderAttempts = 0;
       const render = () => {
+        // @ts-expect-error Turnstile is loaded via external script
         if (window.turnstile) {
+          // @ts-expect-error Turnstile is loaded via external script
           window.turnstile.render('#turnstile-container', {
             sitekey: sitekey,
             theme: 'dark',
-            callback: window.onTurnstileVerify,
+            callback: onTurnstileVerify,
             'expired-callback': () => {
-               window.captchaToken = null;
-               window.validateCaptcha();
+               captchaToken = null;
+               validateCaptcha();
+               // @ts-expect-error Turnstile is loaded via external script
                window.turnstile.reset();
             },
             'error-callback': () => {
                console.warn('Turnstile error, retrying...');
+               // @ts-expect-error Turnstile is loaded via external script
                window.turnstile.reset();
             }
           });
@@ -119,20 +127,19 @@ const turnstileSiteKey =
       else window.addEventListener('load', render);
     });
 
-    document.getElementById('enter-btn').onclick = async () => {
+    enterBtn.onclick = async () => {
+      if (!captchaToken) return;
+      
       try {
-        const res = await fetch('/_actions/auth.verifyAge', { 
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: window.captchaToken })
+        const { error } = await actions.auth.verifyAge({
+          token: captchaToken
         });
         
-        if (res.ok) {
+        if (!error) {
           sessionStorage.setItem('site_access_granted', 'true');
           window.location.href = '/';
         } else {
-          const data = await res.json();
-          alert(data.message || 'Error de verificación. Inténtalo de nuevo.');
+          alert(error.message || 'Error de verificación. Inténtalo de nuevo.');
           window.location.reload();
         }
       } catch (e) {

@@ -1,5 +1,4 @@
 <script lang="ts">
-/* eslint-disable svelte/prefer-writable-derived */
 import { actions } from 'astro:actions';
 import { fade, fly, slide } from 'svelte/transition';
 import { toast } from '../lib/stores.svelte';

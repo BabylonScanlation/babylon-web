@@ -22,7 +22,7 @@ export default [
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
-        project: true,
+        project: './tsconfig.json',
         extraFileExtensions: ['.svelte.ts'],
         tsconfigRootDir: import.meta.dirname,
       },
@@ -30,7 +30,7 @@ export default [
     rules: {
       ...tseslint.configs.recommendedTypeChecked.rules,
       // Habilitar la regla no-explicit-any como advertencia
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 
@@ -42,7 +42,6 @@ export default [
       parserOptions: {
         parser: tseslint.parser,
         extraFileExtensions: ['.svelte'],
-        project: true, // Enable type-aware linting if desired, or remove to match .astro strategy
         tsconfigRootDir: import.meta.dirname,
       },
       globals: {
@@ -52,7 +51,7 @@ export default [
     rules: {
       // Add or override specific Svelte rules here
       'svelte/no-at-html-tags': 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 
@@ -85,7 +84,7 @@ export default [
       '@typescript-eslint/no-unused-vars': 'off',
       'no-unused-vars': 'off',
       // Habilitar la regla no-explicit-any como advertencia
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 

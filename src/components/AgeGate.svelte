@@ -1,5 +1,6 @@
 <script lang="ts">
 import { onMount } from 'svelte';
+import { actions } from 'astro:actions';
 import Turnstile from './Turnstile.svelte';
 
 // --- Runes Svelte 5 ---
@@ -43,12 +44,11 @@ function handleCaptchaVerify(token: string) {
 async function enterSite() {
   if (isAdult && acceptedTerms && captchaToken) {
     try {
-      const response = await fetch('/_actions/auth.verifyAge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const { error } = await actions.auth.verifyAge({
+        token: captchaToken,
       });
 
-      if (response.ok) {
+      if (!error) {
         sessionStorage.setItem('site_access_granted', 'true');
         if (isVerificationPage) {
           window.location.href = '/';
@@ -58,9 +58,11 @@ async function enterSite() {
           document.documentElement.classList.remove('age-gate-active');
           window.dispatchEvent(new CustomEvent('age-gate-passed'));
         }
+      } else {
+        console.error('Error en verificación:', error.message);
       }
     } catch (e) {
-      console.error('Error en verificación:', e);
+      console.error('Error inesperado en verificación:', e);
     }
   }
 }

@@ -67,7 +67,7 @@ let isLocalTaskQueued = false;
 let loadTimeout: number;
 
 onMount(() => {
-  window.addEventListener('pageLoaded', handleGlobalPageLoad as EventListener);
+  window.addEventListener('pageLoaded', handleGlobalPageLoad as (e: Event) => void);
 
   if (loading === 'eager') {
     void loadPageData();
@@ -95,7 +95,7 @@ onMount(() => {
 });
 
 onDestroy(() => {
-  window.removeEventListener('pageLoaded', handleGlobalPageLoad as EventListener);
+  window.removeEventListener('pageLoaded', handleGlobalPageLoad as (e: Event) => void);
   clearTimeout(loadTimeout);
   if (observer) observer.disconnect();
   isLocalTaskQueued = false;

@@ -4,9 +4,9 @@ import { logError } from '../lib/logError';
 
 // --- Internal State (Svelte 5) ---
 let isOpen = $state(false);
-let chapterId = $state<string | null>(null);
-let seriesSlug = $state<string | null>(null);
-let chapterNumber = $state<string | null>(null);
+let _chapterId = $state<string | null>(null);
+let _seriesSlug = $state<string | null>(null);
+let _chapterNumber = $state<string | null>(null);
 
 // --- Helper Functions ---
 const closeModal = () => {
@@ -22,9 +22,9 @@ const handleOpenModal = (event: Event) => {
   const { detail } = customEvent;
 
   if (detail?.chapterId && detail.seriesSlug && detail.chapterNumber) {
-    chapterId = detail.chapterId;
-    seriesSlug = detail.seriesSlug;
-    chapterNumber = detail.chapterNumber;
+    _chapterId = detail.chapterId;
+    _seriesSlug = detail.seriesSlug;
+    _chapterNumber = detail.chapterNumber;
     isOpen = true;
   } else {
     logError('Modal opened with incomplete data', 'AdminThumbnailCropperModal', detail);
@@ -63,7 +63,7 @@ $effect(() => {
     <div class="modal-panel">
       <div class="modal-header">
         <h3>
-          Recortar Miniatura del Capítulo <span>{chapterNumber}</span>
+          Recortar Miniatura del Capítulo <span>{_chapterNumber}</span>
         </h3>
         <button onclick={closeModal} class="close-modal-btn"
           >&times;</button
@@ -73,8 +73,8 @@ $effect(() => {
         <p>Este es un modal de recorte simplificado para pruebas.</p>
         <div class="debug-info">
           <p>Estado: {isOpen ? 'Abierto' : 'Cerrado'}</p>
-          <p>Capítulo ID: {chapterId}</p>
-          <p>Serie Slug: {seriesSlug}</p>
+          <p>Capítulo ID: {_chapterId}</p>
+          <p>Serie Slug: {_seriesSlug}</p>
         </div>
       </div>
       <div class="modal-footer">
