@@ -319,7 +319,7 @@ export const seriesActions = {
       const runViewLogic = async () => {
         try {
           const kv = env.KV_VIEWS;
-          const ipHash = await hashIpAddress(clientAddress || '0.0.0.0');
+          const ipHash = await hashIpAddress(clientAddress || '0.0.0.0', env.INTERNAL_CRYPTO_SALT);
           const viewKey = `v:s:${seriesId}:${ipHash}`;
 
           if (kv) {

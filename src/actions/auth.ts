@@ -62,7 +62,7 @@ export const authActions = {
       const db = getDB(locals.runtime.env);
 
       const rawIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-      const ip = await hashIpAddress(rawIp);
+      const ip = await hashIpAddress(rawIp, locals.runtime.env.INTERNAL_CRYPTO_SALT);
       const userAgent = request.headers.get('User-Agent') || 'unknown';
       const country = request.headers.get('CF-IPCountry') || null;
 

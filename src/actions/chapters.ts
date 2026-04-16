@@ -42,7 +42,7 @@ export const chapterActions = {
       const runBackgroundLogic = async () => {
         try {
           const kv = env.KV_VIEWS;
-          const ipHash = await hashIpAddress(clientAddress || '0.0.0.0');
+          const ipHash = await hashIpAddress(clientAddress || '0.0.0.0', env.INTERNAL_CRYPTO_SALT);
           const viewKey = `cv:${chapterId}:${ipHash}`;
 
           if (kv) {
