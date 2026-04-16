@@ -126,6 +126,7 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
     display: none;
     position: relative; /* Astra: Ahora es relativo para ocupar espacio en el flujo */
     width: 100%;
+    min-height: 90px;
     height: auto;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -135,7 +136,8 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 1rem;
+    padding: 1.5rem;
+    line-height: 1.5;
   }
 
   .ad-container-root.fallback-active .ad-fallback-card { display: flex !important; }
@@ -145,8 +147,19 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
     text-align: center;
+  }
+
+  .fallback-text {
+    flex-grow: 1;
+  }
+
+  .fallback-text p {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.85rem;
+    color: #888;
+    line-height: 1.4;
   }
 
   .fallback-title {
@@ -161,16 +174,19 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: #fff;
-    padding: 6px 16px;
+    padding: 8px 20px;
     border-radius: 100px;
     font-size: 0.7rem;
     font-weight: 800;
     text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.2s;
   }
 
   .fallback-btn:hover {
     background: var(--accent-color);
     color: #000;
+    transform: translateY(-2px);
   }
 
   .fallback-shimmer {
@@ -190,10 +206,86 @@ const _instanceId = id || `ad-inst-${Math.random().toString(36).substring(2, 9)}
     100% { left: 200%; }
   }
 
-  .banner .ad-fallback-card,
-  .bannerLarge .ad-fallback-card {
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 0 2rem;
+  /* Astra: Diseño Unificado y Centrado para todos los tipos de anuncios */
+  .ad-fallback-card {
+    display: none;
+    position: relative;
+    width: 100%;
+    min-height: 120px; /* Un poco más de altura para que luzca mejor */
+    height: auto;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    z-index: 5;
+    flex-direction: column; /* Siempre vertical */
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    gap: 1.25rem;
+    line-height: 1.5;
+  }
+
+  .ad-container-root.fallback-active .ad-fallback-card { display: flex !important; }
+  .ad-container-root.fallback-active .ad-inner-wrapper { display: none !important; }
+
+  .fallback-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+  }
+
+  .fallback-text {
+    width: 100%;
+  }
+
+  .fallback-text p {
+    margin: 0.4rem 0 0 0;
+    font-size: 0.85rem;
+    color: #888;
+    line-height: 1.4;
+    max-width: 300px; /* Evita que el texto se estire demasiado en banners anchos */
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .fallback-title {
+    display: block;
+    font-weight: 900;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    color: #fff;
+  }
+
+  .fallback-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .fallback-btn:hover {
+    background: var(--accent-color);
+    color: #000;
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 768px) {
+    .ad-fallback-card {
+      padding: 1.5rem 1rem;
+      min-height: 100px;
+    }
+    
+    .fallback-text p {
+      font-size: 0.8rem;
+    }
   }
 </style>
