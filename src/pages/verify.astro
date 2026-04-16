@@ -87,22 +87,36 @@ const turnstileSiteKey =
       const sitekey = document.getElementById('turnstile-data').dataset.sitekey;
 
       if (!sitekey || sitekey === 'undefined') {
-        console.error('[Cloudflare Turnstile] Sitekey is missing or undefined. Check environment variables.');
+        console.error('[Cloudflare Turnstile] Sitekey is missing or undefined.');
         return;
       }
 
+      let renderAttempts = 0;
       const render = () => {
         if (window.turnstile) {
           window.turnstile.render('#turnstile-container', {
             sitekey: sitekey,
             theme: 'dark',
             callback: window.onTurnstileVerify,
+            'expired-callback': () => {
+               window.captchaToken = null;
+               window.validateCaptcha();
+               window.turnstile.reset();
+            },
+            'error-callback': () => {
+               console.warn('Turnstile error, retrying...');
+               window.turnstile.reset();
+            }
           });
-        } else {
+        } else if (renderAttempts < 50) {
+          renderAttempts++;
           setTimeout(render, 100);
         }
       };
-      render();
+      
+      // Esperar un poco a que el script de CF se cargue si no está listo
+      if (document.readyState === 'complete') render();
+      else window.addEventListener('load', render);
     });
 
     document.getElementById('enter-btn').onclick = async () => {
