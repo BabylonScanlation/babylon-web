@@ -39,7 +39,7 @@ let {
 }: Props = $props();
 
 // Estado local reactivo para las noticias (Svelte 5)
-let newsItems = $state<NewsItem[]>(initialNews);
+let newsItems = $state<NewsItem[]>([]);
 $effect(() => {
   newsItems = initialNews;
 });

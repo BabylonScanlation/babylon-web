@@ -266,15 +266,32 @@ const displayMangas = mangas.slice(0, 6);
     .featured-grid-3x2 {
       grid-template-columns: repeat(2, 1fr);
       gap: 1rem;
+      align-items: start; /* Evita estiramiento en móviles */
     }
     .featured-card-wrapper {
-      height: 240px;
+      height: auto !important;
       padding: 0;
       margin: 0;
     }
     .featured-card-premium {
-      height: 240px;
+      height: auto !important;
       border-radius: 16px;
+    }
+    .card-art-box {
+      position: relative !important;
+      height: auto !important;
+      inset: auto !important;
+    }
+    .card-image {
+      height: auto !important;
+    }
+    .featured-card-premium :global(.image-protected-container) {
+      height: auto !important;
+      aspect-ratio: auto !important;
+    }
+    .featured-card-premium :global(.protected-img) {
+      height: auto !important;
+      position: relative !important;
     }
     .card-info-content {
       padding: 1rem;

@@ -141,7 +141,7 @@ function _openCropper() {
   );
 }
 
-let title = $state(chapter.title || '');
+let title = $state('');
 
 $effect(() => {
   title = chapter.title || '';
