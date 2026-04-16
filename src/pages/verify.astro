@@ -4,8 +4,8 @@ import LayoutVerify from '../layouts/LayoutVerify.astro';
 const isDev = import.meta.env.DEV;
 const turnstileSiteKey =
   (isDev
-    ? import.meta.env.PUBLIC_TURNSTILE_DEV_SITE_KEY
-    : import.meta.env.PUBLIC_TURNSTILE_SITE_KEY) || '';
+    ? import.meta.env.TURNSTILE_DEV_SECRET_KEY
+    : import.meta.env.TURNSTILE_SECRET_KEY) || '';
 ---
 
 <LayoutVerify title="Verificación de Seguridad">
@@ -13,11 +13,11 @@ const turnstileSiteKey =
     <div class="gate-card">
       <div class="logo-area">
         <div class="logo-wrapper">
-          <img 
-            src="/favicon.png" 
-            alt="Babylon Logo" 
-            width="80" 
-            height="80" 
+          <img
+            src="/favicon.png"
+            alt="Babylon Logo"
+            width="80"
+            height="80"
             fetchpriority="high"
             loading="eager"
             decoding="async"
@@ -63,7 +63,7 @@ const turnstileSiteKey =
   <script is:inline>
     // Orion: Definición inmediata del estado global
     window.captchaToken = null;
-    
+
     const ageCheck = document.getElementById('check-age');
     const termsCheck = document.getElementById('check-terms');
     const enterBtn = document.getElementById('enter-btn');
@@ -85,7 +85,7 @@ const turnstileSiteKey =
     // Iniciar cuando el DOM esté listo
     document.addEventListener('DOMContentLoaded', () => {
       const sitekey = document.getElementById('turnstile-data').dataset.sitekey;
-      
+
       if (!sitekey || sitekey === 'undefined') {
         console.error('[Cloudflare Turnstile] Sitekey is missing or undefined. Check environment variables.');
         return;

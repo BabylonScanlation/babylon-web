@@ -1,5 +1,4 @@
 # === APP SECRETS EXAMPLE (.dev.vars.example) ===
-# Copia este archivo a .dev.vars y completa los valores
 
 # --- SEGURIDAD ---
 AUTH_SECRET="your_long_random_string_here"
