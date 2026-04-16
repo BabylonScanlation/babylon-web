@@ -151,7 +151,7 @@ export const authActions = {
       const secretKey = env.TURNSTILE_SECRET_KEY;
       if (!secretKey) {
         console.error('[Cloudflare Turnstile] TURNSTILE_SECRET_KEY is not configured');
-        // En local permitimos pasar si no hay clave para no bloquear el desarrollo, 
+        // En local permitimos pasar si no hay clave para no bloquear el desarrollo,
         // pero en prod debe fallar o avisar.
         if (!import.meta.env.DEV) {
           throw new Error('Configuración de seguridad incompleta');
@@ -169,9 +169,11 @@ export const authActions = {
           method: 'POST',
         });
 
-        const outcome = await result.json() as { success: boolean };
+        const outcome = (await result.json()) as { success: boolean };
         if (!outcome.success) {
-          throw new Error('La verificación de seguridad ha fallado. Por favor, inténtalo de nuevo.');
+          throw new Error(
+            'La verificación de seguridad ha fallado. Por favor, inténtalo de nuevo.'
+          );
         }
       }
 

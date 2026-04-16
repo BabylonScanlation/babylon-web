@@ -62,6 +62,37 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
     if (isDev) console.log(`[Proxy] Clear Path Detected: ${objectKey}`);
   }
 
+  // Orion: Implementación de Cache API (Reducción drástica de costos)
+  const cache = typeof caches !== 'undefined' ? (caches as any).default : null;
+  const cacheKey = new Request(request.url, request);
+
+  // Intentar recuperar del caché de Cloudflare primero
+  if (cache) {
+    const cachedResponse = await cache.match(cacheKey);
+    if (cachedResponse) {
+      if (isDev) console.log(`[Proxy] Cache HIT: ${objectKey}`);
+      return cachedResponse;
+    }
+  }
+
+  if (isDev) console.log(`[Proxy] Cache MISS: ${objectKey}`);
+
+  // Función auxiliar para servir y cachear en el CDN global
+  const serveAndCache = async (body: any, contentType?: string, etag?: string) => {
+    const headers = new Headers();
+    headers.set('Access-Control-Allow-Origin', '*');
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+    headers.set('Vary', 'X-Babylon-Service'); // Astra: Clave para particionar el caché del navegador
+    if (contentType) headers.set('Content-Type', contentType);
+    if (etag) headers.set('ETag', etag);
+
+    const res = new Response(body, { status: 200, headers });
+    if (cache && locals.runtime.ctx?.waitUntil) {
+      locals.runtime.ctx.waitUntil(cache.put(cacheKey, res.clone()));
+    }
+    return res;
+  };
+
   // Orion: SSRF Protection - Bloquear esquemas no-https y validar hosts externos
   if (objectKey.startsWith('http')) {
     if (!objectKey.startsWith('https://')) {
@@ -95,12 +126,16 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
       if (r2Host && url.hostname === r2Host) {
         const internalKey = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
         if (isDev) console.log(`[Proxy] Detected Internal Asset URL: ${internalKey}`);
-        
+
         if (env.R2_ASSETS) {
           const assetObj = await env.R2_ASSETS.get(internalKey);
           if (assetObj) {
             if (isDev) console.log(`[Proxy] Internal R2_ASSETS HIT (from URL): ${internalKey}`);
-            return serveAndCache(assetObj.body, assetObj.httpMetadata?.contentType, assetObj.httpEtag);
+            return serveAndCache(
+              assetObj.body,
+              assetObj.httpMetadata?.contentType,
+              assetObj.httpEtag
+            );
           }
         }
       }
@@ -108,37 +143,6 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
       return new Response('Invalid URL', { status: 400 });
     }
   }
-
-  // Orion: Implementación de Cache API (Reducción drástica de costos)
-  const cache = typeof caches !== 'undefined' ? (caches as any).default : null;
-  const cacheKey = new Request(request.url, request);
-
-  // Intentar recuperar del caché de Cloudflare primero
-  if (cache) {
-    const cachedResponse = await cache.match(cacheKey);
-    if (cachedResponse) {
-      if (isDev) console.log(`[Proxy] Cache HIT: ${objectKey}`);
-      return cachedResponse;
-    }
-  }
-
-  if (isDev) console.log(`[Proxy] Cache MISS: ${objectKey}`);
-
-  // Función auxiliar para servir y cachear en el CDN global
-  const serveAndCache = async (body: any, contentType?: string, etag?: string) => {
-    const headers = new Headers();
-    headers.set('Access-Control-Allow-Origin', '*');
-    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-    headers.set('Vary', 'X-Babylon-Service'); // Astra: Clave para particionar el caché del navegador
-    if (contentType) headers.set('Content-Type', contentType);
-    if (etag) headers.set('ETag', etag);
-
-    const res = new Response(body, { status: 200, headers });
-    if (cache && locals.runtime.ctx?.waitUntil) {
-      locals.runtime.ctx.waitUntil(cache.put(cacheKey, res.clone()));
-    }
-    return res;
-  };
 
   try {
     // Orion: 2. Intentar buscar en R2_CACHE (Capa 1 - Capítulos/Hot assets)
