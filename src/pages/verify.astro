@@ -107,10 +107,19 @@ const turnstileSiteKey =
 
     document.getElementById('enter-btn').onclick = async () => {
       try {
-        const res = await fetch('/_actions/auth.verifyAge', { method: 'POST' });
+        const res = await fetch('/_actions/auth.verifyAge', { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: window.captchaToken })
+        });
+        
         if (res.ok) {
           sessionStorage.setItem('site_access_granted', 'true');
           window.location.href = '/';
+        } else {
+          const data = await res.json();
+          alert(data.message || 'Error de verificación. Inténtalo de nuevo.');
+          window.location.reload();
         }
       } catch (e) {
         console.error(e);

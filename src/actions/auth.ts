@@ -139,8 +139,42 @@ export const authActions = {
   }),
 
   verifyAge: defineAction({
-    handler: async (_, context) => {
-      const { cookies, request } = context;
+    input: z.object({
+      token: z.string(),
+    }),
+    handler: async (input, context) => {
+      const { token } = input;
+      const { cookies, request, locals } = context;
+      const { env } = locals.runtime;
+
+      // Orion: Validación de Turnstile en el Edge
+      const secretKey = env.TURNSTILE_SECRET_KEY;
+      if (!secretKey) {
+        console.error('[Cloudflare Turnstile] TURNSTILE_SECRET_KEY is not configured');
+        // En local permitimos pasar si no hay clave para no bloquear el desarrollo, 
+        // pero en prod debe fallar o avisar.
+        if (!import.meta.env.DEV) {
+          throw new Error('Configuración de seguridad incompleta');
+        }
+      }
+
+      if (secretKey) {
+        const formData = new FormData();
+        formData.append('secret', secretKey);
+        formData.append('response', token);
+        formData.append('remoteip', request.headers.get('CF-Connecting-IP') || '');
+
+        const result = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+          body: formData,
+          method: 'POST',
+        });
+
+        const outcome = await result.json() as { success: boolean };
+        if (!outcome.success) {
+          throw new Error('La verificación de seguridad ha fallado. Por favor, inténtalo de nuevo.');
+        }
+      }
+
       const url = new URL(request.url);
       const isLocalIp =
         url.hostname === 'localhost' ||
@@ -153,7 +187,7 @@ export const authActions = {
 
       cookies.set('site_verified', 'true', {
         path: '/',
-        httpOnly: false, // Permitir acceso desde JS para que el frontend reaccione al instante
+        httpOnly: false,
         secure: isProduction,
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 7, // 1 semana
