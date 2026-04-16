@@ -17,74 +17,6 @@ html {
   width: 100%;
 }
 
-/* Astra: Ruby Red Theme for NSFW Mode (Nuclear Override) */
-:root.nsfw-mode,
-html.nsfw-mode {
-  --accent-color: #900000;
-  --accent-glow: rgba(144, 0, 0, 0.6);
-}
-
-/* Purga global de azul diamante en modo NSFW */
-.nsfw-mode [style*="0, 191, 255"],
-.nsfw-mode [style*="00bfff"],
-.nsfw-mode [class*="badge"],
-.nsfw-mode [class*="pill"],
-.nsfw-mode [class*="tag"] {
-  border-color: var(--accent-color);
-}
-
-.nsfw-mode .featured-card-premium,
-.nsfw-mode .premium-update-card-inner,
-.nsfw-mode .desktop-view,
-.nsfw-mode .manga-card,
-.nsfw-mode .btn-primary {
-  box-shadow: 0 0 20px var(--accent-glow);
-  border-color: var(--accent-color);
-}
-
-.nsfw-mode .new-chapter-tag,
-.nsfw-mode .action-pill,
-.nsfw-mode .btn-primary {
-  background: var(--accent-color);
-  color: #fff;
-}
-
-.nsfw-mode .badge-new {
-  background: rgba(144, 0, 0, 0.15);
-  color: var(--accent-color);
-  border: 1px solid var(--accent-color);
-  box-shadow: 0 0 15px var(--accent-glow);
-}
-
-.nsfw-mode .nebula-glow {
-  background: conic-gradient(
-    from 0deg at 50% 50%,
-    rgba(2, 2, 5, 0) 0deg,
-    rgba(144, 0, 0, 0.03) 60deg,
-    rgba(80, 0, 0, 0.02) 120deg,
-    rgba(2, 2, 5, 0) 180deg,
-    rgba(144, 0, 0, 0.02) 240deg,
-    rgba(2, 2, 5, 0) 360deg
-  );
-  opacity: 0.6;
-}
-
-.nsfw-mode .shooting-stars span {
-  filter: drop-shadow(0 0 8px var(--accent-color));
-  background: linear-gradient(-45deg, #fff, var(--accent-color));
-}
-
-.nsfw-mode ::-webkit-scrollbar-thumb {
-  background: var(--accent-color);
-}
-.nsfw-mode {
-  scrollbar-color: var(--accent-color) transparent;
-}
-.nsfw-mode ::selection {
-  background: var(--accent-color);
-  color: #fff;
-}
-
 *,
 *::before,
 *::after {
@@ -372,7 +304,7 @@ body a.nav-btn-modern {
 }
 
 :global(body.no-scroll) {
-  overflow: hidden !important;
+  overflow: hidden;
 }
 
 /* --- Performance: Ghost Zones (Astra Orion) --- */
@@ -380,4 +312,75 @@ body a.nav-btn-modern {
 .updates-premium-section {
   content-visibility: auto;
   contain-intrinsic-size: 1px 500px;
+}
+
+/* --- Condicional Themes (NSFW Mode) --- */
+
+/* Astra: Ruby Red Theme for NSFW Mode (Nuclear Override) */
+:root.nsfw-mode,
+html.nsfw-mode {
+  --accent-color: #900000;
+  --accent-glow: rgba(144, 0, 0, 0.6);
+}
+
+.nsfw-mode [style*="0, 191, 255"],
+.nsfw-mode [style*="00bfff"],
+.nsfw-mode [class*="badge"],
+.nsfw-mode [class*="pill"],
+.nsfw-mode [class*="tag"] {
+  border-color: var(--accent-color);
+}
+
+.nsfw-mode .featured-card-premium,
+.nsfw-mode .premium-update-card-inner,
+.nsfw-mode .desktop-view,
+.nsfw-mode .manga-card,
+.nsfw-mode .btn-primary {
+  box-shadow: 0 0 20px var(--accent-glow);
+  border-color: var(--accent-color);
+}
+
+.nsfw-mode .new-chapter-tag,
+.nsfw-mode .action-pill,
+.nsfw-mode .btn-primary {
+  background: var(--accent-color);
+  color: #fff;
+}
+
+.nsfw-mode .badge-new {
+  background: rgba(144, 0, 0, 0.15);
+  color: var(--accent-color);
+  border: 1px solid var(--accent-color);
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.nsfw-mode .nebula-glow {
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    rgba(2, 2, 5, 0) 0deg,
+    rgba(144, 0, 0, 0.03) 60deg,
+    rgba(80, 0, 0, 0.02) 120deg,
+    rgba(2, 2, 5, 0) 180deg,
+    rgba(144, 0, 0, 0.02) 240deg,
+    rgba(2, 2, 5, 0) 360deg
+  );
+  opacity: 0.6;
+}
+
+.nsfw-mode .shooting-stars span {
+  filter: drop-shadow(0 0 8px var(--accent-color));
+  background: linear-gradient(-45deg, #fff, var(--accent-color));
+}
+
+.nsfw-mode ::-webkit-scrollbar-thumb {
+  background: var(--accent-color);
+}
+
+.nsfw-mode {
+  scrollbar-color: var(--accent-color) transparent;
+}
+
+.nsfw-mode ::selection {
+  background: var(--accent-color);
+  color: #fff;
 }

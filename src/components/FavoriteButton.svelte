@@ -10,7 +10,6 @@ interface Props {
 
 let { seriesId, initialIsFavorite = false, isLoggedIn = false }: Props = $props();
 
-// eslint-disable-next-line svelte/prefer-writable-derived
 let isFavorite = $state(initialIsFavorite);
 let isLoading = $state(false);
 

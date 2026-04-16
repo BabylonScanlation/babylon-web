@@ -51,6 +51,7 @@ export default [
     rules: {
       // Add or override specific Svelte rules here
       'svelte/no-at-html-tags': 'warn',
+      'svelte/prefer-writable-derived': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },

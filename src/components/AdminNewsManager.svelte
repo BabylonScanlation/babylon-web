@@ -39,8 +39,7 @@ let {
 }: Props = $props();
 
 // Estado local reactivo para las noticias (Svelte 5)
-// eslint-disable-next-line svelte/prefer-writable-derived
-let newsItems = $state<NewsItem[]>((() => initialNews)());
+let newsItems = $state<NewsItem[]>(initialNews);
 $effect(() => {
   newsItems = initialNews;
 });

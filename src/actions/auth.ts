@@ -8,17 +8,9 @@ import { verifyFirebaseToken } from '../lib/firebase/server';
 import { createNonce } from '../lib/nonce';
 import { deleteSession, setAuthCookie } from '../lib/session';
 import { generateRandomUsername, generateUUID } from '../lib/utils';
-import type {
-  AppDatabase,
-  FirebaseDecodedToken,
-  SessionContext,
-} from '../types';
+import type { AppDatabase, FirebaseDecodedToken, SessionContext } from '../types';
 
-async function determineUserRole(
-  db: AppDatabase,
-  uid: string,
-  superAdminUid: string | undefined
-) {
+async function determineUserRole(db: AppDatabase, uid: string, superAdminUid: string | undefined) {
   if (superAdminUid && uid === superAdminUid) {
     return 'admin';
   }
@@ -51,10 +43,7 @@ export const authActions = {
         try {
           await db.delete(sessions).where(eq(sessions.id, sessionId)).run();
         } catch (e: unknown) {
-          console.error(
-            'Error deleting session from DB on logout:',
-            (e as Error).message
-          );
+          console.error('Error deleting session from DB on logout:', (e as Error).message);
         }
       }
 
@@ -161,9 +150,7 @@ export const authActions = {
         // Orion: Verificación robusta del entorno Cloudflare
         const runtime = locals.runtime;
         if (!runtime || !runtime.env) {
-          console.error(
-            '[VerifyAge] Cloudflare runtime or env is missing in locals'
-          );
+          console.error('[VerifyAge] Cloudflare runtime or env is missing in locals');
           // En desarrollo local a veces Astro no inyecta el runtime en las acciones
           // dependiendo de cómo se llame. Intentamos usar variables de entorno globales si fallan las de Cloudflare.
           if (import.meta.env.DEV) {
@@ -175,49 +162,36 @@ export const authActions = {
           }
         }
 
-        const env =
-          runtime?.env ||
-          (import.meta.env as Record<string, string | undefined>);
+        const env = runtime?.env || (import.meta.env as Record<string, string | undefined>);
         const isDev = import.meta.env.DEV;
 
         // Orion: Selección de la clave secreta basada en el entorno.
         // Soporta ambos órdenes: SECRET_DEV y DEV_SECRET
         const devKey = env.TURNSTILE_DEV_SECRET_KEY || env.TURNSTILE_SECRET_DEV_KEY;
-        
+
         const secretKeySource = isDev
-          ? (devKey ? 'DEV_SECRET_KEY_FOUND' : 'TURNSTILE_SECRET_KEY (fallback)')
+          ? devKey
+            ? 'DEV_SECRET_KEY_FOUND'
+            : 'TURNSTILE_SECRET_KEY (fallback)'
           : 'TURNSTILE_SECRET_KEY';
 
-        const secretKey = isDev
-          ? devKey || env.TURNSTILE_SECRET_KEY
-          : env.TURNSTILE_SECRET_KEY;
+        const secretKey = isDev ? devKey || env.TURNSTILE_SECRET_KEY : env.TURNSTILE_SECRET_KEY;
 
         if (!secretKey) {
-          console.error(
-            '[VerifyAge] Missing Secret Key. Available env keys:',
-            Object.keys(env)
-          );
-          throw new Error(
-            'Configuración de seguridad incompleta (Falta TURNSTILE_SECRET_KEY)'
-          );
+          console.error('[VerifyAge] Missing Secret Key. Available env keys:', Object.keys(env));
+          throw new Error('Configuración de seguridad incompleta (Falta TURNSTILE_SECRET_KEY)');
         }
 
         if (token) {
           const formData = new FormData();
           formData.append('secret', secretKey);
           formData.append('response', token);
-          formData.append(
-            'remoteip',
-            request.headers.get('CF-Connecting-IP') || ''
-          );
+          formData.append('remoteip', request.headers.get('CF-Connecting-IP') || '');
 
-          const result = await fetch(
-            'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-            {
-              body: formData,
-              method: 'POST',
-            }
-          );
+          const result = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            body: formData,
+            method: 'POST',
+          });
 
           const outcome = (await result.json()) as {
             success: boolean;
@@ -236,8 +210,7 @@ export const authActions = {
         }
 
         const isProduction =
-          !request.url.includes('localhost') &&
-          !request.url.includes('127.0.0.1');
+          !request.url.includes('localhost') && !request.url.includes('127.0.0.1');
 
         cookies.set('site_verified', 'true', {
           path: '/',
@@ -278,11 +251,7 @@ export const authActions = {
 
       // Orion: Acceso seguro a propiedades dinámicas del JWT
       const email = decodedToken.email || `${uid}@firebase.auth`;
-      const existingUser = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, uid))
-        .get();
+      const existingUser = await db.select().from(users).where(eq(users.id, uid)).get();
       const usernameToUse = existingUser?.username || generateRandomUsername();
 
       await db

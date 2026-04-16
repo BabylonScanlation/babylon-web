@@ -141,7 +141,6 @@ function _openCropper() {
   );
 }
 
-// eslint-disable-next-line svelte/prefer-writable-derived
 let title = $state(chapter.title || '');
 
 $effect(() => {

@@ -21,6 +21,7 @@ const icons = {
       animate:flip={{ duration: 200 }}
     >
       <div class="toast-icon">
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html icons[t.type as keyof typeof icons]}
       </div>
       <div class="toast-content">
