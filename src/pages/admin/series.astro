@@ -20,7 +20,7 @@ let error = Astro.url.searchParams.get('error');
 
 try {
   const db = getDB(Astro.locals.runtime.env);
-  const data = await getAdminSeriesWithChapters(db, limit, offset, false, searchQuery);
+  const data = await getAdminSeriesWithChapters(db, limit, offset, searchQuery);
   allSeries = data.series;
   totalSeries = data.total;
 } catch (e) {

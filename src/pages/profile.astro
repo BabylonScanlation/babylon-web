@@ -1355,6 +1355,7 @@ const joinedDate = userProfile?.createdAt
       if (!error) window.location.href = '/';
       else throw new Error(error.message);
     } catch (e) {
+      console.error('Logout error:', e);
       toast.error('Error al cerrar sesión');
     }
   });

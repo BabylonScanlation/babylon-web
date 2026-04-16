@@ -17,10 +17,13 @@ export default [
 
   // Configuration for .ts and .tsx files (type-aware)
   {
-    files: ['**/*.ts', '**/*.tsx'],
+    files: ['**/*.ts', '**/*.tsx', '**/*.svelte.ts'],
+    ignores: ['vitest.config.ts'],
     languageOptions: {
+      parser: tseslint.parser,
       parserOptions: {
         project: true,
+        extraFileExtensions: ['.svelte.ts'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -127,7 +130,7 @@ export default [
     },
   },
   {
-    files: ['*.cjs'],
+    files: ['*.cjs', 'mcp-proxy.cjs'],
     languageOptions: {
       globals: {
         module: 'readonly',
@@ -136,6 +139,7 @@ export default [
     },
     rules: {
       'no-undef': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
   {

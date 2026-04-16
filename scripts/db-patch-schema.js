@@ -80,7 +80,7 @@ async function patchSchema() {
             `npx wrangler d1 execute ${DB_NAME} --local --command="ALTER TABLE ${tableName} ADD COLUMN ${col} ${type} DEFAULT ${defaultValue};"`,
             { stdio: 'inherit' }
           );
-        } catch (_e) {
+        } catch (e) {
           console.warn(`⚠️  No se pudo añadir ${col} a ${tableName}: ${e.message}`);
         }
       }

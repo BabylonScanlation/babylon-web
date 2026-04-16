@@ -3,6 +3,7 @@ import { z } from 'astro:schema';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { favorites, series, seriesRatings, userProgress, users } from '../db/schema';
 import { getDB } from '../lib/db';
+import { logError } from '../lib/logError';
 import { consumeNonce } from '../lib/nonce';
 import { generateRandomUsername } from '../lib/utils';
 
@@ -116,7 +117,7 @@ export const userActions = {
       }
 
       const db = getDB(runtime.env);
-      const { nonce, ...updateData } = input;
+      const { ...updateData } = input;
 
       if (updateData.username) {
         const existing = await db
@@ -168,7 +169,9 @@ export const userActions = {
           const urlObj = new URL(oldUrl);
           const key = urlObj.pathname.substring(1);
           await env.R2_ASSETS.delete(key);
-        } catch (_e) {}
+        } catch (e) {
+          logError(e, 'user.uploadMedia.deleteOld');
+        }
       }
 
       const ext = file.type.split('/')[1] || 'jpg';

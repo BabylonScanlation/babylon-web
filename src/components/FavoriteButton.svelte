@@ -10,12 +10,8 @@ interface Props {
 
 let { seriesId, initialIsFavorite = false, isLoggedIn = false }: Props = $props();
 
-let isFavorite = $state(false);
+let isFavorite = $state(initialIsFavorite);
 let isLoading = $state(false);
-
-$effect(() => {
-  isFavorite = initialIsFavorite;
-});
 
 async function toggleFavorite() {
   if (!isLoggedIn) {

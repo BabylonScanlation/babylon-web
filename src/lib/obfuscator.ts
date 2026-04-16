@@ -82,6 +82,7 @@ export function deobfuscate(encryptedStr: string, salt: string): any {
       return content;
     }
   } catch (e) {
+    console.error('[Obfuscator] Error deobfuscating:', e);
     return null;
   }
 }

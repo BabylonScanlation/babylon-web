@@ -15,7 +15,7 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "lint": "biome check .",
+    "lint": "eslint . --cache && tsc --noEmit && biome check .",
     "format": "biome format --write .",
     "check": "npm run format && astro check && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",

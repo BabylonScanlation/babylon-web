@@ -56,7 +56,7 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
         if (isDev) console.log(`[Proxy] De-obfuscated: ${key} -> ${objectKey}`);
       }
     } catch (e) {
-      // Ignoramos fallos de desofuscación
+      if (isDev) console.error('[Proxy] De-obfuscation error:', e);
     }
   } else {
     if (isDev) console.log(`[Proxy] Clear Path Detected: ${objectKey}`);
@@ -140,6 +140,7 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
         }
       }
     } catch (e) {
+      if (isDev) console.error('[Proxy] SSRF Validation Error:', e);
       return new Response('Invalid URL', { status: 400 });
     }
   }

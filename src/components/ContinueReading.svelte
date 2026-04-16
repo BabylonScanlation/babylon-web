@@ -65,7 +65,7 @@ onMount(() => {
         }
       }}
     >
-      {#each progressList as item}
+      {#each progressList as item (item.series.seriesSlug)}
         <div class="swiper-slide">
           <a href={item.nextChapter.url} class="continue-card">
             <div class="card-image">

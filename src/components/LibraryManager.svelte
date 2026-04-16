@@ -218,7 +218,7 @@ function handleLogin() {
       {:else if activeTab === 'ratings'}
         <div class="ratings-filter">
           <button class:active={selectedStarFilter === null} onclick={() => selectedStarFilter = null}>Todo</button>
-          {#each [5, 4, 3, 2, 1] as star}
+          {#each [5, 4, 3, 2, 1] as star (star)}
             <button class:active={selectedStarFilter === star} onclick={() => selectedStarFilter = star}>
               {star} ⭐
             </button>

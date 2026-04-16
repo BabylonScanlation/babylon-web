@@ -1,8 +1,8 @@
 // src/lib/logError.ts
 
-export function logError(error: unknown, message: string, context?: Record<string, any>) {
+export function logError(error: unknown, message: string, context?: Record<string, unknown>) {
   let errorMessage = message;
-  let errorDetails: any = {};
+  let errorDetails: unknown = {};
 
   if (error instanceof Error) {
     errorMessage += `: ${error.message}`;
@@ -15,7 +15,7 @@ export function logError(error: unknown, message: string, context?: Record<strin
     errorMessage += `: ${error}`;
     errorDetails = { message: error };
   } else if (error && typeof error === 'object' && 'message' in error) {
-    errorMessage += `: ${error.message}`;
+    errorMessage += `: ${(error as { message: string }).message}`;
     errorDetails = error;
   } else {
     errorMessage += `: ${String(error)}`;

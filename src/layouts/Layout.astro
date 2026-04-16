@@ -435,7 +435,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                   }
 
                   const opt = `{ 'key' : '${fk}', 'format' : 'iframe', 'height' : ${nativeH}, 'width' : ${nativeW}, 'params' : {} }`;
-                  ifr.srcdoc = `<!DOCTYPE html><html><head><style>body{margin:0;padding:0;overflow:hidden;display:flex;justify-content:center;align-items:flex-start;background:transparent;height:auto;pointer-events:auto !important;} #container-${fk} { display: inline-block !important; width: auto !important; max-width: 100%; height: auto !important; pointer-events: auto !important; } <\/style><script>try{Object.defineProperty(window,'top',{get:function(){return window;}});Object.defineProperty(window,'parent',{get:function(){return window;}});}catch(e){}<\/script><\/head><body><div id="container-${fk}"><\/div><script>atOptions=${opt};<\/script><script src="https://crowdsubsequentadmire.com/${fk}/invoke.js" onerror="window.parent.postMessage('ad-blocked-${el.id}', '*')"><\/script><script>window.onload=function(){let lastH=0;const r=()=>{const c=document.getElementById('container-${fk}');if(!c)return;const imgs=Array.from(c.querySelectorAll('img, iframe, a, ins, div'));if(imgs.length===0){const h=document.body.scrollHeight;if(h!==lastH&&h>10){lastH=h;window.parent.postMessage({type:'ad-resize',id:'${el.id}',h:h},'*');}return;}let maxB=0;imgs.forEach(i=>{const b=i.getBoundingClientRect().bottom;if(b>maxB)maxB=b;});if(maxB!==lastH&&maxB>10){lastH=maxB;window.parent.postMessage({type:'ad-resize',id:'${el.id}',h:maxB},'*');}};r();setTimeout(r,1500);setInterval(r,3000);};<\/script><\/body><\/html>`;
+                  ifr.srcdoc = `\x3C!DOCTYPE html\x3E\x3Chtml\x3E\x3Chead\x3E\x3Cstyle\x3Ebody{margin:0;padding:0;overflow:hidden;display:flex;justify-content:center;align-items:flex-start;background:transparent;height:auto;pointer-events:auto !important;} #container-${fk} { display: inline-block !important; width: auto !important; max-width: 100%; height: auto !important; pointer-events: auto !important; } \x3C/style\x3E\x3Cscript\x3Etry{Object.defineProperty(window,'top',{get:function(){return window;}});Object.defineProperty(window,'parent',{get:function(){return window;}});}catch(e){}\x3C/script\x3E\x3C/head\x3E\x3Cbody\x3E\x3Cdiv id="container-${fk}"\x3E\x3C/div\x3E\x3Cscript\x3EatOptions=${opt};\x3C/script\x3E\x3Cscript src="https://crowdsubsequentadmire.com/${fk}/invoke.js" onerror="window.parent.postMessage('ad-blocked-${el.id}', '*')"\x3E\x3C/script\x3E\x3Cscript\x3Ewindow.onload=function(){let lastH=0;const r=()=>{const c=document.getElementById('container-${fk}');if(!c)return;const imgs=Array.from(c.querySelectorAll('img, iframe, a, ins, div'));if(imgs.length===0){const h=document.body.scrollHeight;if(h!==lastH&&h>10){lastH=h;window.parent.postMessage({type:'ad-resize',id:'${el.id}',h:h},'*');}return;}let maxB=0;imgs.forEach(i=>{const b=i.getBoundingClientRect().bottom;if(b>maxB)maxB=b;});if(maxB!==lastH&&maxB>10){lastH=maxB;window.parent.postMessage({type:'ad-resize',id:'${el.id}',h:maxB},'*');}};r();setTimeout(r,1500);setInterval(r,3000);};\x3C/script\x3E\x3C/body\x3E\x3C/html\x3E`;
                   
                   slot.innerHTML = ''; slot.appendChild(ifr);
                   (el as HTMLElement).style.overflow = "hidden";
@@ -449,7 +449,9 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                         if ((el as HTMLElement).offsetHeight === 0 || window.getComputedStyle(el).display === 'none') {
                           el.classList.add('fallback-active');
                         }
-                      } catch (e) {}
+                      } catch {
+                        // Ignore
+                      }
                     }, 2000);
                   };
                 } else {
@@ -578,7 +580,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         }));
       }).observe(document.body, { childList: true, subtree: true });
 
-      const _0xT = (id: string) => { const b = document.getElementById(id); if (b) b.onclick = async (e) => { e.preventDefault(); try { const r = await fetch('/api/ui/toggle-nsfw', { method: 'POST' }); const d = await r.json(); if (d.success) window.location.reload(); } catch (err) {} }; };
+      const _0xT = (id: string) => { const b = document.getElementById(id); if (b) b.onclick = async (e) => { e.preventDefault(); try { const r = await fetch('/api/ui/toggle-nsfw', { method: 'POST' }); const d = await r.json(); if (d.success) window.location.reload(); } catch { /* Ignore */ } }; };
       _0xT('nsfw-toggle-btn'); _0xT('nsfw-toggle-mobile');
     </script>
   </body>

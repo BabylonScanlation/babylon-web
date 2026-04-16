@@ -1,4 +1,5 @@
 <script lang="ts">
+/* eslint-disable svelte/prefer-writable-derived */
 import { actions } from 'astro:actions';
 import { fade, fly, slide } from 'svelte/transition';
 import { toast } from '../lib/stores.svelte';
@@ -39,6 +40,7 @@ let {
 }: Props = $props();
 
 // Estado local reactivo para las noticias (Svelte 5)
+// eslint-disable-next-line svelte/prefer-writable-derived
 let newsItems = $state<NewsItem[]>((() => initialNews)());
 $effect(() => {
   newsItems = initialNews;

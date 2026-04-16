@@ -111,7 +111,7 @@ async function _uploadChapters() {
 
   {#if selectedFiles && !_isUploading}
     <div class="file-list">
-      {#each Array.from(selectedFiles) as file}
+      {#each Array.from(selectedFiles) as file (file.name)}
         <div class="file-item">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
           {file.name}

@@ -136,7 +136,6 @@ export async function getAdminSeriesWithChapters(
   db: DrizzleD1Database<typeof schema>,
   limit: number = 12,
   offset: number = 0,
-  _includeComments: boolean = false,
   searchQuery?: string
 ) {
   let whereClause: SQL | undefined;

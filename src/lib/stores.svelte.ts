@@ -1,13 +1,20 @@
 // src/lib/stores.svelte.ts
 import { generateUUID } from './utils';
 
+interface AuthModalState {
+  isOpen: boolean;
+  view: string;
+  successMessage: string;
+  linkAccountInfo: { email: string | null; pendingCredential: any };
+}
+
 // 1. AUTH MODAL STORE
 class AuthModalStore {
-  #state = $state({
+  state: AuthModalState = $state({
     isOpen: false,
-    view: 'login' as any,
+    view: 'login',
     successMessage: '',
-    linkAccountInfo: { email: null as string | null, pendingCredential: undefined as any },
+    linkAccountInfo: { email: null, pendingCredential: undefined },
   });
 
   constructor() {
@@ -19,32 +26,32 @@ class AuthModalStore {
   }
 
   get isOpen() {
-    return this.#state.isOpen;
+    return this.state.isOpen;
   }
   get view() {
-    return this.#state.view;
+    return this.state.view;
   }
   get successMessage() {
-    return this.#state.successMessage;
+    return this.state.successMessage;
   }
   get linkAccountInfo() {
-    return this.#state.linkAccountInfo;
+    return this.state.linkAccountInfo;
   }
   open(view: any = 'login', msg = '') {
-    this.#state.isOpen = true;
-    this.#state.view = view;
-    this.#state.successMessage = msg;
+    this.state.isOpen = true;
+    this.state.view = view;
+    this.state.successMessage = msg;
   }
   close() {
-    this.#state.isOpen = false;
+    this.state.isOpen = false;
   }
   switchTo(v: any) {
-    this.#state.view = v;
+    this.state.view = v;
   }
   openForLinking(email: string, pendingCredential: any) {
-    this.#state.isOpen = true;
-    this.#state.view = 'link';
-    this.#state.linkAccountInfo = { email, pendingCredential };
+    this.state.isOpen = true;
+    this.state.view = 'link';
+    this.state.linkAccountInfo = { email, pendingCredential };
   }
 }
 export const authModal = new AuthModalStore();
@@ -90,7 +97,7 @@ class UserStore {
       if (serverState && serverState !== 'null') {
         try {
           this.user = JSON.parse(serverState);
-        } catch (e) {
+        } catch {
           console.error('Error parsing server user state');
         }
       }
@@ -167,7 +174,9 @@ class NewsStore {
         const d = await res.json();
         this.setCount(Number(d.count));
       }
-    } catch (e) {}
+    } catch {
+      // Ignoramos errores de red silenciosamente
+    }
   }
 }
 export const newsStore = new NewsStore();

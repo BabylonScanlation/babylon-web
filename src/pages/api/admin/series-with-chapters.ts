@@ -19,7 +19,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
     const drizzleDb = getDB(locals.runtime.env);
 
     // Orion: Reutilizamos la función modular de alto rendimiento
-    const data = await getAdminSeriesWithChapters(drizzleDb, limit, offset, false);
+    const data = await getAdminSeriesWithChapters(drizzleDb, limit, offset);
 
     return new Response(JSON.stringify(data), {
       headers: { 'content-type': 'application/json', 'Cache-Control': 'no-store' },

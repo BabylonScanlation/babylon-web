@@ -12,7 +12,7 @@ interface Page {
   width?: number;
   height?: number;
   pageNumber?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface Props {
@@ -28,7 +28,6 @@ interface Props {
   nextChapter?: { slug: string; chapter: string } | null;
   prevChapter?: { slug: string; chapter: string } | null;
   processing?: boolean;
-  salt?: string;
 }
 
 let {

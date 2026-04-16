@@ -6,14 +6,14 @@ import { getDB } from '../db-client';
 import { logError } from '../logError';
 import { deleteSession, setAuthCookie, verifyToken } from '../session';
 
-export function clearSessionCache(context: { cookies: any }, _sessionId?: string) {
+export function clearSessionCache(context: { cookies: any }) {
   // Borramos el cookie de auth para forzar al middleware a entrar en el SLOW-PATH (Lectura de DB)
   // Esto asegura que cualquier cambio de estado (como NSFW o Roles) se refleje inmediatamente.
   context.cookies.delete('user_auth', { path: '/' });
 }
 
 export async function authFlow(context: APIContext, next: MiddlewareNext) {
-  const { cookies, locals, request: _request, url } = context;
+  const { cookies, locals, url } = context;
   const currentPath = url.pathname;
   const runtime = locals.runtime;
 
