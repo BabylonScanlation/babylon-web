@@ -90,6 +90,20 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
           console.warn(`[Proxy] Blocked external fetch to unauthorized host: ${url.hostname}`);
         return new Response('Forbidden External Host', { status: 403 });
       }
+
+      // Orion: Si la URL pertenece a nuestro propio bucket de ASSETS, intentamos servirla desde el binding
+      if (r2Host && url.hostname === r2Host) {
+        const internalKey = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+        if (isDev) console.log(`[Proxy] Detected Internal Asset URL: ${internalKey}`);
+        
+        if (env.R2_ASSETS) {
+          const assetObj = await env.R2_ASSETS.get(internalKey);
+          if (assetObj) {
+            if (isDev) console.log(`[Proxy] Internal R2_ASSETS HIT (from URL): ${internalKey}`);
+            return serveAndCache(assetObj.body, assetObj.httpMetadata?.contentType, assetObj.httpEtag);
+          }
+        }
+      }
     } catch (e) {
       return new Response('Invalid URL', { status: 400 });
     }
@@ -162,8 +176,13 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
       const contentType = externalRes.headers.get('content-type') || 'image/webp';
       const blob = await externalRes.blob();
 
-      // Sembrar el R2_CACHE para futuras peticiones (Protege Telegram)
-      if (env.R2_CACHE && locals.runtime.ctx?.waitUntil) {
+      // Orion: Solo sembramos R2_CACHE si NO es nuestro propio host
+      // Esto evita duplicar portadas que ya están en R2_ASSETS
+      const publicR2 = env.R2_PUBLIC_URL_ASSETS;
+      const r2Host = publicR2 ? new URL(publicR2).hostname : null;
+      const isInternalHost = r2Host && new URL(objectKey).hostname === r2Host;
+
+      if (env.R2_CACHE && locals.runtime.ctx?.waitUntil && !isInternalHost) {
         locals.runtime.ctx.waitUntil(
           env.R2_CACHE.put(objectKey, blob, {
             httpMetadata: {
