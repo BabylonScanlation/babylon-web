@@ -2,22 +2,21 @@ import type { APIRoute } from 'astro';
 import { sql } from 'drizzle-orm';
 import { getDB } from '../../lib/db';
 
+// Orion: RAM Cache para telemetría (Peticiones Cero)
+let healthMemoryCache: { data: string; expires: number } | null = null;
+
 export const GET: APIRoute = async ({ locals }) => {
   const env = locals.runtime.env;
-  const kv = env.KV_VIEWS;
-  const CACHE_KEY = 'system_health_r2';
+  const now = Date.now();
 
-  // 1. Intentar obtener desde KV primero (TTL: 10 minutos)
-  if (kv) {
-    const cached = await kv.get(CACHE_KEY);
-    if (cached) {
-      return new Response(cached, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=600',
-        },
-      });
-    }
+  // 1. Intentar obtener desde RAM (Peticiones Cero)
+  if (healthMemoryCache && healthMemoryCache.expires > now) {
+    return new Response(healthMemoryCache.data, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=600',
+      },
+    });
   }
 
   const db = getDB(env);
@@ -57,10 +56,8 @@ export const GET: APIRoute = async ({ locals }) => {
       },
     });
 
-    // Guardar en KV si está disponible
-    if (kv) {
-      await kv.put(CACHE_KEY, result, { expirationTtl: 600 });
-    }
+    // Guardar en RAM por 10 minutos (600,000 ms)
+    healthMemoryCache = { data: result, expires: now + 600000 };
 
     return new Response(result, {
       status: 200,

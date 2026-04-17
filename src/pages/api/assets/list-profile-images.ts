@@ -1,7 +1,19 @@
 import type { APIRoute } from 'astro';
 
+// Orion: RAM Cache para lista de imágenes (Peticiones Cero)
+let profileImagesMemoryCache: { data: string; expires: number } | null = null;
+
 export const GET: APIRoute = async ({ locals }) => {
   const { env } = locals.runtime;
+  const now = Date.now();
+
+  // 1. Intentar obtener desde RAM (Peticiones Cero)
+  if (profileImagesMemoryCache && profileImagesMemoryCache.expires > now) {
+    return new Response(profileImagesMemoryCache.data, {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   // Lista manual de Avatares (Animales)
   const animals = [
@@ -35,19 +47,6 @@ export const GET: APIRoute = async ({ locals }) => {
   const banners = ['moon.jpg', 'tokiri.jpg'];
 
   const publicUrl = env.R2_PUBLIC_URL_ASSETS;
-  const kv = env.KV_VIEWS;
-  const CACHE_KEY = 'profile_images_list';
-
-  // 1. Intentar obtener desde KV primero
-  if (kv) {
-    const cached = await kv.get(CACHE_KEY);
-    if (cached) {
-      return new Response(cached, {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-  }
 
   // Generamos las URLs completas
   const ManualAvatars: string[] = animals.map(
@@ -82,10 +81,8 @@ export const GET: APIRoute = async ({ locals }) => {
       banners: finalBanners,
     });
 
-    // Guardar en KV con TTL de 1 hora (3600s)
-    if (kv) {
-      await kv.put(CACHE_KEY, responseBody, { expirationTtl: 3600 });
-    }
+    // Guardar en RAM por 1 hora (3,600,000 ms)
+    profileImagesMemoryCache = { data: responseBody, expires: now + 3600000 };
 
     return new Response(responseBody, {
       status: 200,

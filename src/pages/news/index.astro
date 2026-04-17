@@ -8,7 +8,6 @@ import { siteConfig } from '../../site.config';
 
 const drizzleDb = getDB(Astro.locals.runtime.env);
 const { user, runtime } = Astro.locals;
-
 const newsItems = (await getAllNews(drizzleDb, 'published', undefined, runtime.env)) || [];
 
 // Orion: Limpiador de Markdown para extractos

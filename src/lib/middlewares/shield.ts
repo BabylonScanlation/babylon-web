@@ -2,29 +2,30 @@
 import type { APIContext, MiddlewareNext } from 'astro';
 import { siteConfig } from '../../site.config';
 
-// Orion: Rate Limiter distribuido vía Cloudflare KV
-const MAX_REQ_PER_WINDOW = 200; // Máximo por IP en la ventana de tiempo
+// Orion: Rate Limiter local en RAM para peticiones cero (Isolate level)
+const MAX_REQ_PER_WINDOW = 200; // Máximo por IP en la ventana de tiempo (1 min)
+const localRateLimitCache = new Map<string, { count: number; expires: number }>();
 
-async function checkRateLimit(ip: string, env: any): Promise<boolean> {
-  if (!ip || !env?.KV_VIEWS) return false; // Fail-closed: Sin IP o KV, bloqueamos (Seguridad)
+async function checkRateLimit(ip: string): Promise<boolean> {
+  if (!ip) return false;
 
-  const key = `rl:${ip}`;
-  try {
-    const record = await env.KV_VIEWS.get(key);
-    const count = record ? parseInt(record) + 1 : 1;
+  const now = Date.now();
 
-    // Usamos expirationTtl para que la clave se borre automáticamente después de 1 minuto
-    await env.KV_VIEWS.put(key, count.toString(), { expirationTtl: 60 });
-
-    if (count > MAX_REQ_PER_WINDOW) {
-      return false; // Rate limit excedido
+  // Limpieza periódica aleatoria del cache para evitar fugas de memoria
+  if (Math.random() < 0.01) {
+    for (const [key, val] of localRateLimitCache.entries()) {
+      if (val.expires < now) localRateLimitCache.delete(key);
     }
-  } catch (e) {
-    console.error('[Shield] Rate Limit KV Error:', e);
-    return false; // Fail-closed: En caso de error en KV, bloqueamos por seguridad
   }
 
-  return true;
+  let local = localRateLimitCache.get(ip);
+  if (!local || local.expires < now) {
+    local = { count: 0, expires: now + 60000 };
+    localRateLimitCache.set(ip, local);
+  }
+
+  local.count++;
+  return local.count <= MAX_REQ_PER_WINDOW;
 }
 
 export async function shield(context: APIContext, next: MiddlewareNext) {
@@ -35,7 +36,7 @@ export async function shield(context: APIContext, next: MiddlewareNext) {
   const currentPath = url.pathname;
   const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
 
-  // 1. BYPASS para Googlebot y SEO (Esencial para indexación)
+  // 1. BYPASS para Googlebot y SEO
   const isGoogle = lowerUa.includes('google') || lowerUa.includes('sitemaps');
   locals.isBot = isGoogle;
 
@@ -70,14 +71,13 @@ export async function shield(context: APIContext, next: MiddlewareNext) {
     return next();
   }
 
-  // 2. RATE LIMITING (Protección contra DDoS/Fuerza bruta a nivel de aplicación)
-  if (!isGoogle && !(await checkRateLimit(clientIp, env))) {
+  // 2. RATE LIMITING (Peticiones Cero en RAM)
+  if (!isGoogle && !(await checkRateLimit(clientIp))) {
     return new Response(getBlockedHtml('Too Many Requests. Rate Limit Exceeded.', clientIp), {
       status: 429,
       headers: { 'Content-Type': 'text/html', 'Retry-After': '60' },
     });
   }
-
   // 3. GEO-BLOCKING
   const country = request.headers.get('cf-ipcountry');
   const blacklistedCountries = siteConfig.security.blacklistedCountries;

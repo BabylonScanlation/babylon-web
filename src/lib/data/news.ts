@@ -1,5 +1,10 @@
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
+
+// Orion: Memoria RAM local para peticiones cero (Isolate level)
+const newsMemoryCache = new Map<string, { data: NewsWithDetails[]; expires: number }>();
+const newsCountMemoryCache = { count: 0, expires: 0 };
+
 import * as schema from '../../db/schema';
 import type { getDB } from '../db-client';
 import { generateUUID } from '../utils';
@@ -114,6 +119,15 @@ export async function getAllNews(
   seriesId?: number | null,
   env?: any
 ): Promise<NewsWithDetails[]> {
+  const CACHE_KEY = `news_all_${status || 'all'}_${seriesId || 'all'}`;
+  const now = Date.now();
+
+  // 1. RAM Cache (Peticiones Cero)
+  const cached = newsMemoryCache.get(CACHE_KEY);
+  if (cached && cached.expires > now) {
+    return cached.data;
+  }
+
   const conditions = [];
 
   if (status) {
@@ -148,6 +162,30 @@ export async function getAllNews(
       .orderBy(desc(sql`CAST(${schema.news.createdAt} AS INTEGER)`))
       .all();
 
+    // Orion: Resolución del N+1 de imágenes.
+    const newsIds = results.map((r) => r.id);
+    let allImagesMap: Record<string, string[]> = {};
+
+    if (env && newsIds.length > 0) {
+      const allImages = await drizzleDb
+        .select()
+        .from(schema.newsImage)
+        .where(inArray(schema.newsImage.newsId, newsIds))
+        .orderBy(schema.newsImage.displayOrder)
+        .all();
+
+      allImagesMap = allImages.reduce(
+        (acc, img) => {
+          if (!acc[img.newsId]) {
+            acc[img.newsId] = [];
+          }
+          acc[img.newsId]?.push(`${env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`);
+          return acc;
+        },
+        {} as Record<string, string[]>
+      );
+    }
+
     const validatedItems = await Promise.all(
       results.map(async (r) => {
         const validation = NewsSchema.safeParse({
@@ -166,19 +204,21 @@ export async function getAllNews(
           seriesCover: r.seriesCover ?? null,
           seriesTitle: r.seriesTitle ?? null,
           authorAvatar: r.authorAvatar ?? null,
-          imageUrls: [],
+          imageUrls: allImagesMap[r.id] || [],
         };
-
-        if (env) {
-          const images = await getNewsImages(drizzleDb, item.id);
-          item.imageUrls = images.map((img) => `${env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`);
-        }
 
         return item;
       })
     );
 
-    return validatedItems.filter((item): item is NewsWithDetails => item !== null);
+    const finalItems = validatedItems.filter((item): item is NewsWithDetails => item !== null);
+
+    // Guardar en RAM por 10 minutos (600,000 ms)
+    if (finalItems.length > 0) {
+      newsMemoryCache.set(CACHE_KEY, { data: finalItems, expires: now + 600000 });
+    }
+
+    return finalItems;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('Database Error in getAllNews:', message);
@@ -254,17 +294,13 @@ export async function deleteNewsImage(
 /**
  * Orion: Obtiene el conteo total de noticias publicadas.
  */
-export async function getNewsCount(
-  drizzleDb: ReturnType<typeof getDB>,
-  kv?: any // KVNamespace
-): Promise<number> {
-  const CACHE_KEY = 'news_count_published';
+export async function getNewsCount(drizzleDb: ReturnType<typeof getDB>): Promise<number> {
+  const now = Date.now();
 
   try {
-    // 1. Intentar obtener desde KV si está disponible
-    if (kv) {
-      const cached = await kv.get(CACHE_KEY);
-      if (cached) return parseInt(cached, 10);
+    // 1. Intentar obtener desde RAM (Peticiones Cero)
+    if (newsCountMemoryCache.expires > now) {
+      return newsCountMemoryCache.count;
     }
 
     // 2. Si no hay caché, consultar base de datos
@@ -276,10 +312,9 @@ export async function getNewsCount(
 
     const count = result[0]?.count || 0;
 
-    // 3. Guardar en KV con TTL de 5 minutos
-    if (kv) {
-      await kv.put(CACHE_KEY, count.toString(), { expirationTtl: 300 });
-    }
+    // 3. Guardar en RAM por 5 minutos (300,000 ms)
+    newsCountMemoryCache.count = count;
+    newsCountMemoryCache.expires = now + 300000;
 
     return count;
   } catch (error) {

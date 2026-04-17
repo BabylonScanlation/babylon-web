@@ -18,7 +18,8 @@ let pagination = { page: 1, totalPages: 1, total: 0 };
 let error: string | null = null;
 
 try {
-  const db = getDB(Astro.locals.runtime.env);
+  const env = Astro.locals.runtime.env;
+  const db = getDB(env);
   const searchParams = Object.fromEntries(Astro.url.searchParams.entries());
 
   const result = await searchSeries(db, {

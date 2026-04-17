@@ -5,6 +5,9 @@ import { chapters, favorites, series, seriesRatings, seriesReactions } from '../
 import type { RecentChapterSeries, SeriesDetails } from '../../types';
 import { parseToTimestamp } from '../utils';
 
+// Orion: Memoria RAM local para peticiones cero (Isolate level)
+const seriesMemoryCache = new Map<string, { data: any; expires: number }>();
+
 /**
  * Orion: Obtiene los detalles de una serie.
  */
@@ -13,6 +16,18 @@ export async function getSeriesDetails(
   slug: string,
   user?: { uid: string; isAdmin: boolean }
 ): Promise<SeriesDetails | null> {
+  const CACHE_KEY = `series_details_${slug}`;
+  const now = Date.now();
+
+  // 1. RAM Cache SOLO para invitados (Peticiones Cero)
+  // Tus usuarios registrados NO pasan por aquí, ellos ven todo al instante de D1.
+  if (!user) {
+    const cached = seriesMemoryCache.get(CACHE_KEY);
+    if (cached && cached.expires > now) {
+      return cached.data;
+    }
+  }
+
   const seriesData = await db
     .select()
     .from(series)
@@ -135,7 +150,7 @@ export async function getSeriesDetails(
     {} as Record<string, number>
   );
 
-  return {
+  const result = {
     ...seriesData,
     chapters: chaptersResult,
     stats: {
@@ -147,6 +162,13 @@ export async function getSeriesDetails(
       isFavorited: !!userDataResult?.favoriteId,
     },
   };
+
+  // Guardar en RAM por 5 minutos si es invitado
+  if (!user && chaptersResult.length > 0) {
+    seriesMemoryCache.set(CACHE_KEY, { data: result, expires: now + 300000 });
+  }
+
+  return result;
 }
 
 /**
@@ -154,6 +176,15 @@ export async function getSeriesDetails(
  * Reduce múltiples viajes a la DB y solo trae los campos necesarios para la UI.
  */
 export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsfw = false) {
+  const CACHE_KEY = `home_data_nsfw_${allowNsfw}`;
+  const now = Date.now();
+
+  // RAM Cache (Peticiones Cero)
+  const cached = seriesMemoryCache.get(CACHE_KEY);
+  if (cached && cached.expires > now) {
+    return cached.data;
+  }
+
   const commonConditions: (SQL | undefined)[] = [eq(series.isHidden, false)];
 
   // Orion: Modo Estricto.
@@ -208,12 +239,19 @@ export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsf
     getSeriesWithRecentChapters(db, allowNsfw),
   ]);
 
-  return {
+  const result = {
     popularSeries: popular,
     seriesByChapterCount: byChapters,
     seriesWithRecentChapters: recentChaptersData,
     hasContent: popular.length > 0 || recentChaptersData.length > 0,
   };
+
+  // Guardar en RAM por 5 minutos
+  if (popular.length > 0 || recentChaptersData.length > 0) {
+    seriesMemoryCache.set(CACHE_KEY, { data: result, expires: now + 300000 });
+  }
+
+  return result;
 }
 
 /**
@@ -491,6 +529,14 @@ export async function searchSeries(
     allowNsfw = false,
   } = options;
 
+  // Orion: Implementación de RAM Cache para búsquedas (Peticiones Cero)
+  const CACHE_KEY = `search_${allowNsfw}_${q || ''}_${page}_${sort}_${type || ''}_${status || ''}_${genres || ''}`;
+  const now = Date.now();
+  const cached = seriesMemoryCache.get(CACHE_KEY);
+  if (cached && cached.expires > now) {
+    return cached.data;
+  }
+
   const offset = (page - 1) * limit;
   const conditions: (SQL | undefined)[] = [eq(series.isHidden, false)];
   if (allowNsfw) {
@@ -547,7 +593,7 @@ export async function searchSeries(
 
   const results = (await query.limit(limit).offset(offset).all()) as any[];
 
-  return {
+  const result = {
     results,
     pagination: {
       page,
@@ -556,4 +602,9 @@ export async function searchSeries(
       totalPages: Math.ceil(total / limit),
     },
   };
+
+  // Guardar en RAM por 5 minutos (300,000 ms)
+  seriesMemoryCache.set(CACHE_KEY, { data: result, expires: now + 300000 });
+
+  return result;
 }
