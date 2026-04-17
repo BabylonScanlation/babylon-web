@@ -4,6 +4,22 @@ import { getDB } from '../../lib/db';
 
 export const GET: APIRoute = async ({ locals }) => {
   const env = locals.runtime.env;
+  const kv = env.KV_VIEWS;
+  const CACHE_KEY = 'system_health_r2';
+
+  // 1. Intentar obtener desde KV primero (TTL: 10 minutos)
+  if (kv) {
+    const cached = await kv.get(CACHE_KEY);
+    if (cached) {
+      return new Response(cached, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=600',
+        },
+      });
+    }
+  }
+
   const db = getDB(env);
 
   try {
@@ -14,11 +30,9 @@ export const GET: APIRoute = async ({ locals }) => {
       .catch(() => 'error');
 
     // 2. Calcular Tamaño R2 (Iterando objetos con límite para seguridad)
-    // En un entorno de producción masivo, esto debería guardarse en una tabla de métricas.
-    // Para el volumen actual, podemos listar los objetos.
     let totalSizeBytes = 0;
     const bucket = env.R2_ASSETS;
-    const objects = await bucket.list({ limit: 1000 }); // Ajustar si tienes más de 1000 archivos de cache
+    const objects = await bucket.list({ limit: 1000 });
 
     for (const obj of objects.objects) {
       totalSizeBytes += obj.size;
@@ -31,26 +45,30 @@ export const GET: APIRoute = async ({ locals }) => {
     if (usagePercent > 90) r2Level = 'high';
     else if (usagePercent > 70) r2Level = 'medium';
 
-    return new Response(
-      JSON.stringify({
-        systems: {
-          d1: d1Status,
-          auth: 'online', // Firebase Auth es externo, asumimos online si carga el sitio
-          bot: 'online', // El bot es reactivo
-          r2: {
-            percent: usagePercent.toFixed(1),
-            level: r2Level,
-          },
+    const result = JSON.stringify({
+      systems: {
+        d1: d1Status,
+        auth: 'online',
+        bot: 'online',
+        r2: {
+          percent: usagePercent.toFixed(1),
+          level: r2Level,
         },
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=300', // Caché de 5 minutos para ahorrar ops
-        },
-      }
-    );
+      },
+    });
+
+    // Guardar en KV si está disponible
+    if (kv) {
+      await kv.put(CACHE_KEY, result, { expirationTtl: 600 });
+    }
+
+    return new Response(result, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=600',
+      },
+    });
   } catch {
     return new Response(JSON.stringify({ error: 'Fallo al obtener telemetría' }), { status: 500 });
   }

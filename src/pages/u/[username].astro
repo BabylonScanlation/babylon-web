@@ -116,43 +116,38 @@ if (currentTab === 'news' && isAdmin) {
     .all();
 }
 
-// Global Stats
-const totalCommentsCount =
-  (
-    await db
+// Global Stats in parallel
+const [totalCommentsResult, totalSeriesCommentsResult, totalFavsResult, avgRatingResult] =
+  await Promise.all([
+    db
       .select({ count: sql`count(*)` })
       .from(comments)
       .where(eq(comments.userId, targetUser.id))
-      .get()
-  )?.count || 0;
-const totalSeriesCommentsCount =
-  (
-    await db
+      .get(),
+    db
       .select({ count: sql`count(*)` })
       .from(seriesComments)
       .where(eq(seriesComments.userId, targetUser.id))
-      .get()
-  )?.count || 0;
-const totalActivity = Number(totalCommentsCount) + Number(totalSeriesCommentsCount);
-
-const totalFavs =
-  (
-    await db
+      .get(),
+    db
       .select({ count: sql`count(*)` })
       .from(favorites)
       .where(and(eq(favorites.userId, targetUser.id), eq(favorites.type, 'series')))
-      .get()
-  )?.count || 0;
-
-const avgRating = Number(
-  (
-    await db
+      .get(),
+    db
       .select({ avg: sql`avg(rating)` })
       .from(seriesRatings)
       .where(eq(seriesRatings.userId, targetUser.id))
-      .get()
-  )?.avg || 0
-);
+      .get(),
+  ]);
+
+const totalCommentsCount = totalCommentsResult?.count || 0;
+const totalSeriesCommentsCount = totalSeriesCommentsResult?.count || 0;
+const totalActivity = Number(totalCommentsCount) + Number(totalSeriesCommentsCount);
+
+const totalFavs = totalFavsResult?.count || 0;
+
+const avgRating = Number(avgRatingResult?.avg || 0);
 
 // Presentation Data
 const avatar =

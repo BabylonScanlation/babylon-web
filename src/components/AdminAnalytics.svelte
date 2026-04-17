@@ -27,7 +27,7 @@ const palette = {
 async function fetchData() {
   try {
     _loading = true;
-    const res = await fetch(`/api/admin/stats/all?range=${selectedRange}&refresh=true`);
+    const res = await fetch(`/api/admin/stats/all?range=${selectedRange}`);
     if (!res.ok) throw new Error('Error stats');
 
     const data = await res.json();

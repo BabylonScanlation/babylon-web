@@ -19,7 +19,7 @@ export async function createToken(payload: UserSessionPayload, secret: string): 
     .setProtectedHeader({ alg: 'HS256' })
     .setJti(jti)
     .setIssuedAt()
-    .setExpirationTime('5m')
+    .setExpirationTime('30m')
     .sign(secretKey);
 }
 

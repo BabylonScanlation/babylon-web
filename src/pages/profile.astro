@@ -20,9 +20,11 @@ const { user } = Astro.locals;
 
 if (!user) return Astro.redirect('/');
 
-// Fetch full user profile
-const userProfile = await db.select().from(users).where(eq(users.id, user.uid)).get();
-const userRoleData = await db.select().from(userRoles).where(eq(userRoles.userId, user.uid)).get();
+// Fetch full user profile in parallel
+const [userProfile, userRoleData] = await Promise.all([
+  db.select().from(users).where(eq(users.id, user.uid)).get(),
+  db.select().from(userRoles).where(eq(userRoles.userId, user.uid)).get(),
+]);
 
 // Fallbacks
 const avatar =

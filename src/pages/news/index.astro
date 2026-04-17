@@ -42,13 +42,17 @@ if (newsItems.length > 0 && newsItems[0]) {
         typeof dbUser?.preferences === 'string'
           ? JSON.parse(dbUser.preferences)
           : dbUser?.preferences || {};
-      const newPrefs = JSON.stringify({ ...currentPrefs, lastSeenNewsId: latestId });
 
-      await drizzleDb
-        .update(users)
-        .set({ preferences: newPrefs })
-        .where(eq(users.id, user.uid))
-        .execute();
+      // Solo actualizar si el lastSeenNewsId cambió realmente
+      if (currentPrefs?.lastSeenNewsId !== latestId) {
+        const newPrefs = JSON.stringify({ ...currentPrefs, lastSeenNewsId: latestId });
+
+        await drizzleDb
+          .update(users)
+          .set({ preferences: newPrefs })
+          .where(eq(users.id, user.uid))
+          .execute();
+      }
     } catch (e) {
       console.error('[NewsDBUpdate] Error:', e);
     }

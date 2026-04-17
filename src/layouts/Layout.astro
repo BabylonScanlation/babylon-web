@@ -9,8 +9,10 @@ import { getDB } from '../lib/db';
 import { siteConfig } from '../site.config';
 
 // Orion: Obtención de contador en el servidor para evitar peticiones del cliente (Ahorro masivo)
-const db = getDB(Astro.locals.runtime.env);
-const serverNewsCount = Astro.url.pathname.startsWith('/admin') ? 0 : await getNewsCount(db);
+const env = Astro.locals.runtime.env;
+const db = getDB(env);
+const kv = env.KV_VIEWS;
+const serverNewsCount = Astro.url.pathname.startsWith('/admin') ? 0 : await getNewsCount(db, kv);
 
 const {
   title: pageTitle,

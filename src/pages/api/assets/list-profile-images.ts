@@ -35,6 +35,19 @@ export const GET: APIRoute = async ({ locals }) => {
   const banners = ['moon.jpg', 'tokiri.jpg'];
 
   const publicUrl = env.R2_PUBLIC_URL_ASSETS;
+  const kv = env.KV_VIEWS;
+  const CACHE_KEY = 'profile_images_list';
+
+  // 1. Intentar obtener desde KV primero
+  if (kv) {
+    const cached = await kv.get(CACHE_KEY);
+    if (cached) {
+      return new Response(cached, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
 
   // Generamos las URLs completas
   const ManualAvatars: string[] = animals.map(
@@ -64,19 +77,22 @@ export const GET: APIRoute = async ({ locals }) => {
     const finalAvatars = [...new Set([...ManualAvatars, ...r2Avatars])];
     const finalBanners = [...new Set([...ManualBanners, ...r2Banners])];
 
-    return new Response(
-      JSON.stringify({
-        avatars: finalAvatars,
-        banners: finalBanners,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store',
-        },
-      }
-    );
+    const responseBody = JSON.stringify({
+      avatars: finalAvatars,
+      banners: finalBanners,
+    });
+
+    // Guardar en KV con TTL de 1 hora (3600s)
+    if (kv) {
+      await kv.put(CACHE_KEY, responseBody, { expirationTtl: 3600 });
+    }
+
+    return new Response(responseBody, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   } catch {
     // Si falla el listado (común en local), devolvemos al menos la lista manual
     return new Response(

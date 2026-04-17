@@ -254,14 +254,34 @@ export async function deleteNewsImage(
 /**
  * Orion: Obtiene el conteo total de noticias publicadas.
  */
-export async function getNewsCount(drizzleDb: ReturnType<typeof getDB>): Promise<number> {
+export async function getNewsCount(
+  drizzleDb: ReturnType<typeof getDB>,
+  kv?: any // KVNamespace
+): Promise<number> {
+  const CACHE_KEY = 'news_count_published';
+
   try {
+    // 1. Intentar obtener desde KV si está disponible
+    if (kv) {
+      const cached = await kv.get(CACHE_KEY);
+      if (cached) return parseInt(cached, 10);
+    }
+
+    // 2. Si no hay caché, consultar base de datos
     const result = await drizzleDb
       .select({ count: sql<number>`count(*)` })
       .from(schema.news)
       .where(eq(schema.news.status, 'published'))
       .all();
-    return result[0]?.count || 0;
+
+    const count = result[0]?.count || 0;
+
+    // 3. Guardar en KV con TTL de 5 minutos
+    if (kv) {
+      await kv.put(CACHE_KEY, count.toString(), { expirationTtl: 300 });
+    }
+
+    return count;
   } catch (error) {
     console.error('Error fetching news count:', error);
     return 0;
