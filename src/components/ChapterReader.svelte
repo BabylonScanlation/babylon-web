@@ -23,6 +23,7 @@ interface Props {
   chapterPayload?: any;
   chapterId?: number | null;
   seriesTitle?: string | null;
+  chapterTitle?: string;
   watermark?: string;
   initialLoadingMessage?: string | null;
   nextChapter?: { slug: string; chapter: string } | null;
@@ -38,6 +39,7 @@ let {
   chapterPayload = null,
   chapterId = null,
   seriesTitle = '',
+  chapterTitle = '',
   watermark = '',
   initialLoadingMessage = null,
   nextChapter = null,
@@ -663,12 +665,12 @@ import { siteConfig } from '../site.config';
           <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </a>
         <div class="chapter-label">
-          <span class="s-title">{seriesTitle}</span>
+          <span class="s-title">{chapterTitle}</span>
           <span class="c-num">Capítulo {chapter}</span>
         </div>
       </div>
 
-      <div class="hud-section central">
+      <div class="hud-section tools">
         <div class="hud-nav-group">
           <a href={prevChapter ? `/series/${prevChapter.slug}/${prevChapter.chapter}` : '#'} class="hud-nav-btn prev" class:disabled={!prevChapter} title="Capítulo Anterior">
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="3"><polyline points="15 18 9 12 15 6"></polyline></svg>
@@ -678,9 +680,7 @@ import { siteConfig } from '../site.config';
             <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="3"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </a>
         </div>
-      </div>
 
-      <div class="hud-section tools">
         <button class="tool-btn comment-trigger" onclick={scrollToComments} title="Comentarios">
           <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
         </button>
@@ -869,9 +869,23 @@ import { siteConfig } from '../site.config';
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+    gap: 1.5rem;
   }
 
-  .hud-section { display: flex; align-items: center; gap: 1rem; }
+  .hud-section.info { 
+    display: flex; 
+    align-items: center; 
+    gap: 1rem; 
+    flex: 1; 
+    min-width: 0;
+  }
+
+  .hud-section.tools {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
 
   .back-pill {
     background: rgba(255, 255, 255, 0.05);
@@ -883,6 +897,7 @@ import { siteConfig } from '../site.config';
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    flex-shrink: 0;
   }
 
   .back-pill:hover { 
@@ -891,9 +906,22 @@ import { siteConfig } from '../site.config';
     border-color: var(--accent-color);
   }
 
-  .chapter-label { display: flex; flex-direction: column; }
-  .s-title { font-size: 0.65rem; font-weight: 800; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .c-num { font-size: 0.9rem; font-weight: 700; color: #fff; }
+  .chapter-label { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  .s-title { 
+    font-size: 0.75rem; 
+    font-weight: 800; 
+    color: #888; 
+    text-transform: uppercase; 
+    letter-spacing: 0.04em; 
+    width: 100%;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.2; 
+    white-space: normal;
+  }
+  .c-num { font-size: 0.85rem; font-weight: 700; color: #fff; line-height: 1.2; white-space: nowrap; }
 
   /* HUD Central Navigation */
   .hud-nav-group {
@@ -1304,9 +1332,22 @@ import { siteConfig } from '../site.config';
   }
 
   @media (max-width: 768px) {
-    .floating-hud { bottom: 1rem; width: 95%; }
-    .hud-glass { padding: 0.5rem 1rem; gap: 0.5rem; }
-    .s-title { max-width: 100px; }
+    .floating-hud { bottom: 1rem; width: 98%; max-width: none; }
+    .hud-glass { padding: 0.5rem 0.75rem; gap: 0.35rem; border-radius: 20px; }
+    .hud-section { gap: 0.35rem; }
+    .hud-section.info { flex: 1; min-width: 0; overflow: hidden; }
+    .s-title { font-size: 0.75rem; display: block !important; }
+    .c-num { font-size: 0.9rem; white-space: nowrap; }
+    .back-pill, .tool-btn { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; }
+    .hud-nav-btn { width: 30px; height: 32px; flex-shrink: 0; }
+    .hud-nav-group { padding: 2px; }
+  }
+
+  @media (max-width: 400px) {
+    .hud-glass { padding: 0.4rem 0.5rem; gap: 0.25rem; }
+    .s-title { font-size: 0.65rem; }
+    .c-num { font-size: 0.8rem; }
+    .back-pill { width: 30px; height: 30px; }
   }
 
   .cancel-load-btn {

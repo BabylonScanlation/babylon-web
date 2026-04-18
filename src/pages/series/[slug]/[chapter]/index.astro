@@ -96,6 +96,9 @@ Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate
 const currentChapterNumber = parseFloat(chapter!);
 const currentChapterIndex = allChapters.findIndex((c) => c.chapterNumber === currentChapterNumber);
 
+const currentChapter = allChapters.find((c) => c.chapterNumber === currentChapterNumber);
+const chapterTitle = currentChapter?.title || '';
+
 let nextChapterUrl: string | null = null;
 let nextChapterProp: { slug: string; chapter: string } | null = null;
 
@@ -265,6 +268,7 @@ if (error && currentChapterIndex !== -1) {
           processing={isProcessing}
           initialLoadingMessage={loadingMessage || undefined}
           seriesTitle={seriesTitle || undefined}
+          chapterTitle={chapterTitle}
           watermark={watermark}
           nextChapter={nextChapterProp || undefined} 
           prevChapter={prevChapterUrl ? { slug: slug!, chapter: allChapters[currentChapterIndex + 1]?.chapterNumber.toString() } : undefined}
@@ -377,6 +381,13 @@ if (error && currentChapterIndex !== -1) {
     overflow: hidden;
     display: flex;
     justify-content: center;
+  }
+
+  @media (max-width: 768px) {
+    .reader-top-ad {
+      margin-top: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
   }
 
   .reader-top-ad :global(.ad-container-root),
