@@ -80,12 +80,16 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
   if (isDev) console.log(`[Proxy] Cache MISS: ${objectKey}`);
 
   // Función auxiliar para servir y cachear en el CDN global
-  const serveAndCache = async (body: any, contentType?: string, etag?: string) => {
+  const serveAndCache = async (
+    body: any,
+    contentType?: string,
+    etag?: string,
+    maxAge = 86400 // Por defecto 24h (para capítulos/Telegram)
+  ) => {
     const headers = new Headers();
     headers.set('Access-Control-Allow-Origin', '*');
-    // Sincronizamos con el ciclo de 24h de R2_CACHE
-    headers.set('Cache-Control', 'public, max-age=86400, s-maxage=86400, immutable');
-    headers.set('Vary', 'X-Babylon-Service'); // Vital para distinguir peticiones del loader
+    headers.set('Cache-Control', `public, max-age=${maxAge}, s-maxage=${maxAge}, immutable`);
+    headers.set('Vary', 'X-Babylon-Service');
     if (contentType) headers.set('Content-Type', contentType);
     if (etag) headers.set('ETag', etag);
 
@@ -137,7 +141,8 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
             return serveAndCache(
               assetObj.body,
               assetObj.httpMetadata?.contentType,
-              assetObj.httpEtag
+              assetObj.httpEtag,
+              31536000 // 1 año para assets permanentes desde URL
             );
           }
         }
@@ -154,7 +159,12 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
       const cacheObj = await env.R2_CACHE.get(objectKey);
       if (cacheObj) {
         if (isDev) console.log(`[Proxy] R2_CACHE HIT: ${objectKey}`);
-        return serveAndCache(cacheObj.body, cacheObj.httpMetadata?.contentType, cacheObj.httpEtag);
+        return serveAndCache(
+          cacheObj.body,
+          cacheObj.httpMetadata?.contentType,
+          cacheObj.httpEtag,
+          86400 // 24h para capítulos
+        );
       } else if (isDev) {
         console.log(`[Proxy] R2_CACHE MISS for key: ${objectKey}`);
       }
@@ -167,7 +177,12 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
       const assetObj = await env.R2_ASSETS.get(objectKey);
       if (assetObj) {
         if (isDev) console.log(`[Proxy] R2_ASSETS HIT: ${objectKey}`);
-        return serveAndCache(assetObj.body, assetObj.httpMetadata?.contentType, assetObj.httpEtag);
+        return serveAndCache(
+          assetObj.body,
+          assetObj.httpMetadata?.contentType,
+          assetObj.httpEtag,
+          31536000 // 1 año para portadas/permanentes
+        );
       } else if (isDev) {
         console.log(`[Proxy] R2_ASSETS MISS for key: ${objectKey}`);
       }
