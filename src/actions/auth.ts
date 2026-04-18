@@ -236,18 +236,20 @@ export const authActions = {
     handler: async (input, context) => {
       const { idToken } = input;
       const runtime = context.locals.runtime;
-      
+
       // Orion: Combinación ultra-robusta de entornos
       const env = {
         ...(import.meta.env as any),
         ...(runtime?.env || {}),
       };
-      
+
       const { cookies, request } = context;
 
       // Aseguramos que existan las piezas clave antes de seguir
       if (!env.PUBLIC_FIREBASE_PROJECT_ID) {
-        throw new Error('Configuración Crítica Faltante: PUBLIC_FIREBASE_PROJECT_ID no encontrada en el servidor.');
+        throw new Error(
+          'Configuración Crítica Faltante: PUBLIC_FIREBASE_PROJECT_ID no encontrada en el servidor.'
+        );
       }
 
       const decodedToken = (await verifyFirebaseToken(

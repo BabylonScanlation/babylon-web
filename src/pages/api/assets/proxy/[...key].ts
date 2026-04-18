@@ -64,7 +64,9 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
 
   // Orion: Implementación de Cache API (Reducción drástica de costos)
   const cache = typeof caches !== 'undefined' ? (caches as any).default : null;
-  const cacheKey = new Request(request.url, request);
+  // IMPORTANTE: Solo usamos la URL para la llave de caché.
+  // Si usamos el objeto 'request' completo, los headers (User-Agent, etc) rompen el HIT.
+  const cacheKey = new Request(request.url);
 
   // Intentar recuperar del caché de Cloudflare primero
   if (cache) {
@@ -81,8 +83,9 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
   const serveAndCache = async (body: any, contentType?: string, etag?: string) => {
     const headers = new Headers();
     headers.set('Access-Control-Allow-Origin', '*');
-    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-    headers.set('Vary', 'X-Babylon-Service'); // Astra: Clave para particionar el caché del navegador
+    // Sincronizamos con el ciclo de 24h de R2_CACHE
+    headers.set('Cache-Control', 'public, max-age=86400, s-maxage=86400, immutable');
+    headers.set('Vary', 'X-Babylon-Service'); // Vital para distinguir peticiones del loader
     if (contentType) headers.set('Content-Type', contentType);
     if (etag) headers.set('ETag', etag);
 
