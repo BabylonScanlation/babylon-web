@@ -917,6 +917,7 @@ import { siteConfig } from '../site.config';
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    line-clamp: 2;
     overflow: hidden;
     line-height: 1.2; 
     white-space: normal;
