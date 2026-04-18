@@ -54,33 +54,43 @@
 
     console.log('%c🛡️ SHIELD: Iniciando escaneo de integridad...', 'color: cyan; font-weight: bold;');
 
-    // 1. Prueba de Script Local (ads.js) - Más margen de tiempo
+    // 1. Prueba de Script Local (ads.js)
     const localCheck = await new Promise((resolve) => {
       const script = document.createElement('script');
       script.src = '/js/ads.js?t=' + Date.now();
       script.onload = () => resolve(window.canRunAds ? false : true);
       script.onerror = () => resolve(true);
       document.head.appendChild(script);
-      setTimeout(() => resolve(window.canRunAds ? false : true), 1500); // Subido a 1.5s
+      setTimeout(() => resolve(window.canRunAds ? false : true), 1000);
     });
     if (localCheck) { score += 2; }
 
-    // 2. Prueba de Inyección de Cebo Dinámico
+    // 2. Prueba de Píxel de Tracking (Crucial para VPN/DNS)
+    const pixelCheck = await new Promise((resolve) => {
+      const img = new Image();
+      img.src = 'https://googleads.g.doubleclick.net/pagead/viewthroughconversion/123456789/?value=0&guid=ON&script=0&t=' + Date.now();
+      img.onload = () => resolve(false);
+      img.onerror = () => resolve(true);
+      setTimeout(() => resolve(true), 1500);
+    });
+    if (pixelCheck) { score += 2; }
+
+    // 3. Prueba de Inyección de Cebo Dinámico
     const bait = document.createElement('div');
-    bait.className = 'adsbygoogle ad-unit sponsored-link';
-    bait.style.cssText = 'position:fixed;left:-100px;width:10px;height:10px;display:block !important;';
+    bait.className = 'adsbygoogle ad-unit sponsored-link ads-banner';
+    bait.style.cssText = 'position:fixed;left:-999px;width:10px;height:10px;display:block !important;';
     document.body.appendChild(bait);
-    await new Promise(r => setTimeout(r, 400)); // Subido a 400ms
+    await new Promise(r => setTimeout(r, 300));
     const style = window.getComputedStyle(bait);
     if (style.display === 'none' || style.visibility === 'hidden' || bait.offsetHeight === 0) {
       score += 2;
     }
     document.body.removeChild(bait);
 
-    // 3. Prueba de Red (Google) - Solo suma si falla repetidamente
+    // 4. Prueba de Red (Google Ads)
     try {
       const controller = new AbortController();
-      setTimeout(() => controller.abort(), 3000);
+      setTimeout(() => controller.abort(), 2000);
       await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { 
         mode: 'no-cors', cache: 'no-store', signal: controller.signal 
       });
@@ -88,10 +98,10 @@
       score += 1;
     }
 
-    // 4. Prueba de Red Principal (crowdsubsequentadmire.com)
+    // 5. Prueba de Red Principal (Adsterra)
     try {
       const controller = new AbortController();
-      setTimeout(() => controller.abort(), 3000);
+      setTimeout(() => controller.abort(), 2000);
       await fetch('https://crowdsubsequentadmire.com/invoke.js', { 
         mode: 'no-cors', cache: 'no-store', signal: controller.signal 
       });
@@ -101,14 +111,15 @@
 
     console.log('%c🛡️ SHIELD: Puntaje Final: ' + score, 'color: yellow; font-weight: bold;');
     
-    // Sensibilidad máxima (igual que desarrollo)
+    // Si hay CUALQUIER indicio de bloqueo (incluso fallos parciales de VPN)
     return score >= 1;
   }
 
   async function initShield() {
     isAdblockDetected = await checkAdBlock();
+    
     if (isAdblockDetected) {
-      // En localhost siempre mostramos el muro si hay sospecha para testear
+      // Muro total en lectura o si hay una detección clara (score > 2)
       if (isReaderPage || window.location.hostname === 'localhost') {
         showWall();
       } else {
