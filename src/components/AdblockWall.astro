@@ -102,10 +102,8 @@
 
     console.log('%c🛡️ SHIELD: Puntaje Final: ' + score, 'color: yellow; font-weight: bold;');
     
-    // Sensibilidad inteligente:
-    // En localhost permitimos testeo fácil (score >= 1)
-    // En producción somos conservadores para evitar falsos positivos (score >= 3)
-    return isLocal ? score >= 1 : score >= 3;
+    // Sensibilidad máxima (igual que desarrollo)
+    return score >= 1;
   }
 
   async function initShield() {
