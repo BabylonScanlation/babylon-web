@@ -1,8 +1,8 @@
-﻿---
+---
 ---
 <!-- src/components/AdblockWall.astro -->
-<div id="adblock-wall" class="adblock-wall-overlay" style="display: none;">
-  <div class="adblock-content-card">
+<div id="app-shield-root" class="site-verification-mask" style="display: none;">
+  <div class="premium-alert-inner">
     <div class="wall-header">
       <div class="wall-icon-container">
         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shield-icon"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
@@ -22,20 +22,257 @@
     </div>
 
     <div class="wall-actions">
-      <button id="verify-adblock-btn" class="btn-verify">
+      <button id="verify-shield-btn" class="btn-verify">
         VERIFICAR AHORA
       </button>
     </div>
   </div>
 </div>
 
-<!-- Astra: Elemento Cebo Invisible para Bloqueadores -->
-<div id="tester-wrap" class="ad-unit ad-box ads-container pub_300x250 ads-banner" style="position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; visibility: hidden; opacity: 0; pointer-events: none;">
-  &nbsp;
+<!-- Astra: Elementos Cebo Múltiples -->
+<div id="tester-wrap" class="ad-unit ad-box ads-container pub_300x250 ads-banner" style="position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;">&nbsp;</div>
+<div id="ads-analytics-check" class="ads-external-unit sponsored-content" style="position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0.01;"></div>
+<div id="bottom-ads" class="ad-placement" style="position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0.01;"></div>
+
+<!-- Banner de aviso suave -->
+<div id="system-notification-toast" class="soft-notice-wrapper" style="display: none;">
+  <span class="toast-text">🛡️ Considera apoyar el proyecto desactivando el bloqueador.</span>
+  <button class="close-toast" onclick="document.getElementById('system-notification-toast').style.display='none'">&times;</button>
 </div>
 
-<!-- Banner de aviso suave para la Home -->
-<div id="adblock-toast" class="adblock-soft-toast" style="display: none;">
-  <span class="toast-text">🛡️ Desactiva el Adblock para apoyar al Scan.</span>
-  <button class="close-toast" onclick="document.getElementById('adblock-toast').style.display='none'">&times;</button>
-</div>
+<script>
+  // Inicialización de variables globales de red
+  window.isVignetteBlocked = window.isVignetteBlocked || false;
+  window.isAdsterraBlocked = window.isAdsterraBlocked || false;
+  window.isMonetagBlocked = window.isMonetagBlocked || false;
+
+  let isAdblockDetected = false;
+  const isReaderPage = window.location.pathname.includes('/series/') && window.location.pathname.split('/').filter(Boolean).length >= 3;
+
+  async function checkAdBlock() {
+    let score = 0;
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    console.log('%c🛡️ SHIELD: Iniciando escaneo...', 'color: cyan; font-weight: bold;');
+
+    // 1. Prueba de Script Local (ads.js)
+    const localCheck = await new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = '/js/ads.js?t=' + Date.now();
+      script.onload = () => resolve(window.canRunAds ? false : true);
+      script.onerror = () => resolve(true);
+      document.head.appendChild(script);
+      setTimeout(() => resolve(window.canRunAds ? false : true), 600);
+    });
+    if (localCheck) { score += 2; console.error('🛡️ SHIELD: ads.js bloqueado'); }
+
+    // 2. Prueba de Inyección de Cebo Dinámico
+    const bait = document.createElement('div');
+    bait.className = 'adsbygoogle ad-unit sponsored-link';
+    bait.style.cssText = 'position:fixed;left:-100px;width:10px;height:10px;';
+    document.body.appendChild(bait);
+    await new Promise(r => setTimeout(r, 200));
+    const style = window.getComputedStyle(bait);
+    if (style.display === 'none' || style.visibility === 'hidden' || bait.offsetHeight === 0) {
+      score += 2; console.error('🛡️ SHIELD: Cebo DOM bloqueado');
+    }
+    document.body.removeChild(bait);
+
+    // 3. Prueba de Red (Google)
+    try {
+      await fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', { mode: 'no-cors', cache: 'no-store' });
+    } catch (e) {
+      score += 1; console.error('🛡️ SHIELD: Red publicitaria Google bloqueada');
+    }
+
+    // 4. Prueba de Red Específica (Ad Network Real)
+    try {
+      await fetch('https://crowdsubsequentadmire.com/invoke.js', { mode: 'no-cors', cache: 'no-store' });
+    } catch (e) {
+      score += 2; console.error('🛡️ SHIELD: Red principal (crowdsubsequentadmire) bloqueada');
+    }
+
+    console.log('%c🛡️ SHIELD: Puntaje Final: ' + score, 'color: yellow; font-weight: bold;');
+    return isLocal ? score >= 1 : score >= 2;
+  }
+
+  async function initShield() {
+    isAdblockDetected = await checkAdBlock();
+    if (isAdblockDetected) {
+      // En localhost siempre mostramos el muro si hay sospecha para testear
+      if (isReaderPage || window.location.hostname === 'localhost') {
+        showWall();
+      } else {
+        const toast = document.getElementById('system-notification-toast');
+        if (toast) toast.style.display = 'flex';
+      }
+    }
+  }
+
+  function showWall() {
+    const wall = document.getElementById('app-shield-root');
+    if (!wall) return;
+    
+    wall.style.setProperty('display', 'flex', 'important');
+    
+    // Orion: Bloqueo de Scroll Total (PC & Mobile)
+    const lock = () => {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    };
+    lock();
+
+    // Astra: Interceptar eventos táctiles en móviles para evitar el "overscroll"
+    document.addEventListener('touchmove', (e) => {
+      if (wall.style.display === 'flex') e.preventDefault();
+    }, { passive: false });
+    
+    // Intervalo de seguridad (Defensa Orion)
+    setInterval(() => {
+      if (wall.style.display === 'none' || !document.getElementById('app-shield-root')) {
+        location.reload();
+      }
+      // Re-forzar bloqueo si algo intenta quitarlo
+      if (document.body.style.overflow !== 'hidden') lock();
+    }, 1000);
+  }
+
+  // Ejecutar lo antes posible
+  if (document.readyState === 'complete') {
+    initShield();
+  } else {
+    window.addEventListener('load', initShield);
+  }
+
+  document.getElementById('verify-shield-btn')?.addEventListener('click', () => location.reload());
+</script>
+
+
+<style>
+  .site-verification-mask {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 99999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(8px);
+    padding: 1rem;
+  }
+
+  .premium-alert-inner {
+    background: linear-gradient(180deg, #111 0%, #080808 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 32px;
+    padding: 3rem 2.5rem;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+    animation: cardAppear 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes cardAppear {
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .wall-icon-container {
+    background: radial-gradient(circle, rgba(0, 191, 255, 0.15) 0%, transparent 70%);
+    width: 80px;
+    height: 80px;
+    border-radius: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 1.5rem;
+    color: var(--accent-color);
+    border: 1px solid rgba(0, 191, 255, 0.2);
+  }
+
+  h2 {
+    color: #fff;
+    margin: 0 0 1rem;
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .wall-body p {
+    color: #888;
+    line-height: 1.6;
+    font-size: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .wall-body strong { color: #fff; font-weight: 700; }
+
+  .browser-tip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.8rem 1.25rem;
+    border-radius: 16px;
+    margin-bottom: 2.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .browser-tip p { margin: 0; font-size: 0.85rem; color: #aaa; }
+  .browser-tip span { color: var(--accent-color); font-weight: 700; }
+  .browser-tip svg { color: var(--accent-color); flex-shrink: 0; opacity: 0.8; }
+
+  .btn-verify {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 1.1rem;
+    border-radius: 16px;
+    font-weight: 900;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    width: 100%;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-verify:hover { 
+    transform: translateY(-3px); 
+    box-shadow: 0 15px 30px rgba(255, 255, 255, 0.2);
+    background: var(--accent-color);
+  }
+
+  /* Toast Compact */
+  .soft-notice-wrapper {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #111;
+    border: 1px solid #333;
+    color: white;
+    padding: 0.6rem 1rem;
+    border-radius: 12px;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.85rem;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+  }
+
+  .close-toast {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0;
+  }
+</style>
