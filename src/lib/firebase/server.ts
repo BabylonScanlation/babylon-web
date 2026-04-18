@@ -7,7 +7,7 @@ const JWKS_URL =
   'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 
 interface Env {
-  FIREBASE_PROJECT_ID: string;
+  PUBLIC_FIREBASE_PROJECT_ID: string;
   KV_VIEWS?: any;
 }
 
@@ -21,10 +21,10 @@ interface Jwk {
 }
 
 export async function verifyFirebaseToken(token: string, env: Env) {
-  const projectIdToUse = env.FIREBASE_PROJECT_ID;
+  const projectIdToUse = env.PUBLIC_FIREBASE_PROJECT_ID;
 
   if (!projectIdToUse) {
-    throw new Error('La variable de entorno FIREBASE_PROJECT_ID no está configurada.');
+    throw new Error('Configuración Crítica Faltante: PUBLIC_FIREBASE_PROJECT_ID');
   }
 
   let jwks: { keys: Jwk[] };
