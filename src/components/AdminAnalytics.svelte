@@ -5,6 +5,7 @@ import { onMount } from 'svelte';
 let _summary = $state({ totalViews: 0, totalUsers: 0, totalSeries: 0 });
 let _engagement = $state({ topReactedSeries: [], topCommenters: [] });
 let categories = $state({ byType: [], byDemographic: [] });
+let revenue = $state({ today: 0, month: 0, cpm: 0, platforms: [] });
 let topSeriesData = $state([]);
 let _loading = $state(true);
 let selectedRange = $state('7');
@@ -21,27 +22,36 @@ const palette = {
   secondary: '#00f2fe',
   accent: '#f093fb',
   success: '#4ade80',
+  warning: '#f6d365',
   chart: ['#4facfe', '#f093fb', '#4ade80', '#f6d365', '#ff6b6b'],
 };
 
 async function fetchData() {
   try {
     _loading = true;
-    const res = await fetch(`/api/admin/stats/all?range=${selectedRange}`);
-    if (!res.ok) throw new Error('Error stats');
+    const [statsRes, revenueRes] = await Promise.all([
+      fetch(`/api/admin/stats/all?range=${selectedRange}`),
+      fetch('/api/admin/stats/revenue'),
+    ]);
 
-    const data = await res.json();
-    _summary = data.summary;
-    _engagement = data.engagement;
-    categories = data.categories;
-    topSeriesData = data.topSeries;
+    if (statsRes.ok) {
+      const data = await statsRes.json();
+      _summary = data.summary;
+      _engagement = data.engagement;
+      categories = data.categories;
+      topSeriesData = data.topSeries;
 
-    renderDailyChart(data.dailyViews);
-    renderTopSeriesChart(topSeriesData);
+      renderDailyChart(data.dailyViews);
+      renderTopSeriesChart(topSeriesData);
 
-    if (categories) {
-      renderCategoryPieChart('type', typeChartCanvas, categories.byType);
-      renderCategoryPieChart('demo', demoChartCanvas, categories.byDemographic);
+      if (categories) {
+        renderCategoryPieChart('type', typeChartCanvas, categories.byType);
+        renderCategoryPieChart('demo', demoChartCanvas, categories.byDemographic);
+      }
+    }
+
+    if (revenueRes.ok) {
+      revenue = await revenueRes.json();
     }
   } catch (e) {
     console.error('Analytics error:', e);
@@ -236,6 +246,55 @@ onMount(() => {
     </div>
   </div>
 
+  <!-- Revenue Row (Orion: New Monetization Section) -->
+  <div class="bento-grid summary-row revenue-row">
+    <div class="bento-card highlight gold">
+        <div class="card-icon">💰</div>
+        <div class="card-info">
+            <span>Hoy (Est.)</span>
+            <strong>${revenue.today.toFixed(4)}</strong>
+        </div>
+    </div>
+    <div class="bento-card highlight gold">
+        <div class="card-icon">📅</div>
+        <div class="card-info">
+            <span>Mes actual</span>
+            <strong>${revenue.month.toFixed(4)}</strong>
+        </div>
+    </div>
+    <div class="bento-card highlight gold">
+        <div class="card-icon">📊</div>
+        <div class="card-info">
+            <span>eCPM Promedio</span>
+            <strong>${revenue.cpm.toFixed(4)}</strong>
+        </div>
+    </div>
+  </div>
+
+  {#if revenue.platforms && revenue.platforms.length > 0}
+    <!-- Breakdown Row (Orion: Platform comparison) -->
+    <div class="bento-grid summary-row platform-breakdown">
+      {#each revenue.platforms as p (p.name)}
+        <div class="bento-card platform-card">
+          <div class="platform-header">
+            <span class="platform-name">{p.name}</span>
+            <span class="platform-status">Activo</span>
+          </div>
+          <div class="platform-stats">
+            <div class="p-stat">
+              <small>Hoy</small>
+              <strong>${p.today.toFixed(2)}</strong>
+            </div>
+            <div class="p-stat">
+              <small>CPM</small>
+              <strong>${p.cpm.toFixed(2)}</strong>
+            </div>
+          </div>
+        </div>
+      {/each}
+    </div>
+  {/if}
+
   <!-- Main Charts Row -->
   <div class="bento-grid main-charts">
     <div class="bento-card chart-container">
@@ -373,6 +432,57 @@ onMount(() => {
   .highlight.blue strong { color: #4facfe; }
   .highlight.purple strong { color: #f093fb; }
   .highlight.green strong { color: #4ade80; }
+  .highlight.gold strong { color: #f6d365; }
+
+  /* Platform Cards (Orion: New Styles) */
+  .platform-card {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: linear-gradient(145deg, #1a1a1a 0%, #121212 100%);
+  }
+  .platform-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 0.5rem;
+  }
+  .platform-name {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+  .platform-status {
+    font-size: 0.6rem;
+    background: rgba(46, 204, 113, 0.1);
+    color: #2ecc71;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: 900;
+  }
+  .platform-stats {
+    display: flex;
+    gap: 1.5rem;
+  }
+  .p-stat {
+    display: flex;
+    flex-direction: column;
+  }
+  .p-stat small {
+    font-size: 0.6rem;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .p-stat strong {
+    font-size: 1.1rem;
+    color: #f6d365;
+    font-weight: 800;
+  }
 
   /* Chart Cards */
   .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }

@@ -6,6 +6,10 @@ import { getDB } from '../db-client';
 import { logError } from '../logError';
 import { deleteSession, setAuthCookie, verifyToken } from '../session';
 
+// Orion: Caché L1 en RAM para revocaciones de JWT (Ahorro de lecturas KV)
+// Cacheamos el estado de revocación por 60 segundos por Isolate.
+const revocationCache = new Map<string, { revoked: boolean; expires: number }>();
+
 export function clearSessionCache(context: { cookies: any }) {
   // Borramos el cookie de auth para forzar al middleware a entrar en el SLOW-PATH (Lectura de DB)
   // Esto asegura que cualquier cambio de estado (como NSFW o Roles) se refleje inmediatamente.
@@ -31,10 +35,26 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
   if (authCookie && runtime?.env?.JWT_SECRET && !isAdminRoute) {
     const payload = await verifyToken(authCookie, runtime.env.JWT_SECRET);
     if (payload) {
-      // Verificación de Blacklist en KV (Revocación individual de JWTs)
-      const isRevoked = payload.jti
-        ? await runtime?.env?.KV_VIEWS?.get(`revoked:${payload.jti}`)
-        : false;
+      // Verificación de Blacklist en KV con Caché L1 en RAM (Orion: Optimización Crítica)
+      const cacheKey = payload.jti || '';
+      const now = Date.now();
+      const cached = revocationCache.get(cacheKey);
+
+      let isRevoked = false;
+      if (cached && cached.expires > now) {
+        isRevoked = cached.revoked;
+      } else if (payload.jti && runtime?.env?.KV_VIEWS) {
+        isRevoked = !!(await runtime.env.KV_VIEWS.get(`revoked:${payload.jti}`));
+        // Guardamos en RAM por 60 segundos
+        revocationCache.set(cacheKey, { revoked: isRevoked, expires: now + 60000 });
+
+        // Limpieza periódica aleatoria del caché
+        if (Math.random() < 0.05) {
+          for (const [k, v] of revocationCache.entries()) {
+            if (v.expires < now) revocationCache.delete(k);
+          }
+        }
+      }
 
       if (!isRevoked) {
         locals.user = {

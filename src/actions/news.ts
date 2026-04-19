@@ -98,6 +98,9 @@ export const newsActions = {
 
       const authorName = dbUser?.username || dbUser?.displayName || 'Admin';
 
+      // Orion: Invalidamos el caché de noticias en KV para reflejar el cambio instantáneamente
+      await context.locals.runtime.env.KV_VIEWS?.delete('news_count_cache');
+
       const newNews = await createNews(db, {
         ...input,
         publishedBy: user.uid,
@@ -123,6 +126,9 @@ export const newsActions = {
       const { id, ...updates } = input;
       const db = getDB(context.locals.runtime.env);
 
+      // Orion: Invalidamos el caché de noticias en KV
+      await context.locals.runtime.env.KV_VIEWS?.delete('news_count_cache');
+
       const updatedNews = await updateNews(db, id, updates);
       if (!updatedNews) throw new Error('Noticia no encontrada');
 
@@ -141,6 +147,9 @@ export const newsActions = {
       const { id } = input;
       const db = getDB(context.locals.runtime.env);
       const r2Assets = context.locals.runtime.env.R2_ASSETS;
+
+      // Orion: Invalidamos el caché de noticias en KV
+      await context.locals.runtime.env.KV_VIEWS?.delete('news_count_cache');
 
       const images = await getNewsImages(db, id);
       if (images && images.length > 0) {
@@ -165,6 +174,9 @@ export const newsActions = {
       const { id, currentStatus } = input;
       const newStatus = currentStatus === 'draft' ? 'published' : 'draft';
       const db = getDB(context.locals.runtime.env);
+
+      // Orion: Invalidamos el caché de noticias en KV
+      await context.locals.runtime.env.KV_VIEWS?.delete('news_count_cache');
 
       const updatedNews = await updateNews(db, id, { status: newStatus });
       if (!updatedNews) throw new Error('Noticia no encontrada');

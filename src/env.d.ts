@@ -36,6 +36,11 @@ declare global {
         SUPER_ADMIN_UID?: string;
         JWT_SECRET?: string;
         AUTH_SECRET?: string;
+        // Orion: Monetización
+        ADSTERRA_API_KEY?: string;
+        MONETAG_API_TOKEN?: string;
+        ADSTERRA_SMARTLINK_ADULT?: string;
+        ADSTERRA_SMARTLINK_MAINSTREAM?: string;
       }>;
       db: DrizzleD1Database<typeof schema> | undefined; // Corrected type
       user: User | undefined;

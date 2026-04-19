@@ -24,3 +24,9 @@ db_snapshots/
 .env
 .env.local
 .dev.vars
+
+# Dependencies and lock files
+package-lock.json
+
+# Drizzle Migrations Meta
+migrations/meta/

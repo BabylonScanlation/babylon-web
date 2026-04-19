@@ -1,6 +1,14 @@
 import type { APIRoute } from 'astro';
 import { deobfuscate } from '../../../../lib/obfuscator';
 
+// Orion: L1 RAM Cache (Isolate Level)
+// Este caché persiste en memoria mientras el proceso del Worker esté vivo.
+// En local con db:online, esto hará que los F5 sean instantáneos.
+const L1_CACHE = new Map<
+  string,
+  { body: any; contentType: string; etag: string; expires: number }
+>();
+
 export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
   const { key } = params;
   const { env } = locals.runtime;
@@ -62,17 +70,40 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
     if (isDev) console.log(`[Proxy] Clear Path Detected: ${objectKey}`);
   }
 
-  // Orion: Implementación de Cache API (Reducción drástica de costos)
+  // Orion: Headers de Revalidación (Necesarios para L1 y CDN)
+  const ifNoneMatch = request.headers.get('If-None-Match');
+
+  // Orion: 0. Verificación en L1 RAM Cache (Nivel Isolate)
+  const l1Entry = L1_CACHE.get(request.url);
+  if (l1Entry && l1Entry.expires > Date.now()) {
+    if (ifNoneMatch === l1Entry.etag) {
+      if (isDev) console.log(`[Proxy] L1 RAM REVALIDATION (304): ${objectKey}`);
+      return new Response(null, { status: 304 });
+    }
+    if (isDev) console.log(`[Proxy] L1 RAM HIT: ${objectKey}`);
+    return new Response(l1Entry.body, {
+      headers: {
+        'Content-Type': l1Entry.contentType,
+        ETag: l1Entry.etag,
+        'Cache-Control': 'public, max-age=3600',
+        'X-L1-Cache': 'HIT',
+      },
+    });
+  }
+
+  // Orion: Implementación de Cache API (CDN)
   const cache = typeof caches !== 'undefined' ? (caches as any).default : null;
-  // IMPORTANTE: Solo usamos la URL para la llave de caché.
-  // Si usamos el objeto 'request' completo, los headers (User-Agent, etc) rompen el HIT.
   const cacheKey = new Request(request.url);
 
   // Intentar recuperar del caché de Cloudflare primero
   if (cache) {
     const cachedResponse = await cache.match(cacheKey);
     if (cachedResponse) {
-      if (isDev) console.log(`[Proxy] Cache HIT: ${objectKey}`);
+      if (ifNoneMatch && cachedResponse.headers.get('ETag') === ifNoneMatch) {
+        if (isDev) console.log(`[Proxy] Browser Cache HIT (304): ${objectKey}`);
+        return new Response(null, { status: 304, headers: cachedResponse.headers });
+      }
+      if (isDev) console.log(`[Proxy] CDN Cache HIT: ${objectKey}`);
       return cachedResponse;
     }
   }
@@ -80,12 +111,13 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
   if (isDev) console.log(`[Proxy] Cache MISS: ${objectKey}`);
 
   // Función auxiliar para servir y cachear en el CDN global
-  const serveAndCache = async (
-    body: any,
-    contentType?: string,
-    etag?: string,
-    maxAge = 86400 // Por defecto 24h (para capítulos/Telegram)
-  ) => {
+  const serveAndCache = async (body: any, contentType?: string, etag?: string, maxAge = 86400) => {
+    // Orion: Si el ETag coincide, devolvemos 304 inmediatamente sin enviar el body
+    if (etag && ifNoneMatch === etag) {
+      if (isDev) console.log(`[Proxy] R2 Revalidation HIT (304): ${objectKey}`);
+      return new Response(null, { status: 304 });
+    }
+
     const headers = new Headers();
     headers.set('Access-Control-Allow-Origin', '*');
     headers.set('Cache-Control', `public, max-age=${maxAge}, s-maxage=${maxAge}, immutable`);
@@ -94,6 +126,20 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
     if (etag) headers.set('ETag', etag);
 
     const res = new Response(body, { status: 200, headers });
+
+    // Orion: Sembramos el L1 RAM Cache
+    try {
+      const buffer = await res.clone().arrayBuffer();
+      L1_CACHE.set(request.url, {
+        body: new Uint8Array(buffer) as any, // Forzamos tipo para compatibilidad con Response
+        contentType: contentType || 'image/webp',
+        etag: etag || '',
+        expires: Date.now() + maxAge * 1000,
+      });
+    } catch (e) {
+      if (isDev) console.error('[Proxy] L1 Seed Error:', e);
+    }
+
     if (cache && locals.runtime.ctx?.waitUntil) {
       locals.runtime.ctx.waitUntil(cache.put(cacheKey, res.clone()));
     }

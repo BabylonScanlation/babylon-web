@@ -75,14 +75,20 @@
     });
     if (pixelCheck) { score += 2; }
 
-    // 3. Prueba de Inyección de Cebo Dinámico
+    // 3. Prueba de Inyección de Cebo Dinámico (Pasiva)
     const bait = document.createElement('div');
     bait.className = 'adsbygoogle ad-unit sponsored-link ads-banner';
     bait.style.cssText = 'position:fixed;left:-999px;width:10px;height:10px;display:block !important;';
     document.body.appendChild(bait);
-    await new Promise(r => setTimeout(r, 300));
+    
+    // Orion: Usamos requestIdleCallback para no competir con el renderizado inicial
+    await new Promise(r => {
+      if ('requestIdleCallback' in window) window.requestIdleCallback(() => r(null));
+      else setTimeout(r, 500);
+    });
+
     const style = window.getComputedStyle(bait);
-    if (style.display === 'none' || style.visibility === 'hidden' || bait.offsetHeight === 0) {
+    if (style.display === 'none' || style.visibility === 'hidden') {
       score += 2;
     }
     document.body.removeChild(bait);

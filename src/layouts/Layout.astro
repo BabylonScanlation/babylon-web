@@ -8,10 +8,26 @@ import { getNewsCount } from '../lib/data/news';
 import { getDB } from '../lib/db';
 import { siteConfig } from '../site.config';
 
-// Orion: Obtención de contador en el servidor para evitar peticiones del cliente (Ahorro masivo)
+// Orion: Obtención de contador en el servidor con caché en KV (Ahorro masivo de D1)
 const env = Astro.locals.runtime.env;
 const db = getDB(env);
-const serverNewsCount = Astro.url.pathname.startsWith('/admin') ? 0 : await getNewsCount(db);
+const kv = env.KV_VIEWS;
+
+let serverNewsCount = 0;
+if (!Astro.url.pathname.startsWith('/admin')) {
+  const cacheKey = 'news_count_cache';
+  const cachedCount = kv ? await kv.get(cacheKey) : null;
+
+  if (cachedCount) {
+    serverNewsCount = parseInt(cachedCount, 10);
+  } else {
+    serverNewsCount = await getNewsCount(db);
+    // Cache por 5 minutos para reducir carga en D1
+    if (kv) {
+      await kv.put(cacheKey, serverNewsCount.toString(), { expirationTtl: 300 });
+    }
+  }
+}
 
 const {
   title: pageTitle,
@@ -40,6 +56,11 @@ const shouldBlockContent = !isVerified && !isVerifyPage && !isAdminPage && !isBo
 // Prioridad: 1. Prop de la página (para forzar color en series específicas) -> 2. Cookie Global
 const isNsfw =
   isNsfwContent !== undefined ? isNsfwContent : Astro.cookies.get('babylon_nsfw')?.value === 'true';
+
+// Orion: Detección de SmartLinks (Prioridad .env para Astro Dev)
+const slAdult = env?.ADSTERRA_SMARTLINK_ADULT || import.meta.env.ADSTERRA_SMARTLINK_ADULT || '';
+const slMain =
+  env?.ADSTERRA_SMARTLINK_MAINSTREAM || import.meta.env.ADSTERRA_SMARTLINK_MAINSTREAM || '';
 
 // Orion: URL Base para metadatos absolutos
 const siteUrl = siteConfig.url;
@@ -302,6 +323,8 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     data-cosmos-physics={siteConfig.theme.cosmos.physicsEnabled ? 'true' : 'false'}
     data-news-count={serverNewsCount}
     data-is-dev={import.meta.env.DEV ? 'true' : 'false'}
+    data-sl-adult={slAdult || "MISSING_ADULT"}
+    data-sl-main={slMain || "MISSING_MAINSTREAM"}
   >
     <script is:inline>
       // Astra: Blindaje Anti-FOUC Nuclear
@@ -466,17 +489,20 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         });
       };
 
-      // Escuchar mensajes desde el iframe (Bloqueo y Resize)
+      // Escuchar mensajes desde el iframe (Bloqueo y Resize) con Throttling
+      let _0xR: any = null;
       window.addEventListener('message', (e) => {
         if (typeof e.data === 'object' && e.data.type === 'ad-resize') {
-          const el = document.getElementById(e.data.id);
-          const ifr = el?.querySelector('iframe');
-          if (el && ifr && e.data.h > 20) {
-            const h = e.data.h; // Astra: Altura dinámica real sin límites estáticos
-            ifr.style.height = h + 'px';
-            ifr.height = h;
-            el.style.height = h + 'px';
-          }
+          if (_0xR) cancelAnimationFrame(_0xR);
+          _0xR = requestAnimationFrame(() => {
+            const el = document.getElementById(e.data.id);
+            const ifr = el?.querySelector('iframe');
+            if (el && ifr && e.data.h > 20) {
+              const h = e.data.h;
+              ifr.style.height = h + 'px';
+              el.style.height = h + 'px';
+            }
+          });
         }
         if (typeof e.data === 'string' && e.data.startsWith('ad-blocked-')) {
           const id = e.data.replace('ad-blocked-', '');
@@ -484,15 +510,16 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         }
       });
 
-      // 4. Cosmos & Swiper (Astra: Animaciones Fluidas con Carga Diferida)
+      // 4. Cosmos & Swiper (Astra: Animaciones Fluidas Ultra-Optimizadas)
       const _0xV = async () => {
         const phy = document.body.getAttribute('data-cosmos-physics') === 'true';
         const isReader = document.body.getAttribute('data-reader-active') === 'true';
         
-        if (phy && !isReader) { // Orion: Solo activamos física si NO estamos en el lector
-          const root = document.documentElement;
+        if (phy && !isReader) {
+          const layers = document.querySelectorAll('.stars-layer');
+          if (layers.length === 0) return;
+
           let mX=0, mY=0, sY=window.scrollY, tX=0, tY=0; const wW=window.innerWidth, wH=window.innerHeight;
-          
           const onMove = (e: MouseEvent) => { mX = (e.clientX - wW / 2); mY = (e.clientY - wH / 2); };
           const onScroll = () => { sY = window.scrollY; };
           
@@ -500,16 +527,14 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           window.addEventListener('scroll', onScroll, { passive: true });
           
           const anim = () => { 
-            // Orion: Si entramos al lector después de iniciar, limpiamos y salimos
-            if (document.body.getAttribute('data-reader-active') === 'true') {
-              window.removeEventListener('mousemove', onMove);
-              window.removeEventListener('scroll', onScroll);
-              return; 
-            }
+            if (document.body.getAttribute('data-reader-active') === 'true') return;
             tX += (mX - tX) * 0.05; tY += (mY - tY) * 0.05; 
-            root.style.setProperty('--cosmos-tx', `${tX}px`);
-            root.style.setProperty('--cosmos-ty', `${tY}px`);
-            root.style.setProperty('--cosmos-sy', `${sY}px`);
+            
+            // Orion: Aplicamos transform directamente a las capas para evitar recalculado de estilos global
+            (layers[0] as HTMLElement).style.transform = `translate3d(${tX * -0.02}px, ${(sY + tY) * -0.02}px, 0)`;
+            (layers[1] as HTMLElement).style.transform = `translate3d(${tX * -0.06}px, ${(sY + tY) * -0.06}px, 0)`;
+            (layers[2] as HTMLElement).style.transform = `translate3d(${tX * -0.12}px, ${(sY + tY) * -0.12}px, 0)`;
+            
             requestAnimationFrame(anim); 
           };
           requestAnimationFrame(anim);
@@ -583,6 +608,26 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
 
       const _0xT = (id: string) => { const b = document.getElementById(id); if (b) b.onclick = async (e) => { e.preventDefault(); try { const r = await fetch('/api/ui/toggle-nsfw', { method: 'POST' }); const d = await r.json(); if (d.success) window.location.reload(); } catch { /* Ignore */ } }; };
       _0xT('nsfw-toggle-btn'); _0xT('nsfw-toggle-mobile');
+    </script>
+
+    <script is:inline>
+      // Orion: Global SmartClick Hijacker (Inyectado Directo)
+      (function() {
+        document.addEventListener('click', (e) => {
+          const target = e.target;
+          if (!target) return;
+          
+          const interactive = target.closest('a, button, input, textarea, select, [role="button"], .swiper-button-next, .swiper-button-prev, .nav-item');
+          if (interactive) return;
+          
+          const isNsfw = document.documentElement.classList.contains('nsfw-mode') || document.cookie.includes('babylon_nsfw=true');
+          const url = isNsfw ? document.body.getAttribute('data-sl-adult') : document.body.getAttribute('data-sl-main');
+          
+          if (url && url.length > 10 && url !== 'null') {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }
+        });
+      })();
     </script>
   </body>
 </html>

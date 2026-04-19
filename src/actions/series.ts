@@ -142,6 +142,15 @@ export const seriesActions = {
 
       const telegramTopicId = tgData.result.message_thread_id;
 
+      // Orion: Invalidamos el caché de la Home en KV para reflejar la nueva serie
+      const kv = env.KV_VIEWS;
+      if (kv) {
+        await Promise.all([
+          kv.delete('home_data_nsfw_true'),
+          kv.delete('home_data_nsfw_false'),
+        ]).catch(() => {});
+      }
+
       await db.insert(series).values({
         ...input,
         slug,
@@ -218,6 +227,15 @@ export const seriesActions = {
         coverImageUrl = imageKey;
       }
 
+      // Orion: Invalidamos el caché de la Home en KV
+      const kv = env.KV_VIEWS;
+      if (kv) {
+        await Promise.all([
+          kv.delete('home_data_nsfw_true'),
+          kv.delete('home_data_nsfw_false'),
+        ]).catch(() => {});
+      }
+
       await db
         .update(series)
         .set({
@@ -262,6 +280,15 @@ export const seriesActions = {
 
       // Limpieza de R2 (Capítulos y Portada)
       await clearSeriesR2Data(seriesData.slug, seriesData.coverImageUrl, env);
+
+      // Orion: Invalidamos el caché de la Home en KV
+      const kv = env.KV_VIEWS;
+      if (kv) {
+        await Promise.all([
+          kv.delete('home_data_nsfw_true'),
+          kv.delete('home_data_nsfw_false'),
+        ]).catch(() => {});
+      }
 
       await db.delete(chapters).where(eq(chapters.seriesId, seriesId)).run();
       await db.delete(series).where(eq(series.id, seriesId)).run();

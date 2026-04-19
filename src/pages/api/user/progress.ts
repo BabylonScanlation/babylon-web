@@ -34,13 +34,13 @@ export const GET = createApiRoute({ auth: 'user' }, async ({ locals, cookies }) 
     .where(and(...conditions))
     .groupBy(series.id)
     .orderBy(desc(sql`lastViewedAt`))
-    .limit(10) // Fetch a few more in case some are completed
+    .limit(5) // Reducido de 10 a 5 para ahorrar queries D1
     .all();
 
   const progressList = [];
 
   for (const s of recentSeries) {
-    if (progressList.length >= 6) break;
+    if (progressList.length >= 3) break; // Reducido de 6 a 3 para ahorrar queries D1
 
     // 2. Find the last chapter number viewed for this series
     const lastViewedChapter = await db

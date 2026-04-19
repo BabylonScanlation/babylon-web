@@ -37,6 +37,9 @@ export const series = sqliteTable(
     index('idx_series_hidden').on(table.isHidden),
     index('idx_series_nsfw').on(table.isNsfw),
     index('idx_series_status').on(table.status),
+    index('idx_series_type').on(table.type),
+    index('idx_series_author').on(table.author),
+    index('idx_series_artist').on(table.artist),
   ]
 );
 

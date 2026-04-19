@@ -14,23 +14,38 @@ let { isOpen = false, type = 'avatar', onClose, onSelect }: Props = $props();
 
 let avatars = $state<string[]>([]);
 let banners = $state<string[]>([]);
-let loading = $state(true);
+let loading = $state(false);
 let error = $state('');
+let mounted = $state(false);
+let hasFetched = false;
 
-onMount(async () => {
+onMount(() => {
+  mounted = true;
+});
+
+// Orion: Solo cargamos la galería cuando el modal se abre por primera vez
+$effect(() => {
+  if (isOpen && !hasFetched) {
+    fetchGallery();
+  }
+});
+
+async function fetchGallery() {
   try {
+    loading = true;
     const res = await fetch('/api/assets/list-profile-images');
     if (!res.ok) throw new Error('Error cargando galería');
     const data = await res.json();
     avatars = data.avatars || [];
     banners = data.banners || [];
+    hasFetched = true;
   } catch (e) {
     error = (e as Error).message;
     toast.error(error);
   } finally {
     loading = false;
   }
-});
+}
 
 function selectImage(url: string) {
   onSelect({ type, url });
@@ -41,7 +56,7 @@ const images = $derived(type === 'avatar' ? avatars : banners);
 const title = $derived(type === 'avatar' ? 'Elige tu Avatar' : 'Elige tu Portada');
 </script>
 
-{#if isOpen}
+{#if mounted && isOpen}
   <div class="modal-overlay" transition:fade={{ duration: 200 }} 
        onclick={onClose} onkeydown={(e) => e.key === 'Escape' && onClose()} role="button" tabindex="-1">
     <div class="modal-panel" transition:scale={{ duration: 300, start: 0.9 }} onclick={(e) => e.stopPropagation()} role="presentation">

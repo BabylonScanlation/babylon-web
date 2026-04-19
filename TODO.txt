@@ -1,2 +1,17 @@
-* Usar ESlint
-* Amplificarl el rango de soluci
+# BABYLON WEB - ESTRATEGIA DE CRECIMIENTO Y MONETIZACIÓN
+
+## 🚀 MONETIZACIÓN (Mina de Oro)
+- [ ] Implementar "Botón de Servidor VIP" o "Descarga HD" usando Direct Links de Adsterra (CPM $2.00+).
+- [ ] Integrar anuncios nativos entre páginas del lector (cada 5-10 imágenes).
+
+## 📈 INVERSIÓN ESTRATÉGICA ($350 Budget)
+- [ ] **Branding & SEO**:
+    - [ ] Adquirir dominio premium babylonscans.com ($12 - Hecho el registro).
+    - [ ] Configurar herramientas de indexación rápida (Google Indexing API).
+    - [ ] Inversión en herramientas de automatización o hosting premium.
+
+## 🛠️ OPTIMIZACIONES TÉCNICAS PENDIENTES
+- [x] Optimizar caché de ingresos (Actualización programada: 10, 16, 22 ART).
+- [ ] Implementar gráfico de barras de ingresos semanales en AdminAnalytics.
+- [ ] Finalizar integración de Monetag (Token pendiente).
+- [x] Sellar fuga de peticiones en Galería de Perfil.

@@ -127,7 +127,7 @@ class UserStore {
 
   async sync() {
     try {
-      const res = await fetch(`/api/auth/status?t=${Date.now()}`);
+      const res = await fetch('/api/auth/status');
       if (res.ok) {
         this.user = await res.json();
       }

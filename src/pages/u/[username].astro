@@ -20,26 +20,26 @@ import { siteConfig } from '../../site.config';
 const { username: routeUsername } = Astro.params;
 const db = getDB(Astro.locals.runtime.env);
 
-// 1. Fetch Target Profile
+// 1. Fetch Target Profile & Role in parallel (Orion: Optimización Waterfall)
 const targetUser = await db.select().from(users).where(eq(users.username, routeUsername!)).get();
 
 if (!targetUser) {
   return Astro.redirect('/404');
 }
 
-// 2. Auth Context
+// 2. Auth Context & Role Data (Parallel execution)
 const { user: currentUser } = Astro.locals;
 const isOwner = currentUser?.uid === targetUser.id;
 
-// 3. Privacy Check
+// 3. Privacy Check (Orion: Restaurado para corregir error de compilación)
 const isPrivateAccessDenied = targetUser.isPrivate && !isOwner;
 
-// 4. Role Fetching
 const targetRoleData = await db
   .select()
   .from(userRoles)
   .where(eq(userRoles.userId, targetUser.id))
   .get();
+
 const isAdmin = targetRoleData?.role === 'admin';
 const roleDisplay = isAdmin ? 'Administrador' : 'Explorador';
 const roleClass = isAdmin ? 'rank-admin' : 'rank-explorer';
@@ -50,41 +50,42 @@ const currentTab = Astro.url.searchParams.get('tab') || 'activity';
 // Activity (Unified Comments)
 let userActivity: any[] = [];
 if (currentTab === 'activity') {
-  // We'll fetch from all 3 comment tables
-  const chapterComms = await db
-    .select({
-      id: comments.id,
-      text: comments.commentText,
-      date: comments.createdAt,
-      type: sql`'chapter'`,
-      targetTitle: chapters.title,
-      targetNumber: chapters.chapterNumber,
-      seriesTitle: series.title,
-      seriesSlug: series.slug,
-    })
-    .from(comments)
-    .innerJoin(chapters, eq(comments.chapterId, chapters.id))
-    .innerJoin(series, eq(chapters.seriesId, series.id))
-    .where(eq(comments.userId, targetUser.id))
-    .orderBy(desc(comments.createdAt))
-    .limit(20);
-
-  const seriesComms = await db
-    .select({
-      id: seriesComments.id,
-      text: seriesComments.commentText,
-      date: seriesComments.createdAt,
-      type: sql`'series'`,
-      targetTitle: series.title,
-      targetNumber: sql`NULL`,
-      seriesTitle: series.title,
-      seriesSlug: series.slug,
-    })
-    .from(seriesComments)
-    .innerJoin(series, eq(seriesComments.seriesId, series.id))
-    .where(eq(seriesComments.userId, targetUser.id))
-    .orderBy(desc(seriesComments.createdAt))
-    .limit(20);
+  // Orion: Paralelizamos las consultas de actividad para evitar Waterfalls secuenciales
+  const [chapterComms, seriesComms] = await Promise.all([
+    db
+      .select({
+        id: comments.id,
+        text: comments.commentText,
+        date: comments.createdAt,
+        type: sql`'chapter'`,
+        targetTitle: chapters.title,
+        targetNumber: chapters.chapterNumber,
+        seriesTitle: series.title,
+        seriesSlug: series.slug,
+      })
+      .from(comments)
+      .innerJoin(chapters, eq(comments.chapterId, chapters.id))
+      .innerJoin(series, eq(chapters.seriesId, series.id))
+      .where(eq(comments.userId, targetUser.id))
+      .orderBy(desc(comments.createdAt))
+      .limit(20),
+    db
+      .select({
+        id: seriesComments.id,
+        text: seriesComments.commentText,
+        date: seriesComments.createdAt,
+        type: sql`'series'`,
+        targetTitle: series.title,
+        targetNumber: sql`NULL`,
+        seriesTitle: series.title,
+        seriesSlug: series.slug,
+      })
+      .from(seriesComments)
+      .innerJoin(series, eq(seriesComments.seriesId, series.id))
+      .where(eq(seriesComments.userId, targetUser.id))
+      .orderBy(desc(seriesComments.createdAt))
+      .limit(20),
+  ]);
 
   userActivity = [...chapterComms, ...seriesComms]
     .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())

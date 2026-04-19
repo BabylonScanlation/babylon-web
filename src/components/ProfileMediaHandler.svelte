@@ -8,6 +8,9 @@ let showModal = $state(false);
 let modalType: 'avatar' | 'banner' = $state('avatar');
 
 onMount(() => {
+  // Orion: Verificamos que estemos en el navegador
+  if (typeof window === 'undefined') return;
+
   // Expose function to window for legacy scripts to call
   const globalWindow = window as any;
   globalWindow.openProfileMediaModal = (type: 'avatar' | 'banner') => {

@@ -46,7 +46,7 @@ const joinedDate = userProfile?.createdAt
 
 <Layout title={`Perfil de ${username} - ${siteConfig.shortName}`}>
   <div class="profile-page-wrapper">
-    <ProfileMediaHandler client:idle />
+    <ProfileMediaHandler client:only="svelte" />
 
     <!-- HEADER & HERO -->
     <header class="profile-hero">
@@ -197,7 +197,11 @@ const joinedDate = userProfile?.createdAt
 
           <div class="nav-divider"></div>
 
-          <button id="logout-trigger" class="nav-item logout-btn">
+          <button
+            id="logout-trigger"
+            type="button"
+            class="nav-item logout-btn"
+          >
             <div class="icon-box danger">
               <svg
                 viewBox="0 0 24 24"
@@ -1349,16 +1353,32 @@ const joinedDate = userProfile?.createdAt
     'Perfil ahora es PÚBLICO 🌍',
   ]);
 
-  // Logout Logic
-  const logoutBtn = document.getElementById('logout-trigger');
-  logoutBtn?.addEventListener('click', async () => {
+  // Logout Logic (Orion: Delegación Robusta)
+  document.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement).closest('#logout-trigger') as HTMLButtonElement;
+    if (!btn) return;
+
+    e.preventDefault();
+    const originalContent = btn.innerHTML;
+    
     try {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading-spinner"></span> Saliendo...';
+      
       const { error } = await actions.auth.logout();
-      if (!error) window.location.href = '/';
-      else throw new Error(error.message);
-    } catch (e) {
+      
+      if (!error) {
+        // Orion: Limpieza local de Firebase antes de redirigir para asegurar estado consistente
+        if (auth) await auth.signOut().catch(() => {});
+        window.location.href = '/';
+      } else {
+        throw new Error(error.message);
+      }
+    } catch (e: any) {
       console.error('Logout error:', e);
-      toast.error('Error al cerrar sesión');
+      toast.error('Error al cerrar sesión: ' + (e.message || 'Error desconocido'));
+      btn.disabled = false;
+      btn.innerHTML = originalContent;
     }
   });
 </script>

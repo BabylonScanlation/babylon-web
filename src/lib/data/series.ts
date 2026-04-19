@@ -175,14 +175,34 @@ export async function getSeriesDetails(
  * Orion: Obtiene los datos necesarios para la Home de forma ultra-optimizada.
  * Reduce múltiples viajes a la DB y solo trae los campos necesarios para la UI.
  */
-export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsfw = false) {
+export async function getHomeData(
+  db: DrizzleD1Database<typeof schema>,
+  allowNsfw = false,
+  env?: any
+) {
   const CACHE_KEY = `home_data_nsfw_${allowNsfw}`;
   const now = Date.now();
+  const kv = env?.KV_VIEWS;
 
-  // RAM Cache (Peticiones Cero)
+  // 1. RAM Cache (Nivel 1: Ultra-Rápido, por Isolate)
   const cached = seriesMemoryCache.get(CACHE_KEY);
   if (cached && cached.expires > now) {
     return cached.data;
+  }
+
+  // 2. KV Cache (Nivel 2: Distribuido, persiste entre reinicios)
+  if (kv) {
+    try {
+      const kvCached = await kv.get(CACHE_KEY);
+      if (kvCached) {
+        const parsed = JSON.parse(kvCached);
+        // Guardamos en RAM para la siguiente petición en este Isolate
+        seriesMemoryCache.set(CACHE_KEY, { data: parsed, expires: now + 300000 });
+        return parsed;
+      }
+    } catch (e) {
+      console.error('Error reading Home KV cache:', e);
+    }
   }
 
   const commonConditions: (SQL | undefined)[] = [eq(series.isHidden, false)];
@@ -246,9 +266,16 @@ export async function getHomeData(db: DrizzleD1Database<typeof schema>, allowNsf
     hasContent: popular.length > 0 || recentChaptersData.length > 0,
   };
 
-  // Guardar en RAM por 5 minutos
+  // Guardar en RAM por 5 minutos y en KV por 10 minutos
   if (popular.length > 0 || recentChaptersData.length > 0) {
     seriesMemoryCache.set(CACHE_KEY, { data: result, expires: now + 300000 });
+
+    // Guardamos en KV de forma asíncrona para no bloquear la respuesta
+    if (kv) {
+      kv.put(CACHE_KEY, JSON.stringify(result), { expirationTtl: 600 }).catch((e: any) => {
+        console.error('Error writing Home KV cache:', e);
+      });
+    }
   }
 
   return result;

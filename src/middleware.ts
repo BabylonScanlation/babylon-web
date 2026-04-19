@@ -4,6 +4,26 @@ import { authFlow } from './lib/middlewares/auth';
 import { shield } from './lib/middlewares/shield';
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  const { pathname } = context.url;
+
+  // 0. Cortocircuito de Assets (Orion: Optimización Crítica de Recursos)
+  // Evitamos que las peticiones de recursos estáticos pasen por Shield y AuthFlow.
+  if (
+    pathname.startsWith('/_astro/') ||
+    pathname.startsWith('/fonts/') ||
+    pathname.startsWith('/favicon.') ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap-index.xml' ||
+    pathname.endsWith('.webp') ||
+    pathname.endsWith('.png') ||
+    pathname.endsWith('.jpg') ||
+    pathname.endsWith('.svg') ||
+    pathname.endsWith('.js') ||
+    pathname.endsWith('.css')
+  ) {
+    return next();
+  }
+
   // 1. Capa de Protección (Bot & Geo Block)
   const shieldResponse = await shield(context, async () => {
     // 2. Capa de Autenticación (JWT & D1 Session)
