@@ -1,7 +1,7 @@
 // src/lib/middlewares/auth.ts
 import type { APIContext, MiddlewareNext } from 'astro';
 import { and, eq, gt } from 'drizzle-orm';
-import { sessions, userRoles, users } from '../../db/schema';
+import { scanlationMembers, sessions, userRoles, users } from '../../db/schema';
 import { getDB } from '../db-client';
 import { logError } from '../logError';
 import { deleteSession, setAuthCookie, verifyToken } from '../session';
@@ -65,6 +65,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
           isAdmin: payload.role === 'admin' || payload.uid === runtime.env.SUPER_ADMIN_UID,
           isNsfw: payload.isNsfw,
           tokenVersion: payload.tokenVersion,
+          scanlations: payload.scans?.map((id) => ({ id, role: 'editor' })) || [], // El rol 'editor' es el mínimo por defecto en fast-path
         };
       } else {
         // Token revocado -> Limpiar cookies
@@ -107,6 +108,16 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
           }
         }
 
+        // Cargar membresías de Scanlation (Orion: RBAC Multi-tenant)
+        const memberships = await db
+          .select({
+            id: scanlationMembers.scanlationId,
+            role: scanlationMembers.role,
+          })
+          .from(scanlationMembers)
+          .where(eq(scanlationMembers.userId, uid))
+          .all();
+
         const userObj = {
           uid,
           email: result.user.email,
@@ -117,6 +128,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
           isNsfw: result.user.isNsfw ?? false,
           preferences: result.user.preferences || '{}',
           tokenVersion: result.user.tokenVersion,
+          scanlations: memberships as { id: number; role: 'owner' | 'editor' | 'moderator' }[],
         };
         locals.user = userObj;
 
@@ -127,11 +139,12 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
             {
               uid: userObj.uid,
               email: userObj.email,
-              username: userObj.username || null,
+              username: userObj.username || userObj.email.split('@')[0] || 'usuario',
               displayName: userObj.displayName || null,
-              role: role,
+              role: role as 'admin' | 'user',
               isNsfw: userObj.isNsfw,
               tokenVersion: userObj.tokenVersion,
+              scans: memberships.map((m) => m.id),
             },
             runtime.env.JWT_SECRET
           );
@@ -146,8 +159,9 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
     }
   }
 
-  // Redirecciones de seguridad
-  if (currentPath.startsWith('/admin') && !locals.user?.isAdmin) {
+  // Redirecciones de seguridad (Orion: Suavizado para Multi-tenant)
+  const isScanMember = (locals.user?.scanlations?.length ?? 0) > 0;
+  if (currentPath.startsWith('/admin') && !locals.user?.isAdmin && !isScanMember) {
     return context.redirect('/');
   }
 

@@ -10,6 +10,7 @@ import {
   seriesCommentVotes,
 } from '../db/schema';
 import { getDB } from '../lib/db';
+import { censorText } from '../lib/profanity';
 
 const CommentTargetSchema = z.enum(['chapter', 'series', 'news']);
 
@@ -26,6 +27,7 @@ export const commentActions = {
       if (!user) throw new Error('Unauthorized');
 
       const { targetType, targetId, parentId, text } = input;
+      const censoredText = censorText(text);
       const db = getDB(context.locals.runtime.env);
 
       let table: typeof comments | typeof seriesComments | typeof newsComments;
@@ -47,7 +49,7 @@ export const commentActions = {
         .values({
           [targetField]: targetId,
           userId: user.uid,
-          commentText: text,
+          commentText: censoredText,
           parentId: parentId || null,
         })
         .returning({ id: table.id, createdAt: table.createdAt })
@@ -55,7 +57,7 @@ export const commentActions = {
 
       return {
         id: result.id,
-        text,
+        text: censoredText,
         parentId,
         createdAt: new Date(result.createdAt || Date.now()).getTime(),
         user: {
@@ -140,6 +142,7 @@ export const commentActions = {
       if (!user) throw new Error('Unauthorized');
 
       const { targetType, commentId, text } = input;
+      const censoredText = censorText(text);
       const db = getDB(context.locals.runtime.env);
 
       let table: typeof comments | typeof seriesComments | typeof newsComments;
@@ -154,7 +157,7 @@ export const commentActions = {
       await db
         .update(table)
         .set({
-          commentText: text,
+          commentText: censoredText,
           updatedAt: sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`,
         })
         .where(eq(table.id, commentId))

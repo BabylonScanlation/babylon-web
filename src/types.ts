@@ -109,6 +109,7 @@ export interface User {
   isNsfw?: boolean;
   preferences?: string;
   tokenVersion: number;
+  scanlations?: { id: number; role: 'owner' | 'editor' | 'moderator' }[];
 }
 
 export interface Comment {
@@ -134,6 +135,12 @@ export interface Comment {
   userVote?: number; // 1, -1, 0
   isPinned?: boolean | null;
   isAdminComment?: boolean;
+  scanName?: string | null;
+}
+
+export interface ScanlationMembership {
+  id: number;
+  role: 'owner' | 'editor' | 'moderator';
 }
 
 export interface JWTPayload {
@@ -143,6 +150,8 @@ export interface JWTPayload {
   displayName: string | null;
   role: 'admin' | 'user';
   isNsfw: boolean;
+  tokenVersion: number;
+  scans?: number[];
   iat?: number;
   exp?: number;
 }

@@ -1,0 +1,350 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getAllScanlations } from '../../lib/data/admin';
+import { getDB } from '../../lib/db';
+import { siteConfig } from '../../site.config';
+
+const { user, runtime } = Astro.locals;
+if (!user?.isAdmin) return Astro.redirect('/admin');
+
+const db = getDB(runtime.env);
+const scanlations = await getAllScanlations(db);
+---
+
+<Layout title={`Gestión de Scanlations - ${siteConfig.shortName}`}>
+  <div class="padded-content">
+    <main class="admin-container">
+      <header class="page-header">
+        <div class="header-main-info">
+          <div class="nav-back">
+            <a href="/admin" class="back-pill">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              Volver al Panel
+            </a>
+          </div>
+          <div class="title-section">
+            <h1>Centro de Scanlations</h1>
+            <p class="subtitle">Gestiona las organizaciones externas que publican en tu plataforma.</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="btn-create-scan" onclick="document.getElementById('creation-zone').classList.remove('hidden')">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 5v14M5 12h14"></path></svg>
+            Registrar Nuevo Scanlation
+          </button>
+        </div>
+      </header>
+
+      {/* Formulario Inline (Astra: Mejor que un modal) */}
+      <section id="creation-zone" class="creation-zone hidden">
+        <div class="glass-card-form">
+          <div class="form-header">
+            <h3>Registrar Nueva Organización</h3>
+            <button class="btn-close-form" onclick="document.getElementById('creation-zone').classList.add('hidden')">
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+            </button>
+          </div>
+          <form id="form-create-scan" class="inline-form">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Nombre del Grupo</label>
+                <input type="text" name="name" required placeholder="Ej: Babylon Scans" class="glass-input" />
+              </div>
+              <div class="form-group">
+                <label>Slug (URL)</label>
+                <input type="text" name="slug" required placeholder="babylon-scans" class="glass-input" />
+              </div>
+              <div class="form-group full-width">
+                <label>Descripción del Scanlation</label>
+                <textarea name="description" placeholder="Cuéntanos un poco sobre este grupo..." class="glass-input"></textarea>
+              </div>
+            </div>
+            <div class="form-footer">
+              <button type="submit" class="btn-submit-premium">
+                Finalizar Registro y Activar
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <div class="scanlations-grid">
+        {scanlations.map(scan => (
+          <div class={`scan-card ${!scan.isActive ? 'is-disabled' : ''}`}>
+            <div class="scan-info">
+              <div class="scan-header">
+                <span class="scan-id">#{scan.id}</span>
+                <span class={`status-badge ${scan.isActive ? 'active' : 'inactive'}`}>
+                  {scan.isActive ? 'ACTIVO' : 'DESACTIVADO'}
+                </span>
+              </div>
+              <h2>{scan.name}</h2>
+              <p class="slug">/{scan.slug}</p>
+              
+              <div class="stats-row">
+                <div class="stat">
+                  <span class="val">{scan.seriesCount}</span>
+                  <span class="lab">Series</span>
+                </div>
+                <div class="stat">
+                  <span class="val">{scan.memberCount}</span>
+                  <span class="lab">Miembros</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="scan-actions">
+              <button class="btn-manage" onclick={`window.location.href='/admin/scanlations/${scan.id}'`}>
+                Gestionar Equipo
+              </button>
+              <button 
+                class="btn-toggle" 
+                data-id={scan.id} 
+                data-active={scan.isActive?.toString()}
+              >
+                {scan.isActive ? 'Bannear/Desactivar' : 'Reactivar'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </main>
+  </div>
+</Layout>
+
+<script>
+  import { actions } from 'astro:actions';
+
+  // Toggle Status
+  document.querySelectorAll('.btn-toggle').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const target = e.currentTarget as HTMLButtonElement;
+      const id = parseInt(target.dataset.id || '0');
+      const currentActive = target.dataset.active === 'true';
+      
+      if (!confirm(`¿Estás seguro de ${currentActive ? 'desactivar' : 'activar'} este scanlation?`)) return;
+      
+      const { error } = await actions.admin.toggleScanlationStatus({ id, isActive: !currentActive });
+      if (!error) window.location.reload();
+      else alert(error.message);
+    });
+  });
+
+  // Create Scanlation
+  const form = document.getElementById('form-create-scan') as HTMLFormElement;
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const data = {
+      name: formData.get('name') as string,
+      slug: formData.get('slug') as string,
+      description: formData.get('description') as string,
+    };
+
+    const { error } = await actions.admin.createScanlation(data);
+    if (!error) window.location.reload();
+    else alert(error.message);
+  });
+</script>
+
+<style>
+  .admin-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 2rem;
+    color: #fff;
+  }
+
+  .padded-content {
+    padding-top: 40px;
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .header-main-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .back-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #666;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    transition: all 0.3s;
+  }
+
+  .back-pill:hover { color: #fff; transform: translateX(-5px); }
+
+  .title-section h1 { font-size: 2.5rem; font-weight: 900; margin: 0; }
+  .subtitle { color: #888; margin: 0; }
+
+  .btn-create-scan {
+    background: #00bfff;
+    color: #000;
+    border: none;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+  }
+
+  .btn-create-scan:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0, 191, 255, 0.3); }
+
+  @media (max-width: 768px) {
+    .page-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1.5rem;
+    }
+    .btn-create-scan {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+  }
+
+  /* Creation Zone Inline (Astra) */
+  .creation-zone {
+    margin-bottom: 3rem;
+    animation: slideDown 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  .creation-zone.hidden {
+    display: none;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .glass-card-form {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 2rem;
+    backdrop-filter: blur(10px);
+  }
+
+  .form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .form-header h3 { margin: 0; font-size: 1.4rem; color: #00bfff; font-weight: 800; }
+
+  .btn-close-form {
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: #666;
+    padding: 0.5rem;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .btn-close-form:hover { background: #ff4757; color: #fff; }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .form-group.full-width { grid-column: 1 / -1; }
+
+  .glass-input {
+    background: #000;
+    border: 1px solid #222;
+    padding: 1rem;
+    border-radius: 12px;
+    color: #fff;
+    width: 100%;
+    font-family: inherit;
+    transition: border-color 0.3s;
+  }
+
+  .glass-input:focus { border-color: #00bfff; outline: none; }
+
+  .btn-submit-premium {
+    background: linear-gradient(135deg, #00bfff 0%, #0077ff 100%);
+    color: #000;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-weight: 900;
+    cursor: pointer;
+    margin-top: 1.5rem;
+    width: 100%;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: transform 0.3s;
+  }
+
+  .btn-submit-premium:hover { transform: scale(1.02); }
+
+  /* Grid */
+  .scanlations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+  }
+
+  .scan-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.3s;
+  }
+
+  .scan-card:hover { background: rgba(255, 255, 255, 0.05); border-color: #00bfff44; }
+  .scan-card.is-disabled { opacity: 0.5; filter: grayscale(1); border-color: #ff4757; }
+
+  .scan-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .scan-id { font-family: monospace; color: #444; font-weight: 700; }
+  .status-badge { font-size: 0.65rem; font-weight: 900; padding: 0.3rem 0.6rem; border-radius: 6px; }
+  .status-badge.active { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
+  .status-badge.inactive { background: rgba(231, 76, 60, 0.1); color: #e74c3c; }
+
+  .scan-card h2 { margin: 0; font-size: 1.5rem; }
+  .slug { color: #00bfff; font-family: monospace; margin: 0.2rem 0 1.5rem 0; font-size: 0.9rem; }
+
+  .stats-row { display: flex; gap: 2rem; margin-bottom: 2rem; }
+  .stat { display: flex; flex-direction: column; }
+  .stat .val { font-size: 1.5rem; font-weight: 900; }
+  .stat .lab { font-size: 0.7rem; color: #555; text-transform: uppercase; font-weight: 800; }
+
+  .scan-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .btn-manage { background: #fff; color: #000; border: none; padding: 0.8rem; border-radius: 10px; font-weight: 700; cursor: pointer; }
+  .btn-toggle { background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.8rem; border-radius: 10px; font-weight: 700; cursor: pointer; }
+  .btn-toggle:hover { background: #ff4757; border-color: #ff4757; }
+</style>

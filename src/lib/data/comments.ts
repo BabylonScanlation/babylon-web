@@ -6,6 +6,8 @@ import {
   commentVotes,
   newsComments,
   newsCommentVotes,
+  scanlationMembers,
+  scanlations,
   seriesComments,
   seriesCommentVotes,
   userRoles,
@@ -55,10 +57,13 @@ export async function getCommentsForTarget(
       email: users.email,
       avatarUrl: users.avatarUrl,
       role: userRoles.role,
+      scanName: scanlations.name,
     })
     .from(table)
     .leftJoin(users, eq(table.userId, users.id))
     .leftJoin(userRoles, eq(table.userId, userRoles.userId))
+    .leftJoin(scanlationMembers, eq(table.userId, scanlationMembers.userId))
+    .leftJoin(scanlations, eq(scanlationMembers.scanlationId, scanlations.id))
     .where(idFilter)
     .orderBy(desc(table.isPinned), desc(table.createdAt))
     .all();
@@ -96,6 +101,7 @@ export async function getCommentsForTarget(
     dislikes: voteMap.get(c.id as number)?.dislikes || 0,
     userVote: voteMap.get(c.id as number)?.userVote || 0,
     isAdminComment: c.role === 'admin',
+    scanName: c.scanName,
     // Normalizar a timestamps numéricos
     createdAt: parseToTimestamp(c.createdAt),
     updatedAt: parseToTimestamp(c.updatedAt),

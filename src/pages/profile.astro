@@ -1,6 +1,5 @@
 ---
 import { eq } from 'drizzle-orm';
-import AdminAccess from '../components/AdminAccess.svelte';
 import ProfileMediaHandler from '../components/ProfileMediaHandler.svelte';
 import { userRoles, users } from '../db/schema';
 import Layout from '../layouts/Layout.astro';
@@ -126,9 +125,18 @@ const joinedDate = userProfile?.createdAt
       <!-- SIDEBAR NAV -->
       <aside class="profile-sidebar">
         {
-          userRoleData?.role === 'admin' && (
+          (userRoleData?.role === 'admin' || (user?.scanlations?.length ?? 0) > 0) && (
             <div class="admin-wrapper">
-              <AdminAccess client:load />
+              <a href="/admin" class="btn-scanlation-access">
+                <div class="icon-glow-box">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                </div>
+                <div class="btn-labels">
+                  <span>Panel de Control</span>
+                  <small>{user?.isAdmin ? 'Administración Global' : 'Gestión de Contenido'}</small>
+                </div>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" class="arrow-icon"><polyline points="9 18 15 12 9 6"/></svg>
+              </a>
             </div>
           )
         }
@@ -658,7 +666,72 @@ const joinedDate = userProfile?.createdAt
     gap: 0;
   }
   .admin-wrapper {
-    margin-bottom: 0;
+    margin-bottom: 1.5rem;
+  }
+
+  .btn-scanlation-access {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.2rem;
+    background: linear-gradient(135deg, rgba(0, 191, 255, 0.1) 0%, rgba(0, 119, 255, 0.05) 100%);
+    border: 1px solid rgba(0, 191, 255, 0.2);
+    border-radius: 24px;
+    text-decoration: none;
+    color: #fff;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-scanlation-access:hover {
+    transform: translateY(-4px);
+    border-color: rgba(0, 191, 255, 0.5);
+    background: linear-gradient(135deg, rgba(0, 191, 255, 0.15) 0%, rgba(0, 119, 255, 0.1) 100%);
+    box-shadow: 0 10px 25px -5px rgba(0, 191, 255, 0.2);
+  }
+
+  .icon-glow-box {
+    width: 48px;
+    height: 48px;
+    background: #00bfff;
+    color: #000;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(0, 191, 255, 0.3);
+    flex-shrink: 0;
+  }
+
+  .btn-labels {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .btn-labels span {
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+  }
+
+  .btn-labels small {
+    font-size: 0.75rem;
+    color: #00bfff;
+    font-weight: 700;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  .arrow-icon {
+    opacity: 0.3;
+    transition: transform 0.3s;
+  }
+
+  .btn-scanlation-access:hover .arrow-icon {
+    opacity: 1;
+    transform: translateX(3px);
   }
 
   .glass-nav {

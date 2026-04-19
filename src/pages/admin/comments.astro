@@ -5,11 +5,15 @@ import { getAdminCommentsActivity } from '../../lib/data/admin';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
 
+const { user } = Astro.locals;
 let activityFeed: any[] = [];
+
+// Orion: Lógica Multi-tenant para el filtrado de comentarios
+const userScanId = !user?.isAdmin ? user?.scanlations?.[0]?.id : undefined;
 
 try {
   const drizzleDb = getDB(Astro.locals.runtime.env);
-  activityFeed = await getAdminCommentsActivity(drizzleDb);
+  activityFeed = await getAdminCommentsActivity(drizzleDb, userScanId);
 } catch (e) {
   logError(e, 'Error al cargar el feed de actividad de comentarios', {
     userId: Astro.locals.user?.uid,

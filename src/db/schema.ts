@@ -31,11 +31,15 @@ export const series = sqliteTable(
     serializedBy: text('serialized_by'),
     isHidden: integer('is_hidden', { mode: 'boolean' }).default(true),
     isNsfw: integer('is_nsfw', { mode: 'boolean' }).default(false),
+    scanlationId: integer('scanlation_id', { mode: 'number' }).references(() => scanlations.id, {
+      onDelete: 'set null',
+    }),
     isAppSeries: integer('is_app_series', { mode: 'boolean' }).default(false),
   },
   (table) => [
     index('idx_series_hidden').on(table.isHidden),
     index('idx_series_nsfw').on(table.isNsfw),
+    index('idx_series_scanlation_id').on(table.scanlationId),
     index('idx_series_status').on(table.status),
     index('idx_series_type').on(table.type),
     index('idx_series_author').on(table.author),
@@ -135,6 +139,50 @@ export const userRoles = sqliteTable('UserRoles', {
   userId: text('user_id').primaryKey(),
   role: text('role').notNull(),
 });
+
+export const scanlations = sqliteTable(
+  'Scanlations',
+  {
+    id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+    name: text('name').notNull(),
+    slug: text('slug').notNull().unique(),
+    description: text('description'),
+    avatarUrl: text('avatar_url'),
+    bannerUrl: text('banner_url'),
+    website: text('website'),
+    socialLinks: text('social_links'), // JSON stringified
+    isActive: integer('is_active', { mode: 'boolean' }).default(true),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(
+      sql`(strftime('%s', 'now') * 1000)`
+    ),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).default(
+      sql`(strftime('%s', 'now') * 1000)`
+    ),
+  },
+  (table) => [index('idx_scanlations_slug').on(table.slug)]
+);
+
+export const scanlationMembers = sqliteTable(
+  'ScanlationMembers',
+  {
+    scanlationId: integer('scanlation_id', { mode: 'number' })
+      .notNull()
+      .references(() => scanlations.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role', { enum: ['owner', 'editor', 'moderator'] })
+      .notNull()
+      .default('editor'),
+    joinedAt: integer('joined_at', { mode: 'timestamp_ms' }).default(
+      sql`(strftime('%s', 'now') * 1000)`
+    ),
+  },
+  (table) => [
+    primaryKey({ columns: [table.scanlationId, table.userId] }),
+    index('idx_scanlation_members_user').on(table.userId),
+  ]
+);
 
 export const news = sqliteTable(
   'News',

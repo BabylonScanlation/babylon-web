@@ -2,7 +2,7 @@
   "version": "6",
   "dialect": "sqlite",
   "id": "27163a04-924e-470e-89c2-b3eb8bc3cbcf",
-  "prevId": "7dea11ee-90ba-436d-9b2b-5ecc3932fc8a",
+  "prevId": "532c4fbc-1eae-42c2-9f98-a23429d3cedf",
   "tables": {
     "AnonymousUsers": {
       "name": "AnonymousUsers",

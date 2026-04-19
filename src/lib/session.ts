@@ -9,6 +9,7 @@ export interface UserSessionPayload {
   role: string;
   isNsfw: boolean;
   tokenVersion: number;
+  scans?: number[];
   jti?: string;
 }
 

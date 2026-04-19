@@ -614,6 +614,15 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       // Orion: Global SmartClick Hijacker (Inyectado Directo)
       (function() {
         document.addEventListener('click', (e) => {
+          // Orion: Los administradores están exentos de publicidad
+          const userStateStr = document.body.getAttribute('data-user-state');
+          try {
+            if (userStateStr && userStateStr !== 'null') {
+              const state = JSON.parse(userStateStr);
+              if (state && state.isAdmin) return;
+            }
+          } catch { /* Ignore */ }
+
           const target = e.target;
           if (!target) return;
           

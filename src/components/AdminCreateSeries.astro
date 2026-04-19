@@ -1,5 +1,9 @@
 ---
 import AdminDescriptionTextarea from './AdminDescriptionTextarea.astro';
+
+const { user } = Astro.locals;
+const scanlations = user?.scanlations || [];
+const showScanlationSelector = scanlations.length > 1 || user?.isAdmin;
 ---
 
 <div class="creation-glass-card">
@@ -43,6 +47,18 @@ import AdminDescriptionTextarea from './AdminDescriptionTextarea.astro';
         
         <!-- Lado Derecho: Campos Principales -->
         <div class="fields-main">
+          {showScanlationSelector && (
+            <div class="form-group">
+              <label for="new-scanlation">Scanlation Propietario</label>
+              <select id="new-scanlation" name="scanlationId" class="glass-input">
+                {user?.isAdmin && <option value="">Ninguno (Global)</option>}
+                {scanlations.map(scan => (
+                  <option value={scan.id}>{scan.id} - Rol: {scan.role}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          
           <div class="form-group">
             <label for="new-title">Título Oficial</label>
             <input type="text" id="new-title" name="title" required placeholder="Ej: Solo Leveling" class="glass-input" />

@@ -597,6 +597,7 @@ async function handleTogglePin(comment: Comment) {
                                     </a>
                                 {/if}
                                 {#if node.isOwner}<span class="badge-owner">Autor</span>{/if}
+                                {#if node.scanName}<span class="badge-scan">{node.scanName}</span>{/if}
                                 {#if node.isAdminComment}<span class="badge-admin">
                                     <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" style="margin-right: 2px;"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"></path></svg>
                                     Staff
@@ -1010,6 +1011,13 @@ async function handleTogglePin(comment: Comment) {
         display: flex; align-items: center;
         border: 1px solid rgba(245, 158, 11, 0.2);
         box-shadow: 0 0 10px rgba(245, 158, 11, 0.1);
+    }
+    .badge-scan {
+        background: rgba(0, 191, 255, 0.15); color: #00bfff;
+        font-size: 0.65rem; padding: 1px 5px; border-radius: 4px; font-weight: 700;
+        display: flex; align-items: center;
+        border: 1px solid rgba(0, 191, 255, 0.2);
+        box-shadow: 0 0 10px rgba(0, 191, 255, 0.1);
     }
     .badge-pinned {
         background: rgba(245, 158, 11, 0.1); color: #f59e0b;

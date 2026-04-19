@@ -6,6 +6,7 @@ import { getAdminSeriesWithChapters } from '../../lib/data/admin';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
 
+const { user } = Astro.locals;
 const r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
 
 const limit = 12;
@@ -18,9 +19,12 @@ let totalSeries = 0;
 const success = Astro.url.searchParams.get('success');
 let error = Astro.url.searchParams.get('error');
 
+// Orion: Lógica Multi-tenant para el filtrado de series
+const userScanId = !user?.isAdmin ? user?.scanlations?.[0]?.id : undefined;
+
 try {
   const db = getDB(Astro.locals.runtime.env);
-  const data = await getAdminSeriesWithChapters(db, limit, offset, searchQuery);
+  const data = await getAdminSeriesWithChapters(db, limit, offset, searchQuery, userScanId);
   allSeries = data.series;
   totalSeries = data.total;
 } catch (e) {

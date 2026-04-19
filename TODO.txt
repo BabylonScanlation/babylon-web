@@ -15,3 +15,20 @@
 - [ ] Implementar gráfico de barras de ingresos semanales en AdminAnalytics.
 - [ ] Finalizar integración de Monetag (Token pendiente).
 - [x] Sellar fuga de peticiones en Galería de Perfil.
+
+## 🤝 GESTIÓN DE SCANLATIONS (Multi-tenant)
+- [x] **Fase 1: Base de Datos y Roles (D1)**
+    - [x] Crear tabla `scanlations` en el esquema.
+    - [x] Crear tabla pivot `scanlation_members` para RBAC.
+    - [x] Vincular `series` con `scanlations` mediante `scanlation_id`.
+- [x] **Fase 2: Middleware y Sesión Híbrida**
+    - [x] Inyectar membresías en `locals.user` (Slow-Path).
+    - [x] Incluir IDs de scanlations en el JWT (Fast-Path).
+- [x] **Fase 3: Moderación Automática (Censura)**
+    - [x] Crear utilidad `src/lib/profanity.ts` para censura automática.
+    - [x] Integrar filtro en acciones de comentarios y noticias.
+- [x] **Fase 4: Refactorización de Acciones y Panel Admin**
+    - [x] Validar propiedad en `src/actions/series.ts` y `chapters.ts`.
+    - [x] Filtrar vistas de `/admin` según el contexto del scanlation.
+
+

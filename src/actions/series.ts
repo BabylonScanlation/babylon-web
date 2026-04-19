@@ -2,6 +2,7 @@ import { defineAction } from 'astro:actions';
 import { z } from 'astro:schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { chapters, series } from '../db/schema';
+import { canManageScanlation, isScanlationMember } from '../lib/auth-utils';
 import { hashIpAddress } from '../lib/crypto';
 import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
@@ -78,13 +79,29 @@ export const seriesActions = {
         .boolean()
         .or(z.string().transform((v) => v === 'true'))
         .optional(),
+      scanlationId: z
+        .number()
+        .or(z.string().transform((v) => parseInt(v, 10)))
+        .optional(),
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      if (!user?.isAdmin) throw new Error('Unauthorized');
+      if (!isScanlationMember(user)) throw new Error('Unauthorized');
 
       const { env } = context.locals.runtime;
       const db = getDB(env);
+
+      // Si no es admin global, forzamos el scanlationId a uno del usuario
+      let targetScanlationId = input.scanlationId;
+      if (!user?.isAdmin) {
+        const userScans = user?.scanlations?.map((s) => s.id) || [];
+        if (targetScanlationId && !userScans.includes(targetScanlationId)) {
+          throw new Error('Forbidden: No perteneces a este scanlation');
+        }
+        if (!targetScanlationId) {
+          targetScanlationId = userScans[0]; // Por defecto el primero
+        }
+      }
 
       const { title, coverImage } = input;
       let { slug, coverImageUrl } = input;
@@ -156,6 +173,7 @@ export const seriesActions = {
         slug,
         coverImageUrl,
         telegramTopicId,
+        scanlationId: targetScanlationId,
         isAppSeries: !!input.isAppSeries,
         isHidden: !!input.isHidden,
         isNsfw: !!input.isNsfw,
@@ -198,14 +216,17 @@ export const seriesActions = {
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      if (!user?.isAdmin) throw new Error('Unauthorized');
-
       const { env } = context.locals.runtime;
       const db = getDB(env);
       const { seriesId, coverImage } = input;
 
       const currentSeries = await db.select().from(series).where(eq(series.id, seriesId)).get();
       if (!currentSeries) throw new Error('Serie no encontrada');
+
+      // Validar propiedad (Multi-tenant)
+      if (!canManageScanlation(user, currentSeries.scanlationId)) {
+        throw new Error('Forbidden: No tienes permiso para editar esta serie');
+      }
 
       let slug = input.slug || currentSeries.slug;
       if (slug !== currentSeries.slug || slug.startsWith('serie-')) {
@@ -266,17 +287,15 @@ export const seriesActions = {
       const { user } = context.locals;
       const { env } = context.locals.runtime;
       const db = getDB(env);
-
-      // Orion: Verificación de Seguridad Nuclear (Slow-Path DB Check)
-      if (!user) throw new Error('Unauthorized');
-      const { checkAdminDB } = await import('../lib/db');
-      const isActuallyAdmin = await checkAdminDB(db, user.uid, env);
-      if (!isActuallyAdmin) throw new Error('Unauthorized: Admin role required from DB');
-
       const { seriesId } = input;
 
       const seriesData = await db.select().from(series).where(eq(series.id, seriesId)).get();
       if (!seriesData) throw new Error('Serie no encontrada');
+
+      // Orion: Validación Multi-tenant
+      if (!canManageScanlation(user, seriesData.scanlationId)) {
+        throw new Error('Forbidden: No tienes permiso para borrar esta serie');
+      }
 
       // Limpieza de R2 (Capítulos y Portada)
       await clearSeriesR2Data(seriesData.slug, seriesData.coverImageUrl, env);
@@ -386,10 +405,19 @@ export const seriesActions = {
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      if (!user?.isAdmin) throw new Error('Unauthorized');
-
       const { seriesId, key, value } = input;
       const db = getDB(context.locals.runtime.env);
+
+      const currentSeries = await db
+        .select({ scanlationId: series.scanlationId })
+        .from(series)
+        .where(eq(series.id, seriesId))
+        .get();
+      if (!currentSeries) throw new Error('Serie no encontrada');
+
+      if (!canManageScanlation(user, currentSeries.scanlationId)) {
+        throw new Error('Forbidden');
+      }
 
       await db
         .update(series)

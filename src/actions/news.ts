@@ -11,6 +11,7 @@ import {
   updateNews,
 } from '../lib/data/news';
 import { getDB } from '../lib/db';
+import { censorText } from '../lib/profanity';
 export const newsActions = {
   uploadImage: defineAction({
     accept: 'form',
@@ -103,6 +104,8 @@ export const newsActions = {
 
       const newNews = await createNews(db, {
         ...input,
+        title: censorText(input.title),
+        content: censorText(input.content),
         publishedBy: user.uid,
         authorName,
       });
@@ -129,7 +132,11 @@ export const newsActions = {
       // Orion: Invalidamos el caché de noticias en KV
       await context.locals.runtime.env.KV_VIEWS?.delete('news_count_cache');
 
-      const updatedNews = await updateNews(db, id, updates);
+      const updatedNews = await updateNews(db, id, {
+        ...updates,
+        title: updates.title ? censorText(updates.title) : undefined,
+        content: updates.content ? censorText(updates.content) : undefined,
+      });
       if (!updatedNews) throw new Error('Noticia no encontrada');
 
       return updatedNews;

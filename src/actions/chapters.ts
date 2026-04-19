@@ -2,6 +2,7 @@ import { defineAction } from 'astro:actions';
 import { z } from 'astro:schema';
 import { and, eq, max, sql } from 'drizzle-orm';
 import { chapters, chapterViews as chapterViewsTable, comments, pages, series } from '../db/schema';
+import { canManageScanlation } from '../lib/auth-utils';
 import { processAndCacheChapter } from '../lib/chapterProcessing';
 import { hashIpAddress } from '../lib/crypto';
 import { getDB } from '../lib/db';
@@ -86,17 +87,26 @@ export const chapterActions = {
       const { user } = context.locals;
       const { env } = context.locals.runtime;
       const db = getDB(env);
-
-      // Orion: Verificación de Seguridad Nuclear (Slow-Path DB Check)
-      if (!user) throw new Error('Unauthorized');
-      const { checkAdminDB } = await import('../lib/db');
-      const isActuallyAdmin = await checkAdminDB(db, user.uid, env);
-      if (!isActuallyAdmin) throw new Error('Unauthorized: Admin role required from DB');
-
       const { chapterIds } = input;
+
+      if (!user) throw new Error('Unauthorized');
+
       const r2Cache = context.locals.runtime.env.R2_CACHE;
 
       for (const id of chapterIds) {
+        // Validación Multi-tenant por cada capítulo
+        const chapterData = await db
+          .select({ scanlationId: series.scanlationId })
+          .from(chapters)
+          .innerJoin(series, eq(chapters.seriesId, series.id))
+          .where(eq(chapters.id, id))
+          .get();
+
+        if (chapterData && !canManageScanlation(user, chapterData.scanlationId)) {
+          console.warn(`[Forbidden] User ${user.uid} tried to delete chapter ${id}`);
+          continue; // Saltamos este capítulo si no tiene permiso
+        }
+
         const pagesToDelete = await db
           .select({ imageUrl: pages.imageUrl })
           .from(pages)
@@ -130,8 +140,6 @@ export const chapterActions = {
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      if (!user?.isAdmin) throw new Error('Unauthorized');
-
       const { seriesId, file } = input;
       const { env } = context.locals.runtime;
       const db = getDB(env);
@@ -140,12 +148,20 @@ export const chapterActions = {
         .select({
           topicId: series.telegramTopicId,
           slug: series.slug,
+          scanlationId: series.scanlationId,
         })
         .from(series)
         .where(eq(series.id, seriesId))
         .get();
 
-      if (!seriesData || !seriesData.topicId) {
+      if (!seriesData) throw new Error('Serie no encontrada');
+
+      // Validar permisos Multi-tenant
+      if (!canManageScanlation(user, seriesData.scanlationId)) {
+        throw new Error('Forbidden: No tienes permiso para subir capítulos a esta serie');
+      }
+
+      if (!seriesData.topicId) {
         throw new Error('La serie no tiene un Topic de Telegram asignado');
       }
 
@@ -307,10 +323,21 @@ export const chapterActions = {
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      if (!user?.isAdmin) throw new Error('Unauthorized');
-
       const { chapterId, title } = input;
       const db = getDB(context.locals.runtime.env);
+
+      // Obtener scanlationId a través de la relación con series
+      const chapterData = await db
+        .select({ scanlationId: series.scanlationId })
+        .from(chapters)
+        .innerJoin(series, eq(chapters.seriesId, series.id))
+        .where(eq(chapters.id, chapterId))
+        .get();
+
+      if (!chapterData) throw new Error('Capítulo no encontrado');
+      if (!canManageScanlation(user, chapterData.scanlationId)) {
+        throw new Error('Forbidden');
+      }
 
       await db.update(chapters).set({ title }).where(eq(chapters.id, chapterId)).run();
       return { success: true };
@@ -325,11 +352,22 @@ export const chapterActions = {
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      if (!user?.isAdmin) throw new Error('Unauthorized');
-
       const { chapterId, thumbnailImage } = input;
       const { env } = context.locals.runtime;
       const db = getDB(env);
+
+      // Obtener scanlationId a través de la relación con series
+      const chapterData = await db
+        .select({ scanlationId: series.scanlationId })
+        .from(chapters)
+        .innerJoin(series, eq(chapters.seriesId, series.id))
+        .where(eq(chapters.id, chapterId))
+        .get();
+
+      if (!chapterData) throw new Error('Capítulo no encontrado');
+      if (!canManageScanlation(user, chapterData.scanlationId)) {
+        throw new Error('Forbidden');
+      }
 
       const thumbnailKey = `chapter-thumbnails/${chapterId}-${Date.now()}.${thumbnailImage.name.split('.').pop()}`;
       await env.R2_ASSETS.put(thumbnailKey, await thumbnailImage.arrayBuffer(), {
