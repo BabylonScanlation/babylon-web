@@ -44,6 +44,7 @@ declare global {
       }>;
       db: DrizzleD1Database<typeof schema> | undefined; // Corrected type
       user: User | undefined;
+      isStaff: boolean;
       isBot: boolean;
     }
   }

@@ -20,6 +20,7 @@ export const NewsSchema = z.object({
   publishedBy: z.string(),
   status: z.enum(['draft', 'published']).default('draft'),
   seriesId: z.number().nullable(),
+  scanlationId: z.number().nullable().optional(),
   authorName: z.string().nullable(),
 });
 
@@ -45,6 +46,8 @@ export type NewsWithDetails = NewsItem & {
   seriesTitle?: string | null;
   authorAvatar?: string | null;
   imageUrls?: string[];
+  scanName?: string | null;
+  isAdminPost?: boolean;
 };
 
 // --- Database Operations ---
@@ -62,6 +65,7 @@ export async function createNews(
     createdAt: now,
     updatedAt: now,
     seriesId: newsData.seriesId ?? null,
+    scanlationId: newsData.scanlationId ?? null,
     authorName: newsData.authorName ?? null,
   };
 
@@ -73,7 +77,7 @@ export async function createNews(
 export async function getNewsById(
   drizzleDb: ReturnType<typeof getDB>,
   id: string
-): Promise<(NewsItem & { seriesSlug?: string; seriesTitle?: string }) | null> {
+): Promise<(NewsWithDetails & { seriesSlug?: string }) | null> {
   const result = await drizzleDb
     .select({
       id: schema.news.id,
@@ -87,9 +91,13 @@ export async function getNewsById(
       status: schema.news.status,
       seriesSlug: schema.series.slug,
       seriesTitle: schema.series.title,
+      scanName: schema.scanlations.name,
+      isAdminPost: sql<boolean>`CASE WHEN ${schema.userRoles.role} = 'admin' THEN 1 ELSE 0 END`,
     })
     .from(schema.news)
     .leftJoin(schema.series, eq(schema.news.seriesId, schema.series.id))
+    .leftJoin(schema.userRoles, eq(schema.news.publishedBy, schema.userRoles.userId))
+    .leftJoin(schema.scanlations, eq(schema.news.scanlationId, schema.scanlations.id))
     .where(eq(schema.news.id, id))
     .get();
 
@@ -110,16 +118,19 @@ export async function getNewsById(
     ...parsedNews.data,
     seriesSlug: result.seriesSlug ?? undefined,
     seriesTitle: result.seriesTitle ?? undefined,
-  } as NewsItem & { seriesSlug?: string; seriesTitle?: string };
+    scanName: result.scanName ?? null,
+    isAdminPost: !!result.isAdminPost,
+  } as NewsWithDetails & { seriesSlug?: string };
 }
 
 export async function getAllNews(
   drizzleDb: ReturnType<typeof getDB>,
   status?: 'draft' | 'published',
   seriesId?: number | null,
-  env?: any
+  env?: any,
+  scanlationId?: number | null
 ): Promise<NewsWithDetails[]> {
-  const CACHE_KEY = `news_all_${status || 'all'}_${seriesId || 'all'}`;
+  const CACHE_KEY = `news_all_${status || 'all'}_${seriesId || 'all'}_${scanlationId || 'all'}`;
   const now = Date.now();
 
   // 1. RAM Cache (Peticiones Cero)
@@ -138,6 +149,13 @@ export async function getAllNews(
       seriesId === null ? isNull(schema.news.seriesId) : eq(schema.news.seriesId, seriesId)
     );
   }
+  if (scanlationId !== undefined) {
+    conditions.push(
+      scanlationId === null
+        ? isNull(schema.news.scanlationId)
+        : eq(schema.news.scanlationId, scanlationId)
+    );
+  }
 
   try {
     const results = await drizzleDb
@@ -154,10 +172,14 @@ export async function getAllNews(
         seriesCover: schema.series.coverImageUrl,
         seriesTitle: schema.series.title,
         authorAvatar: schema.users.avatarUrl,
+        scanName: schema.scanlations.name,
+        isAdminPost: sql<boolean>`CASE WHEN ${schema.userRoles.role} = 'admin' THEN 1 ELSE 0 END`,
       })
       .from(schema.news)
       .leftJoin(schema.series, eq(schema.news.seriesId, schema.series.id))
       .leftJoin(schema.users, eq(schema.news.publishedBy, schema.users.id))
+      .leftJoin(schema.userRoles, eq(schema.news.publishedBy, schema.userRoles.userId))
+      .leftJoin(schema.scanlations, eq(schema.news.scanlationId, schema.scanlations.id))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(sql`CAST(${schema.news.createdAt} AS INTEGER)`))
       .all();
@@ -205,6 +227,8 @@ export async function getAllNews(
           seriesTitle: r.seriesTitle ?? null,
           authorAvatar: r.authorAvatar ?? null,
           imageUrls: allImagesMap[r.id] || [],
+          scanName: r.scanName ?? null,
+          isAdminPost: !!r.isAdminPost,
         };
 
         return item;

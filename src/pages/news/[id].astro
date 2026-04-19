@@ -28,14 +28,15 @@ const initialComments = (await getCommentsForTarget(drizzleDb, 'news', id, user?
 ---
 
 <Layout title={`${newsItem.title} - Noticias - ${siteConfig.shortName}`}>
-  <main class="news-detail-container">
-    <!-- Navegación Superior -->
-    <nav class="news-top-nav">
-      <a href="/news" class="back-link-minimal">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        <span>Noticias</span>
-      </a>
-    </nav>
+  <div class="padded-content">
+    <main class="news-detail-container">
+      <!-- Navegación Superior -->
+      <nav class="news-top-nav">
+        <a href="/news" class="back-link-minimal">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span>REGRESAR</span>
+        </a>
+      </nav>
 
     <!-- Artículo Principal -->
     <article class="news-article">
@@ -77,6 +78,52 @@ const initialComments = (await getCommentsForTarget(drizzleDb, 'news', id, user?
 </Layout>
 
 <style>
+  /* --- News Feed Global Styles (Astra) --- */
+
+  /* Astra: Badges Superiores Metálicos */
+  .post-owner-badge {
+    display: inline-block;
+    padding: 0.35rem 1rem;
+    background: linear-gradient(135deg, #0a0a0c 0%, #1a1a1f 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-left: 1.5rem;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
+  }
+
+  /* Elemento interno: Recibe la transformación visual y el delineado */
+  .news-article {
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    background: rgba(20, 20, 25, 0.4);
+    padding: 2.5rem;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    will-change: border-color;
+    margin-top: -1px; /* Para que encaje con el badge */
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Delineados de Colores Solicitados (Astra) */
+  .news-article.border-staff {
+    border-color: rgba(255, 77, 109, 0.4); /* Ruby Manzana */
+    box-shadow: inset 0 0 20px rgba(255, 77, 109, 0.05);
+  }
+
+  .news-article.border-scan {
+    border-color: rgba(255, 183, 3, 0.4); /* Amarillo Dorado */
+    box-shadow: inset 0 0 20px rgba(255, 183, 3, 0.05);
+  }
+
   /* --- NAVEGACIÓN --- */
   .news-top-nav {
     margin-bottom: 2.5rem;

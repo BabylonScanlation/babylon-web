@@ -304,7 +304,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       body { background-color: #020205; margin: 0; color: #fff; font-family: system-ui, sans-serif; }
       .site-header { height: 90px; width: 100%; background: #020205; position: absolute; top: 0; z-index: 5000; }
       .hero-carousel-section { min-height: 520px; background: #000; width: 100vw; overflow: hidden; }
-      .site-main-content { min-height: 100vh; display: flex; flex-direction: column; }
+      .site-main-content { min-height: auto; display: flex; flex-direction: column; }
       @media (max-width: 1023px) { .site-header { height: 80px; position: relative; } }
 
       /* Orion: Padding condicional para páginas que no son la Home */
@@ -319,7 +319,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     class="cosmos-theme" 
     style="opacity: 0; transition: opacity 0.2s ease;"
     data-user-id={user?.uid || 'guest'}
-    data-user-state={user ? JSON.stringify({ uid: user.uid, email: user.email, isAdmin: user.isAdmin }) : 'null'}
+    data-user-state={user ? JSON.stringify({ uid: user.uid, email: user.email, isAdmin: user.isAdmin, scanlations: user.scanlations }) : 'null'}
     data-cosmos-physics={siteConfig.theme.cosmos.physicsEnabled ? 'true' : 'false'}
     data-news-count={serverNewsCount}
     data-is-dev={import.meta.env.DEV ? 'true' : 'false'}
@@ -614,12 +614,13 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       // Orion: Global SmartClick Hijacker (Inyectado Directo)
       (function() {
         document.addEventListener('click', (e) => {
-          // Orion: Los administradores están exentos de publicidad
+          // Orion: Los administradores y miembros de scanlation están exentos de publicidad
           const userStateStr = document.body.getAttribute('data-user-state');
           try {
             if (userStateStr && userStateStr !== 'null') {
               const state = JSON.parse(userStateStr);
-              if (state && state.isAdmin) return;
+              const isStaff = state && (state.isAdmin || (state.scanlations && state.scanlations.length > 0));
+              if (isStaff) return;
             }
           } catch { /* Ignore */ }
 

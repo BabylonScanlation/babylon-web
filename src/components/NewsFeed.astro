@@ -22,7 +22,7 @@ try {
 
   if (newsForSeries.length > 0) {
     newsWithImages = await Promise.all(
-      newsForSeries.map(async (newsItem: NewsItem) => {
+      newsForSeries.map(async (newsItem) => {
         const images = await getNewsImages(db, newsItem.id);
         const publicBase = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
 
@@ -33,6 +33,9 @@ try {
         return {
           ...newsItem,
           imageUrls,
+          // Orion: Forzamos la presencia de los campos Multi-tenant
+          isAdminPost: (newsItem as any).isAdminPost,
+          scanName: (newsItem as any).scanName
         };
       })
     );
@@ -60,7 +63,18 @@ function formatDate(timestamp: number | string | Date) {
     {hasNews ? (
       newsWithImages.map((newsItem) => (
         <div class="premium-news-post-wrapper">
-          <div class="premium-news-post" data-news-id={newsItem.id}>
+          {/* Badge Superior Metálico (Astra) */}
+          <div class="post-owner-badge">
+            {newsItem.isAdminPost ? 'STAFF' : (newsItem.scanName || 'CONTRIBUYENTE')}
+          </div>
+          
+          <div 
+            class:list={[
+              'premium-news-post', 
+              { 'border-staff': newsItem.isAdminPost, 'border-scan': !newsItem.isAdminPost && newsItem.scanName }
+            ]} 
+            data-news-id={newsItem.id}
+          >
             <div class="post-glass-frame">
               <div class="post-header-area">
                 <div class="author-pill">
@@ -152,41 +166,38 @@ function formatDate(timestamp: number | string | Date) {
       const wrapper = document.createElement('div');
       wrapper.className = 'premium-news-post-wrapper';
 
-      const div = document.createElement('div');
-      div.className = 'premium-news-post'; 
-      div.dataset.newsId = news.id;
-      
-      const dateStr = new Date().toLocaleDateString('es-ES', {
-          year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-      });
+      // Astra: Badge dinámico para noticias en vivo
+      const ownerLabel = news.isAdminPost ? 'STAFF' : (news.scanName || 'CONTRIBUYENTE');
+      const borderClass = news.isAdminPost ? 'border-staff' : (news.scanName ? 'border-scan' : '');
 
-      div.innerHTML = `
-        <div class="post-glass-frame">
-          <div class="post-header-area">
-            <div class="author-pill">
-              ${news.authorAvatar ? 
-                `<img src="${news.authorAvatar}" alt="${news.authorName}" class="author-avatar-img" />` : 
-                `<div class="author-avatar">${(news.authorName || 'A').charAt(0).toUpperCase()}</div>`
-              }
-              <span class="author-name">${news.authorName || `Staff ${siteConfig.shortName}`}</span>
-            </div>
-            <div class="header-meta">
-              <span class="post-timestamp">${dateStr}</span>
-              <div class="news-admin-actions">
-                  <button class="action-btn status-btn" onclick="handleToggleStatus('${news.id}', 'published')">
-                      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                  </button>
+      wrapper.innerHTML = `
+        <div class="post-owner-badge">${ownerLabel}</div>
+        <div class="premium-news-post ${borderClass}" data-news-id="${news.id}">
+          <div class="post-glass-frame">
+            <div class="post-header-area">
+              <div class="author-pill">
+                ${news.authorAvatar ? 
+                  `<img src="${news.authorAvatar}" alt="${news.authorName}" class="author-avatar-img" />` : 
+                  `<div class="author-avatar">${(news.authorName || 'A').charAt(0).toUpperCase()}</div>`
+                }
+                <span class="author-name">${news.authorName || `Staff ${siteConfig.shortName}`}</span>
+              </div>
+              <div class="header-meta">
+                <span class="post-timestamp">${dateStr}</span>
+                <div class="news-admin-actions">
+                    <button class="action-btn status-btn" onclick="handleToggleStatus('${news.id}', 'published')">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                    </button>
+                </div>
               </div>
             </div>
+            <div class="post-content-area">
+              <p>${news.content}</p>
+            </div>
+            ${hasImage ? `<div class="news-gallery"><div class="image-wrapper" style="border:1px dashed rgba(255,255,255,0.2); display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);color:#aaa;font-size:0.85rem; border-radius:20px; width:100%; height:auto;">Procesando imagen...</div></div>` : ''}
           </div>
-          <div class="post-content-area">
-            <p>${news.content}</p>
-          </div>
-          ${hasImage ? `<div class="news-gallery"><div class="image-wrapper" style="border:1px dashed rgba(255,255,255,0.2); display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);color:#aaa;font-size:0.85rem; border-radius:20px; width:100%; height:auto;">Procesando imagen...</div></div>` : ''}
         </div>
       `;
-      
-      wrapper.appendChild(div);
       
       // Animación de entrada
       wrapper.style.opacity = '0';
@@ -339,10 +350,28 @@ function formatDate(timestamp: number | string | Date) {
 
   /* --- News Feed Global Styles (Astra) --- */
 
+  /* Astra: Badges Superiores Metálicos */
+  .post-owner-badge {
+    display: inline-block;
+    padding: 0.35rem 1rem;
+    background: linear-gradient(135deg, #0a0a0c 0%, #1a1a1f 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-left: 1.5rem;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
+  }
+
   /* Wrapper Estático: Ocupa el espacio en el flujo, tiene el margen */
   .premium-news-post-wrapper {
-    margin-bottom: 1.5rem;
-    /* El wrapper es el trigger del hover, pero no se mueve */
+    margin-bottom: 2.5rem;
     position: relative;
     z-index: 1;
   }
@@ -351,23 +380,44 @@ function formatDate(timestamp: number | string | Date) {
     margin-bottom: 0;
   }
 
-  /* Elemento interno: Recibe la transformación visual */
+  /* Elemento interno: Recibe la transformación visual y el delineado */
   .premium-news-post {
     border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
+    border-radius: 20px;
     background: rgba(20, 20, 25, 0.4);
     padding: 1.5rem;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    /* Asegurar que llene el wrapper si fuera necesario, aunque aquí es bloque por defecto */
-    will-change: transform;
+    will-change: transform, border-color;
+    margin-top: -1px; /* Para que encaje con el badge */
   }
 
-  /* Trigger en Wrapper -> Efecto en Inner */
+  /* Delineados de Colores Solicitados (Astra) */
+  .premium-news-post.border-staff {
+    border-color: rgba(255, 77, 109, 0.4); /* Ruby Manzana */
+    box-shadow: inset 0 0 20px rgba(255, 77, 109, 0.05);
+  }
+
+  .premium-news-post.border-scan {
+    border-color: rgba(255, 183, 3, 0.4); /* Amarillo Dorado */
+    box-shadow: inset 0 0 20px rgba(255, 183, 3, 0.05);
+  }
+
+  /* Hover Effects */
   .premium-news-post-wrapper:hover .premium-news-post {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
     background: rgba(255, 255, 255, 0.03);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5); /* Añadida sombra para énfasis */
+    transform: translateY(-4px);
+    box-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.6);
+  }
+
+  .premium-news-post-wrapper:hover .premium-news-post.border-staff {
+    border-color: #ff4d6d;
+    box-shadow: 0 15px 40px -10px rgba(255, 77, 109, 0.3);
+  }
+
+  .premium-news-post-wrapper:hover .premium-news-post.border-scan {
+    border-color: #ffb703;
+    box-shadow: 0 15px 40px -10px rgba(255, 183, 3, 0.3);
   }
 
   /* Legacy fix: por si algo sigue usando la clase antigua directamente sin wrapper (no debería) */

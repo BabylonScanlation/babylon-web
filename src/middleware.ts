@@ -28,6 +28,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const shieldResponse = await shield(context, async () => {
     // 2. Capa de Autenticación (JWT & D1 Session)
     return await authFlow(context, async () => {
+      // Orion: Inyectamos la bandera isStaff para exención de anuncios
+      const user = context.locals.user;
+      context.locals.isStaff = !!(
+        user &&
+        (user.isAdmin || (user.scanlations && user.scanlations.length > 0))
+      );
+
       // 3. Ejecución de la Ruta
       const response = await next();
 

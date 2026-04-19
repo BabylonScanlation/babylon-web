@@ -13,27 +13,27 @@ const scanlations = await getAllScanlations(db);
 
 <Layout title={`Gestión de Scanlations - ${siteConfig.shortName}`}>
   <div class="padded-content">
-    <main class="admin-container">
-      <header class="page-header">
-        <div class="header-main-info">
-          <div class="nav-back">
-            <a href="/admin" class="back-pill">
-              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-              Volver al Panel
-            </a>
-          </div>
-          <div class="title-section">
-            <h1>Centro de Scanlations</h1>
-            <p class="subtitle">Gestiona las organizaciones externas que publican en tu plataforma.</p>
+    <main class="admin-page-container">
+      <div class="glass-header">
+        <div class="header-content">
+          <a href="/admin" class="back-pill">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Panel Admin
+          </a>
+          <div class="header-flex">
+            <div class="title-section">
+              <h1>Centro de Scanlations</h1>
+              <p class="subtitle">Gestiona las organizaciones externas que publican en tu plataforma.</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn-create-scan" onclick="document.getElementById('creation-zone').classList.remove('hidden')">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 5v14M5 12h14"></path></svg>
+                Registrar Nuevo Scanlation
+              </button>
+            </div>
           </div>
         </div>
-        <div class="header-actions">
-          <button class="btn-create-scan" onclick="document.getElementById('creation-zone').classList.remove('hidden')">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 5v14M5 12h14"></path></svg>
-            Registrar Nuevo Scanlation
-          </button>
-        </div>
-      </header>
+      </div>
 
       {/* Formulario Inline (Astra: Mejor que un modal) */}
       <section id="creation-zone" class="creation-zone hidden">
@@ -69,44 +69,52 @@ const scanlations = await getAllScanlations(db);
       </section>
 
       <div class="scanlations-grid">
-        {scanlations.map(scan => (
-          <div class={`scan-card ${!scan.isActive ? 'is-disabled' : ''}`}>
-            <div class="scan-info">
-              <div class="scan-header">
-                <span class="scan-id">#{scan.id}</span>
-                <span class={`status-badge ${scan.isActive ? 'active' : 'inactive'}`}>
-                  {scan.isActive ? 'ACTIVO' : 'DESACTIVADO'}
-                </span>
+        {scanlations.length > 0 ? (
+          scanlations.map(scan => (
+            <div class={`scan-card ${!scan.isActive ? 'is-disabled' : ''}`}>
+              <div class="scan-info">
+                <div class="scan-header">
+                  <span class="scan-id">#{scan.id}</span>
+                  <span class={`status-badge ${scan.isActive ? 'active' : 'inactive'}`}>
+                    {scan.isActive ? 'ACTIVO' : 'DESACTIVADO'}
+                  </span>
+                </div>
+                <h2>{scan.name}</h2>
+                <p class="slug">/{scan.slug}</p>
+                
+                <div class="stats-row">
+                  <div class="stat">
+                    <span class="val">{scan.seriesCount}</span>
+                    <span class="lab">Series</span>
+                  </div>
+                  <div class="stat">
+                    <span class="val">{scan.memberCount}</span>
+                    <span class="lab">Miembros</span>
+                  </div>
+                </div>
               </div>
-              <h2>{scan.name}</h2>
-              <p class="slug">/{scan.slug}</p>
               
-              <div class="stats-row">
-                <div class="stat">
-                  <span class="val">{scan.seriesCount}</span>
-                  <span class="lab">Series</span>
-                </div>
-                <div class="stat">
-                  <span class="val">{scan.memberCount}</span>
-                  <span class="lab">Miembros</span>
-                </div>
+              <div class="scan-actions">
+                <button class="btn-manage" onclick={`window.location.href='/admin/scanlations/${scan.id}'`}>
+                  Gestionar Equipo
+                </button>
+                <button 
+                  class="btn-toggle" 
+                  data-id={scan.id} 
+                  data-active={scan.isActive?.toString()}
+                >
+                  {scan.isActive ? 'Bannear/Desactivar' : 'Reactivar'}
+                </button>
               </div>
             </div>
-            
-            <div class="scan-actions">
-              <button class="btn-manage" onclick={`window.location.href='/admin/scanlations/${scan.id}'`}>
-                Gestionar Equipo
-              </button>
-              <button 
-                class="btn-toggle" 
-                data-id={scan.id} 
-                data-active={scan.isActive?.toString()}
-              >
-                {scan.isActive ? 'Bannear/Desactivar' : 'Reactivar'}
-              </button>
-            </div>
+          ))
+        ) : (
+          <div class="empty-state">
+            <div class="empty-icon">🤝</div>
+            <h3>Paz total</h3>
+            <p>No hay organizaciones registradas en la plataforma todavía.</p>
           </div>
-        ))}
+        )}
       </div>
     </main>
   </div>
@@ -148,77 +156,88 @@ const scanlations = await getAllScanlations(db);
 </script>
 
 <style>
-  .admin-container {
-    max-width: 1200px;
+  .admin-page-container {
+    width: 100%;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 1rem 2rem;
-    color: #fff;
-  }
-
-  .padded-content {
-    padding-top: 40px;
-  }
-
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 2rem;
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-  }
-
-  .header-main-info {
+    padding: 2rem 1.5rem;
+    min-height: calc(100vh - 120px);
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+  }
+
+  .glass-header {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  }
+
+  .header-content {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 2rem;
+  }
+
+  .header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    flex: 1 1 500px;
+  }
+
+  .title-section {
+    flex: 1;
   }
 
   .back-pill {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    color: #666;
+    padding: 0.6rem 1.2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    color: #888;
     text-decoration: none;
+    font-size: 0.85rem;
     font-weight: 700;
-    font-size: 0.8rem;
     text-transform: uppercase;
-    transition: all 0.3s;
+    letter-spacing: 0.05em;
+    transition: all 0.3s ease;
+    align-self: flex-start;
   }
 
-  .back-pill:hover { color: #fff; transform: translateX(-5px); }
+  .back-pill:hover {
+    background: rgba(0, 191, 255, 0.1);
+    border-color: var(--accent-color);
+    color: #fff;
+    transform: translateX(-5px);
+  }
 
-  .title-section h1 { font-size: 2.5rem; font-weight: 900; margin: 0; }
-  .subtitle { color: #888; margin: 0; }
-
-  .btn-create-scan {
-    background: #00bfff;
-    color: #000;
-    border: none;
-    padding: 1rem 1.5rem;
-    border-radius: 12px;
+  .title-section h1 {
+    font-size: 2.5rem;
     font-weight: 800;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    cursor: pointer;
-    transition: all 0.3s;
-    white-space: nowrap;
+    margin: 0 0 0.5rem 0;
+    background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
   }
 
-  .btn-create-scan:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0, 191, 255, 0.3); }
-
-  @media (max-width: 768px) {
-    .page-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 1.5rem;
-    }
-    .btn-create-scan {
-      width: 100%;
-      justify-content: center;
-    }
+  .subtitle {
+    color: #666;
+    font-size: 1.1rem;
+    margin: 0;
+    max-width: 600px;
+    line-height: 1.5;
   }
 
   .header-actions {
@@ -313,6 +332,13 @@ const scanlations = await getAllScanlations(db);
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 2rem;
+    flex: 1;
+  }
+
+  .scanlations-grid:has(.empty-state) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .scan-card {
@@ -347,4 +373,34 @@ const scanlations = await getAllScanlations(db);
   .btn-manage { background: #fff; color: #000; border: none; padding: 0.8rem; border-radius: 10px; font-weight: 700; cursor: pointer; }
   .btn-toggle { background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.8rem; border-radius: 10px; font-weight: 700; cursor: pointer; }
   .btn-toggle:hover { background: #ff4757; border-color: #ff4757; }
+
+  @media (max-width: 768px) {
+    .header-flex {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1.5rem;
+    }
+    .glass-header {
+      padding: 2rem 1.5rem;
+      border-radius: 20px;
+    }
+    .title-section h1 {
+      font-size: 2rem;
+    }
+    .btn-create-scan {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  /* Empty State (Astra: Centrado Absoluto) */
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 0 2rem;
+    color: #444;
+    margin: auto 0;
+  }
+  .empty-icon { font-size: 4rem; margin-bottom: 1.5rem; opacity: 0.2; }
+  .empty-state h3 { color: #666; margin-bottom: 0.5rem; font-size: 1.5rem; font-weight: 800; }
 </style>

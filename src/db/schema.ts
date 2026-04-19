@@ -198,6 +198,9 @@ export const news = sqliteTable(
       .default(sql`(strftime('%s', 'now') * 1000)`),
     publishedBy: text('published_by').notNull(),
     seriesId: integer('series_id', { mode: 'number' }),
+    scanlationId: integer('scanlation_id', { mode: 'number' }).references(() => scanlations.id, {
+      onDelete: 'set null',
+    }),
     authorName: text('author_name'),
     status: text('status', { enum: ['draft', 'published'] })
       .notNull()
@@ -205,6 +208,7 @@ export const news = sqliteTable(
   },
   (table) => [
     index('idx_news_series_id').on(table.seriesId),
+    index('idx_news_scanlation_id').on(table.scanlationId),
     index('idx_news_status').on(table.status),
   ]
 );

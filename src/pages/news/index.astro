@@ -110,9 +110,17 @@ if (newsItems.length > 0 && newsItems[0]) {
         ) : (
           newsItems.map((news: NewsWithDetails) => (
             <div class="news-card-wrapper">
+              {/* Badge Superior Metálico (Astra) */}
+              <div class="post-owner-badge">
+                {news.isAdminPost ? 'STAFF' : (news.scanName || 'CONTRIBUYENTE')}
+              </div>
+
               <a
                 href={`/news/${news.id}`}
-                class="news-card-inner"
+                class:list={[
+                  'news-card-inner',
+                  { 'border-staff': news.isAdminPost, 'border-scan': !news.isAdminPost && news.scanName }
+                ]}
               >
                 {(news.imageUrls && news.imageUrls.length > 0 || news.seriesCover) && (
                   <div class="news-card-image">
@@ -204,7 +212,56 @@ if (newsItems.length > 0 && newsItems[0]) {
     height: 100%;
     width: 100%;
     max-width: 420px;
-    margin: 0 auto; /* Astra: Forzar centrado individual */
+  }
+
+  /* Astra: Badges Superiores Metálicos */
+  .post-owner-badge {
+    display: inline-block;
+    padding: 0.35rem 1rem;
+    background: linear-gradient(135deg, #0a0a0c 0%, #1a1a1f 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    font-size: 0.6rem;
+    font-weight: 900;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-left: 1.2rem;
+    position: absolute;
+    top: -24px;
+    z-index: 2;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
+  }
+
+  /* Delineados de Colores Solicitados (Astra) */
+  .news-card-inner.border-staff {
+    border-color: rgba(255, 77, 109, 0.4); /* Ruby Manzana */
+    box-shadow: inset 0 0 20px rgba(255, 77, 109, 0.05);
+  }
+
+  .news-card-inner.border-scan {
+    border-color: rgba(255, 183, 3, 0.4); /* Amarillo Dorado */
+    box-shadow: inset 0 0 20px rgba(255, 183, 3, 0.05);
+  }
+
+  /* Hover Effects */
+  .news-card-wrapper:hover .news-card-inner {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(25, 25, 30, 0.8);
+    z-index: 2;
+  }
+
+  .news-card-wrapper:hover .news-card-inner.border-staff {
+    border-color: #ff4d6d;
+    box-shadow: 0 15px 40px -10px rgba(255, 77, 109, 0.3);
+  }
+
+  .news-card-wrapper:hover .news-card-inner.border-scan {
+    border-color: #ffb703;
+    box-shadow: 0 15px 40px -10px rgba(255, 183, 3, 0.3);
   }
 
   @media (max-width: 768px) {
