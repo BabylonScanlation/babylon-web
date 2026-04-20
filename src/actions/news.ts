@@ -1,7 +1,9 @@
 import { defineAction } from 'astro:actions';
 import { z } from 'astro:schema';
 import { eq } from 'drizzle-orm';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import * as schema from '../db/schema';
+import { canManageScanlation, isScanlationMember } from '../lib/auth-utils';
 import {
   addNewsImage,
   createNews,
@@ -10,14 +12,18 @@ import {
   type NewsImageItem,
   updateNews,
 } from '../lib/data/news';
-import { canManageScanlation, isScanlationMember } from '../lib/auth-utils';
 import { getDB } from '../lib/db';
 import { censorText } from '../lib/profanity';
+import type { User } from '../types';
 
 /**
  * Orion: Validador de propiedad de noticia para Multi-tenancy.
  */
-async function validateNewsOwnership(db: any, user: any, newsId: string) {
+async function validateNewsOwnership(
+  db: DrizzleD1Database<typeof schema>,
+  user: User,
+  newsId: string
+) {
   const existing = await db
     .select({ seriesId: schema.news.seriesId, scanlationId: schema.news.scanlationId })
     .from(schema.news)
@@ -143,7 +149,7 @@ export const newsActions = {
         // Orion: Lógica de propiedad (Multi-tenant)
         let targetScanlationId: number | null = null;
 
-        if (seriesId === null || isNaN(seriesId)) {
+        if (seriesId === null || Number.isNaN(seriesId)) {
           // Es una noticia GLOBAL
           if (user?.isAdmin) {
             // Admin global: noticia total (scanlationId null)
@@ -213,9 +219,9 @@ export const newsActions = {
           scanName,
           isAdminPost: !!user.isAdmin,
         };
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error('[News Create Error]', e);
-        throw new Error(e.message || 'Error interno al crear la noticia');
+        throw new Error(e instanceof Error ? e.message : 'Error interno al crear la noticia');
       }
     },
   }),

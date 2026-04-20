@@ -119,6 +119,47 @@ export const adminActions = {
     },
   }),
 
+  generateScanLinkToken: defineAction({
+    input: z.object({
+      id: z.number(),
+    }),
+    handler: async (input, context) => {
+      const { user } = context.locals;
+      if (!user?.isAdmin) throw new Error('Unauthorized');
+
+      const db = getDB(context.locals.runtime.env);
+      const token =
+        Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+      await db
+        .update(scanlations)
+        .set({ telegramLinkToken: token })
+        .where(eq(scanlations.id, input.id))
+        .run();
+
+      return { token };
+    },
+  }),
+
+  unlinkScanTelegram: defineAction({
+    input: z.object({
+      id: z.number(),
+    }),
+    handler: async (input, context) => {
+      const { user } = context.locals;
+      if (!user?.isAdmin) throw new Error('Unauthorized');
+
+      const db = getDB(context.locals.runtime.env);
+      await db
+        .update(scanlations)
+        .set({ telegramChatId: null })
+        .where(eq(scanlations.id, input.id))
+        .run();
+
+      return { success: true };
+    },
+  }),
+
   runMaintenance: defineAction({
     handler: async (_, context) => {
       const { user } = context.locals;

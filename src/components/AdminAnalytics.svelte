@@ -246,7 +246,8 @@ onMount(() => {
     </div>
   </div>
 
-  <!-- Revenue Row (Orion: New Monetization Section) -->
+  <!-- Revenue Row (Orion: New Monetization Section - HIDDEN) -->
+  {#if false}
   <div class="bento-grid summary-row revenue-row">
     <div class="bento-card highlight gold">
         <div class="card-icon">💰</div>
@@ -271,28 +272,26 @@ onMount(() => {
     </div>
   </div>
 
-  {#if revenue.platforms && revenue.platforms.length > 0}
-    <!-- Breakdown Row (Orion: Platform comparison) -->
-    <div class="bento-grid summary-row platform-breakdown">
-      {#each revenue.platforms as p (p.name)}
-        <div class="bento-card platform-card">
-          <div class="platform-header">
-            <span class="platform-name">{p.name}</span>
-            <span class="platform-status">Activo</span>
+  <div class="bento-grid summary-row platform-breakdown">
+    {#each revenue.platforms as p (p.name)}
+      <div class="bento-card platform-card">
+        <div class="platform-header">
+          <span class="platform-name">{p.name}</span>
+          <span class="platform-status">Activo</span>
+        </div>
+        <div class="platform-stats">
+          <div class="p-stat">
+            <small>Hoy</small>
+            <strong>${p.today.toFixed(2)}</strong>
           </div>
-          <div class="platform-stats">
-            <div class="p-stat">
-              <small>Hoy</small>
-              <strong>${p.today.toFixed(2)}</strong>
-            </div>
-            <div class="p-stat">
-              <small>CPM</small>
-              <strong>${p.cpm.toFixed(2)}</strong>
-            </div>
+          <div class="p-stat">
+            <small>CPM</small>
+            <strong>${p.cpm.toFixed(2)}</strong>
           </div>
         </div>
-      {/each}
-    </div>
+      </div>
+    {/each}
+  </div>
   {/if}
 
   <!-- Main Charts Row -->

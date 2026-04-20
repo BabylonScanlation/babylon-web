@@ -31,9 +31,30 @@ if (!scan) return Astro.redirect('/admin/scanlations');
     </header>
 
     <div class="team-layout">
-      {/* Columna Izquierda: Añadir Miembro */}
-      <section class="add-member-zone">
-        <div class="glass-card">
+      {/* Columna Izquierda: Añadir Miembro y Telegram */}
+      <aside class="side-panel-zone">
+        {/* VINCULACIÓN TELEGRAM (NUEVO) */}
+        <div class="glass-card telegram-config">
+          <h3>Infraestructura Telegram</h3>
+          {scan.telegramChatId ? (
+            <div class="tg-status success">
+              <div class="tg-icon">✅</div>
+              <div class="tg-info">
+                <span>Canal Vinculado</span>
+                <small>ID: {scan.telegramChatId}</small>
+              </div>
+              <button class="btn-unlink" id="btn-clear-tg">Desvincular</button>
+            </div>
+          ) : (
+            <div class="tg-status pending">
+              <p>Este grupo no tiene un canal de Telegram propio.</p>
+              <button class="btn-generate-link" id="btn-link-tg">Vincular Canal Mágicamente</button>
+              <p class="hint">Al pulsar, se generará un código para el Bot.</p>
+            </div>
+          )}
+        </div>
+
+        <div class="glass-card mt-2">
           <h3>Añadir Nuevo Miembro</h3>
           <form id="form-add-member" class="form-vertical">
             <input type="hidden" name="scanlationId" value={scan.id} />
@@ -53,7 +74,7 @@ if (!scan) return Astro.redirect('/admin/scanlations');
             <button type="submit" class="btn-primary">Vincular al Equipo</button>
           </form>
         </div>
-      </section>
+      </aside>
 
       {/* Columna Derecha: Lista de Miembros */}
       <section class="members-list-zone">
@@ -118,41 +139,58 @@ if (!scan) return Astro.redirect('/admin/scanlations');
       else alert(error.message);
     });
   });
+
+  // Telegram Linking Logic
+  const btnLink = document.getElementById('btn-link-tg');
+  const scanId = parseInt(window.location.pathname.split('/').pop() || '0');
+
+  btnLink?.addEventListener('click', async () => {
+    const { data, error } = await actions.admin.generateScanLinkToken({ id: scanId });
+    if (error) return alert(error.message);
+
+    const token = data.token;
+    // Creamos el enlace profundo de Telegram
+    // Formato: https://t.me/TuBot?start=vincular_TOKEN
+    // Pero como usamos un comando personalizado /vincular:
+    const botUsername = 'TuBotBabylon'; // Sustituir por el nombre real de tu bot
+    const link = `https://t.me/${botUsername}?start=vincular_${token}`;
+    
+    // Abrimos Telegram y pedimos al usuario que añada al bot al grupo
+    window.open(link, '_blank');
+    
+    alert('Se ha abierto Telegram. Para completar la vinculación:\n1. Añade al Bot al grupo/canal deseado.\n2. Envía el comando /vincular ' + token + ' dentro del grupo.');
+  });
+  // Telegram Unlinking Logic
+  const btnUnlink = document.getElementById('btn-clear-tg');
+  btnUnlink?.addEventListener('click', async () => {
+    if (!confirm('¿Seguro que quieres desvincular el canal de Telegram?')) return;
+    const { error } = await actions.admin.unlinkScanTelegram({ id: scanId });
+    if (!error) window.location.reload();
+    else alert(error.message);
+  });
 </script>
 
 <style>
   .admin-container { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem; color: #fff; }
-  .page-header { margin-bottom: 3rem; }
-  .back-pill { display: inline-flex; align-items: center; gap: 0.5rem; color: #666; text-decoration: none; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 1rem; }
-  .back-pill:hover { color: #fff; }
-  .title-section h1 { font-size: 2.2rem; font-weight: 900; margin: 0; }
-  .subtitle { color: #888; }
-
-  .team-layout { display: grid; grid-template-columns: 400px 1fr; gap: 2rem; }
-
-  .glass-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 2rem; }
-  .glass-card h3 { margin-top: 0; margin-bottom: 1.5rem; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; color: #00bfff; }
-
-  .form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
-  .form-group label { font-size: 0.8rem; font-weight: 800; color: #555; text-transform: uppercase; }
-  .form-group input, .form-group select { background: #000; border: 1px solid #222; padding: 0.8rem; border-radius: 10px; color: #fff; }
-  .hint { font-size: 0.7rem; color: #444; margin-top: 0.3rem; }
-
-  .btn-primary { background: #00bfff; color: #000; border: none; padding: 1rem; border-radius: 12px; font-weight: 800; width: 100%; cursor: pointer; }
-
-  .member-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 12px; margin-bottom: 0.75rem; }
-  .m-info { display: flex; flex-direction: column; }
-  .m-name { font-weight: 700; font-size: 1rem; }
+...
   .m-email { font-size: 0.8rem; color: #444; }
 
+  /* Telegram Infrastructure Zone */
+  .telegram-config { border-color: rgba(0, 191, 255, 0.2); margin-bottom: 2rem; }
+  .tg-status { display: flex; flex-direction: column; gap: 1rem; }
+  .tg-status.success { flex-direction: row; align-items: center; background: rgba(46, 204, 113, 0.05); padding: 1rem; border-radius: 12px; }
+  .tg-icon { font-size: 1.5rem; }
+  .tg-info { flex: 1; display: flex; flex-direction: column; }
+  .tg-info span { font-weight: 800; color: #2ecc71; }
+  .tg-info small { font-family: monospace; color: #444; }
+  .btn-unlink { background: rgba(255, 255, 255, 0.05); border: none; color: #666; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: 800; }
+  .btn-unlink:hover { background: #ff4757; color: #fff; }
+
+  .btn-generate-link { background: #0088cc; color: #fff; border: none; padding: 0.8rem; border-radius: 10px; font-weight: 800; cursor: pointer; transition: all 0.3s; }
+  .btn-generate-link:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 136, 204, 0.4); }
+
+  .mt-2 { margin-top: 2rem; }
   .role-tag { font-size: 0.6rem; font-weight: 900; padding: 0.2rem 0.6rem; border-radius: 4px; text-transform: uppercase; }
-  .role-tag.owner { background: rgba(255, 165, 0, 0.1); color: orange; }
-  .role-tag.editor { background: rgba(0, 191, 255, 0.1); color: #00bfff; }
-
-  .btn-kick { background: none; border: none; color: #444; cursor: pointer; transition: color 0.2s; }
-  .btn-kick:hover { color: #ff4757; }
-
-  .empty { text-align: center; color: #333; padding: 2rem; }
-
+...
   @media (max-width: 900px) { .team-layout { grid-template-columns: 1fr; } }
 </style>

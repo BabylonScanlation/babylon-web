@@ -1,6 +1,7 @@
 import { defineAction } from 'astro:actions';
 import { z } from 'astro:schema';
 import { and, eq, sql } from 'drizzle-orm';
+import * as schema from '../db/schema';
 import { chapters, series } from '../db/schema';
 import { canManageScanlation, isScanlationMember } from '../lib/auth-utils';
 import { hashIpAddress } from '../lib/crypto';
@@ -125,10 +126,30 @@ export const seriesActions = {
         coverImageUrl = siteConfig.assets.placeholderCover.replace(/^\//, '');
       }
 
-      const chatId = env.TELEGRAM_CHAT_ID;
+      // Orion: Determinar el canal de Telegram (Separación Profiláctica Estricta)
+      let targetChatId: string | null = null;
+
+      if (targetScanlationId) {
+        const scanData = await db
+          .select({ telegramChatId: schema.scanlations.telegramChatId })
+          .from(schema.scanlations)
+          .where(eq(schema.scanlations.id, targetScanlationId))
+          .get();
+
+        if (!scanData?.telegramChatId) {
+          throw new Error(
+            'Este Scanlation no tiene un canal de Telegram configurado por la administración. No se puede crear la serie.'
+          );
+        }
+        targetChatId = scanData.telegramChatId;
+      } else {
+        // Es una serie Global/Admin
+        targetChatId = env.TELEGRAM_CHAT_ID || null;
+      }
+
       const botToken = env.TELEGRAM_BOT_TOKEN;
 
-      if (!chatId || !botToken) {
+      if (!targetChatId || !botToken) {
         throw new Error('Configuración de Telegram faltante en el servidor');
       }
 
@@ -137,7 +158,7 @@ export const seriesActions = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat_id: chatId,
+          chat_id: targetChatId,
           name: title,
         }),
       });

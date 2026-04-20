@@ -239,7 +239,7 @@ export const authActions = {
 
       // Orion: Combinación ultra-robusta de entornos
       const env = {
-        ...(import.meta.env as any),
+        ...(import.meta.env as Record<string, string | undefined>),
         ...(runtime?.env || {}),
       };
 

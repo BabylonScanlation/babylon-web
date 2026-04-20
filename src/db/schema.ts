@@ -150,6 +150,8 @@ export const scanlations = sqliteTable(
     avatarUrl: text('avatar_url'),
     bannerUrl: text('banner_url'),
     website: text('website'),
+    telegramChatId: text('telegram_chat_id'), // ID del canal propio del scanlation
+    telegramLinkToken: text('telegram_link_token').unique(), // Token temporal para vinculación mágica
     socialLinks: text('social_links'), // JSON stringified
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
     createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(

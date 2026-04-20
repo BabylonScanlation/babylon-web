@@ -1,6 +1,7 @@
 import { defineAction } from 'astro:actions';
 import { z } from 'astro:schema';
 import { and, eq, max, sql } from 'drizzle-orm';
+import * as schema from '../db/schema';
 import { chapters, chapterViews as chapterViewsTable, comments, pages, series } from '../db/schema';
 import { canManageScanlation } from '../lib/auth-utils';
 import { processAndCacheChapter } from '../lib/chapterProcessing';
@@ -149,8 +150,11 @@ export const chapterActions = {
           topicId: series.telegramTopicId,
           slug: series.slug,
           scanlationId: series.scanlationId,
+          // Orion: Obtenemos el chat ID propio del scanlation
+          scanTelegramChatId: schema.scanlations.telegramChatId,
         })
         .from(series)
+        .leftJoin(schema.scanlations, eq(series.scanlationId, schema.scanlations.id))
         .where(eq(series.id, seriesId))
         .get();
 
@@ -161,13 +165,33 @@ export const chapterActions = {
         throw new Error('Forbidden: No tienes permiso para subir capítulos a esta serie');
       }
 
-      if (!seriesData.topicId) {
-        throw new Error('La serie no tiene un Topic de Telegram asignado');
+      // Orion: Enrutamiento Inteligente de Telegram (Separación Profiláctica Estricta)
+      let targetChatId: string | null = null;
+
+      if (seriesData.scanlationId) {
+        // Si la serie es de un scanlation, usar ÚNICAMENTE su canal
+        if (!seriesData.scanTelegramChatId) {
+          throw new Error(
+            'Este Scanlation no tiene un canal de Telegram configurado. Contacta con el administrador global.'
+          );
+        }
+        targetChatId = seriesData.scanTelegramChatId;
+      } else {
+        // Si es una serie global (tuya), usar el canal principal
+        targetChatId = env.TELEGRAM_CHAT_ID || null;
+      }
+
+      if (!targetChatId) {
+        throw new Error('Configuración de Telegram (Chat ID) faltante en el servidor.');
       }
 
       const tgFormData = new FormData();
-      tgFormData.append('chat_id', env.TELEGRAM_CHAT_ID);
-      tgFormData.append('message_thread_id', seriesData.topicId.toString());
+      tgFormData.append('chat_id', targetChatId);
+
+      if (seriesData.topicId) {
+        tgFormData.append('message_thread_id', seriesData.topicId.toString());
+      }
+
       tgFormData.append('document', file, file.name);
 
       const tgResponse = await fetch(
