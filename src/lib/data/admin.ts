@@ -42,7 +42,7 @@ export async function getAdminCommentsActivity(
   db: DrizzleD1Database<typeof schema>,
   scanlationId?: number
 ) {
-  // 1. Últimos comentarios de Capítulos (Filtrado por Scanlation si aplica)
+  // 1. Últimos comentarios de Capítulos (Filtrado por Scanlation del Capítulo)
   const chapQuery = db
     .select({
       id: comments.id,
@@ -64,7 +64,7 @@ export async function getAdminCommentsActivity(
     .leftJoin(users, eq(comments.userId, users.id));
 
   if (scanlationId !== undefined) {
-    chapQuery.where(eq(series.scanlationId, scanlationId));
+    chapQuery.where(eq(chapters.scanlationId, scanlationId));
   }
 
   const chapComms = await chapQuery.orderBy(desc(comments.createdAt)).limit(300).all();
@@ -90,12 +90,19 @@ export async function getAdminCommentsActivity(
     .leftJoin(users, eq(seriesComments.userId, users.id));
 
   if (scanlationId !== undefined) {
-    serQuery.where(eq(series.scanlationId, scanlationId));
+    // En TMO, mostramos comentarios de series donde el scanlation participa
+    const participationSubquery = db
+      .select({ seriesId: chapters.seriesId })
+      .from(chapters)
+      .where(eq(chapters.scanlationId, scanlationId))
+      .as('participation');
+
+    serQuery.innerJoin(participationSubquery, eq(series.id, participationSubquery.seriesId));
   }
 
   const serComms = await serQuery.orderBy(desc(seriesComments.createdAt)).limit(300).all();
 
-  // 3. Últimos comentarios de Noticias (Solo si la noticia está vinculada a una serie del scanlation)
+  // 3. Últimos comentarios de Noticias
   const newsQuery = db
     .select({
       id: newsComments.id,
@@ -116,9 +123,7 @@ export async function getAdminCommentsActivity(
     .leftJoin(users, eq(newsComments.userId, users.id));
 
   if (scanlationId !== undefined) {
-    // Solo noticias vinculadas a series del scanlation
-    newsQuery.leftJoin(series, eq(news.seriesId, series.id));
-    newsQuery.where(eq(series.scanlationId, scanlationId));
+    newsQuery.where(eq(news.scanlationId, scanlationId));
   }
 
   const newsComms = await newsQuery.orderBy(desc(newsComments.createdAt)).limit(300).all();
@@ -169,7 +174,10 @@ export async function getAdminSeriesWithChapters(
   }
 
   if (scanlationId !== undefined) {
-    filters.push(eq(series.scanlationId, scanlationId));
+    // Usamos exists o inArray para filtrar series donde el scanlation participa
+    filters.push(
+      sql`EXISTS (SELECT 1 FROM ${chapters} WHERE ${chapters.seriesId} = ${series.id} AND ${chapters.scanlationId} = ${scanlationId})`
+    );
   }
 
   if (filters.length > 0) {
@@ -234,7 +242,7 @@ export async function getAllScanlations(db: DrizzleD1Database<typeof schema>) {
       slug: scanlations.slug,
       isActive: scanlations.isActive,
       createdAt: scanlations.createdAt,
-      seriesCount: sql<number>`(SELECT count(*) FROM ${series} WHERE ${series.scanlationId} = ${scanlations.id})`,
+      seriesCount: sql<number>`(SELECT count(DISTINCT ${chapters.seriesId}) FROM ${chapters} WHERE ${chapters.scanlationId} = ${scanlations.id})`,
       memberCount: sql<number>`(SELECT count(*) FROM ${scanlationMembers} WHERE ${scanlationMembers.scanlationId} = ${scanlations.id})`,
     })
     .from(scanlations)

@@ -31,15 +31,11 @@ export const series = sqliteTable(
     serializedBy: text('serialized_by'),
     isHidden: integer('is_hidden', { mode: 'boolean' }).default(true),
     isNsfw: integer('is_nsfw', { mode: 'boolean' }).default(false),
-    scanlationId: integer('scanlation_id', { mode: 'number' }).references(() => scanlations.id, {
-      onDelete: 'set null',
-    }),
     isAppSeries: integer('is_app_series', { mode: 'boolean' }).default(false),
   },
   (table) => [
     index('idx_series_hidden').on(table.isHidden),
     index('idx_series_nsfw').on(table.isNsfw),
-    index('idx_series_scanlation_id').on(table.scanlationId),
     index('idx_series_status').on(table.status),
     index('idx_series_type').on(table.type),
     index('idx_series_author').on(table.author),
@@ -54,7 +50,15 @@ export const chapters = sqliteTable(
     seriesId: integer('series_id', { mode: 'number' })
       .notNull()
       .references(() => series.id, { onDelete: 'cascade' }),
+    scanlationId: integer('scanlation_id', { mode: 'number' }).references(() => scanlations.id, {
+      onDelete: 'set null',
+    }),
+    uploaderId: text('uploader_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     chapterNumber: real('chapter_number').notNull(),
+    volumeNumber: integer('volume_number', { mode: 'number' }),
+    language: text('language').notNull().default('es-la'),
     title: text('title'),
     telegramFileId: text('telegram_file_id').notNull().unique(),
     status: text('status').notNull().default('processing'),
@@ -64,9 +68,56 @@ export const chapters = sqliteTable(
   },
   (table) => [
     index('idx_chapters_series_id').on(table.seriesId),
+    index('idx_chapters_scanlation_id').on(table.scanlationId),
+    index('idx_chapters_language').on(table.language),
     index('idx_chapters_status').on(table.status),
-    uniqueIndex('idx_chapters_series_number').on(table.seriesId, table.chapterNumber),
+    uniqueIndex('idx_chapters_unique_upload').on(
+      table.seriesId,
+      table.chapterNumber,
+      table.scanlationId,
+      table.language
+    ),
   ]
+);
+
+export const reports = sqliteTable(
+  'Reports',
+  {
+    id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+    reporterId: text('reporter_id')
+      .notNull()
+      .references(() => users.id),
+    chapterId: integer('chapter_id', { mode: 'number' }).references(() => chapters.id, {
+      onDelete: 'cascade',
+    }),
+    seriesId: integer('series_id', { mode: 'number' }).references(() => series.id, {
+      onDelete: 'cascade',
+    }),
+    reason: text('reason').notNull(),
+    status: text('status').notNull().default('pending'),
+    createdAt: text('created_at').default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+  },
+  (table) => [index('idx_reports_status').on(table.status)]
+);
+
+export const scanlationInvitations = sqliteTable(
+  'ScanlationInvitations',
+  {
+    id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+    scanlationId: integer('scanlation_id', { mode: 'number' })
+      .notNull()
+      .references(() => scanlations.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    role: text('role', { enum: ['editor', 'moderator'] })
+      .notNull()
+      .default('editor'),
+    token: text('token').notNull().unique(),
+    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(
+      sql`(strftime('%s', 'now') * 1000)`
+    ),
+  },
+  (table) => [index('idx_invitations_token').on(table.token)]
 );
 
 export const pages = sqliteTable(

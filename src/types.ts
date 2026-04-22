@@ -32,7 +32,11 @@ export interface Chapter {
   urlPortada: string | null;
   status: string;
   views: number | null;
-  createdAt: string | null;
+  language?: string | null;
+  scanlationId?: number | null;
+  scanlationName?: string | null;
+  scanlationSlug?: string | null;
+  createdAt: string | number | Date;
   messageThreadId?: number | null;
   isAppOnly?: boolean | null;
   processing?: boolean | null;
@@ -68,10 +72,11 @@ export interface Series {
   alternativeNames?: string | null;
   serializedBy?: string | null;
   views?: number | null;
-  createdAt?: string | null;
+  createdAt: string | number | Date;
   lastChapter?: string;
   lastChapterCreatedAt?: string;
   chapters?: Chapter[];
+  chaptersByLanguage: Record<string, Chapter[]>;
   isHidden?: boolean | null;
   isNsfw?: boolean | null;
   isAppSeries?: boolean | null;

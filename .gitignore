@@ -27,6 +27,7 @@ db_snapshots/
 
 # Dependencies and lock files
 package-lock.json
+.eslintcache
 
 # Drizzle Migrations Meta
 migrations/meta/

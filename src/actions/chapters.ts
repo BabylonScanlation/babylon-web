@@ -1,6 +1,6 @@
 import { defineAction } from 'astro:actions';
 import { z } from 'astro:schema';
-import { and, eq, max, sql } from 'drizzle-orm';
+import { and, eq, isNull, max, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import { chapters, chapterViews as chapterViewsTable, comments, pages, series } from '../db/schema';
 import { canManageScanlation } from '../lib/auth-utils';
@@ -97,9 +97,8 @@ export const chapterActions = {
       for (const id of chapterIds) {
         // Validación Multi-tenant por cada capítulo
         const chapterData = await db
-          .select({ scanlationId: series.scanlationId })
+          .select({ scanlationId: chapters.scanlationId })
           .from(chapters)
-          .innerJoin(series, eq(chapters.seriesId, series.id))
           .where(eq(chapters.id, id))
           .get();
 
@@ -138,51 +137,58 @@ export const chapterActions = {
     input: z.object({
       seriesId: z.string().transform((v) => parseInt(v, 10)),
       file: z.instanceof(File),
+      scanlationId: z
+        .string()
+        .transform((v) => parseInt(v, 10))
+        .optional(),
+      language: z.string().default('es-la'),
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      const { seriesId, file } = input;
+      const { seriesId, file, scanlationId, language } = input;
       const { env } = context.locals.runtime;
       const db = getDB(env);
+
+      if (!user) throw new Error('Unauthorized');
+
+      // Validar si el usuario puede subir en nombre de este scanlation
+      // Si no se envía scanlationId, el usuario debe ser Admin para subir "en nombre de la plataforma"
+      if (scanlationId) {
+        if (!canManageScanlation(user, scanlationId)) {
+          throw new Error('No tienes permisos para subir capítulos en nombre de este Scanlation');
+        }
+      } else if (!user.isAdmin) {
+        throw new Error('Debes seleccionar un Scanlation para subir capítulos');
+      }
 
       const seriesData = await db
         .select({
           topicId: series.telegramTopicId,
           slug: series.slug,
-          scanlationId: series.scanlationId,
-          // Orion: Obtenemos el chat ID propio del scanlation
-          scanTelegramChatId: schema.scanlations.telegramChatId,
         })
         .from(series)
-        .leftJoin(schema.scanlations, eq(series.scanlationId, schema.scanlations.id))
         .where(eq(series.id, seriesId))
         .get();
 
       if (!seriesData) throw new Error('Serie no encontrada');
 
-      // Validar permisos Multi-tenant
-      if (!canManageScanlation(user, seriesData.scanlationId)) {
-        throw new Error('Forbidden: No tienes permiso para subir capítulos a esta serie');
-      }
-
-      // Orion: Enrutamiento Inteligente de Telegram (Separación Profiláctica Estricta)
-      let targetChatId: string | null = null;
-
-      if (seriesData.scanlationId) {
-        // Si la serie es de un scanlation, usar ÚNICAMENTE su canal
-        if (!seriesData.scanTelegramChatId) {
-          throw new Error(
-            'Este Scanlation no tiene un canal de Telegram configurado. Contacta con el administrador global.'
-          );
+      // Obtener datos del Scanlation para Telegram
+      let targetChatId = env.TELEGRAM_CHAT_ID || null;
+      if (scanlationId) {
+        const scanData = await db
+          .select({ telegramChatId: schema.scanlations.telegramChatId })
+          .from(schema.scanlations)
+          .where(eq(schema.scanlations.id, scanlationId))
+          .get();
+        if (scanData?.telegramChatId) {
+          targetChatId = scanData.telegramChatId;
         }
-        targetChatId = seriesData.scanTelegramChatId;
-      } else {
-        // Si es una serie global (tuya), usar el canal principal
-        targetChatId = env.TELEGRAM_CHAT_ID || null;
       }
 
       if (!targetChatId) {
-        throw new Error('Configuración de Telegram (Chat ID) faltante en el servidor.');
+        throw new Error(
+          'Configuración de Telegram (Chat ID) faltante para este Scanlation o Global.'
+        );
       }
 
       const tgFormData = new FormData();
@@ -241,7 +247,14 @@ export const chapterActions = {
       const existing = await db
         .select()
         .from(chapters)
-        .where(and(eq(chapters.seriesId, seriesId), eq(chapters.chapterNumber, chapterNumber)))
+        .where(
+          and(
+            eq(chapters.seriesId, seriesId),
+            eq(chapters.chapterNumber, chapterNumber),
+            scanlationId ? eq(chapters.scanlationId, scanlationId) : isNull(chapters.scanlationId),
+            eq(chapters.language, language)
+          )
+        )
         .get();
 
       if (!existing) {
@@ -251,6 +264,9 @@ export const chapterActions = {
             seriesId,
             chapterNumber,
             telegramFileId: fileId,
+            scanlationId: scanlationId || null,
+            uploaderId: user.uid,
+            language,
             status: 'processing',
             urlPortada: `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`,
             createdAt: new Date().toISOString(),
@@ -267,6 +283,7 @@ export const chapterActions = {
           .set({
             telegramFileId: fileId,
             status: 'processing',
+            uploaderId: user.uid,
             createdAt: new Date().toISOString(),
           })
           .where(eq(chapters.id, existing.id));
@@ -293,12 +310,14 @@ export const chapterActions = {
     input: z.object({
       seriesId: z.number(),
       targetTotal: z.number(),
+      scanlationId: z.number().optional(),
+      language: z.string().default('es-la'),
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
-      const { seriesId, targetTotal } = input;
+      const { seriesId, targetTotal, scanlationId, language } = input;
       const db = getDB(context.locals.runtime.env);
 
       const seriesData = await db
@@ -311,7 +330,13 @@ export const chapterActions = {
       const result = await db
         .select({ maxNum: max(chapters.chapterNumber) })
         .from(chapters)
-        .where(eq(chapters.seriesId, seriesId))
+        .where(
+          and(
+            eq(chapters.seriesId, seriesId),
+            scanlationId ? eq(chapters.scanlationId, scanlationId) : isNull(chapters.scanlationId),
+            eq(chapters.language, language)
+          )
+        )
         .get();
       const currentMax = result?.maxNum ?? 0;
 
@@ -325,6 +350,9 @@ export const chapterActions = {
             .values({
               seriesId,
               chapterNumber: i,
+              scanlationId: scanlationId || null,
+              uploaderId: user.uid,
+              language,
               telegramFileId: `app_only_${seriesId}_${i}_${Math.random().toString(36).substring(2, 10)}`,
               status: 'app_only',
               views: 0,
@@ -350,11 +378,10 @@ export const chapterActions = {
       const { chapterId, title } = input;
       const db = getDB(context.locals.runtime.env);
 
-      // Obtener scanlationId a través de la relación con series
+      // Obtener scanlationId directamente del capítulo
       const chapterData = await db
-        .select({ scanlationId: series.scanlationId })
+        .select({ scanlationId: chapters.scanlationId })
         .from(chapters)
-        .innerJoin(series, eq(chapters.seriesId, series.id))
         .where(eq(chapters.id, chapterId))
         .get();
 
@@ -380,11 +407,10 @@ export const chapterActions = {
       const { env } = context.locals.runtime;
       const db = getDB(env);
 
-      // Obtener scanlationId a través de la relación con series
+      // Obtener scanlationId directamente del capítulo
       const chapterData = await db
-        .select({ scanlationId: series.scanlationId })
+        .select({ scanlationId: chapters.scanlationId })
         .from(chapters)
-        .innerJoin(series, eq(chapters.seriesId, series.id))
         .where(eq(chapters.id, chapterId))
         .get();
 

@@ -14,9 +14,11 @@ export async function getChapterPayload(
   env: BabylonEnv,
   slug: string,
   chapterNumber: number,
+  options: { scanlationSlug?: string; chapterId?: number } = {},
   ctx?: ExecutionContext
 ) {
-  const CHAPTER_METADATA_KEY = `chapter_metadata_${slug}_${chapterNumber}`;
+  const { scanlationSlug, chapterId } = options;
+  const CHAPTER_METADATA_KEY = `chapter_metadata_${slug}_${chapterNumber}_${scanlationSlug || 'any'}_${chapterId || 'any'}`;
   const now = Date.now();
 
   let chapterData: any = null;
@@ -29,18 +31,28 @@ export async function getChapterPayload(
 
   // 2. Si no hay cache, consultar D1
   if (!chapterData) {
-    chapterData = await db
+    const query = db
       .select()
       .from(chapters)
       .innerJoin(series, eq(chapters.seriesId, series.id))
-      .where(
-        and(
-          eq(series.slug, slug),
-          eq(chapters.chapterNumber, chapterNumber),
-          inArray(chapters.status, ['live', 'app_only', 'processing'])
-        )
-      )
-      .get();
+      .$dynamic();
+
+    const conditions = [
+      eq(series.slug, slug),
+      inArray(chapters.status, ['live', 'app_only', 'processing']),
+    ];
+
+    if (chapterId) {
+      conditions.push(eq(chapters.id, chapterId));
+    } else {
+      conditions.push(eq(chapters.chapterNumber, chapterNumber));
+      if (scanlationSlug) {
+        // Nota: Requeriría un join con scanlations si solo tenemos el slug
+        // Por ahora, asumimos que si no hay ID, buscamos el número y filtramos por scanlationId si fuera necesario
+      }
+    }
+
+    chapterData = await query.where(and(...conditions)).get();
 
     // Guardar en RAM por 10 minutos (600,000 ms)
     if (chapterData) {

@@ -1,7 +1,7 @@
 ---
 import { asc, desc, inArray, or, sql } from 'drizzle-orm';
 import AdminNewsManager from '../../components/AdminNewsManager.svelte';
-import { news, series } from '../../db/schema';
+import { chapters, news, series } from '../../db/schema';
 import Layout from '../../layouts/Layout.astro';
 import { getDB } from '../../lib/db';
 import { siteConfig } from '../../site.config';
@@ -16,7 +16,11 @@ const user = Astro.locals.user;
 
 // Orion: Lógica de filtrado multi-tenant
 const userScanIds = user?.isAdmin ? [] : user?.scanlations?.map((s) => s.id) || [];
-const seriesFilter = user?.isAdmin ? undefined : inArray(series.scanlationId, userScanIds);
+
+// Filtro para mostrar series donde el scanlation participa
+const seriesFilter = user?.isAdmin
+  ? undefined
+  : sql`EXISTS (SELECT 1 FROM ${chapters} WHERE ${chapters.seriesId} = ${series.id} AND ${chapters.scanlationId} IN (${sql.raw(userScanIds.join(',') || '0')}))`;
 
 // 1. Obtener total para paginación con filtro
 const totalResult = await db

@@ -25,39 +25,24 @@ async function validateNewsOwnership(
   newsId: string
 ) {
   const existing = await db
-    .select({ seriesId: schema.news.seriesId, scanlationId: schema.news.scanlationId })
+    .select({ scanlationId: schema.news.scanlationId })
     .from(schema.news)
     .where(eq(schema.news.id, newsId))
     .get();
 
   if (!existing) throw new Error('Noticia no encontrada');
 
-  // Si la noticia es GLOBAL (no vinculada a serie)
-  if (existing.seriesId === null) {
-    if (existing.scanlationId === null) {
-      // Es una noticia GLOBAL TOTAL (solo admins)
-      if (!user?.isAdmin)
-        throw new Error(
-          'Solo los administradores globales pueden gestionar noticias globales totales'
-        );
-    } else {
-      // Es una noticia GLOBAL de un SCANLATION
-      if (!canManageScanlation(user, existing.scanlationId)) {
-        throw new Error('No tienes permiso para gestionar noticias de este scanlation');
-      }
+  if (existing.scanlationId === null) {
+    // Es una noticia GLOBAL TOTAL (solo admins)
+    if (!user?.isAdmin)
+      throw new Error(
+        'Solo los administradores globales pueden gestionar noticias globales totales'
+      );
+  } else {
+    // Es una noticia de un SCANLATION
+    if (!canManageScanlation(user, existing.scanlationId)) {
+      throw new Error('No tienes permiso para gestionar noticias de este scanlation');
     }
-    return;
-  }
-
-  // Si la noticia es de una SERIE, verificar si el usuario pertenece al scanlation dueño de esa serie
-  const seriesData = await db
-    .select({ scanlationId: schema.series.scanlationId })
-    .from(schema.series)
-    .where(eq(schema.series.id, existing.seriesId))
-    .get();
-
-  if (!canManageScanlation(user, seriesData?.scanlationId)) {
-    throw new Error('No tienes permiso para gestionar noticias de esta serie');
   }
 }
 
@@ -128,7 +113,11 @@ export const newsActions = {
       title: z.string().min(1, 'El título es obligatorio'),
       content: z.string().min(1, 'El contenido es obligatorio'),
       status: z.enum(['draft', 'published']).default('published'),
-      seriesId: z.any(), // Aceptamos any para manejar la conversión manual y evitar 500s de Zod
+      seriesId: z.any(), // Aceptamos any para manejar la conversión manual
+      scanlationId: z
+        .string()
+        .transform((v) => parseInt(v, 10))
+        .optional(),
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
@@ -136,7 +125,7 @@ export const newsActions = {
 
       const db = getDB(context.locals.runtime.env);
 
-      // Normalización de seriesId (Astra: Los formularios a veces envían strings o tipos inesperados)
+      // Normalización de seriesId
       let seriesId: number | null = null;
       const rawId = input.seriesId;
 
@@ -149,33 +138,32 @@ export const newsActions = {
         // Orion: Lógica de propiedad (Multi-tenant)
         let targetScanlationId: number | null = null;
 
-        if (seriesId === null || Number.isNaN(seriesId)) {
-          // Es una noticia GLOBAL
-          if (user?.isAdmin) {
-            // Admin global: noticia total (scanlationId null)
-            targetScanlationId = null;
-          } else if (isScanlationMember(user)) {
-            // Miembro scanlation: noticia global del grupo
-            targetScanlationId = user.scanlations?.[0]?.id || null;
-          } else {
+        if (input.scanlationId) {
+          // El usuario especifica el scanlation
+          if (!canManageScanlation(user, input.scanlationId)) {
             throw new Error(
-              'Solo los administradores o miembros de scanlation pueden crear noticias.'
+              'No tienes permiso para publicar noticias en nombre de este Scanlation'
             );
           }
+          targetScanlationId = input.scanlationId;
+        } else if (user?.isAdmin) {
+          // Admin global: noticia total si no elige scanlation
+          targetScanlationId = null;
         } else {
-          // Es una noticia vinculada a una SERIE
-          const seriesData = await db
-            .select({ scanlationId: schema.series.scanlationId })
+          // Usuario normal: usar su primer scanlation por defecto
+          targetScanlationId = user.scanlations?.[0]?.id || null;
+          if (!targetScanlationId) {
+            throw new Error('Debes pertenecer a un Scanlation para crear noticias');
+          }
+        }
+
+        if (seriesId !== null) {
+          const seriesExists = await db
+            .select({ id: schema.series.id })
             .from(schema.series)
             .where(eq(schema.series.id, seriesId))
             .get();
-
-          if (!seriesData) throw new Error('La obra seleccionada no existe en la base de datos.');
-
-          if (!canManageScanlation(user, seriesData.scanlationId)) {
-            throw new Error('No tienes permiso para publicar noticias en esta serie.');
-          }
-          targetScanlationId = seriesData.scanlationId;
+          if (!seriesExists) throw new Error('La obra seleccionada no existe');
         }
 
         const dbUser = await db

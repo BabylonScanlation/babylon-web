@@ -1,8 +1,15 @@
 import { and, asc, desc, eq, inArray, isNull, or, type SQL, sql } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
-import { chapters, favorites, series, seriesRatings, seriesReactions } from '../../db/schema';
-import type { RecentChapterSeries, SeriesDetails } from '../../types';
+import {
+  chapters,
+  favorites,
+  scanlations,
+  series,
+  seriesRatings,
+  seriesReactions,
+} from '../../db/schema';
+import type { RecentChapterSeries } from '../../types';
 import { parseToTimestamp } from '../utils';
 
 // Orion: Memoria RAM local para peticiones cero (Isolate level)
@@ -15,12 +22,11 @@ export async function getSeriesDetails(
   db: DrizzleD1Database<typeof schema>,
   slug: string,
   user?: { uid: string; isAdmin: boolean }
-): Promise<SeriesDetails | null> {
+): Promise<any | null> {
   const CACHE_KEY = `series_details_${slug}`;
   const now = Date.now();
 
   // 1. RAM Cache SOLO para invitados (Peticiones Cero)
-  // Tus usuarios registrados NO pasan por aquí, ellos ven todo al instante de D1.
   if (!user) {
     const cached = seriesMemoryCache.get(CACHE_KEY);
     if (cached && cached.expires > now) {
@@ -36,11 +42,7 @@ export async function getSeriesDetails(
 
   if (!seriesData) return null;
 
-  // Si la serie es NSFW y el usuario no tiene permiso (vía cookie/preferencia), no la mostramos
-  // Nota: La validación de permiso se hace en la página que llama a esta función.
-
   const [chaptersResult, ratingsResult, reactionsResult, userDataResult] = await Promise.all([
-    // Orion: Obtenemos los capítulos y sumamos sus vistas registradas para asegurar precisión
     db
       .select({
         id: chapters.id,
@@ -51,13 +53,16 @@ export async function getSeriesDetails(
         urlPortada: chapters.urlPortada,
         createdAt: chapters.createdAt,
         views: chapters.views,
-        telegramFileId: chapters.telegramFileId,
+        language: chapters.language,
+        scanlationName: scanlations.name,
+        scanlationSlug: scanlations.slug,
       })
       .from(chapters)
+      .leftJoin(scanlations, eq(chapters.scanlationId, scanlations.id))
       .where(
         and(eq(chapters.seriesId, seriesData.id), sql`${chapters.status} IN ('live', 'app_only')`)
       )
-      .orderBy(desc(chapters.chapterNumber))
+      .orderBy(desc(chapters.chapterNumber), desc(chapters.createdAt))
       .all()
       .catch((err) => {
         console.error('Error fetching chapters:', err);
@@ -150,9 +155,20 @@ export async function getSeriesDetails(
     {} as Record<string, number>
   );
 
+  // Orion: Agrupar capítulos por idioma
+  const chaptersByLanguage = (chaptersResult as any[]).reduce(
+    (acc, chap) => {
+      const lang = chap.language || 'es-la';
+      if (!acc[lang]) acc[lang] = [];
+      acc[lang].push(chap);
+      return acc;
+    },
+    {} as Record<string, any[]>
+  );
+
   const result = {
     ...seriesData,
-    chapters: chaptersResult,
+    chaptersByLanguage,
     stats: {
       averageRating,
       totalVotes,
@@ -245,7 +261,7 @@ export async function getHomeData(
         coverImageUrl: series.coverImageUrl,
         description: series.description,
         views: series.views,
-        chapterCount: sql<number>`count(${chapters.id})`.as('chapterCount'),
+        chapterCount: sql<number>`count(DISTINCT ${chapters.chapterNumber})`.as('chapterCount'),
       })
       .from(series)
       .leftJoin(chapters, eq(series.id, chapters.seriesId))
@@ -508,7 +524,7 @@ export async function getSeriesByChapterCount(
       coverImageUrl: series.coverImageUrl,
       description: series.description,
       views: series.views,
-      chapterCount: sql<number>`count(${chapters.id})`.as('chapterCount'),
+      chapterCount: sql<number>`count(DISTINCT ${chapters.chapterNumber})`.as('chapterCount'),
     })
     .from(series)
     .innerJoin(chapters, eq(series.id, chapters.seriesId))

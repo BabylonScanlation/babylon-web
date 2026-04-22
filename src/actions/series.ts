@@ -3,7 +3,7 @@ import { z } from 'astro:schema';
 import { and, eq, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import { chapters, series } from '../db/schema';
-import { canManageScanlation, isScanlationMember } from '../lib/auth-utils';
+import { isScanlationMember } from '../lib/auth-utils';
 import { hashIpAddress } from '../lib/crypto';
 import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
@@ -194,7 +194,6 @@ export const seriesActions = {
         slug,
         coverImageUrl,
         telegramTopicId,
-        scanlationId: targetScanlationId,
         isAppSeries: !!input.isAppSeries,
         isHidden: !!input.isHidden,
         isNsfw: !!input.isNsfw,
@@ -241,12 +240,30 @@ export const seriesActions = {
       const db = getDB(env);
       const { seriesId, coverImage } = input;
 
+      if (!user) throw new Error('Unauthorized');
+
       const currentSeries = await db.select().from(series).where(eq(series.id, seriesId)).get();
       if (!currentSeries) throw new Error('Serie no encontrada');
 
-      // Validar propiedad (Multi-tenant)
-      if (!canManageScanlation(user, currentSeries.scanlationId)) {
-        throw new Error('Forbidden: No tienes permiso para editar esta serie');
+      // Validar permisos (TMO Model)
+      if (!user.isAdmin) {
+        const participation = await db
+          .select({ id: chapters.id })
+          .from(chapters)
+          .where(
+            and(
+              eq(chapters.seriesId, seriesId),
+              sql`${chapters.scanlationId} IN (${sql.raw(user.scanlations?.map((s) => s.id).join(',') || '0')})`
+            )
+          )
+          .limit(1)
+          .get();
+
+        if (!participation) {
+          throw new Error(
+            'Forbidden: No tienes permiso para editar esta serie (no participas en ella)'
+          );
+        }
       }
 
       let slug = input.slug || currentSeries.slug;
@@ -310,13 +327,10 @@ export const seriesActions = {
       const db = getDB(env);
       const { seriesId } = input;
 
+      if (!user?.isAdmin) throw new Error('Solo los administradores globales pueden borrar series');
+
       const seriesData = await db.select().from(series).where(eq(series.id, seriesId)).get();
       if (!seriesData) throw new Error('Serie no encontrada');
-
-      // Orion: Validación Multi-tenant
-      if (!canManageScanlation(user, seriesData.scanlationId)) {
-        throw new Error('Forbidden: No tienes permiso para borrar esta serie');
-      }
 
       // Limpieza de R2 (Capítulos y Portada)
       await clearSeriesR2Data(seriesData.slug, seriesData.coverImageUrl, env);
@@ -429,15 +443,25 @@ export const seriesActions = {
       const { seriesId, key, value } = input;
       const db = getDB(context.locals.runtime.env);
 
-      const currentSeries = await db
-        .select({ scanlationId: series.scanlationId })
-        .from(series)
-        .where(eq(series.id, seriesId))
-        .get();
-      if (!currentSeries) throw new Error('Serie no encontrada');
+      if (!user) throw new Error('Unauthorized');
 
-      if (!canManageScanlation(user, currentSeries.scanlationId)) {
-        throw new Error('Forbidden');
+      // Validación permisos (TMO Model)
+      if (!user.isAdmin) {
+        const participation = await db
+          .select({ id: chapters.id })
+          .from(chapters)
+          .where(
+            and(
+              eq(chapters.seriesId, seriesId),
+              sql`${chapters.scanlationId} IN (${sql.raw(user.scanlations?.map((s) => s.id).join(',') || '0')})`
+            )
+          )
+          .limit(1)
+          .get();
+
+        if (!participation) {
+          throw new Error('Forbidden');
+        }
       }
 
       await db
