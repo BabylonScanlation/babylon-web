@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "node",
+      "args": ["C:\\Users\\Administrator\\AppData\\Local\\Linxurs\\babylon-web\\mcp-proxy.cjs"]
+    }
+  }
+}

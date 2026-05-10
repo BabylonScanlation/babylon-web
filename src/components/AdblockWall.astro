@@ -49,6 +49,7 @@
 
   async function checkIntegrity() {
     console.log('%c🛡️ SHIELD: Iniciando monitor de integridad...', 'color: cyan; font-weight: bold;');
+    let score = 0;
 
     // 1. Detección de "Mocks" (PDF: Honeypot de Objetos)
     // Si adsbygoogle existe pero no es un Array real o su .push es falso, hay bloqueo.
@@ -57,14 +58,14 @@
     if (win.adsbygoogle.constructor !== Array || 
         (win.adsbygoogle.push && win.adsbygoogle.push.toString().length < 40)) {
       console.log('%c🛡️ SHIELD: Mock detectado en objetos de anuncios.', 'color: orange;');
-      return true;
+      score += 1;
     }
 
     // 2. Detección de Parche de Funciones (PDF: Scriptlet Injection Detection)
     // uBlock y Brave a menudo parchean fetch o XHR.
     if (!window.fetch.toString().includes('[native code]')) {
       console.log('%c🛡️ SHIELD: Función Fetch manipulada por tercero.', 'color: orange;');
-      return true;
+      score += 1;
     }
 
     // 3. Detección de Bloqueo de Red Duro (Sin 403)
@@ -82,13 +83,30 @@
        try {
          await fetch(window.location.origin, { method: 'HEAD', cache: 'no-store' });
          console.log('%c🛡️ SHIELD: Bloqueo de red confirmado (Google Tracking).', 'color: orange;');
-         return true;
+         score += 2;
        } catch {
-         return false; // Es un problema de internet real
+         // Es un problema de internet real
        }
     }
 
-    return false;
+    // 5. Prueba de Red Principal (Adsterra)
+    try {
+      const controller = new AbortController();
+      const adsterraDomain = document.body.getAttribute('data-adsterra-domain');
+      if (adsterraDomain) {
+        setTimeout(() => controller.abort(), 2000);
+        await fetch(`https://${adsterraDomain}/invoke.js`, { 
+          mode: 'no-cors', cache: 'no-store', signal: controller.signal 
+        });
+      }
+    } catch {
+      score += 2;
+    }
+
+    console.log('%c🛡️ SHIELD: Puntaje Final: ' + score, 'color: yellow; font-weight: bold;');
+    
+    // Si hay CUALQUIER indicio de bloqueo (incluso fallos parciales de VPN)
+    return score >= 1;
   }
 
   async function initShield() {

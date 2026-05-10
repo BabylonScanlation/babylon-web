@@ -1,6 +1,7 @@
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 const fs = require('node:fs');
+require('dotenv').config();
 
 const target = path.join(__dirname, 'node_modules', '@upstash', 'context7-mcp', 'dist', 'index.js');
 

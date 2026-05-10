@@ -103,11 +103,27 @@ export const siteConfig = {
     enabled: true,
     // IDs de Adsterra
     adsterra: {
+      domain: import.meta.env.PUBLIC_ADSTERRA_DOMAIN,
       banner: import.meta.env.PUBLIC_ADSTERRA_BANNER_ID,
       bannerLarge: import.meta.env.PUBLIC_ADSTERRA_BANNER_LARGE_ID,
       bannerSmall: import.meta.env.PUBLIC_ADSTERRA_BANNER_SMALL_ID,
       square: import.meta.env.PUBLIC_ADSTERRA_SQUARE_ID,
       native: import.meta.env.PUBLIC_ADSTERRA_NATIVE_ID,
+      socialBarUrl: import.meta.env.PUBLIC_ADSTERRA_SOCIAL_BAR_URL,
+      popunderUrl: import.meta.env.PUBLIC_ADSTERRA_POPUNDER_URL,
+      extraSmartlink: import.meta.env.ADSTERRA_SMARTLINK_EXTRA,
+    },
+    // IDs de Monetag
+    monetag: {
+      vignetteId: import.meta.env.PUBLIC_MONETAG_VIGNETTE_ID,
+      vignetteUrl: import.meta.env.PUBLIC_MONETAG_VIGNETTE_URL,
+      multitagId: import.meta.env.PUBLIC_MONETAG_MULTITAG_ID,
+      multitagUrl: import.meta.env.PUBLIC_MONETAG_MULTITAG_URL,
+      multitag2Id: import.meta.env.PUBLIC_MONETAG_MULTITAG_2_ID,
+      multitag2Url: import.meta.env.PUBLIC_MONETAG_MULTITAG_2_URL,
+      smartlinkUrl: import.meta.env.PUBLIC_MONETAG_SMARTLINK_URL,
+      smartlink2Url: import.meta.env.PUBLIC_MONETAG_SMARTLINK_2_URL,
+      smartlink3Url: import.meta.env.PUBLIC_MONETAG_SMARTLINK_3_URL,
     },
   },
 };
