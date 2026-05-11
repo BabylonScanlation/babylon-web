@@ -26,7 +26,6 @@ db_snapshots/
 .dev.vars
 
 # Dependencies and lock files
-package-lock.json
 .eslintcache
 
 # Drizzle Migrations Meta
