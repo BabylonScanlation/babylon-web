@@ -27,13 +27,14 @@
       },
       "correctness": {
         "noUnusedVariables": "warn",
+        "noUnusedImports": "warn",
         "noUnknownPseudoClass": "off"
       },
       "performance": {
         "noDelete": "warn"
       },
       "style": {
-        "useImportType": "warn",
+        "useImportType": "off",
         "useNamingConvention": "off",
         "useTemplate": "warn"
       },
@@ -44,6 +45,7 @@
     }
   },
   "javascript": {
+    "globals": ["Astro"],
     "formatter": {
       "quoteStyle": "single",
       "jsxQuoteStyle": "double",
@@ -57,15 +59,17 @@
   },
   "overrides": [
     {
-      "includes": ["**/*.astro", "**/*.svelte"],
+      "include": ["**/*.astro", "**/*.svelte"],
       "linter": {
         "rules": {
+          "correctness": {
+            "noUnusedVariables": "off",
+            "noUnusedImports": "off",
+            "noUndeclaredVariables": "off"
+          },
           "style": {
             "useConst": "off",
             "useImportType": "off"
-          },
-          "correctness": {
-            "noUnusedVariables": "warn"
           },
           "suspicious": {
             "noImplicitAnyLet": "off"
