@@ -1,5 +1,5 @@
 import { defineAction } from 'astro:actions';
-import { z } from 'astro:schema';
+import { z } from 'astro/zod';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { favorites, series, seriesRatings, userProgress, users } from '../db/schema';
 import { getDB } from '../lib/db';
@@ -15,11 +15,11 @@ const ProfileSchema = z.object({
     .regex(/^[a-zA-Z0-9_]+$/)
     .optional(),
   bio: z.string().max(160).optional(),
-  website: z.string().url().optional().or(z.literal('')),
+  website: z.url().optional().or(z.literal('')),
   isPrivate: z.boolean().optional(),
   isNsfw: z.boolean().optional(),
-  avatarUrl: z.string().url().optional(),
-  bannerUrl: z.string().url().optional(),
+  avatarUrl: z.url().optional(),
+  bannerUrl: z.url().optional(),
   nonce: z.string().optional(),
 });
 

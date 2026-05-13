@@ -1,5 +1,5 @@
 import { defineAction } from 'astro:actions';
-import { z } from 'astro:schema';
+import { z } from 'astro/zod';
 import { and, eq, isNull, max, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import { chapters, chapterViews as chapterViewsTable, comments, pages, series } from '../db/schema';

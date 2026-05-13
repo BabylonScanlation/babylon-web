@@ -1,5 +1,5 @@
 import { defineAction } from 'astro:actions';
-import { z } from 'astro:schema';
+import { z } from 'astro/zod';
 import { eq, sql } from 'drizzle-orm';
 import { anonymousUsers, sessions, userRoles, users } from '../db/schema';
 import { hashIpAddress } from '../lib/crypto';

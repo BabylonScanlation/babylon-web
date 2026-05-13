@@ -2,7 +2,7 @@
 
 export function logError(error: unknown, message: string, context?: Record<string, unknown>) {
   let errorMessage = message;
-  let errorDetails: unknown = {};
+  let errorDetails: unknown;
 
   if (error instanceof Error) {
     errorMessage += `: ${error.message}`;

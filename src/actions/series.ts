@@ -1,5 +1,5 @@
 import { defineAction } from 'astro:actions';
-import { z } from 'astro:schema';
+import { z } from 'astro/zod';
 import { and, eq, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import { chapters, series } from '../db/schema';
@@ -127,7 +127,7 @@ export const seriesActions = {
       }
 
       // Orion: Determinar el canal de Telegram (Separación Profiláctica Estricta)
-      let targetChatId: string | null = null;
+      let targetChatId: string | null;
 
       if (targetScanlationId) {
         const scanData = await db

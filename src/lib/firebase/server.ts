@@ -48,7 +48,7 @@ export async function verifyFirebaseToken(token: string, env: Env) {
     console.error('[Firebase] JWKS Cache Error:', e);
     // Fallback: intentar fetch directo si falla el KV
     const res = await fetch(JWKS_URL);
-    if (!res.ok) throw new Error('Error al obtener las claves de Firebase.');
+    if (!res.ok) throw new Error('Error al obtener las claves de Firebase.', { cause: e });
     jwks = await res.json();
   }
 
@@ -91,6 +91,6 @@ export async function verifyFirebaseToken(token: string, env: Env) {
       return null;
     }
     logError(error, 'Error verifying Firebase token');
-    throw new Error('Token inválido o expirado');
+    throw new Error('Token inválido o expirado', { cause: error });
   }
 }

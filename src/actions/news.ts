@@ -1,5 +1,5 @@
 import { defineAction } from 'astro:actions';
-import { z } from 'astro:schema';
+import { z } from 'astro/zod';
 import { eq } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import * as schema from '../db/schema';
@@ -93,7 +93,7 @@ export const newsActions = {
         });
       } catch (err) {
         console.error(`[R2 Upload] Failed to put object ${r2Key}:`, err);
-        throw new Error('Failed to upload to storage');
+        throw new Error('Failed to upload to storage', { cause: err });
       }
 
       await addNewsImage(db, {
@@ -109,7 +109,7 @@ export const newsActions = {
 
   create: defineAction({
     input: z.object({
-      id: z.string().uuid().optional(),
+      id: z.uuid().optional(),
       title: z.string().min(1, 'El título es obligatorio'),
       content: z.string().min(1, 'El contenido es obligatorio'),
       status: z.enum(['draft', 'published']).default('published'),
@@ -209,7 +209,7 @@ export const newsActions = {
         };
       } catch (e: unknown) {
         console.error('[News Create Error]', e);
-        throw new Error(e instanceof Error ? e.message : 'Error interno al crear la noticia');
+        throw new Error(e instanceof Error ? e.message : 'Error interno al crear la noticia', { cause: e });
       }
     },
   }),

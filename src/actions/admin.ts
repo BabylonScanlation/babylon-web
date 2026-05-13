@@ -1,5 +1,5 @@
 import { defineAction } from 'astro:actions';
-import { z } from 'astro:schema';
+import { z } from 'astro/zod';
 import { and, eq, isNull, lt } from 'drizzle-orm';
 import {
   anonymousUsers,
@@ -42,7 +42,7 @@ export const adminActions = {
   addScanMember: defineAction({
     input: z.object({
       scanlationId: z.number(),
-      userEmail: z.string().email(),
+      userEmail: z.email(),
       role: z.enum(['owner', 'editor', 'moderator']).default('editor'),
     }),
     handler: async (input, context) => {
