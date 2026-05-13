@@ -149,7 +149,7 @@ export const authActions = {
 
         // Orion: Verificación robusta del entorno Cloudflare
         const runtime = locals.runtime;
-        if (!runtime || !runtime.env) {
+        if (!runtime?.env) {
           console.error('[VerifyAge] Cloudflare runtime or env is missing in locals');
           // En desarrollo local a veces Astro no inyecta el runtime en las acciones
           // dependiendo de cómo se llame. Intentamos usar variables de entorno globales si fallan las de Cloudflare.

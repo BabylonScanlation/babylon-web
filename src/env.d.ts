@@ -1,12 +1,12 @@
 // src/env.d.ts
 
+import type { Runtime } from '@astrojs/cloudflare/runtime';
 /// <reference types="astro/client" />
 /// <reference types="svelte" />
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
-import type { Runtime } from '@astrojs/cloudflare/runtime';
-import type { User } from './types';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import * as schema from './db/schema'; // Import all schema definitions
+import type { User } from './types';
 
 declare global {
   namespace App {

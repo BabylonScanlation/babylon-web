@@ -209,7 +209,9 @@ export const newsActions = {
         };
       } catch (e: unknown) {
         console.error('[News Create Error]', e);
-        throw new Error(e instanceof Error ? e.message : 'Error interno al crear la noticia', { cause: e });
+        throw new Error(e instanceof Error ? e.message : 'Error interno al crear la noticia', {
+          cause: e,
+        });
       }
     },
   }),

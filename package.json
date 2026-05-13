@@ -24,7 +24,7 @@
     "build": "npm run format && npm run lint && astro build",
     "preview": "astro build && wrangler pages dev ./dist",
     "astro": "astro",
-    "deploy": "npm run build && wrangler pages deploy",
+    "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types",
     "dev:cf": "concurrently \"wrangler pages dev --proxy 8789 --ip 0.0.0.0 --port 8788\" \"astro dev --port 8789 --host 0.0.0.0\"",
     "dev:remote": "concurrently \"wrangler pages dev --proxy 8789 --ip 0.0.0.0 --port 8788 --remote\" \"astro dev --port 8789 --host 0.0.0.0\"",
