@@ -9,6 +9,9 @@ dist/
 # Cloudflare local development state
 .wrangler/
 
+# Gemini local development state
+.gemini/
+
 # Log files
 npm-debug.log*
 yarn-debug.log*
