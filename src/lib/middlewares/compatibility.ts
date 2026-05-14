@@ -12,13 +12,13 @@ export const compatibility = defineMiddleware(async (context, next) => {
   // y el 'ctx' del objeto runtime original para mantener la compatibilidad.
   
   if (context.locals.runtime) {
-    // @ts-expect-error - Forzamos la inyección para compatibilidad con código existente
+    // @ts-expect-error: Inyectar env para compatibilidad con Astro < 6
     context.locals.runtime.env = env;
     
     // El objeto runtime de Astro v6 contiene las propiedades nativas de Cloudflare directamente.
     // Intentamos recuperar 'ctx' (que contiene waitUntil, etc.)
     if (!context.locals.runtime.ctx) {
-      // @ts-expect-error
+      // @ts-expect-error: Inyectar ctx para compatibilidad con Astro < 6
       context.locals.runtime.ctx = context.locals.runtime;
     }
   }
