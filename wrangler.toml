@@ -1,5 +1,5 @@
 # wrangler.toml
-name = "babylon-scanlation"
+pages_build_output_dir = "dist"
 compatibility_date = "2025-07-18"
 compatibility_flags = ["nodejs_compat"]
 
@@ -8,7 +8,6 @@ compatibility_flags = ["nodejs_compat"]
 binding = "DB" # Nombre usado en el código (Astro.locals.runtime.env.DB)
 database_name = "babylon-scanlation-prod"
 database_id = "5c1ecb07-f1ea-4961-9014-0b8612fc0caf"
-preview_database_id = "5c1ecb07-f1ea-4961-9014-0b8612fc0caf" 
 migrations_dir = "./migrations"
 
 # --- R2 (PRODUCCIÓN y LOCAL - Mismo Binding Name) ---
@@ -25,11 +24,6 @@ id = "885962ed477541ca90029947d608dfc1"
 binding = "R2_ASSETS" # Nombre usado en el código (Astro.locals.runtime.env.R2_ASSETS)
 bucket_name = "babylon-scanlation-assets"
 preview_bucket_name = "babylon-scanlation-assets"
-
-# --- Smart Placement ---
-# Optimiza automáticamente la ubicación del Worker para estar cerca de D1/R2
-[placement]
-mode = "smart"
 
 # --- Configuración DEV para el puerto ---
 [dev]
