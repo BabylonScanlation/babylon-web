@@ -16,7 +16,7 @@ export default defineConfig({
     checkOrigin: true,
   },
   adapter: cloudflare({
-    mode: 'directory',
+    mode: 'advanced',
     platformProxy: {
       enabled: true,
     },

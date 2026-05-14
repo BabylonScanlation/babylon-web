@@ -21,7 +21,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "analyze": "vite-bundle-visualizer",
-    "build": "npm run format && npm run lint && astro build",
+    "build": "npm run format && npm run lint && astro build && rm -f dist/server/wrangler.json dist/_worker.js/wrangler.json",
     "preview": "astro build && wrangler pages dev ./dist",
     "astro": "astro",
     "deploy": "wrangler deploy",
