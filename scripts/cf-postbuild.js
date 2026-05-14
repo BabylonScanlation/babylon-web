@@ -50,6 +50,13 @@ async function run() {
     console.error('Error: No se encontró dist/server/entry.mjs. El worker no funcionará.');
   }
 
+  // 3. Eliminar wrangler.json generado por Astro para evitar conflictos con Pages
+  const unwantedConfig = path.join(serverDir, 'wrangler.json');
+  if (fs.existsSync(unwantedConfig)) {
+    fs.unlinkSync(unwantedConfig);
+    console.log('✓ Archivo dist/server/wrangler.json eliminado para evitar conflictos.');
+  }
+
   console.log('--- Post-procesamiento completado con éxito ---');
 }
 
