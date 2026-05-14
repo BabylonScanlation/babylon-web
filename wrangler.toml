@@ -21,6 +21,10 @@ preview_bucket_name = "babylon-scanlation-cache"
 binding = "KV_VIEWS"
 id = "885962ed477541ca90029947d608dfc1"
 
+[[kv_namespaces]]
+binding = "SESSION"
+id = "60d545fe46bb4c61946f65c46d24dbcd"
+
 [[r2_buckets]]
 binding = "R2_ASSETS" # Nombre usado en el código (Astro.locals.runtime.env.R2_ASSETS)
 bucket_name = "babylon-scanlation-assets"
