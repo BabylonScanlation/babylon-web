@@ -1,11 +1,13 @@
 // src/lib/stores.svelte.ts
+
+import type { User } from '../types';
 import { generateUUID } from './utils';
 
 interface AuthModalState {
   isOpen: boolean;
   view: string;
   successMessage: string;
-  linkAccountInfo: { email: string | null; pendingCredential: any };
+  linkAccountInfo: { email: string | null; pendingCredential: unknown };
 }
 
 // 1. AUTH MODAL STORE
@@ -19,8 +21,9 @@ class AuthModalStore {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      window.addEventListener('open-auth-modal', (e: any) => {
-        this.open(e.detail?.view || 'login', e.detail?.message || '');
+      window.addEventListener('open-auth-modal', (e: Event) => {
+        const customEvent = e as CustomEvent<{ view?: string; message?: string }>;
+        this.open(customEvent.detail?.view || 'login', customEvent.detail?.message || '');
       });
     }
   }
@@ -37,7 +40,7 @@ class AuthModalStore {
   get linkAccountInfo() {
     return this.state.linkAccountInfo;
   }
-  open(view: any = 'login', msg = '') {
+  open(view = 'login', msg = '') {
     this.state.isOpen = true;
     this.state.view = view;
     this.state.successMessage = msg;
@@ -45,10 +48,10 @@ class AuthModalStore {
   close() {
     this.state.isOpen = false;
   }
-  switchTo(v: any) {
+  switchTo(v: string) {
     this.state.view = v;
   }
-  openForLinking(email: string, pendingCredential: any) {
+  openForLinking(email: string, pendingCredential: unknown) {
     this.state.isOpen = true;
     this.state.view = 'link';
     this.state.linkAccountInfo = { email, pendingCredential };
@@ -56,9 +59,15 @@ class AuthModalStore {
 }
 export const authModal = new AuthModalStore();
 
+interface Toast {
+  id: string;
+  type: string;
+  message: string;
+}
+
 // 2. TOAST STORE
 class ToastStore {
-  #toasts = $state<any[]>([]);
+  #toasts = $state<Toast[]>([]);
   get messages() {
     return this.#toasts;
   }
@@ -87,7 +96,7 @@ export const toast = new ToastStore();
 
 // 3. USER STORE (Strictly Reactive - No automatic Firebase init)
 class UserStore {
-  user = $state<any>(null);
+  user = $state<User | null>(null);
   loading = $state(true);
 
   constructor() {
@@ -161,7 +170,7 @@ class NewsStore {
     localStorage.setItem('babylon_news_last_updated', this.#lastUpdated.toString());
     window.dispatchEvent(new CustomEvent('news-count-updated', { detail: { count: v } }));
   }
-  async refreshCount(f: any, force = false) {
+  async refreshCount(f: typeof fetch, force = false) {
     // Orion: Solo refrescar si han pasado más de 5 minutos o si se fuerza
     const now = Date.now();
     if (!force && now - this.#lastUpdated < 300000) {
@@ -171,7 +180,7 @@ class NewsStore {
     try {
       const res = await f('/api/news/count');
       if (res.ok) {
-        const d = await res.json();
+        const d = (await res.json()) as { count: number };
         this.setCount(Number(d.count));
       }
     } catch {

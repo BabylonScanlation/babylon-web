@@ -140,7 +140,7 @@ export async function signManifest(
         // If page is just a string (legacy/edge case), normalize, sign and return as object
         if (typeof page === 'string') {
           const normalizedUrl = normalizeProxyUrl(page);
-          const signedUrl = await signUrl(normalizedUrl, secret!);
+          const signedUrl = await signUrl(normalizedUrl, secret);
           return { imageUrl: signedUrl, pageNumber: idx + 1 };
         }
 
@@ -149,7 +149,7 @@ export async function signManifest(
 
         if (urlToSign) {
           urlToSign = normalizeProxyUrl(urlToSign);
-          const signedUrl = await signUrl(urlToSign, secret!);
+          const signedUrl = await signUrl(urlToSign, secret);
           if (page.imageUrl) signedPage.imageUrl = signedUrl;
           else signedPage.url = signedUrl;
         } else {
@@ -170,7 +170,7 @@ export async function signManifest(
     const signedImageUrls = await Promise.all(
       manifest.imageUrls.map(async (url: string) => {
         const normalizedUrl = normalizeProxyUrl(url);
-        return await signUrl(normalizedUrl, secret!);
+        return await signUrl(normalizedUrl, secret);
       })
     );
     console.log('[CRYPTO] signManifest: Legacy signing completed.');

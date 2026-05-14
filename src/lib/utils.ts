@@ -15,7 +15,7 @@ export function parseToTimestamp(dateInput: string | number | Date | null | unde
   // 2. Manejo de objetos Date
   if (dateInput instanceof Date) {
     const t = dateInput.getTime();
-    return isNaN(t) ? 0 : t;
+    return Number.isNaN(t) ? 0 : t;
   }
 
   // 3. Manejo de Strings
@@ -36,14 +36,14 @@ export function parseToTimestamp(dateInput: string | number | Date | null | unde
     let t = new Date(s).getTime();
 
     // Fallback para formatos raros o faltas de zona horaria
-    if (isNaN(t)) {
+    if (Number.isNaN(t)) {
       // Intentar añadir Z para forzar UTC si parece ISO
       const sWithZ = s.endsWith('Z') ? s : `${s}Z`;
       const t2 = new Date(sWithZ).getTime();
-      if (!isNaN(t2)) t = t2;
+      if (!Number.isNaN(t2)) t = t2;
     }
 
-    return isNaN(t) ? 0 : t;
+    return Number.isNaN(t) ? 0 : t;
   } catch {
     return 0;
   }

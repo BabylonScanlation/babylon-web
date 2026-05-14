@@ -109,11 +109,12 @@ export interface User {
   displayName?: string | null;
   photoUrl?: string | null;
   avatarUrl?: string | null;
+  bannerUrl?: string | null;
   isAdmin?: boolean;
   emailVerified?: boolean;
   isNsfw?: boolean;
   preferences?: string;
-  tokenVersion: number;
+  tokenVersion?: number;
   scanlations?: { id: number; role: 'owner' | 'editor' | 'moderator' }[];
 }
 
@@ -172,8 +173,10 @@ export interface FirebaseDecodedToken {
 export interface SessionContext {
   cookies: {
     get: (key: string) => { value: string } | undefined;
-    set: (key: string, value: string, options?: unknown) => void;
-    delete: (key: string, options?: unknown) => void;
+    // biome-ignore lint/suspicious/noExplicitAny: Options for cookies vary by environment
+    set: (key: string, value: string, options?: any) => void;
+    // biome-ignore lint/suspicious/noExplicitAny: Options for cookies vary by environment
+    delete: (key: string, options?: any) => void;
   };
   request: Request;
   locals: {

@@ -9,7 +9,7 @@ export const GET: APIRoute = async ({ locals }) => {
 
   try {
     const list = await env.R2_ASSETS.list();
-    const keys = list.objects.map((o: any) => o.key);
+    const keys = list.objects.map((o: { key: string }) => o.key);
 
     return new Response(
       JSON.stringify(

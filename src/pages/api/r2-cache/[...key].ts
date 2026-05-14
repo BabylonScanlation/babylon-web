@@ -106,14 +106,17 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       const tgInfo = await fetch(
         `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${chapter.fileId}`
       );
-      const tgData = (await tgInfo.json()) as any;
-      if (!tgData.ok) throw new Error('TG Path Error');
+      const tgData = (await tgInfo.json()) as {
+        ok: boolean;
+        result?: { file_path: string };
+      };
+      if (!tgData.ok || !tgData.result?.file_path) throw new Error('TG Path Error');
       filePath = tgData.result.file_path;
-      ZIP_CACHE.set(cacheKey, { filePath: filePath!, timestamp: Date.now() });
+      ZIP_CACHE.set(cacheKey, { filePath, timestamp: Date.now() });
     }
 
     const tgUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${filePath}`;
-    const zipReader = new ZipReader(new HttpReader(tgUrl as any));
+    const zipReader = new ZipReader(new HttpReader(tgUrl));
     const entries = await zipReader.getEntries();
     const entry = entries.find((e) => {
       const entryName = e.filename || '';
@@ -121,14 +124,16 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         entryName.toLowerCase().includes(filename.toLowerCase()) ||
         filename.toLowerCase().includes(entryName.toLowerCase())
       );
-    }) as any;
+    });
 
-    if (!entry || !entry.getData) {
+    // biome-ignore lint/suspicious/noExplicitAny: zip.js entry property access requires casting
+    if (!entry || !('getData' in entry) || typeof (entry as any).getData !== 'function') {
       await zipReader.close();
       return new Response('Page not found in ZIP', { status: 404 });
     }
 
-    const buffer = await entry.getData(new Uint8ArrayWriter());
+    // biome-ignore lint/suspicious/noExplicitAny: zip.js getData method call requires casting
+    const buffer = await (entry as any).getData(new Uint8ArrayWriter());
     await zipReader.close();
 
     const contentType = filename.toLowerCase().endsWith('.webp')

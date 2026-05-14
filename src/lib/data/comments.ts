@@ -85,10 +85,12 @@ export async function getCommentsForTarget(
     votes.forEach((v) => {
       const cid = Number(v.commentId);
       if (!voteMap.has(cid)) voteMap.set(cid, { likes: 0, dislikes: 0, userVote: 0 });
-      const stats = voteMap.get(cid)!;
-      if (v.vote === 1) stats.likes++;
-      if (v.vote === -1) stats.dislikes++;
-      if (currentUserId && v.userId === currentUserId) stats.userVote = v.vote;
+      const stats = voteMap.get(cid);
+      if (stats) {
+        if (v.vote === 1) stats.likes++;
+        if (v.vote === -1) stats.dislikes++;
+        if (currentUserId && v.userId === currentUserId) stats.userVote = v.vote;
+      }
     });
   }
 

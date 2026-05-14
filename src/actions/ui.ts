@@ -21,7 +21,7 @@ export const uiActions = {
           await db.update(users).set({ isNsfw: newValue }).where(eq(users.id, user.uid)).run();
 
           // Orion: CRITICO - Limpiar cache para que el middleware lea el nuevo valor de DB
-          clearSessionCache(context);
+          clearSessionCache({ cookies: context.cookies });
         } catch (e) {
           console.error('[Action toggleNsfw DB Error]:', e);
         }

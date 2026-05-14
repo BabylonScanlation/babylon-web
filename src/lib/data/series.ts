@@ -9,11 +9,11 @@ import {
   seriesRatings,
   seriesReactions,
 } from '../../db/schema';
-import type { RecentChapterSeries } from '../../types';
+import type { BabylonEnv, Chapter, RecentChapterSeries, SeriesDetails } from '../../types';
 import { parseToTimestamp } from '../utils';
 
 // Orion: Memoria RAM local para peticiones cero (Isolate level)
-const seriesMemoryCache = new Map<string, { data: any; expires: number }>();
+const seriesMemoryCache = new Map<string, { data: unknown; expires: number }>();
 
 /**
  * Orion: Obtiene los detalles de una serie.
@@ -22,7 +22,7 @@ export async function getSeriesDetails(
   db: DrizzleD1Database<typeof schema>,
   slug: string,
   user?: { uid: string; isAdmin: boolean }
-): Promise<any | null> {
+): Promise<SeriesDetails | null> {
   const CACHE_KEY = `series_details_${slug}`;
   const now = Date.now();
 
@@ -30,7 +30,7 @@ export async function getSeriesDetails(
   if (!user) {
     const cached = seriesMemoryCache.get(CACHE_KEY);
     if (cached && cached.expires > now) {
-      return cached.data;
+      return cached.data as SeriesDetails;
     }
   }
 
@@ -156,18 +156,20 @@ export async function getSeriesDetails(
   );
 
   // Orion: Agrupar capítulos por idioma
-  const chaptersByLanguage = (chaptersResult as any[]).reduce(
-    (acc, chap) => {
-      const lang = chap.language || 'es-la';
+  const chaptersByLanguage = (chaptersResult as unknown[]).reduce(
+    (acc: Record<string, Chapter[]>, chap) => {
+      const c = chap as Chapter;
+      const lang = c.language || 'es-la';
       if (!acc[lang]) acc[lang] = [];
-      acc[lang].push(chap);
+      acc[lang].push(c);
       return acc;
     },
-    {} as Record<string, any[]>
+    {} as Record<string, Chapter[]>
   );
 
   const result = {
     ...seriesData,
+    createdAt: seriesData.createdAt || new Date(0).toISOString(),
     chaptersByLanguage,
     stats: {
       averageRating,
@@ -177,7 +179,7 @@ export async function getSeriesDetails(
       userReaction: userDataResult?.reactionEmoji ?? null,
       isFavorited: !!userDataResult?.favoriteId,
     },
-  };
+  } as SeriesDetails;
 
   // Guardar en RAM por 5 minutos si es invitado
   if (!user && chaptersResult.length > 0) {
@@ -194,7 +196,7 @@ export async function getSeriesDetails(
 export async function getHomeData(
   db: DrizzleD1Database<typeof schema>,
   allowNsfw = false,
-  env?: any
+  env?: BabylonEnv
 ) {
   const CACHE_KEY = `home_data_nsfw_${allowNsfw}`;
   const now = Date.now();
@@ -288,7 +290,7 @@ export async function getHomeData(
 
     // Guardamos en KV de forma asíncrona para no bloquear la respuesta
     if (kv) {
-      kv.put(CACHE_KEY, JSON.stringify(result), { expirationTtl: 600 }).catch((e: any) => {
+      kv.put(CACHE_KEY, JSON.stringify(result), { expirationTtl: 600 }).catch((e: unknown) => {
         console.error('Error writing Home KV cache:', e);
       });
     }
@@ -473,7 +475,8 @@ export async function getSeriesWithRecentChapters(
       });
     }
 
-    const entry = seriesMap.get(row.slug)!;
+    const entry = seriesMap.get(row.slug);
+    if (!entry) continue;
 
     // Actualizamos la fecha de la serie si este capítulo es más nuevo en tiempo
     const rowTime = parseToTimestamp(row.chapterCreatedAt);
@@ -537,6 +540,16 @@ export async function getSeriesByChapterCount(
   return results;
 }
 
+export interface SearchResult {
+  results: (typeof series.$inferSelect)[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 /**
  * Orion: Función de búsqueda centralizada con límites y ordenamiento estandarizados.
  */
@@ -556,7 +569,7 @@ export async function searchSeries(
     magazine?: string;
     allowNsfw?: boolean;
   }
-) {
+): Promise<SearchResult> {
   const {
     q,
     page = 1,
@@ -577,7 +590,7 @@ export async function searchSeries(
   const now = Date.now();
   const cached = seriesMemoryCache.get(CACHE_KEY);
   if (cached && cached.expires > now) {
-    return cached.data;
+    return cached.data as SearchResult;
   }
 
   const offset = (page - 1) * limit;
@@ -588,9 +601,9 @@ export async function searchSeries(
     conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
   }
 
-  // Orion: Usamos any aquí porque Drizzle cambia el tipo de retorno dinámicamente al hacer joins
-  let baseQuery: any = db.select().from(series).$dynamic();
-  let countQuery: any = db.select({ count: sql<number>`count(*)` }).from(series).$dynamic();
+  // Orion: Usamos el tipado dinámico de Drizzle sin recurrir a 'any'
+  let baseQuery = db.select().from(series).$dynamic();
+  let countQuery = db.select({ count: sql<number>`count(*)` }).from(series).$dynamic();
 
   if (q && q.trim() !== '') {
     const searchTerm = q
@@ -598,8 +611,16 @@ export async function searchSeries(
       .split(/\s+/)
       .map((word) => `${word}*`)
       .join(' ');
-    baseQuery = baseQuery.innerJoin(sql`series_fts`, eq(series.id, sql`series_fts.rowid`));
-    countQuery = countQuery.innerJoin(sql`series_fts`, eq(series.id, sql`series_fts.rowid`));
+    // biome-ignore lint/suspicious/noExplicitAny: Drizzle dynamic query with FTS join requires casting
+    baseQuery = (baseQuery as any).innerJoin(
+      sql`series_fts`,
+      eq(series.id, sql`series_fts.rowid`)
+    ) as typeof baseQuery;
+    // biome-ignore lint/suspicious/noExplicitAny: Drizzle dynamic query with FTS join requires casting
+    countQuery = (countQuery as any).innerJoin(
+      sql`series_fts`,
+      eq(series.id, sql`series_fts.rowid`)
+    ) as typeof countQuery;
     conditions.push(sql`series_fts MATCH ${searchTerm}`);
   }
 
@@ -634,7 +655,10 @@ export async function searchSeries(
     query.orderBy(asc(series.title));
   }
 
-  const results = (await query.limit(limit).offset(offset).all()) as any[];
+  const results = (await query
+    .limit(limit)
+    .offset(offset)
+    .all()) as unknown as (typeof series.$inferSelect)[];
 
   const result = {
     results,

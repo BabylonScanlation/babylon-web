@@ -1,3 +1,4 @@
+import type { D1Database } from '@cloudflare/workers-types';
 import type { APIRoute } from 'astro';
 import { desc, eq } from 'drizzle-orm';
 import { news } from '../../../db/schema';
@@ -10,7 +11,7 @@ export const GET: APIRoute = async ({ locals }) => {
 
   try {
     // Intentamos usar la DB ya instanciada por el middleware o crear una nueva
-    const drizzleDb = locals.db || getDB(env as any);
+    const drizzleDb = locals.db || getDB(env as unknown as { DB: D1Database });
 
     if (!drizzleDb) {
       throw new Error('No se pudo inicializar la base de datos');

@@ -51,19 +51,19 @@ declare global {
 
   // Extend the global Window interface
   interface Window {
-    atOptions: any;
+    atOptions: unknown;
     pageImageUrls: string[];
     isProcessing: boolean;
     isVignetteBlocked?: boolean;
     isAdsterraBlocked?: boolean;
     isMonetagBlocked?: boolean;
     canRunAds?: boolean;
-    newsFeedListener?: any;
+    newsFeedListener?: (event: MessageEvent) => void;
     handleDelete?: (id: string) => Promise<void>;
     handleEdit?: (id: string) => void;
     saveEdit?: (id: string) => Promise<void>;
     handleToggleStatus?: (id: string, currentStatus: string) => Promise<void>;
-    _babylonPendingEvent?: { type: string; detail: any };
+    _babylonPendingEvent?: { type: string; detail: unknown };
     _babylonUtilsInjected?: boolean;
   }
 }

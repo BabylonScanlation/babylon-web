@@ -1,13 +1,13 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import type * as schema from '../../db/schema';
+import * as schema from '../../db/schema';
 import { chapters, series } from '../../db/schema';
 import type { BabylonEnv, ChapterManifest } from '../../types';
 import { signManifest } from '../crypto';
 
 // Orion: Memoria RAM local para peticiones cero (Isolate level)
-const chapterMetadataMemoryCache = new Map<string, { data: any; expires: number }>();
+const chapterMetadataMemoryCache = new Map<string, { data: unknown; expires: number }>();
 
 export async function getChapterPayload(
   db: DrizzleD1Database<typeof schema>,
@@ -21,7 +21,7 @@ export async function getChapterPayload(
   const CHAPTER_METADATA_KEY = `chapter_metadata_${slug}_${chapterNumber}_${scanlationSlug || 'any'}_${chapterId || 'any'}`;
   const now = Date.now();
 
-  let chapterData: any = null;
+  let chapterData: unknown = null;
 
   // 1. RAM Cache (Peticiones Cero)
   const cached = chapterMetadataMemoryCache.get(CHAPTER_METADATA_KEY);
@@ -66,14 +66,19 @@ export async function getChapterPayload(
   if (!chapterData) return null;
 
   // Extraemos las tablas del join (Normalizamos si viene de cache o D1 directo)
-  const chapter = chapterData.Chapters || chapterData.chapters;
+  const data = chapterData as {
+    Chapters?: typeof chapters.$inferSelect;
+    chapters?: typeof chapters.$inferSelect;
+  };
+  const chapter = data.Chapters || data.chapters;
   if (!chapter) return null;
 
   const manifestKey = `${slug}/${chapterNumber}/manifest.json`;
   let manifestContent: ChapterManifest | null = null;
 
   // Orion: Intentamos recuperar del Edge Cache primero
-  const cache = typeof caches !== 'undefined' ? (caches as any).default : null;
+  const cache =
+    typeof caches !== 'undefined' ? (caches as unknown as { default: Cache }).default : null;
   // Añadimos un prefijo de versión a la URL de caché para forzar la invalidación global de los manifiestos antiguos
   const cacheUrl = `https://r2-cache.local/v2.1/${manifestKey}`;
 
@@ -96,38 +101,24 @@ export async function getChapterPayload(
           const response = new Response(JSON.stringify(manifestContent), {
             headers: { 'Cache-Control': 'public, max-age=86400' },
           });
-          const cachePromise = cache.put(cacheUrl, response);
-          if (ctx) ctx.waitUntil(cachePromise);
-          else await cachePromise;
+          ctx?.waitUntil?.(cache.put(cacheUrl, response));
         }
       }
     } catch (e) {
-      console.error('Error recuperando manifest de R2:', e);
+      console.error('[LIGHTSPEED] Error leyendo manifest de R2:', e);
     }
   }
 
-  if (manifestContent) {
-    const signedManifest = await signManifest(manifestContent, env.AUTH_SECRET);
-    return {
-      payload: {
-        ...signedManifest,
-        seriesId: chapter.seriesId,
-        chapterId: chapter.id,
-        chapterCoverUrl: chapter.urlPortada,
-      },
-      processing: false,
-      chapterId: chapter.id,
-    };
-  }
+  if (!manifestContent) return null;
+
+  // 4. Firmar URLs (Seguridad Nuclear)
+  const signedManifest = await signManifest(manifestContent, env.AUTH_SECRET);
 
   return {
-    payload: {
-      status: 'processing',
-      seriesId: chapter.seriesId,
-      chapterId: chapter.id,
-      chapterCoverUrl: chapter.urlPortada,
-    },
-    processing: true,
+    chapter,
+    manifest: signedManifest,
+    payload: signedManifest,
     chapterId: chapter.id,
+    processing: chapter.status === 'processing',
   };
 }

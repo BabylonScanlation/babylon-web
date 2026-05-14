@@ -21,7 +21,7 @@ describe('NewsStore (Svelte 5 Runes)', () => {
       json: () => Promise.resolve({ count: 5 }),
     });
 
-    await newsStore.refreshCount(mockFetch as any);
+    await newsStore.refreshCount(mockFetch as unknown as typeof fetch);
     expect(newsStore.count).toBe(5);
   });
 
@@ -29,7 +29,7 @@ describe('NewsStore (Svelte 5 Runes)', () => {
     newsStore.setCount(3);
     const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-    await newsStore.refreshCount(mockFetch as any);
+    await newsStore.refreshCount(mockFetch as unknown as typeof fetch);
     expect(newsStore.count).toBe(3);
   });
 });

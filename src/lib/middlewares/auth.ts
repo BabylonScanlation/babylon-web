@@ -2,6 +2,7 @@
 import type { APIContext, MiddlewareNext } from 'astro';
 import { and, eq, gt } from 'drizzle-orm';
 import { scanlationMembers, sessions, userRoles, users } from '../../db/schema';
+import type { SessionContext } from '../../types';
 import { getDB } from '../db-client';
 import { logError } from '../logError';
 import { deleteSession, setAuthCookie, verifyToken } from '../session';
@@ -10,7 +11,7 @@ import { deleteSession, setAuthCookie, verifyToken } from '../session';
 // Cacheamos el estado de revocación por 60 segundos por Isolate.
 const revocationCache = new Map<string, { revoked: boolean; expires: number }>();
 
-export function clearSessionCache(context: { cookies: any }) {
+export function clearSessionCache(context: Pick<SessionContext, 'cookies'>) {
   // Borramos el cookie de auth para forzar al middleware a entrar en el SLOW-PATH (Lectura de DB)
   // Esto asegura que cualquier cambio de estado (como NSFW o Roles) se refleje inmediatamente.
   context.cookies.delete('user_auth', { path: '/' });
@@ -69,7 +70,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
         };
       } else {
         // Token revocado -> Limpiar cookies
-        deleteSession(context as any);
+        deleteSession(context as unknown as SessionContext);
       }
     }
   }
@@ -103,7 +104,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
           const payload = await verifyToken(authCookie, runtime.env.JWT_SECRET);
           if (payload && payload.tokenVersion !== result.user.tokenVersion) {
             // La versión del token no coincide con la DB -> Sesión comprometida o revocada
-            deleteSession(context as any);
+            deleteSession(context as unknown as SessionContext);
             return context.redirect('/');
           }
         }
@@ -135,7 +136,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
         // Auto-refresh: Emitimos un nuevo JWT válido por 15 mins ya que la sesión D1 es válida
         if (runtime?.env?.JWT_SECRET) {
           await setAuthCookie(
-            context as any,
+            context as unknown as SessionContext,
             {
               uid: userObj.uid,
               email: userObj.email,
@@ -151,11 +152,11 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
         }
       } else {
         // Sesión no válida en D1 (ej. expirada o usuario baneado/sesión borrada)
-        deleteSession(context as any);
+        deleteSession(context as unknown as SessionContext);
       }
     } catch (error) {
       logError(error, 'Auth Middleware Error');
-      deleteSession(context as any);
+      deleteSession(context as unknown as SessionContext);
     }
   }
 

@@ -27,6 +27,6 @@ describe('Obfuscator (XOR Transform)', () => {
 
   it('should handle empty or null input', () => {
     expect(deobfuscate('', salt)).toBeNull();
-    expect(deobfuscate(null as any, salt)).toBeNull();
+    expect(deobfuscate(null as unknown as string, salt)).toBeNull();
   });
 });

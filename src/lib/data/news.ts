@@ -6,6 +6,7 @@ const newsMemoryCache = new Map<string, { data: NewsWithDetails[]; expires: numb
 const newsCountMemoryCache = { count: 0, expires: 0 };
 
 import * as schema from '../../db/schema';
+import type { BabylonEnv } from '../../types';
 import type { getDB } from '../db-client';
 import { generateUUID } from '../utils';
 
@@ -127,7 +128,7 @@ export async function getAllNews(
   drizzleDb: ReturnType<typeof getDB>,
   status?: 'draft' | 'published',
   seriesId?: number | null,
-  env?: any,
+  env?: BabylonEnv,
   scanlationId?: number | null
 ): Promise<NewsWithDetails[]> {
   const CACHE_KEY = `news_all_${status || 'all'}_${seriesId || 'all'}_${scanlationId || 'all'}`;
@@ -235,7 +236,9 @@ export async function getAllNews(
       })
     );
 
-    const finalItems = validatedItems.filter((item): item is NewsWithDetails => item !== null);
+    const finalItems = validatedItems.filter(
+      (item: NewsWithDetails | null): item is NewsWithDetails => item !== null
+    );
 
     // Guardar en RAM por 10 minutos (600,000 ms)
     if (finalItems.length > 0) {

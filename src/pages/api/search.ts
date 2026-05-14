@@ -63,7 +63,11 @@ export const GET: APIRoute = async ({ url, locals, cookies }) => {
         .split(/\s+/)
         .map((word) => `${word}*`)
         .join(' ');
-      baseQuery = baseQuery.innerJoin(sql`series_fts`, eq(series.id, sql`series_fts.rowid`)) as any;
+      // biome-ignore lint/suspicious/noExplicitAny: Drizzle dynamic query with FTS join requires casting
+      baseQuery = (baseQuery as any).innerJoin(
+        sql`series_fts`,
+        eq(series.id, sql`series_fts.rowid`)
+      ) as typeof baseQuery;
       conditions.push(sql`series_fts MATCH ${searchTerm}`);
     }
 
@@ -89,17 +93,21 @@ export const GET: APIRoute = async ({ url, locals, cookies }) => {
     }
 
     // Apply Filters
+    // biome-ignore lint/suspicious/noExplicitAny: Drizzle dynamic query requires casting for .where()
     let finalQuery = (baseQuery as any).where(and(...conditions.filter(Boolean)));
 
     // Get Total Count for pagination
-    let countBase = drizzleDb.select({ count: sql`count(*)` }).from(series);
+    let countBase = drizzleDb.select({ count: sql<number>`count(*)` }).from(series);
     if (query && query !== '') {
-      countBase = countBase.innerJoin(sql`series_fts`, eq(series.id, sql`series_fts.rowid`)) as any;
+      // biome-ignore lint/suspicious/noExplicitAny: Drizzle dynamic query with FTS join requires casting
+      countBase = (countBase as any).innerJoin(
+        sql`series_fts`,
+        eq(series.id, sql`series_fts.rowid`)
+      ) as typeof countBase;
     }
 
-    const [totalResult] = (await (countBase as any)
-      .where(and(...conditions.filter(Boolean)))
-      .all()) as { count: number }[];
+    // biome-ignore lint/suspicious/noExplicitAny: Drizzle dynamic query requires casting for .get()
+    const totalResult = await (countBase as any).where(and(...conditions.filter(Boolean))).get();
 
     const total = totalResult?.count || 0;
 
@@ -126,10 +134,11 @@ export const GET: APIRoute = async ({ url, locals, cookies }) => {
     // Limit and Offset for pagination
     finalQuery = finalQuery.limit(pageSize).offset(offset);
 
-    const results = await (finalQuery as any).all();
+    // biome-ignore lint/suspicious/noExplicitAny: Drizzle dynamic query requires casting for .all()
+    const results = (await (finalQuery as any).all()) as (typeof series.$inferSelect)[];
 
     // Map to frontend expected format
-    const formattedResults = (results as any[]).map((s) => ({
+    const formattedResults = results.map((s) => ({
       ...s,
       coverImageUrl: s.coverImageUrl,
     }));

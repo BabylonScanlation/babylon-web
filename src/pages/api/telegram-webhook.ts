@@ -9,7 +9,7 @@ import { siteConfig } from '../../site.config';
 interface TelegramUpdate {
   message?: {
     message_thread_id?: number;
-    chat?: any;
+    chat?: unknown;
     document?: {
       mime_type: string;
       file_name: string;
@@ -72,15 +72,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
             })
             .returning({ id: series.id, title: series.title })
             .get();
-        } catch (e: any) {
-          if (e.message?.includes('UNIQUE constraint failed')) {
+        } catch (e: unknown) {
+          const message = e instanceof Error ? e.message : String(e);
+          if (message.includes('UNIQUE constraint failed')) {
             seriesResult = await drizzleDb
               .select({ id: series.id, title: series.title })
               .from(series)
               .where(eq(series.telegramTopicId, topicId))
               .get();
           } else {
-            console.error('[Webhook] Error crítico al crear serie automática:', e);
+            console.error('[Webhook] Error crítico al crear serie automática:', message);
             throw e;
           }
         }
@@ -150,11 +151,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
             .where(eq(chapters.id, newChapterId))
             .run();
         }
-      } catch (insertError: any) {
-        if (insertError.message?.includes('UNIQUE constraint failed')) {
+      } catch (insertError: unknown) {
+        const message = insertError instanceof Error ? insertError.message : String(insertError);
+        if (message.includes('UNIQUE constraint failed')) {
           return new Response('OK - Unique constraint conflict', { status: 200 });
         }
-        console.error('[Webhook] Error en la inserción del capítulo:', insertError);
+        console.error('[Webhook] Error en la inserción del capítulo:', message);
         throw insertError;
       }
 

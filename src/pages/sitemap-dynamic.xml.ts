@@ -4,7 +4,7 @@ import { chapters, series } from '../db/schema';
 import { getDB } from '../lib/db';
 import { siteConfig } from '../site.config';
 
-export const GET: APIRoute = async ({ locals }: any) => {
+export const GET: APIRoute = async ({ locals }) => {
   const siteUrl = siteConfig.url;
   const db = getDB(locals.runtime.env);
 

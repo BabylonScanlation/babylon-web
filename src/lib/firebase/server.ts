@@ -8,7 +8,10 @@ const JWKS_URL =
 
 interface Env {
   PUBLIC_FIREBASE_PROJECT_ID: string;
-  KV_VIEWS?: any;
+  KV_VIEWS?: {
+    get(key: string): Promise<string | null>;
+    put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+  };
 }
 
 interface Jwk {
@@ -85,8 +88,8 @@ export async function verifyFirebaseToken(token: string, env: Env) {
       ...payload,
       sub: (payload.sub as string | undefined) || (payload.user_id as string | undefined),
     };
-  } catch (error: any) {
-    if (error.code === 'ERR_JWT_EXPIRED') {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ERR_JWT_EXPIRED') {
       console.warn('Firebase token has expired.');
       return null;
     }

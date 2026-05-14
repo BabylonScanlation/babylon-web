@@ -12,7 +12,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // Verificamos si es un mensaje con el comando de vinculación
     // Formato esperado: /start link_SCANID_TOKEN
     const message = body.message || body.channel_post;
-    if (!message || !message.text) return new Response('OK');
+    if (!message?.text) return new Response('OK');
 
     const text = message.text as string;
     if (text.startsWith('/vincular')) {

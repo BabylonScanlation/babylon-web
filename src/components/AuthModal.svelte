@@ -119,7 +119,7 @@ async function handleLinkAccount() {
     const { auth, actions, signInWithEmailAndPassword, linkWithCredential } =
       await getFullAuthStack();
     const userCredential = await signInWithEmailAndPassword(auth, email, linkPassword);
-    await linkWithCredential(userCredential.user, pendingCredential);
+    await linkWithCredential(userCredential.user, pendingCredential as any);
     const idToken = await userCredential.user.getIdToken();
     const { error } = await actions.auth.login({ idToken });
 

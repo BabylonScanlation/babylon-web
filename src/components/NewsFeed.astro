@@ -143,8 +143,8 @@ function formatDate(timestamp: number | string | Date) {
 
   function initNewsFeed() {
     // Orion: Limpiar listener previo si existe para evitar duplicidad
-    if (window.newsFeedListener) {
-      window.removeEventListener('new-news-created', window.newsFeedListener);
+    if ((window as any).newsFeedListener) {
+      (window as any).removeEventListener('new-news-created', (window as any).newsFeedListener);
     }
 
     const listener = (event: any) => {
@@ -215,8 +215,8 @@ function formatDate(timestamp: number | string | Date) {
       });
     };
 
-    window.newsFeedListener = listener;
-    window.addEventListener('new-news-created', listener);
+    (window as any).newsFeedListener = listener;
+    window.addEventListener('new-news-created', listener as EventListener);
 
     // Astro: Exponer funciones globales para los onclick
     (window as any).handleDelete = async function(id: string) {

@@ -6,7 +6,7 @@ import { getDB } from '../../../lib/db';
 export const GET: APIRoute = async ({ locals }) => {
   const user = locals.user;
 
-  if (!user || !user.uid) {
+  if (!user?.uid) {
     return new Response(JSON.stringify(null), {
       headers: { 'Content-Type': 'application/json' },
       status: 200,

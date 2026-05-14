@@ -6,7 +6,7 @@ import { deobfuscate } from '../../../../lib/obfuscator';
 // En local con db:online, esto hará que los F5 sean instantáneos.
 const L1_CACHE = new Map<
   string,
-  { body: any; contentType: string; etag: string; expires: number }
+  { body: Uint8Array; contentType: string; etag: string; expires: number }
 >();
 
 export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
@@ -81,7 +81,7 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
       return new Response(null, { status: 304 });
     }
     if (isDev) console.log(`[Proxy] L1 RAM HIT: ${objectKey}`);
-    return new Response(l1Entry.body, {
+    return new Response(l1Entry.body as BodyInit, {
       headers: {
         'Content-Type': l1Entry.contentType,
         ETag: l1Entry.etag,
@@ -92,7 +92,8 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
   }
 
   // Orion: Implementación de Cache API (CDN)
-  const cache = typeof caches !== 'undefined' ? (caches as any).default : null;
+  const cache =
+    typeof caches !== 'undefined' ? (caches as unknown as { default: Cache }).default : null;
   const cacheKey = new Request(request.url);
 
   // Intentar recuperar del caché de Cloudflare primero
@@ -111,7 +112,12 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
   if (isDev) console.log(`[Proxy] Cache MISS: ${objectKey}`);
 
   // Función auxiliar para servir y cachear en el CDN global
-  const serveAndCache = async (body: any, contentType?: string, etag?: string, maxAge = 86400) => {
+  const serveAndCache = async (
+    body: BodyInit | null,
+    contentType?: string,
+    etag?: string,
+    maxAge = 86400
+  ) => {
     // Orion: Si el ETag coincide, devolvemos 304 inmediatamente sin enviar el body
     if (etag && ifNoneMatch === etag) {
       if (isDev) console.log(`[Proxy] R2 Revalidation HIT (304): ${objectKey}`);
@@ -131,7 +137,7 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
     try {
       const buffer = await res.clone().arrayBuffer();
       L1_CACHE.set(request.url, {
-        body: new Uint8Array(buffer) as any, // Forzamos tipo para compatibilidad con Response
+        body: new Uint8Array(buffer),
         contentType: contentType || 'image/webp',
         etag: etag || '',
         expires: Date.now() + maxAge * 1000,
@@ -169,7 +175,7 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
         return new Response('Forbidden Host', { status: 403 });
       }
 
-      if (!allowedHosts.some((h) => url.hostname === h || url.hostname.endsWith('.' + h))) {
+      if (!allowedHosts.some((h) => url.hostname === h || url.hostname.endsWith(`.${h}`))) {
         if (isDev)
           console.warn(`[Proxy] Blocked external fetch to unauthorized host: ${url.hostname}`);
         return new Response('Forbidden External Host', { status: 403 });

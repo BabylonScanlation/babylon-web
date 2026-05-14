@@ -38,12 +38,20 @@ export async function processAndCacheChapter(
     console.log(`[PROCESO] Iniciando Lightspeed para capítulo ID: ${chapterId}`);
 
     const fileInfoUrl = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`;
-    let rawFileInfo: any;
+    let rawFileInfo: {
+      ok: boolean;
+      result?: { file_path: string };
+      description?: string;
+    } | null = null;
     for (let i = 0; i < 3; i++) {
       try {
         const response = await fetch(fileInfoUrl);
         if (response.ok) {
-          rawFileInfo = await response.json();
+          rawFileInfo = (await response.json()) as {
+            ok: boolean;
+            result?: { file_path: string };
+            description?: string;
+          };
           break;
         }
       } catch (err) {
@@ -117,10 +125,17 @@ export async function processAndCacheChapter(
 
         const fileName = name;
         try {
-          const entryWithData = entry as any;
-          if (!entryWithData.getData) return null;
+          // Verificamos que sea un archivo y tenga el método getData
+          if (
+            !('getData' in entry) ||
+            typeof (entry as { getData?: unknown }).getData !== 'function'
+          )
+            return null;
+
           const r2Key = `${slug}/${String(chapterNumber)}/${versionHash}/${fileName}`;
-          const imageBuffer = await entryWithData.getData(new Uint8ArrayWriter());
+          const imageBuffer = await (
+            entry as { getData: (writer: unknown) => Promise<Uint8Array> }
+          ).getData(new Uint8ArrayWriter());
 
           let uploadSuccess = false;
           for (let attempt = 1; attempt <= 3; attempt++) {

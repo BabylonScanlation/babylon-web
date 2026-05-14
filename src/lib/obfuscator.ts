@@ -22,7 +22,7 @@ function xorTransform(data: Uint8Array, salt: string): Uint8Array {
  * @param data Data to obfuscate
  * @param salt Secret salt (must be provided from env)
  */
-export function obfuscate(data: any, salt: string): string {
+export function obfuscate(data: unknown, salt: string): string {
   if (!salt) {
     console.error('[Obfuscator] No SALT provided for obfuscation');
     return '';
@@ -55,7 +55,7 @@ export function obfuscate(data: any, salt: string): string {
  * @param encryptedStr Obfuscated string
  * @param salt Secret salt (must be provided from env)
  */
-export function deobfuscate(encryptedStr: string, salt: string): any {
+export function deobfuscate(encryptedStr: string, salt: string): unknown {
   if (!salt) return null;
 
   try {

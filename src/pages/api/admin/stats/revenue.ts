@@ -4,6 +4,13 @@ import { createApiRoute } from '../../../../lib/api';
  * Orion: Endpoint para obtener ingresos de publicidad (Adsterra, Monetag).
  * Implementa caché en KV para no saturar las APIs de reportes.
  */
+interface PlatformStats {
+  name: string;
+  today: number;
+  month: number;
+  cpm: number;
+}
+
 export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => {
   const env = locals.runtime.env;
   const kv = env.KV_VIEWS;
@@ -28,7 +35,7 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
     today: 0.0,
     month: 0.0,
     cpm: 0.0,
-    platforms: [] as any[],
+    platforms: [] as PlatformStats[],
   };
 
   try {
@@ -88,6 +95,12 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
   }
 });
 
+interface AdsterraItem {
+  date: string;
+  revenue: string | number;
+  impression?: string | number;
+}
+
 async function fetchAdsterraStats(apiKey?: string) {
   if (!apiKey) return null;
   try {
@@ -112,18 +125,19 @@ async function fetchAdsterraStats(apiKey?: string) {
       console.error(`DEBUG [Adsterra]: HTTP Error ${res.status}`);
       return null;
     }
-    const data: any = await res.json();
+    const data = (await res.json()) as { items?: AdsterraItem[] };
     const items = data.items || [];
 
     let today = 0,
       month = 0,
       totalImpressions = 0;
 
-    items.forEach((i: any) => {
-      const revenue = parseFloat(i.revenue || 0);
+    items.forEach((i) => {
+      const revenue =
+        typeof i.revenue === 'string' ? parseFloat(i.revenue) : Number(i.revenue || 0);
       month += revenue;
       // Orion: Corregido de 'impressions' a 'impression' según log real
-      totalImpressions += parseInt(i.impression || 0);
+      totalImpressions += parseInt(String(i.impression || 0), 10);
       if (i.date === todayStr) today = revenue;
     });
 
@@ -132,10 +146,17 @@ async function fetchAdsterraStats(apiKey?: string) {
       month,
       cpm: totalImpressions > 0 ? (month / totalImpressions) * 1000 : 0,
     };
-  } catch (e: any) {
-    console.error('DEBUG [Adsterra]: Connection Error', e.message);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : 'Unknown error';
+    console.error('DEBUG [Adsterra]: Connection Error', message);
     return null;
   }
+}
+
+interface MonetagItem {
+  date: string;
+  money: string | number;
+  impr?: string | number;
 }
 
 async function fetchMonetagStats(token?: string) {
@@ -146,7 +167,7 @@ async function fetchMonetagStats(token?: string) {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return null;
-    const data: any = await res.json();
+    const data = (await res.json()) as { rows?: MonetagItem[] };
 
     const items = data.rows || [];
     const todayStr = new Date().toISOString().split('T')[0];
@@ -154,10 +175,10 @@ async function fetchMonetagStats(token?: string) {
     let today = 0,
       month = 0,
       totalImpressions = 0;
-    items.forEach((i: any) => {
-      const revenue = parseFloat(i.money || 0);
+    items.forEach((i) => {
+      const revenue = typeof i.money === 'string' ? parseFloat(i.money) : Number(i.money || 0);
       month += revenue;
-      totalImpressions += parseInt(i.impr || 0);
+      totalImpressions += parseInt(String(i.impr || 0), 10);
       if (i.date === todayStr) today = revenue;
     });
 

@@ -130,15 +130,15 @@ export async function getAdminCommentsActivity(
 
   const parseSafeDate = (raw: string | number | Date | null): string => {
     if (!raw) return new Date(0).toISOString();
-    if (raw instanceof Date && !isNaN(raw.getTime())) return raw.toISOString();
+    if (raw instanceof Date && !Number.isNaN(raw.getTime())) return raw.toISOString();
     let ts = Number(raw);
-    if (!isNaN(ts) && ts > 0) {
+    if (!Number.isNaN(ts) && ts > 0) {
       if (ts < 10000000000) ts *= 1000;
       return new Date(ts).toISOString();
     }
     const dateStr = String(raw);
     const parsed = new Date(dateStr);
-    if (!isNaN(parsed.getTime())) return parsed.toISOString();
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
     return new Date(0).toISOString();
   };
 
@@ -147,7 +147,7 @@ export async function getAdminCommentsActivity(
       ...c,
       createdAt: parseSafeDate(c.rawDate),
       // Si no hay datos del usuario (huérfano), mostramos el ID para poder rastrearlo
-      userEmail: c.userEmail || 'ID: ' + c.userId,
+      userEmail: c.userEmail || `ID: ${c.userId}`,
       userName: c.userName || c.userEmail?.split('@')[0] || 'Usuario Desconocido',
     }))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

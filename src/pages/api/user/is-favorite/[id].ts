@@ -17,7 +17,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
   try {
     const db = getDB(runtime.env);
-    const seriesId = parseInt(id);
+    const seriesId = parseInt(id, 10);
 
     const existing = await db
       .select()

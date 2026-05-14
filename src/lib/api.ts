@@ -35,14 +35,14 @@ export function createApiRoute(
     const db = locals.db as DrizzleDB;
 
     if (config.auth === 'admin') {
-      if (!user || !user.isAdmin) {
+      if (!user?.isAdmin) {
         return new Response(
           JSON.stringify({ error: 'Acceso denegado. Se requieren permisos de administrador.' }),
           { status: 403 }
         );
       }
     } else if (config.auth === 'user') {
-      if (!user || !user.uid) {
+      if (!user?.uid) {
         return new Response(
           JSON.stringify({
             error: 'Unauthorized. User authentication required.',

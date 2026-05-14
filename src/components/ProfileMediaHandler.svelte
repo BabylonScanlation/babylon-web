@@ -29,6 +29,8 @@ async function handleSelect(detail: { type: 'avatar' | 'banner'; url: string }) 
 
     if (error) throw new Error(error.message || 'Error actualizando perfil');
 
+    if (!userStore.user) return;
+
     // Orion: Actualizar el store global para que el cambio se vea en comentarios, header, etc.
     if (type === 'avatar') {
       userStore.user = { ...userStore.user, avatarUrl: url };
