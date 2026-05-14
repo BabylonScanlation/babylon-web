@@ -2,9 +2,8 @@ import { defineMiddleware } from 'astro:middleware';
 import type { APIContext } from 'astro';
 import { authFlow } from './lib/middlewares/auth';
 import { shield } from './lib/middlewares/shield';
-import { compatibility } from './lib/middlewares/compatibility';
 
-export const onRequest = defineMiddleware(async (context, next) => {
+export const onRequest = defineMiddleware(async (context, next): Promise<Response> => {
   const { pathname } = context.url;
 
   // 0. Cortocircuito de Assets (Orion: Optimización Crítica de Recursos)
@@ -25,27 +24,24 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return next();
   }
 
-  // Capa de Compatibilidad Astro v6 (Restaura Astro.locals.runtime.env)
-  return await compatibility(context, async () => {
-    // 1. Capa de Protección (Bot & Geo Block)
-    return await shield(context, async () => {
-      // 2. Capa de Autenticación (JWT & D1 Session)
-      return await authFlow(context, async () => {
-        // Orion: Inyectamos la bandera isStaff para exención de anuncios
-        const user = context.locals.user;
-        context.locals.isStaff = !!(
-          user &&
-          (user.isAdmin || (user.scanlations && user.scanlations.length > 0))
-        );
+  // 1. Capa de Protección (Bot & Geo Block)
+  return (await shield(context, async () => {
+    // 2. Capa de Autenticación (JWT & D1 Session)
+    return (await authFlow(context, async () => {
+      // Orion: Inyectamos la bandera isStaff para exención de anuncios
+      const user = context.locals.user;
+      context.locals.isStaff = !!(
+        user &&
+        (user.isAdmin || (user.scanlations && user.scanlations.length > 0))
+      );
 
-        // 3. Ejecución de la Ruta
-        const response = await next();
+      // 3. Ejecución de la Ruta
+      const response = await next();
 
-        // 4. Capa de Optimización de Headers (Edge Cache)
-        return applyOptimizedHeaders(response, context);
-      });
-    });
-  });
+      // 4. Capa de Optimización de Headers (Edge Cache)
+      return applyOptimizedHeaders(response, context);
+    })) as Response;
+  })) as Response;
 });
 
 function applyOptimizedHeaders(response: Response, context: APIContext) {
