@@ -1,21 +1,33 @@
 # === APP SECRETS EXAMPLE (.dev.vars.example) ===
+# Secretos para el Backend (Workers / Pages Functions).
+# No se exponen al cliente. Renombra este archivo a .dev.vars en local.
+# Para producción, añade estos secretos mediante el panel de Cloudflare o con:
+# `npx wrangler pages secret put <NAME>`
 
-# --- SEGURIDAD ---
+# --- SEGURIDAD Y AUTH ---
 AUTH_SECRET="your_long_random_string_here"
 JWT_SECRET="your_jwt_signing_key_here"
 SHIELD_TOKEN="your_shield_token_here"
 INTERNAL_CRYPTO_SALT="your_long_random_salt_here"
-TURNSTILE_SECRET_KEY="0x4AAAAAA..."
+TURNSTILE_SECRET_KEY="0x4AAAAAA...-XXXXXXXX"
+SUPER_ADMIN_UID="your_firebase_uid_here"
 
-# --- TELEGRAM BOT ---
+# --- FIREBASE ADMIN (Backend SDK) ---
+FIREBASE_PROJECT_ID="your_project_id_here"
+FIREBASE_CLIENT_EMAIL="firebase-adminsdk-...@your_project.iam.gserviceaccount.com"
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...\n-----END PRIVATE KEY-----\n"
+
+# --- TELEGRAM BOT (Opcional) ---
 TELEGRAM_BOT_TOKEN="12345678:ABCDE..."
 TELEGRAM_WEBHOOK_SECRET="random_webhook_secret_here"
 TELEGRAM_CHAT_ID="-100..."
 
-# --- FIREBASE (Backend / Admin SDK) ---
-FIREBASE_PROJECT_ID="your_project_id_here"
-FIREBASE_CLIENT_EMAIL="firebase-adminsdk-...@your_project.iam.gserviceaccount.com"
-
-# --- R2 ASSETS & CACHE ---
+# --- R2 ASSETS & CACHE (URLs Públicas) ---
 R2_PUBLIC_URL_ASSETS="https://your-assets.r2.dev"
 R2_PUBLIC_URL_CACHE="https://your-cache.r2.dev"
+
+# --- MONETIZACIÓN APIS (Backend) ---
+ADSTERRA_API_KEY="your_adsterra_api_key_here"
+MONETAG_API_TOKEN="your_monetag_api_token_here"
+ADSTERRA_SMARTLINK_ADULT="your_adult_smartlink_here"
+ADSTERRA_SMARTLINK_MAINSTREAM="your_mainstream_smartlink_here"
