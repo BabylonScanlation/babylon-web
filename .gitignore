@@ -28,6 +28,9 @@ db_snapshots/
 .env.local
 .dev.vars
 
+# Site configuration (Keep personal data private)
+src/site.config.ts
+
 # Dependencies and lock files
 .eslintcache
 
