@@ -1,10 +1,10 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 
 // Orion: RAM Cache para lista de imágenes (Peticiones Cero)
 let profileImagesMemoryCache: { data: string; expires: number } | null = null;
 
-export const GET: APIRoute = async ({ locals }) => {
-  const { env } = locals.runtime;
+export const GET: APIRoute = async () => {
   const now = Date.now();
 
   // 1. Intentar obtener desde RAM (Peticiones Cero)

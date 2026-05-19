@@ -1,13 +1,14 @@
 ---
+import { env } from 'cloudflare:workers';
 import Layout from '../../layouts/Layout.astro';
 import { getAllScanlations } from '../../lib/data/admin';
 import { getDB } from '../../lib/db';
 import { siteConfig } from '../../site.config';
 
-const { user, runtime } = Astro.locals;
+const { user } = Astro.locals;
 if (!user?.isAdmin) return Astro.redirect('/admin');
 
-const db = getDB(runtime.env);
+const db = getDB(env);
 const scanlations = await getAllScanlations(db);
 ---
 

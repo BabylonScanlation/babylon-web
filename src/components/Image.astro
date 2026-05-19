@@ -1,4 +1,5 @@
 ---
+import { env } from 'cloudflare:workers';
 // src/components/Image.astro
 // Astra: Componente de imagen responsivo y blindado contra desbordamientos.
 
@@ -35,7 +36,7 @@ const isEager = (propLoading === 'eager' || eager) && !forceLazy;
 const finalLoading = isEager ? 'eager' : 'lazy';
 
 const keyToEncrypt = src.startsWith('http') ? src : src.replace(/^\//, '');
-const salt = Astro.locals.runtime.env.INTERNAL_CRYPTO_SALT;
+const salt = env.INTERNAL_CRYPTO_SALT;
 if (!salt) throw new Error('[SECURITY] INTERNAL_CRYPTO_SALT is not configured');
 const encryptedKey = obfuscate(keyToEncrypt, salt);
 

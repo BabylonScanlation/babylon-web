@@ -1,9 +1,10 @@
 ﻿---
+import { env } from 'cloudflare:workers';
 import { siteConfig } from '../site.config';
 
 const currentYear = new Date().getFullYear();
-const { runtime } = Astro.locals;
-const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
+
+const r2PublicUrlAssets = env.R2_PUBLIC_URL_ASSETS;
 ---
 
 <footer class="premium-footer">

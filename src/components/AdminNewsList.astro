@@ -1,8 +1,9 @@
 ---
+import { env } from 'cloudflare:workers';
 import { getAllNews, type NewsWithDetails } from '../lib/data/news';
 import { getDB } from '../lib/db';
 
-const drizzleDb = getDB(Astro.locals.runtime.env);
+const drizzleDb = getDB(env);
 
 let newsItems = await getAllNews(drizzleDb);
 ---

@@ -1,4 +1,5 @@
 ---
+import { env } from 'cloudflare:workers';
 import AdminCommentModerationItem from '../../components/AdminCommentModerationItem.svelte';
 import Layout from '../../layouts/Layout.astro';
 import { getAdminCommentsActivity } from '../../lib/data/admin';
@@ -12,7 +13,7 @@ let activityFeed: any[] = [];
 const userScanId = !user?.isAdmin ? user?.scanlations?.[0]?.id : undefined;
 
 try {
-  const drizzleDb = getDB(Astro.locals.runtime.env);
+  const drizzleDb = getDB(env);
   activityFeed = await getAdminCommentsActivity(drizzleDb, userScanId);
 } catch (e) {
   logError(e, 'Error al cargar el feed de actividad de comentarios', {

@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import { getSeriesDetails } from '@lib/data/series';
 import { getDB } from '@lib/db';
 import { logError } from '@lib/logError';
@@ -10,7 +11,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
   }
 
   try {
-    const drizzleDb = getDB(locals.runtime.env);
+    const drizzleDb = getDB(env);
     const user = locals.user;
 
     const responseData = await getSeriesDetails(

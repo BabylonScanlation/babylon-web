@@ -1,7 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 import type { APIContext } from 'astro';
 import { authFlow } from './lib/middlewares/auth';
-import { compatibility } from './lib/middlewares/compatibility';
 import { shield } from './lib/middlewares/shield';
 
 export const onRequest = defineMiddleware(async (context, next): Promise<Response> => {
@@ -25,25 +24,22 @@ export const onRequest = defineMiddleware(async (context, next): Promise<Respons
     return next();
   }
 
-  // Capa de Compatibilidad Astro v6
-  return (await compatibility(context, async () => {
-    // 1. Capa de Protección (Bot & Geo Block)
-    return (await shield(context, async () => {
-      // 2. Capa de Autenticación (JWT & D1 Session)
-      return (await authFlow(context, async () => {
-        // Orion: Inyectamos la bandera isStaff para exención de anuncios
-        const user = context.locals.user;
-        context.locals.isStaff = !!(
-          user &&
-          (user.isAdmin || (user.scanlations && user.scanlations.length > 0))
-        );
+  // 1. Capa de Protección (Bot & Geo Block)
+  return (await shield(context, async () => {
+    // 2. Capa de Autenticación (JWT & D1 Session)
+    return (await authFlow(context, async () => {
+      // Orion: Inyectamos la bandera isStaff para exención de anuncios
+      const user = context.locals.user;
+      context.locals.isStaff = !!(
+        user &&
+        (user.isAdmin || (user.scanlations && user.scanlations.length > 0))
+      );
 
-        // 3. Ejecución de la Ruta
-        const response = await next();
+      // 3. Ejecución de la Ruta
+      const response = await next();
 
-        // 4. Capa de Optimización de Headers (Edge Cache)
-        return applyOptimizedHeaders(response, context);
-      })) as Response;
+      // 4. Capa de Optimización de Headers (Edge Cache)
+      return applyOptimizedHeaders(response, context);
     })) as Response;
   })) as Response;
 });

@@ -1,4 +1,5 @@
 ---
+import { env } from 'cloudflare:workers';
 import '../styles/global.css';
 import AdblockWall from '../components/AdblockWall.astro';
 import BottomNav from '../components/BottomNav.astro';
@@ -9,7 +10,7 @@ import { getDB } from '../lib/db';
 import { siteConfig } from '../site.config';
 
 // Orion: Obtención de contador en el servidor con caché en KV (Ahorro masivo de D1)
-const env = Astro.locals.runtime.env;
+
 const db = getDB(env);
 const kv = env.KV_VIEWS;
 

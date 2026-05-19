@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 // src/lib/middlewares/shield.ts
 import type { APIContext, MiddlewareNext } from 'astro';
 import { siteConfig } from '../../site.config';
@@ -30,7 +31,7 @@ async function checkRateLimit(ip: string): Promise<boolean> {
 
 export async function shield(context: APIContext, next: MiddlewareNext) {
   const { request, url, locals } = context;
-  const { env } = locals.runtime;
+
   const userAgent = request.headers.get('user-agent') || '';
   const lowerUa = userAgent.toLowerCase();
   const currentPath = url.pathname;

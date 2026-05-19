@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 // src/pages/api/series.ts
 import type { APIRoute } from 'astro';
 import { asc, eq } from 'drizzle-orm';
@@ -5,9 +6,9 @@ import { series } from '../../db/schema';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
 
-export const GET: APIRoute = async ({ locals }) => {
+export const GET: APIRoute = async () => {
   try {
-    const drizzleDb = getDB(locals.runtime.env);
+    const drizzleDb = getDB(env);
     const results = await drizzleDb
       .select({
         slug: series.slug,

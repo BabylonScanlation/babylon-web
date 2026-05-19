@@ -1,10 +1,11 @@
+import { env } from 'cloudflare:workers';
 import { and, eq } from 'drizzle-orm';
 import { userRoles } from '../../../db/schema';
 import { createApiRoute } from '../../../lib/api';
 
 export const GET = createApiRoute({ auth: 'admin' }, async ({ locals }) => {
-  const { user, runtime, db } = locals;
-  const superAdminUid = runtime.env.SUPER_ADMIN_UID;
+  const { user, db } = locals;
+  const superAdminUid = env.SUPER_ADMIN_UID;
 
   if (!user || user.uid !== superAdminUid) {
     return new Response(
@@ -25,8 +26,8 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals }) => {
 });
 
 export const POST = createApiRoute({ auth: 'admin' }, async ({ request, locals }) => {
-  const { user, runtime, db } = locals;
-  const superAdminUid = runtime.env.SUPER_ADMIN_UID;
+  const { user, db } = locals;
+  const superAdminUid = env.SUPER_ADMIN_UID;
 
   if (!user || user.uid !== superAdminUid) {
     return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 403 });

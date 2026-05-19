@@ -1,9 +1,10 @@
 ---
+import { env } from 'cloudflare:workers';
 import Layout from '../layouts/Layout.astro';
 import { siteConfig } from '../site.config';
 
-const { user, runtime } = Astro.locals;
-const isSuperAdmin = user?.uid === runtime.env.SUPER_ADMIN_UID;
+const { user } = Astro.locals;
+const isSuperAdmin = user?.uid === env.SUPER_ADMIN_UID;
 
 const success = Astro.url.searchParams.get('success');
 const error = Astro.url.searchParams.get('error');

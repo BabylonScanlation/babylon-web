@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 // src/pages/api/news/count.ts
 import type { APIRoute } from 'astro';
 import { count, desc, eq, sql } from 'drizzle-orm';
@@ -5,7 +6,7 @@ import { news, users } from '../../../db/schema';
 import { getDB } from '../../../lib/db';
 
 export const GET: APIRoute = async ({ locals, cookies }) => {
-  const drizzleDb = locals.db || getDB(locals.runtime.env);
+  const drizzleDb = locals.db || getDB(env);
   const user = locals.user;
 
   try {

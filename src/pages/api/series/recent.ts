@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 // src/pages/api/series/recent.ts
 import type { APIRoute } from 'astro';
 import { getRecentSeries } from '../../../lib/data/series';
@@ -6,7 +7,7 @@ import { logError } from '../../../lib/logError';
 
 export const GET: APIRoute = async ({ locals, url, cookies }) => {
   try {
-    const db = getDB(locals.runtime.env);
+    const db = getDB(env);
     const user = locals.user;
     const nsfwCookieValue = url.searchParams.get('nsfw') || cookies.get('babylon_nsfw')?.value;
     const allowNsfw =

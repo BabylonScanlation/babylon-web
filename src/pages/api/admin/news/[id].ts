@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import {
   deleteNews,
@@ -19,7 +20,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     return new Response('News ID is required', { status: 400 });
   }
 
-  const drizzleDb = getDB(locals.runtime.env);
+  const drizzleDb = getDB(env);
   const newsItem = await getNewsById(drizzleDb, id);
 
   if (!newsItem) {
@@ -41,7 +42,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     return new Response('News ID is required', { status: 400 });
   }
 
-  const drizzleDb = getDB(locals.runtime.env);
+  const drizzleDb = getDB(env);
   try {
     const updates = await request.json();
     const updatedNews = await updateNews(drizzleDb, id, updates);
@@ -69,8 +70,8 @@ export const DELETE: APIRoute = async ({ params, locals }) => {
     return new Response('News ID is required', { status: 400 });
   }
 
-  const drizzleDb = getDB(locals.runtime.env);
-  const r2Assets = locals.runtime.env.R2_ASSETS;
+  const drizzleDb = getDB(env);
+  const r2Assets = env.R2_ASSETS;
 
   try {
     // Step 1: Find images associated with the news item

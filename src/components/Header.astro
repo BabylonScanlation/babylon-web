@@ -1,9 +1,10 @@
 ---
+import { env } from 'cloudflare:workers';
 import { siteConfig } from '../site.config';
 
-const { user, runtime } = Astro.locals;
+const { user } = Astro.locals;
 const isNsfwActive = Astro.cookies.get('babylon_nsfw')?.value === 'true';
-const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
+const r2PublicUrlAssets = env.R2_PUBLIC_URL_ASSETS;
 
 const currentLogo = isNsfwActive ? siteConfig.assets.logoHeaderNsfw : siteConfig.assets.logoHeader;
 const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo}` : currentLogo;

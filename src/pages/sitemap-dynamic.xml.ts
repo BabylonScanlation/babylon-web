@@ -1,12 +1,13 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { chapters, series } from '../db/schema';
 import { getDB } from '../lib/db';
 import { siteConfig } from '../site.config';
 
-export const GET: APIRoute = async ({ locals }) => {
+export const GET: APIRoute = async () => {
   const siteUrl = siteConfig.url;
-  const db = getDB(locals.runtime.env);
+  const db = getDB(env);
 
   const allSeries = await db
     .select({ slug: series.slug, updatedAt: series.createdAt })

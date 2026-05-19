@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
 import { userRoles, users } from '../../../db/schema';
@@ -14,7 +15,7 @@ export const GET: APIRoute = async ({ locals }) => {
   }
 
   try {
-    const db = getDB(locals.runtime.env);
+    const db = getDB(env);
     // Orion: Buscamos el usuario y su rol en D1
     const dbUser = await db.select().from(users).where(eq(users.id, user.uid)).get();
     const roleData = await db.select().from(userRoles).where(eq(userRoles.userId, user.uid)).get();

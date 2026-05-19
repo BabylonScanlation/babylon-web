@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import { HttpReader, Uint8ArrayWriter, ZipReader } from '@zip.js/zip.js';
 import type { APIRoute } from 'astro';
 import { and, eq } from 'drizzle-orm';
@@ -14,7 +15,6 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   const { key } = params;
   if (!key) return new Response('Key required', { status: 400 });
 
-  const env = locals.runtime.env;
   const publicAssetsUrl = env.R2_PUBLIC_URL_ASSETS;
 
   // 0. PRE-CHECK: Evitar doble caché si la 'key' es una URL que ya pertenece a nuestro bucket de Assets

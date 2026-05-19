@@ -1,4 +1,5 @@
 ---
+import { env } from 'cloudflare:workers';
 import AdContainer from '../../../../components/AdContainer.astro';
 import ChapterReader from '../../../../components/ChapterReader.svelte';
 import UnifiedComments from '../../../../components/UnifiedComments.astro';
@@ -16,8 +17,7 @@ const watermark = siteConfig.reader.watermark;
 
 if (!slug || !chapter) return Astro.redirect('/404');
 
-const drizzleDb = getDB(Astro.locals.runtime.env);
-const env = Astro.locals.runtime.env;
+const drizzleDb = getDB(env);
 
 // --- Variables de Estado ---
 let chapterPayload: any = null;

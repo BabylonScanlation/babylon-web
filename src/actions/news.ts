@@ -1,4 +1,5 @@
 import { defineAction } from 'astro:actions';
+import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
 import { eq } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
@@ -58,7 +59,7 @@ export const newsActions = {
       if (!user || !isScanlationMember(user)) throw new Error('Unauthorized');
 
       const { image, newsId } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       // Orion: Seguridad Multi-tenant
       await validateNewsOwnership(db, user, newsId);
@@ -67,7 +68,7 @@ export const newsActions = {
         `[R2 Upload] Starting upload for news ${newsId}, file: ${image.name} (${image.size} bytes)`
       );
 
-      const r2Assets = context.locals.runtime.env.R2_ASSETS;
+      const r2Assets = env.R2_ASSETS;
       if (!r2Assets) {
         console.error('[R2 Upload] Error: R2_ASSETS binding is missing');
         throw new Error('R2 storage not configured');
@@ -123,7 +124,7 @@ export const newsActions = {
       const { user } = context.locals;
       if (!user || !isScanlationMember(user)) throw new Error('Unauthorized');
 
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       // Normalización de seriesId
       let seriesId: number | null = null;
@@ -178,7 +179,7 @@ export const newsActions = {
 
         const authorName = dbUser?.username || dbUser?.displayName || 'Admin';
 
-        await context.locals.runtime.env.KV_VIEWS?.delete('news_count_cache');
+        await env.KV_VIEWS?.delete('news_count_cache');
 
         const newNews = await createNews(db, {
           ...input,
@@ -229,12 +230,12 @@ export const newsActions = {
       if (!user || !isScanlationMember(user)) throw new Error('Unauthorized');
 
       const { id, ...updates } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       // Orion: Validación de propiedad (Multi-tenant)
       await validateNewsOwnership(db, user, id);
 
-      await context.locals.runtime.env.KV_VIEWS?.delete('news_count_cache');
+      await env.KV_VIEWS?.delete('news_count_cache');
 
       const updatedNews = await updateNews(db, id, {
         ...updates,
@@ -256,13 +257,13 @@ export const newsActions = {
       if (!user || !isScanlationMember(user)) throw new Error('Unauthorized');
 
       const { id } = input;
-      const db = getDB(context.locals.runtime.env);
-      const r2Assets = context.locals.runtime.env.R2_ASSETS;
+      const db = getDB(env);
+      const r2Assets = env.R2_ASSETS;
 
       // Orion: Validación de propiedad (Multi-tenant)
       await validateNewsOwnership(db, user, id);
 
-      await context.locals.runtime.env.KV_VIEWS?.delete('news_count_cache');
+      await env.KV_VIEWS?.delete('news_count_cache');
 
       const images = await getNewsImages(db, id);
       if (images && images.length > 0) {
@@ -286,12 +287,12 @@ export const newsActions = {
 
       const { id, currentStatus } = input;
       const newStatus = currentStatus === 'draft' ? 'published' : 'draft';
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       // Orion: Validación de propiedad (Multi-tenant)
       await validateNewsOwnership(db, user, id);
 
-      await context.locals.runtime.env.KV_VIEWS?.delete('news_count_cache');
+      await env.KV_VIEWS?.delete('news_count_cache');
 
       const updatedNews = await updateNews(db, id, { status: newStatus });
       if (!updatedNews) throw new Error('Noticia no encontrada');

@@ -1,15 +1,16 @@
 ---
+import { env } from 'cloudflare:workers';
 import Layout from '../../../layouts/Layout.astro';
 import { getScanlationDetails } from '../../../lib/data/admin';
 import { getDB } from '../../../lib/db';
 import { siteConfig } from '../../../site.config';
 
 const { id } = Astro.params;
-const { user, runtime } = Astro.locals;
+const { user } = Astro.locals;
 
 if (!user?.isAdmin) return Astro.redirect('/admin');
 
-const db = getDB(runtime.env);
+const db = getDB(env);
 const scan = await getScanlationDetails(db, parseInt(id || '0'));
 
 if (!scan) return Astro.redirect('/admin/scanlations');

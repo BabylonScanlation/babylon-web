@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import { and, desc, eq } from 'drizzle-orm';
 import { favorites, users } from '../../../db/schema';
@@ -12,7 +13,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const type = url.searchParams.get('type') as 'series' | 'chapter' | null;
 
   try {
-    const db = getDB(locals.runtime.env);
+    const db = getDB(env);
 
     const conditions = [eq(favorites.userId, user.uid)];
     if (type) {
@@ -48,7 +49,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(JSON.stringify({ error: 'Invalid parameters' }), { status: 400 });
     }
 
-    const db = getDB(locals.runtime.env);
+    const db = getDB(env);
 
     // --- Orion: Ensure User exists in D1 before adding favorite ---
     // This fixes the FOREIGN KEY constraint failed error

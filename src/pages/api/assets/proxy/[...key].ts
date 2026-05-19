@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import { deobfuscate } from '../../../../lib/obfuscator';
 
@@ -11,7 +12,7 @@ const L1_CACHE = new Map<
 
 export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
   const { key } = params;
-  const { env } = locals.runtime;
+
   const isDev = import.meta.env.DEV;
 
   // Si la clave es explícitamente "undefined" o "null" (string), o vacía, es un 404 claro.

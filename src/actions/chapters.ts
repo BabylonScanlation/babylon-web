@@ -1,4 +1,5 @@
 import { defineAction } from 'astro:actions';
+import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
 import { and, eq, isNull, max, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
@@ -19,7 +20,7 @@ export const chapterActions = {
       if (!user?.isAdmin) return { status: 'unauthorized' };
 
       const { chapterId } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
       const data = await db
         .select({ status: chapters.status })
         .from(chapters)
@@ -36,7 +37,7 @@ export const chapterActions = {
     }),
     handler: async (input, context) => {
       const { chapterId } = input;
-      const { env, ctx } = context.locals.runtime;
+      const { ctx } = context.locals.runtime;
       const { user } = context.locals;
       const { cookies } = context;
       const clientAddress = context.clientAddress;
@@ -86,13 +87,13 @@ export const chapterActions = {
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      const { env } = context.locals.runtime;
+
       const db = getDB(env);
       const { chapterIds } = input;
 
       if (!user) throw new Error('Unauthorized');
 
-      const r2Cache = context.locals.runtime.env.R2_CACHE;
+      const r2Cache = env.R2_CACHE;
 
       for (const id of chapterIds) {
         // Validación Multi-tenant por cada capítulo
@@ -146,7 +147,7 @@ export const chapterActions = {
     handler: async (input, context) => {
       const { user } = context.locals;
       const { seriesId, file, scanlationId, language } = input;
-      const { env } = context.locals.runtime;
+
       const db = getDB(env);
 
       if (!user) throw new Error('Unauthorized');
@@ -318,7 +319,7 @@ export const chapterActions = {
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
       const { seriesId, targetTotal, scanlationId, language } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       const seriesData = await db
         .select({ isAppSeries: series.isAppSeries })
@@ -376,7 +377,7 @@ export const chapterActions = {
     handler: async (input, context) => {
       const { user } = context.locals;
       const { chapterId, title } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       // Obtener scanlationId directamente del capítulo
       const chapterData = await db
@@ -404,7 +405,7 @@ export const chapterActions = {
     handler: async (input, context) => {
       const { user } = context.locals;
       const { chapterId, thumbnailImage } = input;
-      const { env } = context.locals.runtime;
+
       const db = getDB(env);
 
       // Obtener scanlationId directamente del capítulo

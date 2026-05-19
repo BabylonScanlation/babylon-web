@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 /* eslint-disable */
 // src/pages/api/series/[slug]/[chapter]/index.ts
 import type { APIRoute } from 'astro';
@@ -19,7 +20,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   console.log(`[API_CH] Request received for: ${slug} / ${chapterNumberParam}`);
 
   const runtime = locals.runtime || {};
-  const env = runtime.env;
+
   const ctx = runtime.ctx;
 
   if (!env) {

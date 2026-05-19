@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import { and, eq } from 'drizzle-orm';
 import { favorites } from '../../../../db/schema';
@@ -5,7 +6,7 @@ import { getDB } from '../../../../lib/db-client';
 
 export const GET: APIRoute = async ({ params, locals }) => {
   const { id } = params;
-  const { user, runtime } = locals;
+  const { user } = locals;
 
   if (!user) {
     return new Response(JSON.stringify({ isFavorite: false }), { status: 200 });
@@ -16,7 +17,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
   }
 
   try {
-    const db = getDB(runtime.env);
+    const db = getDB(env);
     const seriesId = parseInt(id, 10);
 
     const existing = await db

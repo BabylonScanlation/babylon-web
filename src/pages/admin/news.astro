@@ -1,4 +1,5 @@
 ---
+import { env } from 'cloudflare:workers';
 import { asc, desc, inArray, or, sql } from 'drizzle-orm';
 import AdminNewsManager from '../../components/AdminNewsManager.svelte';
 import { chapters, news, series } from '../../db/schema';
@@ -11,7 +12,7 @@ const limit = 18;
 const offsetParam = Astro.url.searchParams.get('offset');
 const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
 
-const db = getDB(Astro.locals.runtime.env);
+const db = getDB(env);
 const user = Astro.locals.user;
 
 // Orion: Lógica de filtrado multi-tenant
@@ -64,7 +65,7 @@ const allNews = await db
   .all();
 
 // Orion: En local, usamos siempre la ruta relativa para que funcione en PC y móviles
-let r2PublicUrlAssets = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
+let r2PublicUrlAssets = env.R2_PUBLIC_URL_ASSETS;
 const isLocal = Astro.url.hostname === 'localhost' || Astro.url.hostname === '127.0.0.1';
 
 if (isLocal || !r2PublicUrlAssets) {

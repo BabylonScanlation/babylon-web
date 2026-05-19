@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import { createApiRoute } from '../../../../lib/api';
 
 /**
@@ -11,8 +12,7 @@ interface PlatformStats {
   cpm: number;
 }
 
-export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => {
-  const env = locals.runtime.env;
+export const GET = createApiRoute({ auth: 'admin' }, async ({ url }) => {
   const kv = env.KV_VIEWS;
   const forceRefresh = url.searchParams.get('refresh') === 'true';
   const cacheKey = 'admin_revenue_stats';

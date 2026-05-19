@@ -1,13 +1,14 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import { and, desc, eq, sql } from 'drizzle-orm'; // Added sql
 import { chapters, series } from '../../../db/schema';
 import { getDB } from '../../../lib/db';
 import { logError } from '../../../lib/logError';
 
-export const GET: APIRoute = async (context) => {
+export const GET: APIRoute = async () => {
   let twoDaysAgo: string | undefined;
   try {
-    const drizzleDb = getDB(context.locals.runtime.env);
+    const drizzleDb = getDB(env);
     twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
 
     const recentChapters = await drizzleDb

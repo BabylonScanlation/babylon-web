@@ -1,4 +1,5 @@
 import { defineAction } from 'astro:actions';
+import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
 import { eq, sql } from 'drizzle-orm';
 import {
@@ -28,7 +29,7 @@ export const commentActions = {
 
       const { targetType, targetId, parentId, text } = input;
       const censoredText = censorText(text);
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       let table: typeof comments | typeof seriesComments | typeof newsComments;
       let targetField: 'chapterId' | 'seriesId' | 'newsId';
@@ -78,7 +79,7 @@ export const commentActions = {
       if (!user) throw new Error('Unauthorized');
 
       const { targetType, commentId } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       let table: typeof comments | typeof seriesComments | typeof newsComments;
       if (targetType === 'chapter') table = comments;
@@ -105,7 +106,7 @@ export const commentActions = {
       if (!user) throw new Error('Unauthorized');
 
       const { targetType, commentId, voteType } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       let voteTable: typeof commentVotes | typeof seriesCommentVotes | typeof newsCommentVotes;
       if (targetType === 'chapter') voteTable = commentVotes;
@@ -143,7 +144,7 @@ export const commentActions = {
 
       const { targetType, commentId, text } = input;
       const censoredText = censorText(text);
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       let table: typeof comments | typeof seriesComments | typeof newsComments;
       if (targetType === 'chapter') table = comments;
@@ -178,7 +179,7 @@ export const commentActions = {
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
       const { targetType, commentId, isPinned } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       let table: typeof comments | typeof seriesComments | typeof newsComments;
       if (targetType === 'chapter') table = comments;

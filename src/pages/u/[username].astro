@@ -1,4 +1,5 @@
 ---
+import { env } from 'cloudflare:workers';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import MangaCard from '../../components/MangaCard.astro';
 import {
@@ -18,7 +19,7 @@ import { timeAgo } from '../../lib/utils';
 import { siteConfig } from '../../site.config';
 
 const { username: routeUsername } = Astro.params;
-const db = getDB(Astro.locals.runtime.env);
+const db = getDB(env);
 
 // 1. Fetch Target Profile & Role in parallel (Orion: Optimización Waterfall)
 const targetUser = await db.select().from(users).where(eq(users.username, routeUsername!)).get();
