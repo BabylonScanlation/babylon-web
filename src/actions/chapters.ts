@@ -37,15 +37,31 @@ export const chapterActions = {
     }),
     handler: async (input, context) => {
       const { chapterId } = input;
-      const { ctx } = context.locals.runtime;
+      const ctx = context.locals.cfContext;
       const { user } = context.locals;
       const { cookies } = context;
-      const clientAddress = context.clientAddress;
+      let clientAddress = '0.0.0.0';
+      try {
+        clientAddress = context.clientAddress;
+      } catch (e) {
+        if (import.meta.env.DEV) console.warn('[chapter registerView] clientAddress not available');
+      }
+
+      if (import.meta.env.DEV) {
+        if (!ctx) console.warn('[chapter registerView] Warning: cfContext is missing');
+      }
 
       const runBackgroundLogic = async () => {
         try {
           const kv = env.KV_VIEWS;
-          const ipHash = await hashIpAddress(clientAddress || '0.0.0.0', env.INTERNAL_CRYPTO_SALT);
+          const salt = env.INTERNAL_CRYPTO_SALT;
+
+          if (!salt) {
+            console.error('[chapter registerView] INTERNAL_CRYPTO_SALT is missing in env');
+            return;
+          }
+
+          const ipHash = await hashIpAddress(clientAddress || '0.0.0.0', salt);
           const viewKey = `cv:${chapterId}:${ipHash}`;
 
           if (kv) {
@@ -291,8 +307,8 @@ export const chapterActions = {
         registeredChapterId = existing.id;
       }
 
-      if (context.locals.runtime?.ctx) {
-        context.locals.runtime.ctx.waitUntil(
+      if (context.locals.cfContext) {
+        context.locals.cfContext.waitUntil(
           processAndCacheChapter(
             env,
             fileId,

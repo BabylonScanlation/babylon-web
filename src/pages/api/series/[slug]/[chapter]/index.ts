@@ -19,9 +19,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   const { slug, chapter: chapterNumberParam } = params;
   console.log(`[API_CH] Request received for: ${slug} / ${chapterNumberParam}`);
 
-  const runtime = locals.runtime || {};
-
-  const ctx = runtime.ctx;
+  const ctx = locals.cfContext;
 
   if (!env) {
     return new Response(JSON.stringify({ error: 'Environment configuration missing' }), {

@@ -146,8 +146,8 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     // Esto previene la creación de carpetas 'http' o 'https'.
     const isFullUrl = key.includes('://') || key.startsWith('http');
 
-    if (locals.runtime.ctx?.waitUntil && !isFullUrl) {
-      locals.runtime.ctx.waitUntil(
+    if (locals.cfContext?.waitUntil && !isFullUrl) {
+      locals.cfContext.waitUntil(
         R2Cache.put(key, buffer, {
           httpMetadata: {
             contentType,
