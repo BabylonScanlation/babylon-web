@@ -101,7 +101,7 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
         // Top Commenters
         db
           .select({
-            email: sql<string>`COALESCE(${users.email}, 'anonimo@babylon.com')`,
+            email: sql<string>`COALESCE(${users.email}, 'anonimo@scanlation.com')`,
             username: sql<string>`COALESCE(${users.username}, 'Invitado')`,
             displayName: users.displayName,
             commentCount: sql<number>`COUNT(*)`,

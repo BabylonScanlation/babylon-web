@@ -17,6 +17,7 @@ export async function getChapterPayload(
   options: { scanlationSlug?: string; chapterId?: number } = {},
   ctx?: ExecutionContext
 ) {
+  console.log(`[getChapterPayload] 🛰️ Iniciando petición para ${slug} # ${chapterNumber}`);
   const { scanlationSlug, chapterId } = options;
   const CHAPTER_METADATA_KEY = `chapter_metadata_${slug}_${chapterNumber}_${scanlationSlug || 'any'}_${chapterId || 'any'}`;
   const now = Date.now();
@@ -71,7 +72,14 @@ export async function getChapterPayload(
     chapters?: typeof chapters.$inferSelect;
   };
   const chapter = data.Chapters || data.chapters;
-  if (!chapter) return null;
+
+  if (!chapter) {
+    console.warn(
+      `[getChapterPayload] 🛑 Error: No se pudo extraer el objeto chapter de chapterData.`,
+      { chapterData }
+    );
+    return null;
+  }
 
   const manifestKey = `${slug}/${chapterNumber}/manifest.json`;
   let manifestContent: ChapterManifest | null = null;
@@ -103,13 +111,49 @@ export async function getChapterPayload(
           });
           ctx?.waitUntil?.(cache.put(cacheUrl, response));
         }
+      } else if (import.meta.env.DEV && env.R2_PUBLIC_URL_CACHE) {
+        // Fallback robusto en desarrollo: Si el bucket R2 local está vacío (ej. al borrar .wrangler),
+        // intentamos descargar el manifest directamente de la URL pública de producción.
+        const targetUrl = `${env.R2_PUBLIC_URL_CACHE}/${manifestKey}`;
+        console.log(
+          `[Lector - Fallback] R2_CACHE local vacío. Intentando descargar manifest desde: ${targetUrl}`
+        );
+
+        try {
+          const fallbackRes = await fetch(targetUrl);
+          if (fallbackRes.ok) {
+            manifestContent = await fallbackRes.json();
+            console.log(`[Lector - Fallback] ✅ Manifest recuperado de producción con éxito.`);
+          } else {
+            console.log(
+              `[Lector - Fallback] ❌ Falló la descarga desde producción. HTTP Status: ${fallbackRes.status}`
+            );
+          }
+        } catch (fetchErr) {
+          console.error(`[Lector - Fallback] ❌ Error de red al intentar descargar:`, fetchErr);
+        }
       }
     } catch (e) {
       console.error('[LIGHTSPEED] Error leyendo manifest de R2:', e);
     }
   }
 
-  if (!manifestContent) return null;
+  // Orion: Lógica de Auto-Recuperación (Healing)
+  // Si llegamos aquí y no hay manifest, pero el capítulo existe en D1,
+  // significa que el caché de R2 expiró (TTL 24h).
+  // Devolvemos processing: true para que el componente Reader (Svelte)
+  // se cargue e invoque a la API (/api/series/...) la cual ya tiene la lógica
+  // de reconstrucción y bloqueo nativa.
+  if (!manifestContent) {
+    console.log(`[getChapterPayload] 🛠️ Entrando en modo Healing para ${slug}/${chapterNumber}.`);
+    return {
+      chapter,
+      manifest: null,
+      payload: null,
+      chapterId: chapter.id,
+      processing: true,
+    };
+  }
 
   // 4. Firmar URLs (Seguridad Nuclear)
   const signedManifest = await signManifest(manifestContent, env.AUTH_SECRET);

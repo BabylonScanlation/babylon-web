@@ -117,7 +117,7 @@ async function fetchAdsterraStats(apiKey?: string) {
       headers: {
         'X-API-Key': apiKey.trim(),
         Accept: 'application/json',
-        'User-Agent': 'Babylon/2.5',
+        'User-Agent': 'ScanlationCMS/2.5',
       },
     });
 

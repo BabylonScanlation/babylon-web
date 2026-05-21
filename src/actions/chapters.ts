@@ -5,7 +5,6 @@ import { and, eq, isNull, max, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import { chapters, chapterViews as chapterViewsTable, comments, pages, series } from '../db/schema';
 import { canManageScanlation } from '../lib/auth-utils';
-import { processAndCacheChapter } from '../lib/chapterProcessing';
 import { hashIpAddress } from '../lib/crypto';
 import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
@@ -39,14 +38,8 @@ export const chapterActions = {
       const { chapterId } = input;
       const ctx = context.locals.cfContext;
       const { user } = context.locals;
-      const { cookies } = context;
-      let clientAddress = '0.0.0.0';
-      try {
-        clientAddress = context.clientAddress;
-      } catch (e) {
-        if (import.meta.env.DEV)
-          console.warn('[chapter registerView] clientAddress not available', e);
-      }
+      const { cookies, request } = context;
+      const clientAddress = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
 
       if (import.meta.env.DEV) {
         if (!ctx) console.warn('[chapter registerView] Warning: cfContext is missing');
@@ -309,6 +302,7 @@ export const chapterActions = {
       }
 
       if (context.locals.cfContext) {
+        const { processAndCacheChapter } = await import('../lib/chapterProcessing');
         context.locals.cfContext.waitUntil(
           processAndCacheChapter(
             env,

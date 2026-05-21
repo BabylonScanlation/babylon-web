@@ -395,12 +395,8 @@ export const seriesActions = {
     handler: async (input, context) => {
       const { seriesId } = input;
       const ctx = context.locals.cfContext;
-      let clientAddress = '0.0.0.0';
-      try {
-        clientAddress = context.clientAddress;
-      } catch (e) {
-        if (import.meta.env.DEV) console.warn('[registerView] clientAddress not available', e);
-      }
+      const { request } = context;
+      const clientAddress = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
 
       if (import.meta.env.DEV) {
         console.log(`[registerView] ID: ${seriesId}, Address: ${clientAddress}`);

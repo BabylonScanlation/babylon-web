@@ -633,7 +633,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         if ((window as any)._babylonInitMain) return; (window as any)._babylonInitMain = true;
         if (document.documentElement.classList.contains('nsfw-mode') || document.cookie.includes('babylon_nsfw=true')) {
           const h = document.getElementById('main-header'); if (h) h.classList.add('nsfw-active');
-          const l = document.getElementById('header-logo-img') as HTMLImageElement; if (l) l.src = `${_0xS.p}iconpage/babylon-logo-4.webp`;
+          const l = document.getElementById('header-logo-img') as HTMLImageElement; if (l) l.src = siteConfig.assets.logoHeaderNsfw || siteConfig.assets.logoHeader;
         }
         const c = document.body.getAttribute(_0xS.n);
         document.querySelectorAll('[data-news-badge]').forEach(b => { if (c && parseInt(c) > 0) { b.textContent = parseInt(c) > 9 ? '+9' : c; (b as HTMLElement).style.display = 'flex'; } });

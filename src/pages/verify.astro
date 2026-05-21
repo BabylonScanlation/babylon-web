@@ -15,7 +15,7 @@ const turnstileSiteKey =
         <div class="logo-wrapper">
           <img
             src="/favicon.png"
-            alt="Babylon Logo"
+            alt={`${siteConfig.name} Logo`}
             width="80"
             height="80"
             fetchpriority="high"
@@ -26,7 +26,7 @@ const turnstileSiteKey =
       </div>
 
       <div class="content-area">
-        <h1>Bienvenido a Babylon</h1>
+        <h1>Bienvenido a {siteConfig.name}</h1>
         <p class="subtitle">Confirma que eres mayor de edad y aceptas nuestros términos para continuar.</p>
 
         <div class="checks-area">

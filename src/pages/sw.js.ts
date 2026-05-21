@@ -34,17 +34,28 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  if (request.url.includes('/api/')) return;
+  
+  // Ignorar peticiones a la API o de otras extensiones/orígenes no HTTP
+  if (request.url.includes('/api/') || !request.url.startsWith('http')) return;
+
+  // Ignorar explícitamente recursos de terceros (CORS) para evitar bloquear anuncios o analíticas
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
   if (request.mode === 'navigate') {
     event.respondWith(fetch(request).catch(() => caches.match('/')));
     return;
   }
+  
   if (['image', 'style', 'script'].includes(request.destination)) {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {
         return cache.match(request).then((response) => {
           const fetchPromise = fetch(request).then((networkResponse) => {
-            if (networkResponse.ok) cache.put(request, networkResponse.clone());
+            // Solo guardar en caché si es una respuesta válida y no opaca
+            if (networkResponse.ok && networkResponse.type === 'basic') {
+              cache.put(request, networkResponse.clone());
+            }
             return networkResponse;
           });
           return response || fetchPromise;

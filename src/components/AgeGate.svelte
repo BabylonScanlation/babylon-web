@@ -11,7 +11,7 @@ let captchaToken = $state('');
 
 let { isVerificationPage = false } = $props();
 
-const BRAND_NAME = 'Babylon';
+const BRAND_NAME = siteConfig.name;
 const ACCENT_COLOR = '#00bfff';
 
 onMount(() => {
