@@ -10,6 +10,7 @@ interface Props {
 
 let { seriesId, initialIsFavorite = false, isLoggedIn = false }: Props = $props();
 
+// svelte-ignore state_referenced_locally
 let isFavorite = $state(initialIsFavorite);
 let isLoading = $state(false);
 

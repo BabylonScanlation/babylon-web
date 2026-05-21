@@ -44,7 +44,8 @@ export const chapterActions = {
       try {
         clientAddress = context.clientAddress;
       } catch (e) {
-        if (import.meta.env.DEV) console.warn('[chapter registerView] clientAddress not available');
+        if (import.meta.env.DEV)
+          console.warn('[chapter registerView] clientAddress not available', e);
       }
 
       if (import.meta.env.DEV) {

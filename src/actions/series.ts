@@ -399,14 +399,14 @@ export const seriesActions = {
       try {
         clientAddress = context.clientAddress;
       } catch (e) {
-        if (import.meta.env.DEV) console.warn('[registerView] clientAddress not available');
+        if (import.meta.env.DEV) console.warn('[registerView] clientAddress not available', e);
       }
 
       if (import.meta.env.DEV) {
         console.log(`[registerView] ID: ${seriesId}, Address: ${clientAddress}`);
         if (!ctx) console.warn('[registerView] Warning: cfContext is missing');
       }
-      
+
       if (!env || Object.keys(env).length === 0) {
         console.error('[registerView] CRITICAL: Environment bindings (env) are missing or empty!');
       }
@@ -415,10 +415,10 @@ export const seriesActions = {
         try {
           const kv = env.KV_VIEWS;
           const salt = env.INTERNAL_CRYPTO_SALT;
-          
+
           if (!salt) {
-             console.error('[registerView] INTERNAL_CRYPTO_SALT is missing in env');
-             return;
+            console.error('[registerView] INTERNAL_CRYPTO_SALT is missing in env');
+            return;
           }
 
           const ipHash = await hashIpAddress(clientAddress || '0.0.0.0', salt);

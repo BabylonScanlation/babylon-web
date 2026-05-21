@@ -130,8 +130,7 @@ export const adminActions = {
 
       const db = getDB(env);
       const token =
-        Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15);
+        Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
       await db
         .update(scanlations)
