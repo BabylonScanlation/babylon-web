@@ -1,0 +1,1 @@
+ALTER TABLE `Scanlations` ADD `telegram_chat_id` text;
