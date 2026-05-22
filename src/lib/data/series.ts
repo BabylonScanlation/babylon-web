@@ -170,6 +170,7 @@ export async function getSeriesDetails(
   const result = {
     ...seriesData,
     createdAt: seriesData.createdAt || new Date(0).toISOString(),
+    chapters: chaptersResult, // Orion: Añadimos lista plana para compatibilidad con templates
     chaptersByLanguage,
     stats: {
       averageRating,

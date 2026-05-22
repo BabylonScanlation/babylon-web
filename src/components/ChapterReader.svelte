@@ -378,6 +378,12 @@ function changePage(delta: number) {
   if (newIndex >= 0 && newIndex < pagesData.length) {
     currentPageIndex = newIndex;
     if (newIndex > 0) hasReadThreshold = true;
+  } else if (delta > 0 && newIndex >= pagesData.length && nextChapter) {
+    // Astra: Navegar al siguiente capítulo si estamos al final
+    window.location.href = `/series/${nextChapter.slug}/${nextChapter.chapter}`;
+  } else if (delta < 0 && newIndex < 0 && prevChapter) {
+    // Astra: Navegar al capítulo anterior si estamos al inicio
+    window.location.href = `/series/${prevChapter.slug}/${prevChapter.chapter}`;
   }
 }
 
@@ -643,10 +649,10 @@ import { siteConfig } from '../site.config';
                   <div class="page-counter-floating">{currentPageIndex + 1} / {pagesData.length}</div>
 
                   <!-- Botones de Navegación Visuales -->
-                  <button class="nav-zone-btn left" onclick={(e) => { e.stopPropagation(); changePage(-1); }} aria-label="Página anterior" class:hidden={currentPageIndex === 0}>
+                  <button class="nav-zone-btn left" onclick={(e) => { e.stopPropagation(); changePage(-1); }} aria-label="Página anterior" class:hidden={currentPageIndex === 0 && !prevChapter}>
                     <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg>
                   </button>
-                  <button class="nav-zone-btn right" onclick={(e) => { e.stopPropagation(); changePage(1); }} aria-label="Página siguiente" class:hidden={currentPageIndex === pagesData.length - 1}>
+                  <button class="nav-zone-btn right" onclick={(e) => { e.stopPropagation(); changePage(1); }} aria-label="Página siguiente" class:hidden={currentPageIndex === pagesData.length - 1 && !nextChapter}>
                     <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
                   </button>
                 </div>

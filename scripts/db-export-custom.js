@@ -38,7 +38,7 @@ function query(q) {
 function exportTable(table) {
   let tableSql = '';
   console.log(`📦 Exportando ${table}...`);
-  
+
   const limit = 500;
   let offset = 0;
   let hasMore = true;

@@ -81,6 +81,10 @@ try {
     chapterId = chapterResult.chapterId;
     isProcessing = chapterResult.processing;
 
+    // Orion: Filtrar la lista global por el idioma del capítulo actual para navegación coherente
+    const currentLang = chapterResult.chapter?.language || 'es-la';
+    allChapters = allChapters.filter((ch: any) => ch.language === currentLang);
+
     if (isProcessing) {
       loadingMessage = 'Preparando capítulo para lectura...';
     }
