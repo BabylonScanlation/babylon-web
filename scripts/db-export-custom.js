@@ -38,16 +38,32 @@ function query(q) {
 function exportTable(table) {
   let tableSql = '';
   console.log(`📦 Exportando ${table}...`);
-  const data = query(`SELECT * FROM "${table}"`);
+  
+  const limit = 500;
+  let offset = 0;
+  let hasMore = true;
 
-  if (data) {
-    const results = JSON.parse(data)[0].results;
-    if (results) {
-      for (const row of results) {
-        const cols = Object.keys(row);
-        const vals = cols.map((c) => escapeStringOneLine(row[c])).join(', ');
-        tableSql += `INSERT OR IGNORE INTO "${table}" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${vals});\n`;
+  while (hasMore) {
+    const data = query(`SELECT * FROM "${table}" LIMIT ${limit} OFFSET ${offset}`);
+    if (data) {
+      const results = JSON.parse(data)[0].results;
+      if (results && results.length > 0) {
+        for (const row of results) {
+          const cols = Object.keys(row);
+          const vals = cols.map((c) => escapeStringOneLine(row[c])).join(', ');
+          tableSql += `INSERT OR IGNORE INTO "${table}" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${vals});\n`;
+        }
+        if (results.length < limit) {
+          hasMore = false;
+        } else {
+          offset += limit;
+        }
+      } else {
+        hasMore = false;
       }
+    } else {
+      console.error(`❌ Error exportando lote en la tabla ${table} (Offset: ${offset})`);
+      hasMore = false;
     }
   }
   return tableSql;
@@ -74,7 +90,7 @@ async function main() {
   const allTables = results.map((r) => r.name);
   console.log(`📑 Encontradas ${allTables.length} tablas de usuario.`);
 
-  let sqlDump = 'PRAGMA foreign_keys = OFF;\n';
+  let sqlDump = 'PRAGMA defer_foreign_keys = ON;\n';
 
   // Orden prioritario para mitigar problemas de FK (aunque usemos FK OFF)
   const priority = ['Users', 'Series', 'Chapters', 'Pages'];
@@ -96,8 +112,6 @@ async function main() {
       processed.add(table);
     }
   }
-
-  sqlDump += 'PRAGMA foreign_keys = ON;\n';
 
   if (!fs.existsSync(DUMP_DIR)) {
     fs.mkdirSync(DUMP_DIR, { recursive: true });

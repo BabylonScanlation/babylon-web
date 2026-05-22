@@ -1,6 +1,7 @@
 <script lang="ts">
 import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
+import { siteConfig } from '../site.config';
 import Turnstile from './Turnstile.svelte';
 
 // --- Runes Svelte 5 ---

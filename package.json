@@ -1,7 +1,7 @@
 {
   "name": "babylon-scanlation",
   "type": "module",
-  "version": "2.5.4",
+  "version": "2.5.5",
   "description": "Professional Edge-First Scanlation CMS built with Astro and Cloudflare.",
   "overrides": {
     "esbuild": "0.28.0",
@@ -22,7 +22,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "analyze": "vite-bundle-visualizer",
-    "build": "npm run format && npm run lint && astro build && node scripts/cf-postbuild.js",
+    "build": "npm run format && npm run lint && astro build",
     "preview": "astro build && wrangler pages dev ./dist",
     "astro": "astro",
     "deploy": "wrangler deploy",
@@ -31,7 +31,7 @@
     "dev:remote": "concurrently \"wrangler pages dev --proxy 8789 --ip 0.0.0.0 --port 8788 --remote\" \"astro dev --port 8789 --host 0.0.0.0\"",
     "start": "astro start",
     "db:pull": "node scripts/db-export-custom.js",
-    "db:reset:local": "if exist .wrangler\\state\\v3\\d1 rd /s /q .wrangler\\state\\v3\\d1",
+    "db:reset:local": "node -e \"require('fs').rmSync('.wrangler/state/v3/d1', { recursive: true, force: true })\"",
     "db:load": "wrangler d1 execute babylon-scanlation-prod --local --file=./db_snapshots/dump.sql",
     "db:migrate": "wrangler d1 migrations apply babylon-scanlation-prod --local",
     "db:offline": "npm run db:migrate && npm run db:load && npm run dev:cf",
