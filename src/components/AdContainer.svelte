@@ -103,7 +103,6 @@
     display: none;
     position: relative;
     width: 100%;
-    max-width: 728px;
     min-height: 120px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.05);

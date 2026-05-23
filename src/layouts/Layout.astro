@@ -225,6 +225,41 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
 
     <!-- Primary Meta Tags -->
     <title>{title}</title>
+
+    {/* Astra: staff-protection-shield - Oculta anuncios proactivamente para el staff */}
+    {(Astro.locals.isStaff || user?.isAdmin) && (
+      <style is:inline>
+        .ad-container-root, 
+        .reader-top-ad, 
+        .reader-bottom-ad, 
+        .series-bottom-ad-wrapper,
+        .ad-inner-wrapper,
+        [id*="container-ad-inst"],
+        [id*="slot-ad-inst"],
+        [class*="ad-placeholder"] { 
+          display: none !important; 
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+      </style>
+      <script is:inline>
+        // Orion: Nuclear AdBlock for Staff (Client-side)
+        (function() {
+          const killAds = () => {
+            const targets = document.querySelectorAll('.ad-container-root, .reader-top-ad, .reader-bottom-ad, [id*="ad-inst"], [id*="slot-ad-inst"], [class*="native-ad"]');
+            targets.forEach(el => el.remove());
+          };
+          killAds();
+          window.addEventListener('load', killAds);
+          document.addEventListener('astro:page-load', killAds);
+          setInterval(killAds, 1000); // Orion: Vigilancia agresiva (1s)
+        })();
+      </script>
+    )}
     <meta name="title" content={title} />
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
@@ -344,11 +379,14 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       /* Reserva de espacio para Header y Hero para evitar saltos */
       .site-header {
         height: 90px;
-        background: #020205;
+        background: rgba(2, 2, 5, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         position: fixed;
         top: 0;
         width: 100%;
         z-index: 5000;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       }
 
       .hero-carousel-section {
@@ -360,9 +398,19 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       /* Esqueleto de Grillas (Featured y Updates) */
       .featured-grid-3x2 {
         display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important;
+        grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)) !important;
         gap: 1.5rem !important;
-        min-height: 600px;
+        min-height: 665px;
+        max-height: 665px;
+        overflow: hidden;
+      }
+
+      /* Esqueleto de Capítulos Premium */
+      .chapters-premium-grid {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+        gap: 1.25rem !important;
+        min-height: 400px;
       }
 
       .recent-updates-swiper:not(.swiper-initialized) .swiper-wrapper {
@@ -535,7 +583,10 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     </style>
     {
       /* Astra: Ad Optimizer v1.0 - Gestión unificada de scripts de publicidad */
-      siteConfig.ads.enabled && !Astro.locals.isStaff && (
+      /* Orion: Bloqueo de seguridad nuclear para Staff (Admins y Scanlations) */
+      siteConfig.ads.enabled && 
+      !Astro.locals.isStaff && 
+      !user?.isAdmin && (
         <script
           is:inline
           define:vars={{

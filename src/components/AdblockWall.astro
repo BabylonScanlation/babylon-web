@@ -277,19 +277,33 @@
   /* Toast Compact */
   .soft-notice-wrapper {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: #111;
-    border: 1px solid #333;
+    bottom: 24px;
+    right: 24px;
+    background: #0a0a0c;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
-    padding: 0.6rem 1rem;
-    border-radius: 12px;
+    padding: 0.75rem 1.25rem;
+    border-radius: 16px;
     z-index: 10000;
     display: flex;
     align-items: center;
-    gap: 1rem;
-    font-size: 0.85rem;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+    gap: 1.25rem;
+    font-size: 0.9rem;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+    max-width: 90vw; /* Astra: Permitimos expansion casi total */
+    white-space: nowrap; /* Astra: Forzamos una linea si hay espacio */
+    backdrop-filter: blur(10px);
+  }
+
+  @media (max-width: 600px) {
+    .soft-notice-wrapper {
+      white-space: normal;
+      left: 20px;
+      right: 20px;
+      bottom: 20px;
+      text-align: center;
+      justify-content: center;
+    }
   }
 
   .close-toast {

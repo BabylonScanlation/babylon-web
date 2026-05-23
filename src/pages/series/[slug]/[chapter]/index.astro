@@ -209,7 +209,7 @@ if (error && currentChapterIndex !== -1) {
   </div>
 
   <main class="reader-container" id="reader-container">
-    {siteConfig.ads.enabled && !user?.isAdmin && (
+    {!Astro.locals.isStaff && !user?.isAdmin && siteConfig.ads.enabled && (
       <div class="reader-top-ad">
         <AdContainer type="native" />
       </div>

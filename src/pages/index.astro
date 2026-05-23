@@ -38,7 +38,7 @@ try {
 }
 
 // Orion: Para el FeaturedGrid usamos directamente las series populares
-const featuredGridData = popularSeries.slice(0, 6);
+const featuredGridData = popularSeries.slice(0, 20);
 
 // Orion: Garantizamos que la cuadrícula esté siempre ordenada por vistas (descendente)
 featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
@@ -62,9 +62,11 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
           )}
 
         <div class="main-sections-container">
-          <div class="top-ad-banner">
-            <AdContainer type="bannerLarge" />
-          </div>
+          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (
+            <div class="top-ad-banner">
+              <AdContainer type="bannerLarge" />
+            </div>
+          )}
 
           {featuredGridData.length > 0 && (
             <div class="featured-grid-wrapper">
@@ -72,9 +74,11 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
             </div>
           )}
 
-          <div class="middle-ad-wrapper">
-            <AdContainer type="bannerSmall" />
-          </div>
+          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (
+            <div class="middle-ad-wrapper">
+              <AdContainer type="bannerSmall" />
+            </div>
+          )}
 
           <div class="discovery-zone">
             {seriesWithRecentChapters.length > 0 && (
@@ -85,9 +89,11 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
             )}
           </div>
 
-          <div class="bottom-ad-wrapper">
-            <AdContainer type="square" />
-          </div>
+          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (
+            <div class="bottom-ad-wrapper">
+              <AdContainer type="square" />
+            </div>
+          )}
         </div>
       </div>
     ) : (
@@ -128,10 +134,8 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
     /* Astra: Eliminamos min-height para que no ocupe espacio si no hay contenido aún */
     transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }  .main-sections-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1rem;
     width: 100%;
+    padding: 0 1.5rem;
     box-sizing: border-box;
     overflow-x: hidden;
     display: flex;

@@ -8,11 +8,12 @@
     "fast-xml-parser": "^5.3.4",
     "lodash": "^4.17.23",
     "undici": "^7.19.2",
-    "wrangler": "^4.90.1",
+    "wrangler": "^4.94.0",
     "@tootallnate/once": "^3.0.1",
     "yaml": "^2.8.3",
     "drizzle-orm": "^0.45.2",
-    "ws": "^8.20.1"
+    "ws": "^8.20.1",
+    "uuid": "^11.1.1"
   },
   "scripts": {
     "dev": "astro dev",
@@ -99,6 +100,6 @@
     "svelte-eslint-parser": "^1.6.1",
     "typescript-eslint": "^8.59.3",
     "vitest": "^4.1.6",
-    "wrangler": "^4.90.1"
+    "wrangler": "^4.94.0"
   }
 }
