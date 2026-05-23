@@ -291,6 +291,7 @@ if (error && currentChapterIndex !== -1) {
           watermark={watermark}
           nextChapter={nextChapterProp || undefined} 
           prevChapter={prevChapterUrl ? { slug: slug!, chapter: allChapters[currentChapterIndex + 1]?.chapterNumber.toString() } : undefined}
+          isStaff={Astro.locals.isStaff}
         />
     )}
   </main>

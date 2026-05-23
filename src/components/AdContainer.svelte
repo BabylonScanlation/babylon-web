@@ -1,0 +1,172 @@
+<script lang="ts">
+  import { siteConfig } from '../site.config';
+
+  interface Props {
+    type: 'banner' | 'bannerLarge' | 'bannerSmall' | 'square' | 'native';
+    id?: string;
+    className?: string;
+    isStaff?: boolean;
+  }
+
+  let { type, id, className = '', isStaff = false }: Props = $props();
+
+  const adKeys = siteConfig.ads.adsterra;
+  
+  // @ts-expect-error Dynamic key access
+  const _adKey = $derived(adKeys[type] || adKeys.banner);
+
+  const _dimensions = {
+    banner: { w: 728, h: 90 },
+    bannerLarge: { w: 970, h: 90 },
+    bannerSmall: { w: 468, h: 60 },
+    square: { w: 300, h: 250 },
+    native: { w: 728, h: 180 },
+  };
+
+  const _shouldShowAds = $derived(siteConfig.ads.enabled && !isStaff);
+  const _instanceId = $derived(id || `ad-sv-${type}`);
+</script>
+
+{#if _shouldShowAds}
+  <div 
+    class="ad-container-root {type} {className}" 
+    id={_instanceId}
+    data-ad-type={type}
+    data-ad-keys={JSON.stringify(adKeys)}
+    data-ad-dims={JSON.stringify(_dimensions)}
+    data-ad-initial={_adKey}
+  >
+    <div class="ad-inner-wrapper">
+      <div class="ad-content-slot" id="slot-{_instanceId}">
+        <div id="container-{_instanceId}"></div>
+      </div>
+    </div>
+
+    <!-- Astra: Fallback Card Estética (Oculta por defecto) -->
+    <div class="ad-fallback-card" id="fallback-{_instanceId}">
+      <div class="fallback-content">
+        <div class="fallback-icon">
+          <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </div>
+        <div class="fallback-text">
+          <span class="fallback-title">ANUNCIO BLOQUEADO</span>
+          <p>Por favor, considera desactivar tu Adblocker o DNS para apoyarnos.</p>
+        </div>
+        <a href={siteConfig.links.facebook} class="fallback-btn" target="_blank">CÓMO APOYAR</a>
+      </div>
+      <div class="fallback-shimmer"></div>
+    </div>
+  </div>
+{/if}
+
+<style>
+  :global(.ad-container-root) {
+    width: 100%;
+    margin: 3rem 0;
+    padding: 0;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    overflow: visible !important;
+    position: relative;
+    transition: all 0.4s ease;
+    background: transparent !important;
+  }
+
+  :global(.ad-inner-wrapper) {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    background: transparent;
+  }
+
+  :global(.ad-content-slot) {
+    padding: 0;
+    margin: 0;
+    display: block;
+    width: 100%;
+    overflow: visible !important;
+  }
+
+  :global(.ad-container-root.fallback-active .ad-fallback-card) {
+    display: flex !important;
+  }
+  
+  :global(.ad-container-root.fallback-active .ad-inner-wrapper) {
+    display: none !important;
+  }
+
+  :global(.ad-fallback-card) {
+    display: none;
+    position: relative;
+    width: 100%;
+    max-width: 728px;
+    min-height: 120px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    z-index: 5;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    gap: 1.25rem;
+    line-height: 1.5;
+  }
+
+  :global(.fallback-content) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+  }
+
+  :global(.fallback-title) {
+    display: block;
+    font-weight: 900;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    color: #fff;
+  }
+
+  :global(.fallback-text p) {
+    margin: 0.4rem 0 0 0;
+    font-size: 0.85rem;
+    color: #888;
+    line-height: 1.4;
+  }
+
+  :global(.fallback-btn) {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  :global(.fallback-shimmer) {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+    transform: skewX(-20deg);
+    animation: fallback-shimmer 6s infinite;
+  }
+
+  @keyframes fallback-shimmer {
+    0% { left: -100%; }
+    20% { left: 200%; }
+    100% { left: 200%; }
+  }
+</style>

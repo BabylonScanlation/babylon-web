@@ -21,6 +21,10 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFA
 TELEGRAM_BOT_TOKEN="12345678:ABCDE..."
 TELEGRAM_WEBHOOK_SECRET="random_webhook_secret_here"
 TELEGRAM_CHAT_ID="-100..."
+TELEGRAM_REPORTS_CHAT_ID="-100..." # Chat para reportes
+TELEGRAM_TOPIC_FALLEN="1"         # ID del tópico para Capítulos Caídos
+TELEGRAM_TOPIC_BUGS="2"           # ID del tópico para Bugs
+TELEGRAM_TOPIC_CLAIMS="3"         # ID del tópico para Reclamaciones
 
 # --- R2 ASSETS & CACHE (URLs Públicas) ---
 R2_PUBLIC_URL_ASSETS="https://your-assets.r2.dev"

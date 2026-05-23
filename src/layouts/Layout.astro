@@ -168,7 +168,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                   if (
                     isTransparent &&
                     !node.closest(
-                      '#global-utilities-root, .site-header, .modal-body, .comments-wrapper'
+                      '#global-utilities-root, .site-header, .modal-body, .comments-wrapper, .ad-container-root'
                     )
                   ) {
                     node.style.pointerEvents = 'none';
@@ -534,73 +534,67 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       }
     </style>
     {
-      siteConfig.ads.enabled &&
-        !Astro.locals.isStaff &&
-        siteConfig.ads.monetag?.vignetteId &&
-        siteConfig.ads.monetag?.vignetteUrl && (
-          <script
-            is:inline
-            define:vars={{
-              zone: siteConfig.ads.monetag.vignetteId,
-              url: siteConfig.ads.monetag.vignetteUrl,
-            }}
-          >
-            const s = document.createElement('script'); s.src = url;
-            s.dataset.zone = zone; const target = [document.documentElement,
-            document.body].filter(Boolean).pop(); if (target)
-            target.appendChild(s);
-          </script>
-        )
-    }
-    {
-      siteConfig.ads.enabled &&
-        !Astro.locals.isStaff &&
-        siteConfig.ads.monetag?.multitagId &&
-        siteConfig.ads.monetag?.multitagUrl && (
-          <script
-            is:inline
-            define:vars={{
-              url: siteConfig.ads.monetag.multitagUrl,
-              zone: siteConfig.ads.monetag.multitagId,
-            }}
-          >
-            const s = document.createElement('script'); s.src = url;
-            s.dataset.zone = zone; s.async = true; s.dataset.cfasync = "false";
-            document.head.appendChild(s);
-          </script>
-        )
-    }
-    {
-      siteConfig.ads.enabled &&
-        !Astro.locals.isStaff &&
-        siteConfig.ads.monetag?.multitag2Id &&
-        siteConfig.ads.monetag?.multitag2Url && (
-          <script
-            is:inline
-            define:vars={{
-              url: siteConfig.ads.monetag.multitag2Url,
-              zone: siteConfig.ads.monetag.multitag2Id,
-            }}
-          >
-            const s = document.createElement('script'); s.src = url;
-            s.dataset.zone = zone; s.async = true; s.dataset.cfasync = "false";
-            document.head.appendChild(s);
-          </script>
-        )
-    }
-    {
-      siteConfig.ads.enabled &&
-        !Astro.locals.isStaff &&
-        siteConfig.ads.adsterra?.socialBarUrl && (
-          <script is:inline src={siteConfig.ads.adsterra.socialBarUrl} />
-        )
-    }
-    {
-      siteConfig.ads.enabled &&
-        !Astro.locals.isStaff &&
-        siteConfig.ads.adsterra?.popunderUrl && (
-          <script is:inline src={siteConfig.ads.adsterra.popunderUrl} />
-        )
+      /* Astra: Ad Optimizer v1.0 - Gestión unificada de scripts de publicidad */
+      siteConfig.ads.enabled && !Astro.locals.isStaff && (
+        <script
+          is:inline
+          define:vars={{
+            monetag: siteConfig.ads.monetag,
+            adsterra: siteConfig.ads.adsterra
+          }}
+        >
+          (function() {
+            // 1. Cargador inteligente para Monetag (Evita duplicados)
+            const loadedScripts = new Set();
+            const injectMonetag = (url, zone, type = 'multitag') => {
+              if (!url || !zone || loadedScripts.has(url + zone)) return;
+              loadedScripts.add(url + zone);
+
+              const s = document.createElement('script');
+              s.src = url;
+              s.dataset.zone = zone;
+              s.async = true;
+              s.dataset.cfasync = "false";
+              
+              if (type === 'vignette') {
+                const target = [document.documentElement, document.body].filter(Boolean).pop();
+                if (target) target.appendChild(s);
+              } else {
+                document.head.appendChild(s);
+              }
+            };
+
+            // Inyectamos Monetag con prioridad
+            if (monetag?.vignetteUrl) injectMonetag(monetag.vignetteUrl, monetag.vignetteId, 'vignette');
+            if (monetag?.multitagUrl) injectMonetag(monetag.multitagUrl, monetag.multitagId);
+            
+            // El multitag 2 solo se inyecta si es una URL distinta al primero (evita doble carga de .js)
+            if (monetag?.multitag2Url && monetag.multitag2Url !== monetag.multitagUrl) {
+              injectMonetag(monetag.multitag2Url, monetag.multitag2Id);
+            }
+
+            // 2. Cargador diferido para Adsterra (Mejora el LCP/FCP)
+            const injectAdsterra = (url) => {
+              if (!url) return;
+              const s = document.createElement('script');
+              s.src = url;
+              s.async = true;
+              document.head.appendChild(s);
+            };
+
+            // Diferimos la carga de Adsterra 1.5s para priorizar el contenido real del sitio
+            const triggerAdsterra = () => {
+              setTimeout(() => {
+                if (adsterra?.socialBarUrl) injectAdsterra(adsterra.socialBarUrl);
+                if (adsterra?.popunderUrl) injectAdsterra(adsterra.popunderUrl);
+              }, 1500);
+            };
+
+            if (document.readyState === 'complete') triggerAdsterra();
+            else window.addEventListener('load', triggerAdsterra);
+          })();
+        </script>
+      )
     }
   </head>
   <body

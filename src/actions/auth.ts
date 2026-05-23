@@ -212,13 +212,18 @@ export const authActions = {
           }
         }
 
-        const isProduction =
-          !request.url.includes('localhost') && !request.url.includes('127.0.0.1');
+        const url = new URL(request.url);
+        const isLocal =
+          url.hostname === 'localhost' ||
+          url.hostname === '127.0.0.1' ||
+          url.hostname.startsWith('192.168.') ||
+          url.hostname.startsWith('10.') ||
+          url.hostname.startsWith('172.');
 
         cookies.set('site_verified', 'true', {
           path: '/',
           httpOnly: false,
-          secure: isProduction,
+          secure: !isLocal,
           sameSite: 'lax',
           maxAge: 60 * 60 * 24 * 7, // 1 semana
         });
@@ -298,7 +303,13 @@ export const authActions = {
         })
         .run();
 
-      const isLocal = new URL(request.url).hostname === 'localhost';
+      const url = new URL(request.url);
+      const isLocal =
+        url.hostname === 'localhost' ||
+        url.hostname === '127.0.0.1' ||
+        url.hostname.startsWith('192.168.') ||
+        url.hostname.startsWith('10.') ||
+        url.hostname.startsWith('172.');
       const secureFlag = !isLocal; // Cloudflare Pages siempre usa HTTPS, incluso en previews
 
       const cookieOptions = {

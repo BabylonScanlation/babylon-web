@@ -91,13 +91,19 @@ export async function shield(context: APIContext, next: MiddlewareNext) {
   }
 
   // 4. SHIELD TOKEN COOKIE (Orion: Auto-autorización para assets)
-  const isDev = import.meta.env.DEV;
+  const isLocal =
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    url.hostname.startsWith('192.168.') ||
+    url.hostname.startsWith('10.') ||
+    url.hostname.startsWith('172.');
+
   const shieldToken = env.SHIELD_TOKEN;
   if (shieldToken && !context.cookies.has('babylon_shield')) {
     context.cookies.set('babylon_shield', shieldToken, {
       path: '/',
       httpOnly: true,
-      secure: !isDev,
+      secure: !isLocal,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 1 semana
     });
