@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 // src/lib/middlewares/auth.ts
 import type { APIContext, MiddlewareNext } from 'astro';
 import { and, eq, gt } from 'drizzle-orm';
@@ -20,10 +21,9 @@ export function clearSessionCache(context: Pick<SessionContext, 'cookies'>) {
 export async function authFlow(context: APIContext, next: MiddlewareNext) {
   const { cookies, locals, url } = context;
   const currentPath = url.pathname;
-  const runtime = locals.runtime;
 
   // Orion: Si no hay base de datos, saltamos la auth de D1
-  const db = runtime?.env?.DB ? getDB(runtime.env) : undefined;
+  const db = env?.DB ? getDB(env) : undefined;
   locals.db = db;
   locals.user = undefined;
 
@@ -33,8 +33,8 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
 
   // 1. FAST-PATH: Verificación JWT (Zero D1 Reads - 15 min expiración)
   // Orion: Si es una ruta Admin, saltamos el Fast-Path para garantizar seguridad máxima
-  if (authCookie && runtime?.env?.JWT_SECRET && !isAdminRoute) {
-    const payload = await verifyToken(authCookie, runtime.env.JWT_SECRET);
+  if (authCookie && env?.JWT_SECRET && !isAdminRoute) {
+    const payload = await verifyToken(authCookie, env.JWT_SECRET);
     if (payload) {
       // Verificación de Blacklist en KV con Caché L1 en RAM (Orion: Optimización Crítica)
       const cacheKey = payload.jti || '';
@@ -44,8 +44,8 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
       let isRevoked = false;
       if (cached && cached.expires > now) {
         isRevoked = cached.revoked;
-      } else if (payload.jti && runtime?.env?.KV_VIEWS) {
-        isRevoked = !!(await runtime.env.KV_VIEWS.get(`revoked:${payload.jti}`));
+      } else if (payload.jti && env?.KV_VIEWS) {
+        isRevoked = !!(await env.KV_VIEWS.get(`revoked:${payload.jti}`));
         // Guardamos en RAM por 60 segundos
         revocationCache.set(cacheKey, { revoked: isRevoked, expires: now + 60000 });
 
@@ -63,7 +63,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
           email: payload.email,
           username: payload.username || undefined,
           displayName: payload.displayName || undefined,
-          isAdmin: payload.role === 'admin' || payload.uid === runtime.env.SUPER_ADMIN_UID,
+          isAdmin: payload.role === 'admin' || payload.uid === env.SUPER_ADMIN_UID,
           isNsfw: payload.isNsfw,
           tokenVersion: payload.tokenVersion,
           scanlations: payload.scans?.map((id) => ({ id, role: 'editor' })) || [], // El rol 'editor' es el mínimo por defecto en fast-path
@@ -95,13 +95,11 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
       if (result?.session) {
         const uid = result.session.userId;
         const role =
-          runtime.env.SUPER_ADMIN_UID && uid === runtime.env.SUPER_ADMIN_UID
-            ? 'admin'
-            : result.role || 'user';
+          env.SUPER_ADMIN_UID && uid === env.SUPER_ADMIN_UID ? 'admin' : result.role || 'user';
 
         // Orion: Validación de Seguridad Nuclear - Verificar tokenVersion si venimos de un JWT
-        if (authCookie && isAdminRoute && runtime?.env?.JWT_SECRET) {
-          const payload = await verifyToken(authCookie, runtime.env.JWT_SECRET);
+        if (authCookie && isAdminRoute && env?.JWT_SECRET) {
+          const payload = await verifyToken(authCookie, env.JWT_SECRET);
           if (payload && payload.tokenVersion !== result.user.tokenVersion) {
             // La versión del token no coincide con la DB -> Sesión comprometida o revocada
             deleteSession(context as unknown as SessionContext);
@@ -134,7 +132,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
         locals.user = userObj;
 
         // Auto-refresh: Emitimos un nuevo JWT válido por 15 mins ya que la sesión D1 es válida
-        if (runtime?.env?.JWT_SECRET) {
+        if (env?.JWT_SECRET) {
           await setAuthCookie(
             context as unknown as SessionContext,
             {
@@ -147,7 +145,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
               tokenVersion: userObj.tokenVersion,
               scans: memberships.map((m) => m.id),
             },
-            runtime.env.JWT_SECRET
+            env.JWT_SECRET
           );
         }
       } else {

@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import { createApiRoute } from '../../../../lib/api';
 
 /**
@@ -11,8 +12,7 @@ interface PlatformStats {
   cpm: number;
 }
 
-export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => {
-  const env = locals.runtime.env;
+export const GET = createApiRoute({ auth: 'admin' }, async ({ url }) => {
   const kv = env.KV_VIEWS;
   const forceRefresh = url.searchParams.get('refresh') === 'true';
   const cacheKey = 'admin_revenue_stats';
@@ -117,7 +117,7 @@ async function fetchAdsterraStats(apiKey?: string) {
       headers: {
         'X-API-Key': apiKey.trim(),
         Accept: 'application/json',
-        'User-Agent': 'Babylon/2.5',
+        'User-Agent': 'ScanlationCMS/2.5',
       },
     });
 

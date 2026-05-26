@@ -94,19 +94,36 @@
       const controller = new AbortController();
       const adsterraDomain = document.body.getAttribute('data-adsterra-domain');
       if (adsterraDomain) {
-        setTimeout(() => controller.abort(), 2000);
+        setTimeout(() => controller.abort(), 2500);
         await fetch(`https://${adsterraDomain}/invoke.js`, { 
           mode: 'no-cors', cache: 'no-store', signal: controller.signal 
         });
       }
     } catch {
+      console.log('%c🛡️ SHIELD: Adsterra bloqueado.', 'color: orange;');
+      score += 2;
+    }
+
+    // 6. Prueba de Red Secundaria (Monetag)
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 2500);
+      await fetch(`https://ai751.com/tag.min.js`, { 
+        mode: 'no-cors', cache: 'no-store', signal: controller.signal 
+      });
+    } catch {
+      console.log('%c🛡️ SHIELD: Monetag bloqueado.', 'color: orange;');
       score += 2;
     }
 
     console.log('%c🛡️ SHIELD: Puntaje Final: ' + score, 'color: yellow; font-weight: bold;');
     
-    // Si hay CUALQUIER indicio de bloqueo (incluso fallos parciales de VPN)
-    return score >= 1;
+    /**
+     * Orion: Umbral de Tolerancia Alto (v2.1)
+     * Dado el gran aumento de anuncios, solo bloqueamos si el score es >= 5.
+     * Esto evita falsos positivos por micro-cortes o problemas con un solo proveedor.
+     */
+    return score >= 5;
   }
 
   async function initShield() {
@@ -260,19 +277,33 @@
   /* Toast Compact */
   .soft-notice-wrapper {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: #111;
-    border: 1px solid #333;
+    bottom: 24px;
+    right: 24px;
+    background: #0a0a0c;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
-    padding: 0.6rem 1rem;
-    border-radius: 12px;
+    padding: 0.75rem 1.25rem;
+    border-radius: 16px;
     z-index: 10000;
     display: flex;
     align-items: center;
-    gap: 1rem;
-    font-size: 0.85rem;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+    gap: 1.25rem;
+    font-size: 0.9rem;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+    max-width: 90vw; /* Astra: Permitimos expansion casi total */
+    white-space: nowrap; /* Astra: Forzamos una linea si hay espacio */
+    backdrop-filter: blur(10px);
+  }
+
+  @media (max-width: 600px) {
+    .soft-notice-wrapper {
+      white-space: normal;
+      left: 20px;
+      right: 20px;
+      bottom: 20px;
+      text-align: center;
+      justify-content: center;
+    }
   }
 
   .close-toast {

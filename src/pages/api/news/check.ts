@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import type { D1Database } from '@cloudflare/workers-types';
 import type { APIRoute } from 'astro';
 import { desc, eq } from 'drizzle-orm';
@@ -6,8 +7,6 @@ import { getDB } from '../../../lib/db';
 
 export const GET: APIRoute = async ({ locals }) => {
   // Astra/Orion: Sistema de recuperación de DB ultra-robusto
-  const runtime = locals.runtime || {};
-  const env = runtime.env || (process.env as unknown as Record<string, string>);
 
   try {
     // Intentamos usar la DB ya instanciada por el middleware o crear una nueva

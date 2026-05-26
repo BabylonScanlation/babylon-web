@@ -7,7 +7,7 @@ interface Props {
 }
 
 const { mangas = [] } = Astro.props;
-const displayMangas = mangas.slice(0, 6);
+const displayMangas = mangas.slice(0, 20);
 ---
 
 <section class="featured-premium-section">
@@ -110,8 +110,11 @@ const displayMangas = mangas.slice(0, 6);
 
   .featured-grid-3x2 {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    /* Astra: Grilla de alta respuesta. Se adapta al ancho sin límites fijos */
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 1.5rem;
+    width: 100%;
+    min-height: 320px;
   }
 
   .featured-card-premium {
@@ -256,17 +259,11 @@ const displayMangas = mangas.slice(0, 6);
     box-shadow: 0 10px 20px var(--accent-glow);
   }
 
-  @media (max-width: 1100px) {
-    .featured-grid-3x2 {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
   @media (max-width: 640px) {
     .featured-grid-3x2 {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
       gap: 1rem;
-      align-items: start; /* Evita estiramiento en móviles */
+      align-items: start;
     }
     .featured-card-wrapper {
       height: auto !important;
@@ -394,7 +391,6 @@ const displayMangas = mangas.slice(0, 6);
   }
   @media (max-width: 1024px) {
     .featured-grid-3x2 {
-      grid-template-columns: repeat(2, 1fr);
       gap: 1.5rem;
     }
   }
@@ -407,7 +403,6 @@ const displayMangas = mangas.slice(0, 6);
       display: none;
     }
     .featured-grid-3x2 {
-      grid-template-columns: repeat(2, 1fr);
       gap: 1rem;
     }
     .manga-title {

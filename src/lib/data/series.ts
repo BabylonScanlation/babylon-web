@@ -170,6 +170,7 @@ export async function getSeriesDetails(
   const result = {
     ...seriesData,
     createdAt: seriesData.createdAt || new Date(0).toISOString(),
+    chapters: chaptersResult, // Orion: Añadimos lista plana para compatibilidad con templates
     chaptersByLanguage,
     stats: {
       averageRating,
@@ -573,7 +574,7 @@ export async function searchSeries(
   const {
     q,
     page = 1,
-    limit = 18,
+    limit = 25,
     sort = 'az',
     type,
     status,
@@ -586,7 +587,7 @@ export async function searchSeries(
   } = options;
 
   // Orion: Implementación de RAM Cache para búsquedas (Peticiones Cero)
-  const CACHE_KEY = `search_${allowNsfw}_${q || ''}_${page}_${sort}_${type || ''}_${status || ''}_${genres || ''}`;
+  const CACHE_KEY = `search_${allowNsfw}_${q || ''}_${page}_${limit}_${sort}_${type || ''}_${status || ''}_${genres || ''}`;
   const now = Date.now();
   const cached = seriesMemoryCache.get(CACHE_KEY);
   if (cached && cached.expires > now) {

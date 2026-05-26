@@ -113,11 +113,54 @@ let comments = $state<Comment[]>([]);
 
 // Astra: Reloj reactivo para actualizar etiquetas de tiempo ("hace x min") dinámicamente
 let nowTick = $state(Date.now());
+
+// Orion: Ciclo de Vida Centralizado para Svelte 5 (Evita lifecycle_outside_component)
 onMount(() => {
+  // 1. Reloj de frescura
   const interval = setInterval(() => {
     nowTick = Date.now();
-  }, 60000); // Actualizar cada minuto
-  return () => clearInterval(interval);
+  }, 60000);
+
+  // 2. Sincronización de usuario
+  if (userStore.user) {
+    userStore.sync();
+  }
+
+  // 3. Sincronización inicial de comentarios
+  if (initialComments && comments.length === 0) {
+    const tree = buildCommentTree(initialComments);
+    sortNodes(tree);
+    comments = tree;
+  }
+
+  // 4. Recuperar cooldown persistente
+  const lastCommentTime = localStorage.getItem(`${siteConfig.storage.prefix}last_comment_ts`);
+  if (lastCommentTime) {
+    const elapsed = Math.floor((Date.now() - parseInt(lastCommentTime, 10)) / 1000);
+    if (elapsed < 30) {
+      cooldownRemaining = 30 - elapsed;
+      const timer = setInterval(() => {
+        cooldownRemaining--;
+        if (cooldownRemaining <= 0) {
+          clearInterval(timer);
+          localStorage.removeItem(`${siteConfig.storage.prefix}last_comment_ts`);
+        }
+      }, 1000);
+    } else {
+      localStorage.removeItem(`${siteConfig.storage.prefix}last_comment_ts`);
+    }
+  }
+
+  // 5. Eventos globales
+  const handleAuthSuccess = () => {
+    // Si el evento de login ocurre, forzamos un refresh del store si fuera necesario
+  };
+  document.addEventListener('auth-success', handleAuthSuccess);
+
+  return () => {
+    clearInterval(interval);
+    document.removeEventListener('auth-success', handleAuthSuccess);
+  };
 });
 
 // Astra: Sincronización robusta. Usamos una variable local para evitar bucles.

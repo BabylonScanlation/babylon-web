@@ -1,4 +1,5 @@
 import { defineAction } from 'astro:actions';
+import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
 import { eq, sql } from 'drizzle-orm';
 import { anonymousUsers, sessions, userRoles, users } from '../db/schema';
@@ -25,9 +26,9 @@ async function determineUserRole(db: AppDatabase, uid: string, superAdminUid: st
 export const authActions = {
   generateNonce: defineAction({
     handler: async (_, context) => {
-      const { user, runtime } = context.locals;
+      const { user } = context.locals;
       if (!user) throw new Error('Usuario no autenticado');
-      const secret = runtime.env.JWT_SECRET;
+      const secret = env.JWT_SECRET;
       if (!secret) throw new Error('JWT_SECRET is not configured');
       return await createNonce(secret, user.uid);
     },
@@ -35,9 +36,9 @@ export const authActions = {
 
   logout: defineAction({
     handler: async (_, context) => {
-      const { cookies, locals } = context;
+      const { cookies } = context;
       const sessionId = cookies.get('user_session')?.value;
-      const db = getDB(locals.runtime.env);
+      const db = getDB(env);
 
       if (sessionId && db) {
         try {
@@ -58,11 +59,11 @@ export const authActions = {
     }),
     handler: async (input, context) => {
       const { fingerprint } = input;
-      const { cookies, request, locals } = context;
-      const db = getDB(locals.runtime.env);
+      const { cookies, request } = context;
+      const db = getDB(env);
 
       const rawIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-      const ip = await hashIpAddress(rawIp, locals.runtime.env.INTERNAL_CRYPTO_SALT);
+      const ip = await hashIpAddress(rawIp, env.INTERNAL_CRYPTO_SALT);
       const userAgent = request.headers.get('User-Agent') || 'unknown';
       const country = request.headers.get('CF-IPCountry') || null;
 
@@ -145,29 +146,26 @@ export const authActions = {
     handler: async (input, context) => {
       try {
         const { token } = input;
-        const { cookies, request, locals } = context;
+        const { cookies, request } = context;
 
         // Orion: Verificación robusta del entorno Cloudflare
-        const runtime = locals.runtime;
-        if (!runtime?.env) {
-          console.error('[VerifyAge] Cloudflare runtime or env is missing in locals');
-          // En desarrollo local a veces Astro no inyecta el runtime en las acciones
-          // dependiendo de cómo se llame. Intentamos usar variables de entorno globales si fallan las de Cloudflare.
+        if (!env) {
+          console.error('[VerifyAge] Cloudflare env is missing');
           if (import.meta.env.DEV) {
             console.warn(
               '[VerifyAge] Falling back to global process.env or import.meta.env in DEV'
             );
           } else {
-            throw new Error('Error interno de configuración (Runtime missing)');
+            throw new Error('Error interno de configuración (Env missing)');
           }
         }
 
-        const env = runtime?.env || (import.meta.env as Record<string, string | undefined>);
         const isDev = import.meta.env.DEV;
+        const currentEnv = env || (import.meta.env as Record<string, string | undefined>);
 
         // Orion: Selección de la clave secreta basada en el entorno.
         // Soporta ambos órdenes: SECRET_DEV y DEV_SECRET
-        const devKey = env.TURNSTILE_DEV_SECRET_KEY || env.TURNSTILE_SECRET_DEV_KEY;
+        const devKey = currentEnv.TURNSTILE_DEV_SECRET_KEY || currentEnv.TURNSTILE_SECRET_DEV_KEY;
 
         const secretKeySource = isDev
           ? devKey
@@ -175,10 +173,15 @@ export const authActions = {
             : 'TURNSTILE_SECRET_KEY (fallback)'
           : 'TURNSTILE_SECRET_KEY';
 
-        const secretKey = isDev ? devKey || env.TURNSTILE_SECRET_KEY : env.TURNSTILE_SECRET_KEY;
+        const secretKey = isDev
+          ? devKey || currentEnv.TURNSTILE_SECRET_KEY
+          : currentEnv.TURNSTILE_SECRET_KEY;
 
         if (!secretKey) {
-          console.error('[VerifyAge] Missing Secret Key. Available env keys:', Object.keys(env));
+          console.error(
+            '[VerifyAge] Missing Secret Key. Available env keys:',
+            Object.keys(currentEnv)
+          );
           throw new Error('Configuración de seguridad incompleta (Falta TURNSTILE_SECRET_KEY)');
         }
 
@@ -209,13 +212,18 @@ export const authActions = {
           }
         }
 
-        const isProduction =
-          !request.url.includes('localhost') && !request.url.includes('127.0.0.1');
+        const url = new URL(request.url);
+        const isLocal =
+          url.hostname === 'localhost' ||
+          url.hostname === '127.0.0.1' ||
+          url.hostname.startsWith('192.168.') ||
+          url.hostname.startsWith('10.') ||
+          url.hostname.startsWith('172.');
 
         cookies.set('site_verified', 'true', {
           path: '/',
           httpOnly: false,
-          secure: isProduction,
+          secure: !isLocal,
           sameSite: 'lax',
           maxAge: 60 * 60 * 24 * 7, // 1 semana
         });
@@ -235,18 +243,17 @@ export const authActions = {
     }),
     handler: async (input, context) => {
       const { idToken } = input;
-      const runtime = context.locals.runtime;
 
       // Orion: Combinación ultra-robusta de entornos
-      const env = {
+      const currentEnv = {
         ...(import.meta.env as Record<string, string | undefined>),
-        ...(runtime?.env || {}),
+        ...(env || {}),
       };
 
       const { cookies, request } = context;
 
       // Aseguramos que existan las piezas clave antes de seguir
-      if (!env.PUBLIC_FIREBASE_PROJECT_ID) {
+      if (!currentEnv.PUBLIC_FIREBASE_PROJECT_ID) {
         throw new Error(
           'Configuración Crítica Faltante: PUBLIC_FIREBASE_PROJECT_ID no encontrada en el servidor.'
         );
@@ -296,7 +303,13 @@ export const authActions = {
         })
         .run();
 
-      const isLocal = new URL(request.url).hostname === 'localhost';
+      const url = new URL(request.url);
+      const isLocal =
+        url.hostname === 'localhost' ||
+        url.hostname === '127.0.0.1' ||
+        url.hostname.startsWith('192.168.') ||
+        url.hostname.startsWith('10.') ||
+        url.hostname.startsWith('172.');
       const secureFlag = !isLocal; // Cloudflare Pages siempre usa HTTPS, incluso en previews
 
       const cookieOptions = {

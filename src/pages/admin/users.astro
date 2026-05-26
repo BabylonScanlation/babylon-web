@@ -1,11 +1,12 @@
 ---
+import { env } from 'cloudflare:workers';
 import Layout from '../../layouts/Layout.astro';
 import { getAdmins } from '../../lib/data/admin';
 import { getDB } from '../../lib/db';
 import { logError } from '../../lib/logError';
 
-const { user, runtime } = Astro.locals;
-const superAdminUid = runtime.env.SUPER_ADMIN_UID;
+const { user } = Astro.locals;
+const superAdminUid = env.SUPER_ADMIN_UID;
 
 // Solo el Super Admin puede acceder a esta página
 if (!user?.isAdmin || user.uid !== superAdminUid) {
@@ -14,7 +15,7 @@ if (!user?.isAdmin || user.uid !== superAdminUid) {
 
 let admins: { uid: string }[] = [];
 try {
-  const db = getDB(runtime.env);
+  const db = getDB(env);
   admins = await getAdmins(db);
 } catch (e) {
   logError(e, 'Error al obtener administradores en SSR', { userId: user?.uid });

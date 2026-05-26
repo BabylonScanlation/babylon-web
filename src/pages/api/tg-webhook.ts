@@ -1,12 +1,13 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import { eq } from 'drizzle-orm';
 import { scanlations } from '../../db/schema';
 import { getDB } from '../../lib/db';
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
-    const { env } = locals.runtime;
+
     const db = getDB(env);
 
     // Verificamos si es un mensaje con el comando de vinculación

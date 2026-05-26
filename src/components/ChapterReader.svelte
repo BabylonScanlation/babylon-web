@@ -1,6 +1,8 @@
 <script lang="ts">
+import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
 import { fade, fly } from 'svelte/transition';
+import AdContainer from './AdContainer.svelte';
 import ReaderPage from './ReaderPage.svelte';
 
 interface Page {
@@ -29,6 +31,7 @@ interface Props {
   nextChapter?: { slug: string; chapter: string } | null;
   prevChapter?: { slug: string; chapter: string } | null;
   processing?: boolean;
+  isStaff?: boolean;
 }
 
 let {
@@ -45,6 +48,7 @@ let {
   nextChapter = null,
   prevChapter = null,
   processing = false,
+  isStaff = false,
 }: Props = $props();
 
 let pagesData = $state<Page[]>([]);
@@ -80,9 +84,16 @@ let eventSource: EventSource | null = null;
 let progressInterval: number | undefined;
 let retryCount = 0;
 
-// Astra: Reinicio de estado en navegación (Astro View Transitions)
+// Astra: Gestión de estado reactiva (Svelte 5)
+let activeSlug = $state(slug);
+let activeChapter = $state(chapter);
+
 $effect(() => {
-  if (slug || chapter) {
+  // 1. Detección de cambio de capítulo para Reset (Navegación)
+  if (slug !== activeSlug || chapter !== activeChapter) {
+    // console.log('[Reader] Resetting state for new chapter');
+    activeSlug = slug;
+    activeChapter = chapter;
     pagesData = [];
     isComplete = false;
     hasPrefetched = false;
@@ -91,21 +102,23 @@ $effect(() => {
     error = null;
     if (eventSource) eventSource.close();
   }
-});
 
-$effect(() => {
-  // Sincronización inicial desde props solo si el estado local está vacío
+  // 2. Sincronización desde Props (Población inicial o tras reset)
   if (pagesData.length === 0) {
-    if (initialPages.length > 0) pagesData = initialPages;
-    else if (initialImageUrls.length > 0)
+    if (initialPages && initialPages.length > 0) {
+      pagesData = initialPages;
+    } else if (initialImageUrls && initialImageUrls.length > 0) {
       pagesData = initialImageUrls.map((url: string) => ({ url }));
+    }
   }
 
-  // Si ya tenemos páginas, el procesamiento ha terminado (seguridad)
+  // 3. Control de Estado de Carga
   if (pagesData.length > 0 && isProcessing) {
     isProcessing = false;
   }
+});
 
+$effect(() => {
   // Check for prefetch opportunity in single page mode
   if (viewMode === 'single' && !hasPrefetched && nextChapter && pagesData.length > 0) {
     if (currentPageIndex >= pagesData.length - 2) {
@@ -122,6 +135,36 @@ function prefetchNextChapter() {
   fetch(`/api/series/${nextChapter.slug}/${nextChapter.chapter}`, { method: 'GET' }).catch((err) =>
     console.warn('[Reader] Prefetch failed', err)
   );
+}
+
+async function handleReport(type: 'chapter_fallen' | 'bug' | 'claim') {
+  const confirmMsg = {
+    chapter_fallen: '¿Estás seguro de que este capítulo tiene errores o no carga?',
+    bug: '¿Quieres reportar un error o bug en el lector?',
+    claim: '¿Quieres iniciar una reclamación o soporte directo?',
+  };
+
+  // @ts-expect-error confirm is browser global
+  if (!window.confirm(confirmMsg[type])) return;
+
+  try {
+    const { data, error } = await actions.reports.sendReport({
+      type,
+      seriesTitle,
+      chapterNumber: chapter,
+      url: window.location.href,
+    });
+
+    if (error) throw error;
+    if (data?.success) {
+      alert('Reporte enviado con éxito. El equipo lo revisará pronto.');
+    } else {
+      alert(data?.error || 'Error al enviar el reporte.');
+    }
+  } catch (e) {
+    console.error(e);
+    alert('Hubo un problema al conectar con el servidor.');
+  }
 }
 
 $effect(() => {
@@ -378,6 +421,12 @@ function changePage(delta: number) {
   if (newIndex >= 0 && newIndex < pagesData.length) {
     currentPageIndex = newIndex;
     if (newIndex > 0) hasReadThreshold = true;
+  } else if (delta > 0 && newIndex >= pagesData.length && nextChapter) {
+    // Astra: Navegar al siguiente capítulo si estamos al final
+    window.location.href = `/series/${nextChapter.slug}/${nextChapter.chapter}`;
+  } else if (delta < 0 && newIndex < 0 && prevChapter) {
+    // Astra: Navegar al capítulo anterior si estamos al inicio
+    window.location.href = `/series/${prevChapter.slug}/${prevChapter.chapter}`;
   }
 }
 
@@ -474,8 +523,6 @@ function setupSse(isRetry = false) {
     }
   });
 }
-
-import { actions } from 'astro:actions';
 
 function registerView() {
   if (!chapterId || !hasReadThreshold || viewRegistered) return;
@@ -643,15 +690,22 @@ import { siteConfig } from '../site.config';
                   <div class="page-counter-floating">{currentPageIndex + 1} / {pagesData.length}</div>
 
                   <!-- Botones de Navegación Visuales -->
-                  <button class="nav-zone-btn left" onclick={(e) => { e.stopPropagation(); changePage(-1); }} aria-label="Página anterior" class:hidden={currentPageIndex === 0}>
+                  <button class="nav-zone-btn left" onclick={(e) => { e.stopPropagation(); changePage(-1); }} aria-label="Página anterior" class:hidden={currentPageIndex === 0 && !prevChapter}>
                     <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg>
                   </button>
-                  <button class="nav-zone-btn right" onclick={(e) => { e.stopPropagation(); changePage(1); }} aria-label="Página siguiente" class:hidden={currentPageIndex === pagesData.length - 1}>
+                  <button class="nav-zone-btn right" onclick={(e) => { e.stopPropagation(); changePage(1); }} aria-label="Página siguiente" class:hidden={currentPageIndex === pagesData.length - 1 && !nextChapter}>
                     <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
                   </button>
                 </div>
               {/key}
             {/if}
+          </div>
+        {/if}
+
+        <!-- Astra: Anuncio al final de las imágenes -->
+        {#if !isStaff}
+          <div class="reader-bottom-ad-svelte">
+            <AdContainer type="native" id="reader-bottom-ad" {isStaff} />
           </div>
         {/if}
       </div>
@@ -727,8 +781,44 @@ import { siteConfig } from '../site.config';
         <input id="reader-width-range" name="reader-width" type="range" min="20" max="100" step="5" bind:value={readerWidth} disabled={isMobile} />
       </div>
 
-      <button class="btn-save-config" onclick={saveSettings}>Guardar Ajustes</button>
-    </div>
+      {#if isMobile}
+        <div class="config-row">
+          <span class="config-label">Navegación de Capítulos</span>
+          <div class="hud-nav-group modal-nav">
+            <a href={prevChapter ? `/series/${prevChapter.slug}/${prevChapter.chapter}` : '#'} class="hud-nav-btn prev" class:disabled={!prevChapter} title="Capítulo Anterior">
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="3"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              <span class="nav-text">Anterior</span>
+            </a>
+            <div class="hud-sep"></div>
+            <a href={nextChapter ? `/series/${nextChapter.slug}/${nextChapter.chapter}` : '#'} class="hud-nav-btn next" class:disabled={!nextChapter} title="Capítulo Siguiente">
+              <span class="nav-text">Siguiente</span>
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="3"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </a>
+          </div>
+        </div>
+      {/if}
+
+      <div class="config-row">
+        <span class="config-label">Soporte y Reportes</span>
+        <div class="report-grid">
+          <button class="report-btn" onclick={() => handleReport('chapter_fallen')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <span>Capítulo Caído</span>
+          </button>
+          <div class="report-row-inner">
+            <button class="report-btn" onclick={() => handleReport('bug')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 8V12"></path><path d="M12 16H12.01"></path><circle cx="12" cy="12" r="10"></circle></svg>
+              <span>Bug / Error</span>
+            </button>
+            <button class="report-btn" onclick={() => handleReport('claim')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+              <span>Reclamar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-save-config" onclick={saveSettings}>Guardar Ajustes</button>    </div>
   </div>
 </main>
 
@@ -771,6 +861,15 @@ import { siteConfig } from '../site.config';
     flex-direction: column;
     align-items: center;
     width: 100%; /* Astra: Asegurar que ocupe todo el ancho del container */
+  }
+
+  .reader-bottom-ad-svelte {
+    width: 100%;
+    margin: 3rem 0 0 0;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    overflow: visible !important;
   }
 
   .page-frame {
@@ -962,6 +1061,72 @@ import { siteConfig } from '../site.config';
     height: 16px;
     background: rgba(255, 255, 255, 0.1);
     margin: 0 4px;
+  }
+
+  /* Modal Navigation */
+  .modal-nav {
+    justify-content: center;
+    padding: 0.5rem !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    margin-top: 0.5rem;
+  }
+
+  .modal-nav .hud-nav-btn {
+    width: auto !important;
+    height: 44px !important;
+    padding: 0 1.5rem;
+    border-radius: 12px !important;
+    gap: 0.75rem;
+  }
+
+  .nav-text {
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .report-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .report-row-inner {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .report-row-inner .report-btn {
+    flex: 1;
+  }
+
+  .report-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #fff;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .report-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--accent-color);
+    transform: translateY(-1px);
+  }
+
+  .report-btn svg {
+    width: 18px;
+    height: 18px;
+    color: var(--accent-color);
   }
 
   .tool-btn {
@@ -1271,7 +1436,7 @@ import { siteConfig } from '../site.config';
 
   .reader-cfg-panel h3 { margin: 0; font-size: 1.1rem; font-weight: 800; }
   .config-row { margin-bottom: 2rem; }
-  .config-row label { display: block; font-size: 0.75rem; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 1rem; }
+  .config-row label, .config-label { display: block; font-size: 0.75rem; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 1rem; }
   .pill-group { display: flex; background: #0a0a0a; padding: 4px; border-radius: 14px; gap: 4px; }
   .pill-group button { flex: 1; background: transparent; border: none; color: #555; padding: 0.6rem; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
   .pill-group button.active { background: var(--accent-color); color: #000; }

@@ -3,6 +3,7 @@ import { authActions } from './auth';
 import { chapterActions } from './chapters';
 import { commentActions } from './comments';
 import { newsActions } from './news';
+import { reportActions } from './reports';
 import { seriesActions } from './series';
 import { uiActions } from './ui';
 import { userActions } from './user';
@@ -16,4 +17,5 @@ export const server = {
   chapters: chapterActions,
   comments: commentActions,
   ui: uiActions,
+  reports: reportActions,
 };

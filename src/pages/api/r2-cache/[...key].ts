@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import { HttpReader, Uint8ArrayWriter, ZipReader } from '@zip.js/zip.js';
 import type { APIRoute } from 'astro';
 import { and, eq } from 'drizzle-orm';
@@ -14,7 +15,6 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   const { key } = params;
   if (!key) return new Response('Key required', { status: 400 });
 
-  const env = locals.runtime.env;
   const publicAssetsUrl = env.R2_PUBLIC_URL_ASSETS;
 
   // 0. PRE-CHECK: Evitar doble caché si la 'key' es una URL que ya pertenece a nuestro bucket de Assets
@@ -59,7 +59,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       });
     }
 
-    // 2.1. INTENTO DESDE R2_ASSETS (Capa 1.5) - Orion: Si ya está en Assets, no duplicar en Cache
+    // 2.1. INTENTO DESDE R2_ASSETS (Capa 1.5) - Orion: Si está en Assets, servir y re-poblar Cache
     const R2Assets = env.R2_ASSETS;
     if (R2Assets) {
       const assetObject = await R2Assets.get(key, {
@@ -67,13 +67,26 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       });
       if (assetObject) {
         if ('body' in assetObject && !assetObject.body) return new Response(null, { status: 304 });
-        return new Response(assetObject.body, {
+
+        // Si tenemos el objeto en Assets, lo enviamos al usuario...
+        const buffer = await assetObject.arrayBuffer();
+
+        // ...y en segundo plano lo devolvemos al caché para futuras peticiones rápidas
+        if (locals.cfContext?.waitUntil) {
+          locals.cfContext.waitUntil(
+            R2Cache.put(key, buffer, {
+              httpMetadata: assetObject.httpMetadata,
+            })
+          );
+        }
+
+        return new Response(buffer, {
           headers: {
             'Content-Type': assetObject.httpMetadata?.contentType || 'image/jpeg',
             'Cache-Control': 'public, max-age=31536000, s-maxage=2592000, immutable',
             ETag: assetObject.httpEtag,
             'Access-Control-Allow-Origin': '*',
-            'X-Cache-Status': 'HIT_ASSETS',
+            'X-Cache-Status': 'HIT_ASSETS_RECACHED',
           },
         });
       }
@@ -81,11 +94,12 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
 
     // 3. JIT RECOVERY DESDE TELEGRAM (Capa 2)
     const parts = key.split('/');
-    if (parts.length < 4) return new Response('Not Found', { status: 404 });
+    // Nueva estructura: series_manifest / slug / chapter / hash / filename
+    if (parts.length < 5) return new Response('Not Found', { status: 404 });
 
-    const seriesSlug = parts[0] || '';
-    const chapterNumStr = parts[1] || '0';
-    const filename = parts.slice(3).join('/');
+    const seriesSlug = parts[1] || '';
+    const chapterNumStr = parts[2] || '0';
+    const filename = parts.slice(4).join('/');
     const cacheKey = `${seriesSlug}/${chapterNumStr}`;
 
     let filePath = ZIP_CACHE.get(cacheKey)?.filePath;
@@ -146,8 +160,8 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     // Esto previene la creación de carpetas 'http' o 'https'.
     const isFullUrl = key.includes('://') || key.startsWith('http');
 
-    if (locals.runtime.ctx?.waitUntil && !isFullUrl) {
-      locals.runtime.ctx.waitUntil(
+    if (locals.cfContext?.waitUntil && !isFullUrl) {
+      locals.cfContext.waitUntil(
         R2Cache.put(key, buffer, {
           httpMetadata: {
             contentType,

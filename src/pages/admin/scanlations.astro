@@ -1,13 +1,14 @@
 ---
+import { env } from 'cloudflare:workers';
 import Layout from '../../layouts/Layout.astro';
 import { getAllScanlations } from '../../lib/data/admin';
 import { getDB } from '../../lib/db';
 import { siteConfig } from '../../site.config';
 
-const { user, runtime } = Astro.locals;
+const { user } = Astro.locals;
 if (!user?.isAdmin) return Astro.redirect('/admin');
 
-const db = getDB(runtime.env);
+const db = getDB(env);
 const scanlations = await getAllScanlations(db);
 ---
 
@@ -48,11 +49,11 @@ const scanlations = await getAllScanlations(db);
             <div class="form-grid">
               <div class="form-group">
                 <label>Nombre del Grupo</label>
-                <input type="text" name="name" required placeholder="Ej: Babylon Scans" class="glass-input" />
+                <input type="text" name="name" required placeholder="Ej: My Scanlation" class="glass-input" />
               </div>
               <div class="form-group">
                 <label>Slug (URL)</label>
-                <input type="text" name="slug" required placeholder="babylon-scans" class="glass-input" />
+                <input type="text" name="slug" required placeholder="my-scanlation" class="glass-input" />
               </div>
               <div class="form-group full-width">
                 <label>Descripción del Scanlation</label>

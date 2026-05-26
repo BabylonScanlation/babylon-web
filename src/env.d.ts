@@ -11,6 +11,7 @@ import type { User } from './types';
 declare global {
   namespace App {
     interface Locals {
+      cfContext: import('@cloudflare/workers-types').ExecutionContext;
       runtime: Runtime<{
         DB: D1Database;
         R2_ASSETS: R2Bucket;

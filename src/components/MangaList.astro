@@ -44,35 +44,37 @@ const { mangas = [], title } = Astro.props;
   ul {
     list-style: none;
     padding: 0;
-    display: grid;
-    /* Astra: Diseño Mobile-First (2 columnas por defecto) */
-    grid-template-columns: repeat(2, 1fr);
+    display: grid !important;
+    /* Astra: Grilla Fluida Universal */
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    /* Astra: Límite estricto e inviolable de 3 filas */
+    grid-template-rows: repeat(3, auto) !important;
+    grid-auto-rows: 0px !important;
+    overflow: hidden !important;
     gap: 1rem;
     margin-bottom: 3rem;
+    align-content: start;
   }
 
-  /* Tablet: Grilla fluida intermedia */
+  /* Aseguramos que los items fuera de las 3 filas no ocupen espacio visual ni de margen */
+  ul li {
+    overflow: hidden;
+  }
+
+  /* Tablet/Desktop: Ajustamos el tamaño mínimo para tarjetas más grandes si hay espacio */
   @media (min-width: 768px) {
     ul {
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 2rem;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1.5rem;
       margin-bottom: 5rem;
     }
   }
 
-  /* PC: Grilla de Alta Densidad (Compacta y Responsiva al Ancho) */
-  @media (min-width: 1024px) {
+  /* Pantallas Ultra-Anchas: Máximo aprovechamiento del espacio */
+  @media (min-width: 1440px) {
     ul {
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* Más columnas, tarjetas densas */
-      gap: 1.5rem; /* Espacio más ajustado */
-      max-width: 100%; /* Ocupar todo el contenedor padre */
-    }
-    
-    h2 {
-      font-size: 2.5rem; /* Título acorde a la escala PC */
-      margin-bottom: 2rem;
-      text-align: left; /* Alineación editorial */
-      max-width: 100%;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 2rem;
     }
   }
   p {

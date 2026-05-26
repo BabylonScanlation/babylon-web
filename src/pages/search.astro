@@ -1,4 +1,5 @@
 ---
+import { env } from 'cloudflare:workers';
 import MangaList from '../components/MangaList.astro';
 import SearchFilters from '../components/SearchFilters.svelte';
 import Layout from '../layouts/Layout.astro';
@@ -9,16 +10,16 @@ import { siteConfig } from '../site.config';
 
 const query = Astro.url.searchParams.get('q')?.trim() || '';
 const page = parseInt(Astro.url.searchParams.get('page') || '1', 10);
+const limit = parseInt(Astro.url.searchParams.get('limit') || '25', 10);
 
 // Astra: NSFW Toggle via cookie global (Exclusivo)
 const allowNsfw = Astro.cookies.get('babylon_nsfw')?.value === 'true';
 
 let searchResults: any[] = [];
-let pagination = { page: 1, totalPages: 1, total: 0 };
+let pagination = { page: 1, totalPages: 1, total: 0, limit: 25 };
 let error: string | null = null;
 
 try {
-  const env = Astro.locals.runtime.env;
   const db = getDB(env);
   const searchParams = Object.fromEntries(Astro.url.searchParams.entries());
 
@@ -26,11 +27,17 @@ try {
     ...searchParams,
     q: query,
     page,
+    limit,
     allowNsfw,
   });
 
   searchResults = result.results;
   pagination = result.pagination;
+
+  // Astra Orion: Recorte físico para Opción A (Garantiza consistencia visual y de contador)
+  if (searchResults.length > limit) {
+    searchResults = searchResults.slice(0, limit);
+  }
 } catch (e) {
   logError(e, 'Error al realizar la búsqueda SSR', { query });
   error = 'No se pudo realizar la búsqueda.';
@@ -129,6 +136,40 @@ try {
           
           window.location.href = url.pathname + url.search;
         });
+
+        // --- Opción A: Sincronizador de Rejilla ---
+        function syncGridLimit() {
+          const grid = document.querySelector('.manga-list-section ul');
+          if (!grid) return;
+
+          // 1. Contar columnas reales calculadas por el navegador
+          const computedStyle = window.getComputedStyle(grid);
+          const gridCols = computedStyle.gridTemplateColumns.split(' ').length;
+          
+          // 2. Calcular límite para 3 filas (Máximo 25 como pediste)
+          const targetLimit = Math.min(gridCols * 3, 25); 
+
+          // 3. Verificar límite actual en URL
+          const url = new URL(window.location.href);
+          const currentLimit = parseInt(url.searchParams.get('limit') || '25', 10);
+
+          // 4. Si no coincide, recargar con el límite perfecto para que el contador sea real
+          if (targetLimit > 0 && targetLimit !== currentLimit) {
+            url.searchParams.set('limit', targetLimit.toString());
+            url.searchParams.set('page', '1');
+            window.location.href = url.pathname + url.search;
+          }
+        }
+
+        // Ejecutar inmediatamente
+        syncGridLimit();
+        
+        // Y al cambiar el tamaño de la ventana (con debounce)
+        let resizeTimeout: number;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = window.setTimeout(syncGridLimit, 500);
+        });
       });
     </script>
 
@@ -138,15 +179,14 @@ try {
           <div class="results-content">
             <MangaList mangas={searchResults} />
             
-            {pagination.totalPages > 1 && (
-              <nav class="pagination-wrapper">
-                <div class="pagination-info">
-                  Mostrando <span class="highlight">{searchResults.length}</span> de <span class="highlight">{pagination.total}</span> series
-                </div>
-                <div class="pagination-controls">
-                  <a 
-                    href={pagination.page > 1 ? `?${new URLSearchParams({...Object.fromEntries(Astro.url.searchParams), page: (pagination.page - 1).toString()})}` : '#'} 
-                    class={`pag-btn prev ${pagination.page <= 1 ? 'disabled' : ''}`}
+            <nav class="pagination-wrapper">
+              <div class="pagination-info">
+                Mostrando <span class="highlight">{searchResults.length}</span> de <span class="highlight">{pagination.total}</span> series
+              </div>
+              <div class="pagination-controls">
+                <a 
+                  href={pagination.page > 1 ? `?${new URLSearchParams({...Object.fromEntries(Astro.url.searchParams), page: (pagination.page - 1).toString()})}` : '#'} 
+                  class={`pag-btn prev ${pagination.page <= 1 ? 'disabled' : ''}`}
                   >
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3"><polyline points="15 18 9 12 15 6"></polyline></svg>
                   </a>
@@ -165,7 +205,6 @@ try {
                   </a>
                 </div>
               </nav>
-            )}
           </div>
         ) : (
           <div class="empty-state-wrapper">

@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 // src/pages/api/telegram-webhook.ts
 import type { APIRoute } from 'astro';
 import { and, eq } from 'drizzle-orm';
@@ -18,9 +19,7 @@ interface TelegramUpdate {
   };
 }
 
-export const POST: APIRoute = async ({ request, locals }) => {
-  const env = locals.runtime.env;
-
+export const POST: APIRoute = async ({ request }) => {
   const secretToken = request.headers.get('X-Telegram-Bot-Api-Secret-Token');
   if (secretToken !== env.TELEGRAM_WEBHOOK_SECRET) {
     console.error('[Webhook] Unauthorized: Invalid secret token');

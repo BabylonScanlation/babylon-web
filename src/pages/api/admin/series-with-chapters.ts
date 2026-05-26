@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 // src/pages/api/admin/series-with-chapters.ts
 
 import { getAdminSeriesWithChapters } from '@lib/data/admin';
@@ -16,7 +17,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
   const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
 
   try {
-    const drizzleDb = getDB(locals.runtime.env);
+    const drizzleDb = getDB(env);
 
     // Orion: Reutilizamos la función modular de alto rendimiento
     const data = await getAdminSeriesWithChapters(drizzleDb, limit, offset);

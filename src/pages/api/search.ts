@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 // src/pages/api/search.ts
 import type { APIRoute } from 'astro';
 import { and, asc, desc, eq, isNull, like, or, sql } from 'drizzle-orm';
@@ -7,7 +8,7 @@ import { logError } from '../../lib/logError';
 
 export const GET: APIRoute = async ({ url, locals, cookies }) => {
   try {
-    const drizzleDb = getDB(locals.runtime.env);
+    const drizzleDb = getDB(env);
 
     // Extraction of all possible filters
     const query = url.searchParams.get('q')?.trim();

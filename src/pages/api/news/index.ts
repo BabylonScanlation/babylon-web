@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import {
   getAllNews,
@@ -8,8 +9,8 @@ import {
 import { getDB } from '../../../lib/db';
 import { logError } from '../../../lib/logError';
 
-export const GET: APIRoute = async ({ locals }) => {
-  const drizzleDb = getDB(locals.runtime.env);
+export const GET: APIRoute = async () => {
+  const drizzleDb = getDB(env);
   try {
     const publishedNews = await getAllNews(drizzleDb, 'published');
 
@@ -18,10 +19,10 @@ export const GET: APIRoute = async ({ locals }) => {
       publishedNews.map(async (newsItem: NewsWithDetails) => {
         const images = await getNewsImages(drizzleDb, newsItem.id);
         const imageUrls = images.map((img: NewsImageItem) => {
-          if (!locals.runtime.env.R2_PUBLIC_URL_ASSETS) {
+          if (!env.R2_PUBLIC_URL_ASSETS) {
             return '/placeholder-image.jpg';
           }
-          return `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`;
+          return `${env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`;
         });
 
         // Debug Log

@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 // src/pages/api/user/favorites-full.ts
 import type { APIRoute } from 'astro';
 import { and, desc, eq } from 'drizzle-orm';
@@ -12,7 +13,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
   const isNsfwMode = cookies.get('babylon_nsfw')?.value === 'true';
 
   try {
-    const db = getDB(locals.runtime.env);
+    const db = getDB(env);
 
     const conditions = [eq(favorites.userId, user.uid)];
 

@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 // src/pages/api/news/series/[seriesId].ts
 import type { APIRoute } from 'astro';
 import {
@@ -9,13 +10,13 @@ import {
 import { getDB } from '../../../../lib/db';
 import { logError } from '../../../../lib/logError';
 
-export const GET: APIRoute = async ({ params, locals }) => {
+export const GET: APIRoute = async ({ params }) => {
   const { seriesId } = params;
   if (!seriesId) {
     return new Response('Series ID is required', { status: 400 });
   }
 
-  const drizzleDb = getDB(locals.runtime.env);
+  const drizzleDb = getDB(env);
 
   try {
     const numericSeriesId = parseInt(seriesId, 10);
@@ -35,7 +36,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
       newsForSeries.map(async (newsItem: NewsItem) => {
         const images = await getNewsImages(drizzleDb, newsItem.id);
         const imageUrls = images.map(
-          (img: NewsImageItem) => `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`
+          (img: NewsImageItem) => `${env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`
         );
 
         return {

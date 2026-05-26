@@ -1,4 +1,5 @@
 import { defineAction } from 'astro:actions';
+import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
 import { and, eq, isNull, lt } from 'drizzle-orm';
 import {
@@ -25,7 +26,7 @@ export const adminActions = {
       const { user } = context.locals;
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       const [newScan] = await db
         .insert(scanlations)
@@ -49,7 +50,7 @@ export const adminActions = {
       const { user } = context.locals;
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       // Buscar al usuario por email
       const targetUser = await db
@@ -85,7 +86,7 @@ export const adminActions = {
       const { user } = context.locals;
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
       await db
         .delete(scanlationMembers)
         .where(
@@ -109,7 +110,7 @@ export const adminActions = {
       const { user } = context.locals;
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
       await db
         .update(scanlations)
         .set({ isActive: input.isActive })
@@ -127,7 +128,7 @@ export const adminActions = {
       const { user } = context.locals;
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
       const token =
         Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
@@ -149,7 +150,7 @@ export const adminActions = {
       const { user } = context.locals;
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
       await db
         .update(scanlations)
         .set({ telegramChatId: null })
@@ -165,7 +166,7 @@ export const adminActions = {
       const { user } = context.locals;
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -205,7 +206,7 @@ export const adminActions = {
       const { user } = context.locals;
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       const chaptersResult = await db
         .update(chapters)

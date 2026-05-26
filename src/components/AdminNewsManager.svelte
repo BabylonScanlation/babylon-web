@@ -369,7 +369,7 @@ function copyToClipboard(text: string) {
                   </div>
                 </div>
                 <div class="guide-tips">
-                  <p><strong>Alineación:</strong> El texto fluye de izquierda a derecha por defecto. Babylon centra automáticamente las imágenes y títulos para mantener el look editorial premium.</p>
+                  <p><strong>Alineación:</strong> El texto fluye de izquierda a derecha por defecto. La plataforma centra automáticamente las imágenes y títulos para mantener el look editorial premium.</p>
                 </div>
               </div>
             {/if}

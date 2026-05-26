@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import { createApiRoute } from '../../../../src/lib/api';
 import { getNewsById, getNewsImages } from '../../../../src/lib/data/news';
 
@@ -16,7 +17,7 @@ export const GET = createApiRoute({ auth: 'public' }, async ({ params, locals })
   }
 
   const images = await getNewsImages(locals.db, newsItem.id);
-  const imageUrls = images.map((img) => `${locals.runtime.env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`);
+  const imageUrls = images.map((img) => `${env.R2_PUBLIC_URL_ASSETS}/${img.r2Key}`);
 
   return new Response(JSON.stringify({ ...newsItem, imageUrls }), {
     headers: { 'Content-Type': 'application/json' },

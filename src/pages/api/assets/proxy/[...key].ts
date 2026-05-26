@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import { deobfuscate } from '../../../../lib/obfuscator';
 
@@ -11,7 +12,7 @@ const L1_CACHE = new Map<
 
 export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
   const { key } = params;
-  const { env } = locals.runtime;
+
   const isDev = import.meta.env.DEV;
 
   // Si la clave es explícitamente "undefined" o "null" (string), o vacía, es un 404 claro.
@@ -146,8 +147,8 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
       if (isDev) console.error('[Proxy] L1 Seed Error:', e);
     }
 
-    if (cache && locals.runtime.ctx?.waitUntil) {
-      locals.runtime.ctx.waitUntil(cache.put(cacheKey, res.clone()));
+    if (cache && locals.cfContext?.waitUntil) {
+      locals.cfContext.waitUntil(cache.put(cacheKey, res.clone()));
     }
     return res;
   };
@@ -257,8 +258,8 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
       const r2Host = publicR2 ? new URL(publicR2).hostname : null;
       const isInternalHost = r2Host && new URL(objectKey).hostname === r2Host;
 
-      if (env.R2_CACHE && locals.runtime.ctx?.waitUntil && !isInternalHost) {
-        locals.runtime.ctx.waitUntil(
+      if (env.R2_CACHE && locals.cfContext?.waitUntil && !isInternalHost) {
+        locals.cfContext.waitUntil(
           env.R2_CACHE.put(objectKey, blob, {
             httpMetadata: {
               contentType,

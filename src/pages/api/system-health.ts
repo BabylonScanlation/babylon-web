@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import { sql } from 'drizzle-orm';
 import { getDB } from '../../lib/db';
@@ -5,8 +6,7 @@ import { getDB } from '../../lib/db';
 // Orion: RAM Cache para telemetría (Peticiones Cero)
 let healthMemoryCache: { data: string; expires: number } | null = null;
 
-export const GET: APIRoute = async ({ locals }) => {
-  const env = locals.runtime.env;
+export const GET: APIRoute = async () => {
   const now = Date.now();
 
   // 1. Intentar obtener desde RAM (Peticiones Cero)

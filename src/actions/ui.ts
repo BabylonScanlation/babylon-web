@@ -1,4 +1,5 @@
 import { defineAction } from 'astro:actions';
+import { env } from 'cloudflare:workers';
 import { eq } from 'drizzle-orm';
 import { users } from '../db/schema';
 import { getDB } from '../lib/db-client';
@@ -7,7 +8,7 @@ import { clearSessionCache } from '../lib/middlewares/auth';
 export const uiActions = {
   toggleNsfw: defineAction({
     handler: async (_, context) => {
-      const { user, runtime } = context.locals;
+      const { user } = context.locals;
 
       // Orion: Usamos la cookie como fuente de verdad para el "toggle"
       // ya que el objeto 'user' (JWT) puede estar obsoleto hasta el próximo login.
@@ -15,9 +16,9 @@ export const uiActions = {
       const newValue = !current;
 
       // 1. Persistir en la base de datos si el usuario está logueado
-      if (user && runtime?.env?.DB) {
+      if (user && env?.DB) {
         try {
-          const db = getDB(runtime.env);
+          const db = getDB(env);
           await db.update(users).set({ isNsfw: newValue }).where(eq(users.id, user.uid)).run();
 
           // Orion: CRITICO - Limpiar cache para que el middleware lea el nuevo valor de DB

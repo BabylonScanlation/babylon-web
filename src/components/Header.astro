@@ -1,9 +1,10 @@
 ---
+import { env } from 'cloudflare:workers';
 import { siteConfig } from '../site.config';
 
-const { user, runtime } = Astro.locals;
+const { user } = Astro.locals;
 const isNsfwActive = Astro.cookies.get('babylon_nsfw')?.value === 'true';
-const r2PublicUrlAssets = runtime.env.R2_PUBLIC_URL_ASSETS;
+const r2PublicUrlAssets = env.R2_PUBLIC_URL_ASSETS;
 
 const currentLogo = isNsfwActive ? siteConfig.assets.logoHeaderNsfw : siteConfig.assets.logoHeader;
 const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo}` : currentLogo;
@@ -71,21 +72,23 @@ const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo
   @media (min-width: 1024px) {
     .site-header {
       width: 100%;
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 0;
       z-index: 5000;
       height: 90px;
       display: flex;
       align-items: center;
-      background: transparent;
+      background: rgba(2, 2, 5, 0.7); /* Astra: Fondo semi-transparente */
+      backdrop-filter: blur(12px); /* Astra: Efecto cristal */
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Astra: Delimitador sutil */
     }
 
     .header-container {
       width: 100%;
-      max-width: 1600px;
-      margin: 0 auto;
-      padding: 0 3rem;      display: flex;
+      padding: 0 1.5rem;
+      display: flex;
       justify-content: space-between;
       align-items: center;
     }

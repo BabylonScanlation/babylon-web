@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 import { and, desc, eq } from 'drizzle-orm';
 import { series, seriesRatings } from '../../../db/schema';
@@ -5,7 +6,7 @@ import { getDB } from '../../../lib/db';
 import { logError } from '../../../lib/logError';
 
 export const GET: APIRoute = async ({ locals, cookies }) => {
-  const { user, runtime } = locals;
+  const { user } = locals;
   const isNsfwMode = cookies.get('babylon_nsfw')?.value === 'true';
 
   if (!user) {
@@ -13,7 +14,7 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
   }
 
   try {
-    const db = getDB(runtime.env);
+    const db = getDB(env);
 
     // Orion: Construir condiciones dinámicas
     const conditions = [eq(seriesRatings.userId, user.uid)];

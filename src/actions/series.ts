@@ -1,4 +1,5 @@
 import { defineAction } from 'astro:actions';
+import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
 import { and, eq, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
@@ -89,7 +90,6 @@ export const seriesActions = {
       const { user } = context.locals;
       if (!isScanlationMember(user)) throw new Error('Unauthorized');
 
-      const { env } = context.locals.runtime;
       const db = getDB(env);
 
       // Si no es admin global, forzamos el scanlationId a uno del usuario
@@ -236,7 +236,7 @@ export const seriesActions = {
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      const { env } = context.locals.runtime;
+
       const db = getDB(env);
       const { seriesId, coverImage } = input;
 
@@ -323,7 +323,7 @@ export const seriesActions = {
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      const { env } = context.locals.runtime;
+
       const db = getDB(env);
       const { seriesId } = input;
 
@@ -361,7 +361,7 @@ export const seriesActions = {
       if (!user) throw new Error('Unauthorized');
 
       const { seriesId, emoji } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
       const { seriesReactions } = await import('../db/schema');
 
       if (!emoji) {
@@ -394,13 +394,31 @@ export const seriesActions = {
     }),
     handler: async (input, context) => {
       const { seriesId } = input;
-      const { env, ctx } = context.locals.runtime;
-      const clientAddress = context.clientAddress;
+      const ctx = context.locals.cfContext;
+      const { request } = context;
+      const clientAddress = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
+
+      if (import.meta.env.DEV) {
+        console.log(`[registerView] ID: ${seriesId}, Address: ${clientAddress}`);
+        if (!ctx) console.warn('[registerView] Warning: cfContext is missing');
+      }
+
+      if (!env || Object.keys(env).length === 0) {
+        console.error('[registerView] CRITICAL: Environment bindings (env) are missing or empty!');
+      }
 
       const runViewLogic = async () => {
         try {
           const kv = env.KV_VIEWS;
-          const ipHash = await hashIpAddress(clientAddress || '0.0.0.0', env.INTERNAL_CRYPTO_SALT);
+          const salt = env.INTERNAL_CRYPTO_SALT;
+
+          if (!salt) {
+            console.error('[registerView] INTERNAL_CRYPTO_SALT is missing in env');
+            return;
+          }
+
+          const ipHash = await hashIpAddress(clientAddress || '0.0.0.0', salt);
+          console.log(`[registerView] IP Hash: ${ipHash}`);
           const viewKey = `v:s:${seriesId}:${ipHash}`;
 
           if (kv) {
@@ -441,7 +459,7 @@ export const seriesActions = {
     handler: async (input, context) => {
       const { user } = context.locals;
       const { seriesId, key, value } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       if (!user) throw new Error('Unauthorized');
 

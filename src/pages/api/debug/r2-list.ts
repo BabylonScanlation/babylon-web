@@ -1,8 +1,7 @@
+import { env } from 'cloudflare:workers';
 import type { APIRoute } from 'astro';
 
-export const GET: APIRoute = async ({ locals }) => {
-  const env = locals.runtime.env;
-
+export const GET: APIRoute = async () => {
   if (!env.R2_ASSETS) {
     return new Response('R2 binding missing', { status: 500 });
   }

@@ -1,4 +1,5 @@
 ---
+import { env } from 'cloudflare:workers';
 import { getAllNews, getNewsImages, type NewsImageItem } from '../lib/data/news';
 import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
@@ -17,14 +18,14 @@ const isAdmin = user?.isAdmin ?? false;
 let newsWithImages: any[] = [];
 
 try {
-  const db = getDB(Astro.locals.runtime.env);
+  const db = getDB(env);
   const newsForSeries = await getAllNews(db, 'published', seriesId);
 
   if (newsForSeries.length > 0) {
     newsWithImages = await Promise.all(
       newsForSeries.map(async (newsItem) => {
         const images = await getNewsImages(db, newsItem.id);
-        const publicBase = Astro.locals.runtime.env.R2_PUBLIC_URL_ASSETS;
+        const publicBase = env.R2_PUBLIC_URL_ASSETS;
 
         const imageUrls = images.map((img: NewsImageItem) =>
           `${publicBase}/${img.r2Key}`.replace(/([^:]\/)\/+/g, '$1')

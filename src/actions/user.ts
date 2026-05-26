@@ -1,4 +1,5 @@
 import { defineAction } from 'astro:actions';
+import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { favorites, series, seriesRatings, userProgress, users } from '../db/schema';
@@ -28,7 +29,7 @@ export const userActions = {
     handler: async (_, context) => {
       const { user } = context.locals;
       if (!user) return [];
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
       return await db
         .select({
           series: {
@@ -57,7 +58,7 @@ export const userActions = {
     handler: async (_, context) => {
       const { user } = context.locals;
       if (!user) return [];
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
       return await db
         .select({
           series: {
@@ -81,7 +82,7 @@ export const userActions = {
     handler: async (_, context) => {
       const { user } = context.locals;
       if (!user) return [];
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
       return await db
         .select({
           series: {
@@ -105,18 +106,18 @@ export const userActions = {
   updateProfile: defineAction({
     input: ProfileSchema,
     handler: async (input, context) => {
-      const { user, runtime } = context.locals;
+      const { user } = context.locals;
       if (!user) throw new Error('Unauthorized');
 
       // Orion: Validación CSRF mediante Nonce
       if (input.nonce) {
-        const secret = runtime.env.JWT_SECRET;
+        const secret = env.JWT_SECRET;
         if (!secret) throw new Error('JWT_SECRET is not configured');
         const isValid = await consumeNonce(input.nonce, secret, user.uid);
         if (!isValid) throw new Error('Security token invalid or expired');
       }
 
-      const db = getDB(runtime.env);
+      const db = getDB(env);
       const { ...updateData } = input;
 
       if (updateData.username) {
@@ -158,7 +159,7 @@ export const userActions = {
       if (!user) throw new Error('Unauthorized');
 
       const { type, file } = input;
-      const { env } = context.locals.runtime;
+
       const db = getDB(env);
 
       const currentUser = await db.select().from(users).where(eq(users.id, user.uid)).get();
@@ -215,7 +216,7 @@ export const userActions = {
       const { user } = context.locals;
       if (!user) return { success: false, error: 'Unauthorized' };
 
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
       const now = new Date();
 
       try {
@@ -274,7 +275,7 @@ export const userActions = {
       if (!user) throw new Error('Unauthorized');
 
       const { seriesId, rating } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       if (rating === 0) {
         await db
@@ -323,7 +324,7 @@ export const userActions = {
       if (!user) throw new Error('Unauthorized');
 
       const { type, id } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       const existingUser = await db
         .select({ id: users.id })

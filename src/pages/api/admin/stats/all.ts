@@ -1,10 +1,11 @@
+import { env } from 'cloudflare:workers';
 import { desc, eq, sql } from 'drizzle-orm';
 import { anonymousUsers, series, seriesViews, users } from '../../../../db/schema';
 import { createApiRoute } from '../../../../lib/api';
 
 export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => {
   const db = locals.db;
-  const kv = locals.runtime.env.KV_VIEWS;
+  const kv = env.KV_VIEWS;
   const range = url.searchParams.get('range') || '7';
   const forceRefresh = url.searchParams.get('refresh') === 'true';
   const cacheKey = `admin_stats_all_${range}`;
@@ -100,7 +101,7 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
         // Top Commenters
         db
           .select({
-            email: sql<string>`COALESCE(${users.email}, 'anonimo@babylon.com')`,
+            email: sql<string>`COALESCE(${users.email}, 'anonimo@scanlation.com')`,
             username: sql<string>`COALESCE(${users.username}, 'Invitado')`,
             displayName: users.displayName,
             commentCount: sql<number>`COUNT(*)`,

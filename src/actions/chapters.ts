@@ -1,10 +1,10 @@
 import { defineAction } from 'astro:actions';
+import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
 import { and, eq, isNull, max, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import { chapters, chapterViews as chapterViewsTable, comments, pages, series } from '../db/schema';
 import { canManageScanlation } from '../lib/auth-utils';
-import { processAndCacheChapter } from '../lib/chapterProcessing';
 import { hashIpAddress } from '../lib/crypto';
 import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
@@ -19,7 +19,7 @@ export const chapterActions = {
       if (!user?.isAdmin) return { status: 'unauthorized' };
 
       const { chapterId } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
       const data = await db
         .select({ status: chapters.status })
         .from(chapters)
@@ -36,15 +36,26 @@ export const chapterActions = {
     }),
     handler: async (input, context) => {
       const { chapterId } = input;
-      const { env, ctx } = context.locals.runtime;
+      const ctx = context.locals.cfContext;
       const { user } = context.locals;
-      const { cookies } = context;
-      const clientAddress = context.clientAddress;
+      const { cookies, request } = context;
+      const clientAddress = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
+
+      if (import.meta.env.DEV) {
+        if (!ctx) console.warn('[chapter registerView] Warning: cfContext is missing');
+      }
 
       const runBackgroundLogic = async () => {
         try {
           const kv = env.KV_VIEWS;
-          const ipHash = await hashIpAddress(clientAddress || '0.0.0.0', env.INTERNAL_CRYPTO_SALT);
+          const salt = env.INTERNAL_CRYPTO_SALT;
+
+          if (!salt) {
+            console.error('[chapter registerView] INTERNAL_CRYPTO_SALT is missing in env');
+            return;
+          }
+
+          const ipHash = await hashIpAddress(clientAddress || '0.0.0.0', salt);
           const viewKey = `cv:${chapterId}:${ipHash}`;
 
           if (kv) {
@@ -86,13 +97,13 @@ export const chapterActions = {
     }),
     handler: async (input, context) => {
       const { user } = context.locals;
-      const { env } = context.locals.runtime;
+
       const db = getDB(env);
       const { chapterIds } = input;
 
       if (!user) throw new Error('Unauthorized');
 
-      const r2Cache = context.locals.runtime.env.R2_CACHE;
+      const r2Cache = env.R2_CACHE;
 
       for (const id of chapterIds) {
         // Validación Multi-tenant por cada capítulo
@@ -146,7 +157,7 @@ export const chapterActions = {
     handler: async (input, context) => {
       const { user } = context.locals;
       const { seriesId, file, scanlationId, language } = input;
-      const { env } = context.locals.runtime;
+
       const db = getDB(env);
 
       if (!user) throw new Error('Unauthorized');
@@ -290,8 +301,9 @@ export const chapterActions = {
         registeredChapterId = existing.id;
       }
 
-      if (context.locals.runtime?.ctx) {
-        context.locals.runtime.ctx.waitUntil(
+      if (context.locals.cfContext) {
+        const { processAndCacheChapter } = await import('../lib/chapterProcessing');
+        context.locals.cfContext.waitUntil(
           processAndCacheChapter(
             env,
             fileId,
@@ -318,7 +330,7 @@ export const chapterActions = {
       if (!user?.isAdmin) throw new Error('Unauthorized');
 
       const { seriesId, targetTotal, scanlationId, language } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       const seriesData = await db
         .select({ isAppSeries: series.isAppSeries })
@@ -376,7 +388,7 @@ export const chapterActions = {
     handler: async (input, context) => {
       const { user } = context.locals;
       const { chapterId, title } = input;
-      const db = getDB(context.locals.runtime.env);
+      const db = getDB(env);
 
       // Obtener scanlationId directamente del capítulo
       const chapterData = await db
@@ -404,7 +416,7 @@ export const chapterActions = {
     handler: async (input, context) => {
       const { user } = context.locals;
       const { chapterId, thumbnailImage } = input;
-      const { env } = context.locals.runtime;
+
       const db = getDB(env);
 
       // Obtener scanlationId directamente del capítulo

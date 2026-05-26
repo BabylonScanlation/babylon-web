@@ -1,6 +1,7 @@
 <script lang="ts">
 import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
+import { siteConfig } from '../site.config';
 import Turnstile from './Turnstile.svelte';
 
 // --- Runes Svelte 5 ---
@@ -11,7 +12,7 @@ let captchaToken = $state('');
 
 let { isVerificationPage = false } = $props();
 
-const BRAND_NAME = 'Babylon';
+const BRAND_NAME = siteConfig.name;
 const ACCENT_COLOR = '#00bfff';
 
 onMount(() => {

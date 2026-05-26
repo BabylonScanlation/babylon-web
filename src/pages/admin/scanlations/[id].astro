@@ -1,15 +1,16 @@
 ---
+import { env } from 'cloudflare:workers';
 import Layout from '../../../layouts/Layout.astro';
 import { getScanlationDetails } from '../../../lib/data/admin';
 import { getDB } from '../../../lib/db';
 import { siteConfig } from '../../../site.config';
 
 const { id } = Astro.params;
-const { user, runtime } = Astro.locals;
+const { user } = Astro.locals;
 
 if (!user?.isAdmin) return Astro.redirect('/admin');
 
-const db = getDB(runtime.env);
+const db = getDB(env);
 const scan = await getScanlationDetails(db, parseInt(id || '0'));
 
 if (!scan) return Astro.redirect('/admin/scanlations');
@@ -152,7 +153,7 @@ if (!scan) return Astro.redirect('/admin/scanlations');
     // Creamos el enlace profundo de Telegram
     // Formato: https://t.me/TuBot?start=vincular_TOKEN
     // Pero como usamos un comando personalizado /vincular:
-    const botUsername = 'TuBotBabylon'; // Sustituir por el nombre real de tu bot
+    const botUsername = 'TuBotScanlation'; // Sustituir por el nombre real de tu bot
     const link = `https://t.me/${botUsername}?start=vincular_${token}`;
     
     // Abrimos Telegram y pedimos al usuario que añada al bot al grupo

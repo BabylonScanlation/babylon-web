@@ -1,4 +1,5 @@
 ﻿---
+import { env } from 'cloudflare:workers';
 import Layout from '../layouts/Layout.astro';
 import HeroCarousel from '../components/HeroCarousel.astro';
 import FeaturedGrid from '../components/FeaturedGrid.astro';
@@ -9,9 +10,9 @@ import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
 import { siteConfig } from '../site.config';
 
-const { runtime } = Astro.locals;
+
 const r2PublicUrlAssets =
-  runtime.env.R2_PUBLIC_URL_ASSETS;
+  env.R2_PUBLIC_URL_ASSETS;
 
 // Astra: El modo NSFW ahora es global vía cookies (Exclusivo)
 const allowNsfw = Astro.cookies.get('babylon_nsfw')?.value === 'true';
@@ -22,7 +23,7 @@ let seriesWithRecentChapters: any[] = [];
 let hasContent = false;
 
 try {
-  const db = getDB(runtime.env);
+  const db = getDB(env);
 
   // Orion: Carga ultra-optimizada en un solo paso
   const homeData = await getHomeData(db, allowNsfw);
@@ -37,7 +38,7 @@ try {
 }
 
 // Orion: Para el FeaturedGrid usamos directamente las series populares
-const featuredGridData = popularSeries.slice(0, 6);
+const featuredGridData = popularSeries.slice(0, 20);
 
 // Orion: Garantizamos que la cuadrícula esté siempre ordenada por vistas (descendente)
 featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
@@ -61,9 +62,11 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
           )}
 
         <div class="main-sections-container">
-          <div class="top-ad-banner">
-            <AdContainer type="bannerLarge" />
-          </div>
+          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (
+            <div class="top-ad-banner">
+              <AdContainer type="bannerLarge" />
+            </div>
+          )}
 
           {featuredGridData.length > 0 && (
             <div class="featured-grid-wrapper">
@@ -71,9 +74,11 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
             </div>
           )}
 
-          <div class="middle-ad-wrapper">
-            <AdContainer type="bannerSmall" />
-          </div>
+          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (
+            <div class="middle-ad-wrapper">
+              <AdContainer type="bannerSmall" />
+            </div>
+          )}
 
           <div class="discovery-zone">
             {seriesWithRecentChapters.length > 0 && (
@@ -84,9 +89,11 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
             )}
           </div>
 
-          <div class="bottom-ad-wrapper">
-            <AdContainer type="square" />
-          </div>
+          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (
+            <div class="bottom-ad-wrapper">
+              <AdContainer type="square" />
+            </div>
+          )}
         </div>
       </div>
     ) : (
@@ -127,10 +134,8 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
     /* Astra: Eliminamos min-height para que no ocupe espacio si no hay contenido aún */
     transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }  .main-sections-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1rem;
     width: 100%;
+    padding: 0 1.5rem;
     box-sizing: border-box;
     overflow-x: hidden;
     display: flex;

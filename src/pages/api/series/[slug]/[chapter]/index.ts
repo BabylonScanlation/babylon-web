@@ -1,9 +1,9 @@
+import { env } from 'cloudflare:workers';
 /* eslint-disable */
 // src/pages/api/series/[slug]/[chapter]/index.ts
 import type { APIRoute } from 'astro';
 import { and, eq, inArray } from 'drizzle-orm';
 import { chapters, series } from '../../../../../db/schema';
-import { processAndCacheChapter } from '../../../../../lib/chapterProcessing';
 import { signManifest } from '../../../../../lib/crypto';
 import { getDB } from '../../../../../lib/db';
 import { logError } from '../../../../../lib/logError';
@@ -16,11 +16,10 @@ const sseHeaders = {
 
 export const GET: APIRoute = async ({ params, locals, request }) => {
   const { slug, chapter: chapterNumberParam } = params;
-  console.log(`[API_CH] Request received for: ${slug} / ${chapterNumberParam}`);
+  console.log(`\n[API_CH] 🚀 Petición recibida: ${slug} / ${chapterNumberParam}`);
+  console.log(`[API_CH] Headers:`, Object.fromEntries(request.headers.entries()));
 
-  const runtime = locals.runtime || {};
-  const env = runtime.env;
-  const ctx = runtime.ctx;
+  const ctx = locals.cfContext;
 
   if (!env) {
     return new Response(JSON.stringify({ error: 'Environment configuration missing' }), {
@@ -155,15 +154,20 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       console.log(
         '[API_CH] 🚀 FIRE START: Processing lock acquired. Dispatching background worker...'
       );
-      ctx.waitUntil(
-        processAndCacheChapter(
-          env,
-          chapterData.telegramFileId,
-          slug,
-          chapterNumber,
-          chapterData.chapterId
-        ).catch((err) => logError(err, 'Background processing fail', { slug, chapterNumber }))
-      );
+
+      const { processAndCacheChapter } = await import('../../../../../lib/chapterProcessing');
+
+      const task = processAndCacheChapter(
+        env,
+        chapterData.telegramFileId,
+        slug,
+        chapterNumber,
+        chapterData.chapterId
+      ).catch((err) => logError(err, 'Background processing fail', { slug, chapterNumber }));
+
+      if (ctx?.waitUntil) {
+        ctx.waitUntil(task);
+      }
     } else {
       console.log('[API_CH] Processor already running or chapter is app_only.');
     }
@@ -249,7 +253,14 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     ctx.waitUntil(checkProcessingStatus());
     return new Response(readable, { headers: sseHeaders });
   } catch (error) {
+    console.error(`[API_CH] 💥 CRASH en API:`, error);
     logError(error, 'Error crítico en API de capítulos', { slug, chapter: chapterNumberParam });
-    return new Response(JSON.stringify({ error: 'Internal Error' }), { status: 500 });
+    return new Response(
+      JSON.stringify({
+        error: 'Internal Error',
+        details: error instanceof Error ? error.message : String(error),
+      }),
+      { status: 500 }
+    );
   }
 };
