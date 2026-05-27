@@ -103,7 +103,7 @@ export const siteConfig = {
     enabled: true,
     // IDs de Adsterra
     adsterra: {
-      domain: import.meta.env.PUBLIC_ADSTERRA_DOMAIN,
+      domain: import.meta.env.PUBLIC_ADSTERRA_DOMAIN || 'levitydinerdowny.com',
       banner: import.meta.env.PUBLIC_ADSTERRA_BANNER_ID,
       bannerLarge: import.meta.env.PUBLIC_ADSTERRA_BANNER_LARGE_ID,
       bannerSmall: import.meta.env.PUBLIC_ADSTERRA_BANNER_SMALL_ID,
