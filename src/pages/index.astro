@@ -1,18 +1,16 @@
-﻿---
+---
 import { env } from 'cloudflare:workers';
-import Layout from '../layouts/Layout.astro';
-import HeroCarousel from '../components/HeroCarousel.astro';
-import FeaturedGrid from '../components/FeaturedGrid.astro';
-import RecentUpdatesGrid from '../components/RecentUpdatesGrid.astro';
 import AdContainer from '../components/AdContainer.astro';
+import FeaturedGrid from '../components/FeaturedGrid.astro';
+import HeroCarousel from '../components/HeroCarousel.astro';
+import RecentUpdatesGrid from '../components/RecentUpdatesGrid.astro';
+import Layout from '../layouts/Layout.astro';
 import { getHomeData } from '../lib/data/series';
 import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
 import { siteConfig } from '../site.config';
 
-
-const r2PublicUrlAssets =
-  env.R2_PUBLIC_URL_ASSETS;
+const r2PublicUrlAssets = env.R2_PUBLIC_URL_ASSETS;
 
 // Astra: El modo NSFW ahora es global vía cookies (Exclusivo)
 const allowNsfw = Astro.cookies.get('babylon_nsfw')?.value === 'true';
@@ -127,7 +125,7 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
     display: flex;
     justify-content: center;
     padding: 0;
-    margin: 2rem 0 1rem 0; /* Astra: Añadido margen superior e inferior para separar del carrusel */
+    margin: 0 0 1rem 0; /* Astra: Añadido margen inferior. El superior lo da main-sections-container */
     background: transparent;
     line-height: normal;
     height: auto;
@@ -141,6 +139,7 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
     display: flex;
     flex-direction: column;
     gap: 1rem; /* Astra: Espaciado global más ajustado */
+    margin-top: 2.5rem; /* Astra: Espacio explícito entre el carrusel y las secciones */
   }
 
   .featured-grid-wrapper,

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { onMount } from 'svelte';
 import { authModal, toast } from '../lib/stores.svelte';
+import NewsCounter from './NewsCounter.svelte';
 
 let { isVerifyPage = false, shouldShowAgeGate = false } = $props();
 
@@ -71,3 +72,5 @@ onMount(() => {
 {#if shouldShowAgeGate && AgeGate}
   <AgeGate isVerificationPage={false} />
 {/if}
+
+<NewsCounter />

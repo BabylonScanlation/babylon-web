@@ -456,6 +456,8 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         .featured-grid-3x2 {
           grid-template-columns: repeat(2, 1fr) !important;
           gap: 1rem !important;
+          min-height: 785px !important;
+          max-height: 785px !important;
         }
         .recent-updates-swiper:not(.swiper-initialized) .swiper-wrapper {
           gap: 15px !important;
@@ -1064,13 +1066,31 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
             if (nsfwSrc) l.src = nsfwSrc;
           }
         }
-        const c = document.body.getAttribute(_0xS.n);
-        document.querySelectorAll('[data-news-badge]').forEach((b) => {
-          if (c && parseInt(c) > 0) {
-            b.textContent = parseInt(c) > 9 ? '+9' : c;
-            (b as HTMLElement).style.display = 'flex';
-          }
+        const updateBadges = (c: string | number) => {
+          const count = parseInt(c as string, 10);
+          document.querySelectorAll('[data-news-badge]').forEach((b) => {
+            if (!isNaN(count) && count > 0) {
+              b.textContent = count > 9 ? '+9' : count.toString();
+              b.classList.remove('hidden');
+              (b as HTMLElement).style.display = 'flex';
+            } else {
+              b.classList.add('hidden');
+              (b as HTMLElement).style.display = 'none';
+            }
+          });
+        };
+
+        window.addEventListener('news-count-updated', (e: any) => {
+          updateBadges(e.detail?.count || 0);
         });
+
+        const localCount = localStorage.getItem('babylon_news_count');
+        if (localCount !== null) {
+          updateBadges(localCount);
+        } else {
+          const c = document.body.getAttribute(_0xS.n);
+          if (c) updateBadges(c);
+        }
         _0xA();
         _0xV();
         _0xL();
