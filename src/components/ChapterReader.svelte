@@ -85,8 +85,8 @@ let progressInterval: number | undefined;
 let retryCount = 0;
 
 // Astra: Gestión de estado reactiva (Svelte 5)
-let activeSlug = $state(slug);
-let activeChapter = $state(chapter);
+let activeSlug = $state<string>();
+let activeChapter = $state<string>();
 
 $effect(() => {
   // 1. Detección de cambio de capítulo para Reset (Navegación)
@@ -144,14 +144,13 @@ async function handleReport(type: 'chapter_fallen' | 'bug' | 'claim') {
     claim: '¿Quieres iniciar una reclamación o soporte directo?',
   };
 
-  // @ts-expect-error confirm is browser global
   if (!window.confirm(confirmMsg[type])) return;
 
   try {
     const { data, error } = await actions.reports.sendReport({
       type,
-      seriesTitle,
-      chapterNumber: chapter,
+      seriesTitle: seriesTitle || '',
+      chapterNumber: String(chapter || ''),
       url: window.location.href,
     });
 

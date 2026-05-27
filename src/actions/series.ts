@@ -81,6 +81,10 @@ export const seriesActions = {
         .boolean()
         .or(z.string().transform((v) => v === 'true'))
         .optional(),
+      isUpToDate: z
+        .boolean()
+        .or(z.string().transform((v) => v === 'true'))
+        .optional(),
       scanlationId: z
         .number()
         .or(z.string().transform((v) => parseInt(v, 10)))
@@ -197,6 +201,7 @@ export const seriesActions = {
         isAppSeries: !!input.isAppSeries,
         isHidden: !!input.isHidden,
         isNsfw: !!input.isNsfw,
+        isUpToDate: !!input.isUpToDate,
         createdAt: new Date().toISOString(),
       });
 
@@ -230,6 +235,10 @@ export const seriesActions = {
         .transform((v) => v === 'on')
         .optional(),
       isNsfw: z
+        .string()
+        .transform((v) => v === 'on')
+        .optional(),
+      isUpToDate: z
         .string()
         .transform((v) => v === 'on')
         .optional(),
@@ -309,6 +318,7 @@ export const seriesActions = {
           isHidden: !!input.isHidden,
           isAppSeries: !!input.isAppSeries,
           isNsfw: !!input.isNsfw,
+          isUpToDate: !!input.isUpToDate,
         })
         .where(eq(series.id, seriesId))
         .run();
@@ -453,7 +463,7 @@ export const seriesActions = {
   toggleMetadata: defineAction({
     input: z.object({
       seriesId: z.number(),
-      key: z.enum(['isHidden', 'isNsfw', 'isAppSeries']),
+      key: z.enum(['isHidden', 'isNsfw', 'isAppSeries', 'isUpToDate']),
       value: z.boolean(),
     }),
     handler: async (input, context) => {

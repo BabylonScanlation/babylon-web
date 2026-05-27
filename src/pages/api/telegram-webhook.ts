@@ -42,6 +42,7 @@ export const POST: APIRoute = async ({ request }) => {
         return new Response('OK - Invalid filename', { status: 200 }); // Return OK to avoid Telegram retries
       }
       const chapterNumber = parseFloat(chapterNumberMatch[0]);
+      const isNsfw = /nsfw/i.test(fileName);
 
       const drizzleDb = getDB(env);
 
@@ -103,7 +104,13 @@ export const POST: APIRoute = async ({ request }) => {
           status: chapters.status,
         })
         .from(chapters)
-        .where(and(eq(chapters.seriesId, seriesId), eq(chapters.chapterNumber, chapterNumber)))
+        .where(
+          and(
+            eq(chapters.seriesId, seriesId),
+            eq(chapters.chapterNumber, chapterNumber),
+            eq(chapters.isNsfw, isNsfw)
+          )
+        )
         .get();
 
       if (existingChapter) {
@@ -133,6 +140,7 @@ export const POST: APIRoute = async ({ request }) => {
             seriesId: seriesId,
             chapterNumber: chapterNumber,
             telegramFileId: fileId,
+            isNsfw: isNsfw,
             status: 'live',
             urlPortada: null,
             createdAt: new Date().toISOString(), // Forzar formato ISO String para evitar milisegundos en D1

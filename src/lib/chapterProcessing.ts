@@ -2,7 +2,7 @@ import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 import { type Entry, HttpReader, Uint8ArrayWriter, ZipReader } from '@zip.js/zip.js';
 import { eq } from 'drizzle-orm';
 import pLimit from 'p-limit';
-import { chapters } from '../db/schema';
+import { chapters, pages } from '../db/schema';
 import { getDB } from './db';
 import { logError } from './logError';
 
@@ -86,7 +86,7 @@ export async function processAndCacheChapter(
     try {
       const existingManifestObj = await env.R2_ASSETS.get(manifestKey);
       if (existingManifestObj) {
-        const existingManifest = (await existingManifestObj.json()) as any;
+        const existingManifest = (await existingManifestObj.json()) as { sourceFileId?: string };
         if (existingManifest?.sourceFileId === fileId) {
           console.log(
             `[PROCESO] ⚡ El archivo de Telegram es idéntico al procesado anteriormente (${fileId}). Saltando recarga.`
@@ -100,8 +100,10 @@ export async function processAndCacheChapter(
           return;
         }
       }
-    } catch (e) {
-      console.warn('[PROCESO] No se pudo verificar manifest previo, procediendo con carga completa.');
+    } catch {
+      console.warn(
+        '[PROCESO] No se pudo verificar manifest previo, procediendo con carga completa.'
+      );
     }
 
     // --- FASE A: VIRTUAL MANIFEST ---
@@ -137,7 +139,9 @@ export async function processAndCacheChapter(
         },
       });
 
-      console.log(`[LIGHTSPEED] ⚡ Manifest persistente subido a ASSETS para capítulo ${chapterId}`);
+      console.log(
+        `[LIGHTSPEED] ⚡ Manifest persistente subido a ASSETS para capítulo ${chapterId}`
+      );
     }
 
     // --- FASE B: BACKGROUND FILL ---
@@ -208,20 +212,22 @@ export async function processAndCacheChapter(
     try {
       const prefix = `series_manifest/${slug}/${chapterNumber}/`;
       const objects = await env.R2_ASSETS.list({ prefix });
-      
+
       const deletePromises = objects.objects
-        .filter(obj => {
+        .filter((obj) => {
           // No borrar el manifest.json que acabamos de subir
           if (obj.key === manifestKey) return false;
           // No borrar nada que pertenezca a la versión actual
           if (obj.key.includes(`/${versionHash}/`)) return false;
           return true;
         })
-        .map(obj => env.R2_ASSETS.delete(obj.key));
+        .map((obj) => env.R2_ASSETS.delete(obj.key));
 
       if (deletePromises.length > 0) {
         await Promise.all(deletePromises);
-        console.log(`[PROCESO] 🧹 Limpieza completada: ${deletePromises.length} archivos antiguos eliminados.`);
+        console.log(
+          `[PROCESO] 🧹 Limpieza completada: ${deletePromises.length} archivos antiguos eliminados.`
+        );
       }
     } catch (cleanErr) {
       console.warn('[PROCESO] No se pudo completar la limpieza de archivos antiguos:', cleanErr);
@@ -229,7 +235,7 @@ export async function processAndCacheChapter(
 
     // Limpieza de DB y marcar como LIVE
     try {
-      await drizzleDb.delete(pagesTable).where(eq(pagesTable.chapterId, chapterId)).run();
+      await drizzleDb.delete(pages).where(eq(pages.chapterId, chapterId)).run();
     } catch (dbErr) {
       console.warn(
         `[PROCESO] No se pudieron limpiar páginas antiguas en DB para ${chapterId}`,

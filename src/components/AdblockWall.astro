@@ -104,17 +104,7 @@
       score += 2;
     }
 
-    // 6. Prueba de Red Secundaria (Monetag)
-    try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 2500);
-      await fetch(`https://ai751.com/tag.min.js`, { 
-        mode: 'no-cors', cache: 'no-store', signal: controller.signal 
-      });
-    } catch {
-      console.log('%c🛡️ SHIELD: Monetag bloqueado.', 'color: orange;');
-      score += 2;
-    }
+
 
     console.log('%c🛡️ SHIELD: Puntaje Final: ' + score, 'color: yellow; font-weight: bold;');
     

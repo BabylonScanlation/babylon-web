@@ -7,9 +7,19 @@ interface Props {
   chapter: Chapter;
   seriesSlug: string;
   r2PublicUrlAssets: string;
+  isLatest?: boolean;
+  seriesIsUpToDate?: boolean;
 }
 
-let { chapter, seriesSlug, r2PublicUrlAssets }: Props = $props();
+let {
+  chapter,
+  seriesSlug,
+  r2PublicUrlAssets,
+  isLatest = false,
+  seriesIsUpToDate = false,
+}: Props = $props();
+
+let isNsfw = $state(false);
 
 let _isLoading = $state(false);
 let _isEditing = $state(false);
@@ -25,6 +35,7 @@ function autoFocus(node: HTMLInputElement) {
 }
 
 onMount(() => {
+  isNsfw = !!chapter.isNsfw;
   const handleGlobalToggle = (e: Event) => {
     const customEvent = e as CustomEvent<{ isChecked: boolean }>;
     isSelected = customEvent.detail.isChecked;
@@ -141,6 +152,21 @@ function _openCropper() {
   );
 }
 
+async function _toggleNsfw() {
+  _isLoading = true;
+  try {
+    const newNsfw = !isNsfw;
+    const { error } = await actions.chapters.toggleNsfw({ chapterId: chapter.id, isNsfw: newNsfw });
+    if (error) throw new Error(error.message);
+    isNsfw = newNsfw;
+    showMessage('success', 'NSFW ' + (newNsfw ? 'ON' : 'OFF'));
+  } catch {
+    showMessage('error', 'Error NSFW');
+  } finally {
+    _isLoading = false;
+  }
+}
+
 let title = $state('');
 
 $effect(() => {
@@ -182,8 +208,15 @@ const _finalUrl = $derived.by(() => {
             </div>
         {:else}
             <div class="title-display" onclick={() => (_isEditing = true)} aria-hidden="true">
-                <span class="chapter-num">Cap. {chapter.chapterNumber}</span>
-                <h4 class="chapter-title">{chapter.title || 'Sin título'}</h4>
+                <span class="chapter-num">
+                  Cap. {chapter.chapterNumber}
+                  {#if isLatest && seriesIsUpToDate}
+                    <span class="tag-al-dia">AL DÍA</span>
+                  {/if}
+                </span>
+                <h4 class="chapter-title">
+                  {chapter.title || 'Sin título'}
+                </h4>
             </div>
         {/if}
 
@@ -199,6 +232,15 @@ const _finalUrl = $derived.by(() => {
     </div>
 
     <div class="card-actions">
+        <button
+            class="action-btn nsfw"
+            class:active={isNsfw}
+            onclick={(e) => { e.stopPropagation(); _toggleNsfw(); }}
+            title="Marcar NSFW"
+        >
+            <span style="font-size: 9.5px; font-weight: 800; line-height: 1;">NSFW</span>
+        </button>
+
         <label class="action-btn upload" title="Subir miniatura">
             <input type="file" accept="image/*" onchange={_handleThumbnailUpload} class="hidden" />
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
@@ -264,8 +306,23 @@ const _finalUrl = $derived.by(() => {
   .card-main { flex-grow: 1; min-width: 0; }
 
   .title-display { cursor: text; }
-  .chapter-num { display: block; font-size: 0.7rem; font-weight: 800; color: var(--accent-color); text-transform: uppercase; margin-bottom: 2px; }
-  .chapter-title { margin: 0; font-size: 0.95rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chapter-num { display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; font-weight: 800; color: var(--accent-color); text-transform: uppercase; margin-bottom: 2px; }
+  .chapter-title { margin: 0; font-size: 0.95rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+
+  .tag-al-dia {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    margin-left: 4px;
+    background: #00bfff;
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 4px 6px;
+    border-radius: 4px;
+    box-shadow: 0 0 8px rgba(0, 191, 255, 0.8), 0 0 16px rgba(0, 191, 255, 0.4);
+  }
 
   .title-edit-wrap input {
     width: 100%;
@@ -299,6 +356,19 @@ const _finalUrl = $derived.by(() => {
   .action-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
   .action-btn.upload { position: relative; cursor: pointer; }
   .action-btn.upload input { display: none; }
+  
+  .action-btn.nsfw.active { 
+    background: #ff69b4; 
+    color: #fff; 
+    border: none; 
+    box-shadow: 0 0 10px rgba(255, 105, 180, 0.8), 0 0 20px rgba(255, 105, 180, 0.5);
+  }
+  .action-btn.nsfw:hover { 
+    background: rgba(255, 105, 180, 0.3); 
+    color: #ff69b4; 
+    box-shadow: 0 0 10px rgba(255, 105, 180, 0.4);
+  }
+
   .action-btn.delete:hover { background: rgba(255, 71, 87, 0.1); color: #ff4757; }
   .action-btn.delete.confirm { background: #ff4757; color: #fff; animation: pulse 1s infinite; }
 

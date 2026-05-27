@@ -1,30 +1,29 @@
 <script lang="ts">
-  import { siteConfig } from '../site.config';
+import { siteConfig } from '../site.config';
 
-  interface Props {
-    type: 'banner' | 'bannerLarge' | 'bannerSmall' | 'square' | 'native';
-    id?: string;
-    className?: string;
-    isStaff?: boolean;
-  }
+interface Props {
+  type: 'banner' | 'bannerLarge' | 'bannerSmall' | 'square' | 'native';
+  id?: string;
+  className?: string;
+  isStaff?: boolean;
+}
 
-  let { type, id, className = '', isStaff = false }: Props = $props();
+let { type, id, className = '', isStaff = false }: Props = $props();
 
-  const adKeys = siteConfig.ads.adsterra;
-  
-  // @ts-expect-error Dynamic key access
-  const _adKey = $derived(adKeys[type] || adKeys.banner);
+const adKeys = siteConfig.ads.adsterra;
 
-  const _dimensions = {
-    banner: { w: 728, h: 90 },
-    bannerLarge: { w: 970, h: 90 },
-    bannerSmall: { w: 468, h: 60 },
-    square: { w: 300, h: 250 },
-    native: { w: 728, h: 180 },
-  };
+const _adKey = $derived(adKeys[type] || adKeys.banner);
 
-  const _shouldShowAds = $derived(siteConfig.ads.enabled && !isStaff);
-  const _instanceId = $derived(id || `ad-sv-${type}`);
+const _dimensions = {
+  banner: { w: 728, h: 90 },
+  bannerLarge: { w: 970, h: 90 },
+  bannerSmall: { w: 468, h: 60 },
+  square: { w: 300, h: 250 },
+  native: { w: 728, h: 180 },
+};
+
+const _shouldShowAds = $derived(siteConfig.ads.enabled && !isStaff);
+const _instanceId = $derived(id || `ad-sv-${type}`);
 </script>
 
 {#if _shouldShowAds}

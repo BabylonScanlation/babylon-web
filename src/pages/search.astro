@@ -116,14 +116,14 @@ try {
 
     <script>
       // Astra: Preservar filtros al buscar desde la barra principal
-      document.addEventListener('astro:page-load', () => {
-        const form = document.getElementById('main-search-form') as HTMLFormElement;
-        const input = document.getElementById('main-search-input') as HTMLInputElement;
+      const initSearchGrid = () => {
+        const form = document.getElementById('main-search-form');
+        const input = document.getElementById('main-search-input') as HTMLInputElement | null;
 
         form?.addEventListener('submit', (e) => {
           e.preventDefault();
           const url = new URL(window.location.href);
-          const searchTerm = input.value?.trim();
+          const searchTerm = input?.value?.trim();
           
           if (searchTerm) {
             url.searchParams.set('q', searchTerm);
@@ -157,7 +157,7 @@ try {
           if (targetLimit > 0 && targetLimit !== currentLimit) {
             url.searchParams.set('limit', targetLimit.toString());
             url.searchParams.set('page', '1');
-            window.location.href = url.pathname + url.search;
+            window.location.replace(url.pathname + url.search);
           }
         }
 
@@ -165,12 +165,20 @@ try {
         syncGridLimit();
         
         // Y al cambiar el tamaño de la ventana (con debounce)
-        let resizeTimeout: number;
+        let resizeTimeout: number | ReturnType<typeof setTimeout>;
         window.addEventListener('resize', () => {
           clearTimeout(resizeTimeout);
           resizeTimeout = window.setTimeout(syncGridLimit, 500);
         });
-      });
+      };
+
+      // Compatibilidad con Astro ViewTransitions y carga normal
+      document.addEventListener('astro:page-load', initSearchGrid);
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSearchGrid);
+      } else {
+        initSearchGrid();
+      }
     </script>
 
     <div class="results-container">

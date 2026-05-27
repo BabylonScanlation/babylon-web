@@ -87,20 +87,20 @@ async function handleGoogleSignIn() {
     console.log('[AuthModal] Cargando stack de autenticación...');
     const { auth, actions, GoogleAuthProvider, signInWithPopup } = await getFullAuthStack();
     console.log('[AuthModal] Stack cargado. Configurando proveedor de Google...');
-    
+
     const googleProvider = new GoogleAuthProvider();
     // Forzamos la selección de cuenta para ver si esto ayuda a mantener el popup abierto
     googleProvider.setCustomParameters({
-      prompt: 'select_account'
+      prompt: 'select_account',
     });
 
     console.log('[AuthModal] Llamando a signInWithPopup...');
     const result = await signInWithPopup(auth, googleProvider);
     console.log('[AuthModal] Popup completado con éxito. Usuario:', result.user.email);
-    
+
     const idToken = await result.user.getIdToken();
     console.log('[AuthModal] ID Token obtenido. Llamando a acción de login en servidor...');
-    
+
     const { error } = await actions.auth.login({ idToken });
 
     if (!error) {
@@ -120,9 +120,9 @@ async function handleGoogleSignIn() {
     console.error('[AuthModal] ERROR capturado en handleGoogleSignIn:', error);
     console.error('[AuthModal] Código de error:', error.code);
     console.error('[AuthModal] Mensaje de error:', error.message);
-    
+
     logError(error, 'Google error');
-    
+
     // Manejo específico para cuando el usuario cierra el popup o hay cancelación
     if (error.code === 'auth/popup-closed-by-user') {
       toast.info('El proceso de Google fue cancelado.');

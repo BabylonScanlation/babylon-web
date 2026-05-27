@@ -12,7 +12,11 @@ const { type, id, className: _className = '' } = Astro.props;
 const { isStaff: _isStaffRaw, user } = Astro.locals;
 
 // Orion: Bloqueo de seguridad nuclear para Staff (Admins y Scanlations)
-const isStaff = !!(_isStaffRaw || user?.isAdmin || (user?.scanlations && user.scanlations.length > 0));
+const isStaff = !!(
+  _isStaffRaw ||
+  user?.isAdmin ||
+  (user?.scanlations && user.scanlations.length > 0)
+);
 
 const adKeys = siteConfig.ads.adsterra;
 const _adKey = adKeys[type as keyof typeof adKeys] || adKeys.banner;

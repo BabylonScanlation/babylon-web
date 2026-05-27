@@ -9,14 +9,20 @@ interface Chapter {
   views: number | null;
   status: string;
   scanlationName?: string | null;
+  isNsfw?: boolean;
 }
 
 interface Props {
   chaptersByLanguage: Record<string, Chapter[]>;
   seriesSlug: string;
+  seriesIsUpToDate?: boolean;
 }
 
-const { chaptersByLanguage, seriesSlug } = Astro.props;
+const { chaptersByLanguage, seriesSlug, seriesIsUpToDate } = Astro.props;
+
+const allChapters = Object.values(chaptersByLanguage).flat();
+const maxChapterNumber =
+  allChapters.length > 0 ? Math.max(...allChapters.map((ch) => ch.chapterNumber)) : -1;
 
 // Ordenamos los idiomas para que el español aparezca primero si existe
 const languages = Object.keys(chaptersByLanguage).sort((a, b) => {
@@ -82,66 +88,136 @@ const languageNames: Record<string, string> = {
         </button>
 
         <div class="chapters-premium-grid">
-          {(chaptersByLanguage[lang] || [])
-            .sort((a, b) => b.chapterNumber - a.chapterNumber)
-            .map((chapter) => {
-              const isAppOnly = chapter.status === 'app_only';
-              return (
-                <div class="chapter-card-wrapper">
-                  <a 
-                    href={isAppOnly ? '#' : `/series/${seriesSlug}/${chapter.chapterNumber}?id=${chapter.id}`} 
-                    class:list={['chapter-card-premium', { 'app-chapter-link': isAppOnly }]}
-                  >
-                    <div class="card-bg-glow"></div>
-                    <div class="watermark-num">{chapter.chapterNumber}</div>
-                    
-                    <div class="card-content">
-                      <div class="chapter-main">
-                        <div class="chapter-label-row">
-                          <div class="label-left">
-                            <span class="chapter-label">CAPÍTULO</span>
-                            {chapter.scanlationName && (
-                              <span class="scanlation-badge">{chapter.scanlationName}</span>
+          {(() => {
+            const rawChapters = chaptersByLanguage[lang] || [];
+            
+            const grouped = rawChapters.reduce((acc, chapter) => {
+              if (!acc[chapter.chapterNumber]) acc[chapter.chapterNumber] = [];
+              acc[chapter.chapterNumber].push(chapter);
+              return acc;
+            }, {} as any);
+
+            const groupedArray = Object.entries(grouped)
+              .map(([num, list]: [string, any]) => ({
+                chapterNumber: parseFloat(num),
+                chapters: list.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+              }))
+              .sort((a, b) => b.chapterNumber - a.chapterNumber);
+
+            return groupedArray.map((group) => {
+              const { chapterNumber, chapters: groupChapters } = group;
+
+              const renderChapterCard = (chapter: any, isSubItem = false) => {
+                const isAppOnly = chapter.status === 'app_only';
+                return (
+                  <div class:list={["chapter-card-wrapper", { "sub-item": isSubItem }]}>
+                    <a 
+                      href={isAppOnly ? '#' : `/series/${seriesSlug}/${chapter.chapterNumber}?id=${chapter.id}`} 
+                      class:list={['chapter-card-premium', { 'app-chapter-link': isAppOnly }]}
+                    >
+                      <div class="card-bg-glow"></div>
+                      <div class="watermark-num">{chapter.chapterNumber}</div>
+                      
+                      <div class="card-content">
+                        <div class="chapter-main">
+                          <div class="chapter-label-row">
+                            <div class="label-left">
+                              <span class="chapter-label">CAPÍTULO</span>
+                              {chapter.scanlationName && (
+                                <span class="scanlation-badge">{chapter.scanlationName}</span>
+                              )}
+                            </div>
+                            {chapter.views !== null && (
+                              <div class="meta-item views-top">
+                                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="3" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                <span>{chapter.views.toLocaleString()}</span>
+                              </div>
                             )}
                           </div>
-                          {chapter.views !== null && (
-                            <div class="meta-item views-top">
-                              <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="3" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                              <span>{chapter.views.toLocaleString()}</span>
+                          <h4 class="chapter-num">
+                            {chapter.chapterNumber}
+                            {seriesIsUpToDate && chapter.chapterNumber === maxChapterNumber && !isSubItem && (
+                              <span class="tag-al-dia">AL DÍA</span>
+                            )}
+                            {chapter.isNsfw && (
+                              <span class="tag-nsfw">NSFW</span>
+                            )}
+                          </h4>
+                          <p class="chapter-title">
+                            {chapter.title ? chapter.title.trim() : `Nueva Actualización`}
+                          </p>
+                        </div>
+
+                        <div class="chapter-meta-row">
+                          <div class="meta-item date">
+                            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="3" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            <span>{timeAgo(chapter.createdAt)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="card-action">
+                        {isAppOnly ? (
+                          <div class="status-badge app-only">
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>APP ONLY</span>
+                          </div>
+                        ) : (
+                          <div class="status-badge read">
+                            <span>LEER</span>
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                          </div>
+                        )}
+                      </div>
+                    </a>
+                  </div>
+                );
+              };
+
+              if (groupChapters.length === 1) {
+                return renderChapterCard(groupChapters[0]);
+              } else {
+                const hasNsfw = groupChapters.some((c: any) => c.isNsfw);
+                const hasAlDia = seriesIsUpToDate && chapterNumber === maxChapterNumber;
+                
+                return (
+                  <details class="chapter-group-details">
+                    <summary class="chapter-card-premium group-summary">
+                      <div class="card-bg-glow"></div>
+                      <div class="watermark-num">{chapterNumber}</div>
+                      
+                      <div class="card-content">
+                        <div class="chapter-main">
+                          <div class="chapter-label-row">
+                            <div class="label-left">
+                              <span class="chapter-label">CAPÍTULO</span>
+                              <span class="scanlation-badge versions-badge">{groupChapters.length} Versiones</span>
                             </div>
-                          )}
-                        </div>
-                        <h4 class="chapter-num">{chapter.chapterNumber}</h4>
-                        <p class="chapter-title">
-                          {chapter.title ? chapter.title.trim() : `Nueva Actualización`}
-                        </p>
-                      </div>
-
-                      <div class="chapter-meta-row">
-                        <div class="meta-item date">
-                          <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="3" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                          <span>{timeAgo(chapter.createdAt)}</span>
+                          </div>
+                          <h4 class="chapter-num">
+                            {chapterNumber}
+                            {hasAlDia && <span class="tag-al-dia">AL DÍA</span>}
+                            {hasNsfw && <span class="tag-nsfw">NSFW</span>}
+                          </h4>
+                          <p class="chapter-title">Múltiples opciones disponibles</p>
                         </div>
                       </div>
-                    </div>
 
-                    <div class="card-action">
-                      {isAppOnly ? (
-                        <div class="status-badge app-only">
-                          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                          <span>APP ONLY</span>
+                      <div class="card-action">
+                        <div class="status-badge expand-badge">
+                          <span>VER</span>
+                          <svg class="expand-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                      ) : (
-                        <div class="status-badge read">
-                          <span>LEER</span>
-                          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                        </div>
-                      )}
+                      </div>
+                    </summary>
+                    <div class="group-subitems-list">
+                      {groupChapters.map((c: any) => renderChapterCard(c, true))}
                     </div>
-                  </a>
-                </div>
-              )
-            })}
+                  </details>
+                );
+              }
+            });
+          })()}
         </div>
       </div>
     ))
@@ -357,6 +433,9 @@ const languageNames: Record<string, string> = {
   }
 
   .chapter-num {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
     font-size: 1.75rem;
     font-weight: 800;
     color: #fff;
@@ -370,10 +449,36 @@ const languageNames: Record<string, string> = {
     font-weight: 500;
     line-height: 1.3;
     margin: 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  }
+
+  .tag-al-dia {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    background: #00bfff;
+    color: #fff;
+    font-size: 0.57rem;
+    font-weight: 800;
+    padding: 4px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    box-shadow: 0 0 8px rgba(0, 191, 255, 0.8), 0 0 16px rgba(0, 191, 255, 0.4);
+  }
+  
+  .tag-nsfw {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    background: #ff69b4;
+    color: #fff;
+    font-size: 0.57rem;
+    font-weight: 800;
+    padding: 4px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    box-shadow: 0 0 8px rgba(255, 105, 180, 0.8), 0 0 16px rgba(255, 105, 180, 0.4);
   }
 
   .chapter-meta-row {
@@ -461,6 +566,87 @@ const languageNames: Record<string, string> = {
     align-items: center;
     padding: 4rem 0;
     color: #333;
+  }
+  
+  .app-chapter-link .card-content {
+    opacity: 0.8;
+  }
+
+  /* Group container styles */
+  .chapter-group-details {
+    width: 100%;
+    margin-bottom: 0;
+  }
+  
+  .chapter-group-details > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    text-decoration: none;
+  }
+  
+  .chapter-group-details > summary::-webkit-details-marker {
+    display: none;
+  }
+  
+  .group-summary {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: linear-gradient(145deg, rgba(30, 32, 40, 0.9), rgba(20, 22, 28, 0.95));
+  }
+  
+  .chapter-group-details[open] .group-summary {
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+  }
+
+  .chapter-group-details[open] .expand-icon {
+    transform: rotate(180deg);
+  }
+  
+  .expand-icon {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .versions-badge {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+  
+  .group-subitems-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-left: 1.5rem;
+    border-left: 2px solid rgba(255, 255, 255, 0.05);
+    margin-left: 1rem;
+    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    transform-origin: top;
+  }
+  
+  .sub-item .chapter-card-premium {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.2));
+    border-color: rgba(255, 255, 255, 0.04);
+    min-height: 85px;
+    padding: 1rem 1.25rem;
+    box-shadow: none;
+  }
+
+  .sub-item .chapter-card-premium:hover {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.1));
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  @keyframes slideDown {
+    from { 
+      opacity: 0; 
+      transform: translateY(-10px) scaleY(0.95); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0) scaleY(1); 
+    }
   }
 
   @media (max-width: 640px) {

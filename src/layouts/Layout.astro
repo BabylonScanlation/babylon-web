@@ -763,7 +763,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     </script>
 
     <script>
-      import { siteConfig } from '../site.config';
+      // import { siteConfig } from '../site.config';
       const _0xS = {
         p: '/api/assets/proxy/',
         a: 'https://crowdsubsequentadmire.com/',
@@ -1059,9 +1059,10 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           const l = document.getElementById(
             'header-logo-img'
           ) as HTMLImageElement;
-          if (l)
-            l.src =
-              siteConfig.assets.logoHeaderNsfw || siteConfig.assets.logoHeader;
+          if (l) {
+            const nsfwSrc = l.getAttribute('data-nsfw-src');
+            if (nsfwSrc) l.src = nsfwSrc;
+          }
         }
         const c = document.body.getAttribute(_0xS.n);
         document.querySelectorAll('[data-news-badge]').forEach((b) => {

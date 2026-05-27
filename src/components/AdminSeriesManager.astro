@@ -79,7 +79,7 @@ const coverUrl = series.coverImageUrl?.startsWith('http')
         <div class="panel-column">
           <AdminSeriesForm series={series as any} />
         </div>
-        <div class="panel-column">
+        <div class="panel-column chapters-column">
           <AdminChapterList series={series} r2PublicUrlAssets={r2PublicUrlAssets} />
           <AdminChapterUploader client:load seriesId={series.id} seriesTitle={series.title} />
         </div>
@@ -412,6 +412,12 @@ const coverUrl = series.coverImageUrl?.startsWith('http')
 
   .panel-column {
     min-width: 0;
+  }
+
+  .chapters-column {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem; /* Separación clara entre lista de capítulos y el uploader */
   }
 
   @media (max-width: 1024px) {

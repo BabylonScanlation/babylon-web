@@ -254,6 +254,8 @@ export const chapterActions = {
         throw new Error('No se pudo extraer el número del capítulo del nombre del archivo');
       const chapterNumber = parseFloat(chapterNumberMatch[0]);
 
+      const isNsfw = /nsfw/i.test(file.name);
+
       let registeredChapterId: number;
       const existing = await db
         .select()
@@ -263,7 +265,8 @@ export const chapterActions = {
             eq(chapters.seriesId, seriesId),
             eq(chapters.chapterNumber, chapterNumber),
             scanlationId ? eq(chapters.scanlationId, scanlationId) : isNull(chapters.scanlationId),
-            eq(chapters.language, language)
+            eq(chapters.language, language),
+            eq(chapters.isNsfw, isNsfw)
           )
         )
         .get();
@@ -278,6 +281,7 @@ export const chapterActions = {
             scanlationId: scanlationId || null,
             uploaderId: user.uid,
             language,
+            isNsfw,
             status: 'processing',
             urlPortada: `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`,
             createdAt: new Date().toISOString(),
@@ -444,6 +448,32 @@ export const chapterActions = {
         .run();
 
       return { success: true, thumbnailUrl };
+    },
+  }),
+
+  toggleNsfw: defineAction({
+    input: z.object({
+      chapterId: z.number(),
+      isNsfw: z.boolean(),
+    }),
+    handler: async (input, context) => {
+      const { user } = context.locals;
+      const { chapterId, isNsfw } = input;
+      const db = getDB(env);
+
+      const chapterData = await db
+        .select({ scanlationId: chapters.scanlationId })
+        .from(chapters)
+        .where(eq(chapters.id, chapterId))
+        .get();
+
+      if (!chapterData) throw new Error('Capítulo no encontrado');
+      if (!canManageScanlation(user, chapterData.scanlationId)) {
+        throw new Error('Forbidden');
+      }
+
+      await db.update(chapters).set({ isNsfw }).where(eq(chapters.id, chapterId)).run();
+      return { success: true };
     },
   }),
 };

@@ -8,6 +8,12 @@ const r2PublicUrlAssets = env.R2_PUBLIC_URL_ASSETS;
 
 const currentLogo = isNsfwActive ? siteConfig.assets.logoHeaderNsfw : siteConfig.assets.logoHeader;
 const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo}` : currentLogo;
+const sfwLogoUrl = siteConfig.assets.logoHeader.startsWith('/')
+  ? `${r2PublicUrlAssets}${siteConfig.assets.logoHeader}`
+  : siteConfig.assets.logoHeader;
+const nsfwLogoUrl = siteConfig.assets.logoHeaderNsfw.startsWith('/')
+  ? `${r2PublicUrlAssets}${siteConfig.assets.logoHeaderNsfw}`
+  : siteConfig.assets.logoHeaderNsfw;
 ---
 
 <header
@@ -26,6 +32,8 @@ const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo
       <a href="/" class="logo-link">
         <img
           src={logoUrl}
+          data-sfw-src={sfwLogoUrl}
+          data-nsfw-src={nsfwLogoUrl}
           alt={`${siteConfig.name} Logo`}
           class="header-logo"
           id="header-logo-img"
@@ -42,7 +50,7 @@ const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo
           id="nsfw-toggle-btn"
           class:list={['nav-link-pc nsfw-link', { 'is-active': isNsfwActive }]}
         >
-          <span>ZONA +18</span>
+          <span>{isNsfwActive ? 'MODO SFW' : 'MODO NSFW'}</span>
         </button>
         <a href="/news" class="nav-link-pc news-link">
           <span>NOTICIAS</span>

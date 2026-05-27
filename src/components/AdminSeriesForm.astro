@@ -20,6 +20,7 @@ interface Series {
   isHidden: boolean;
   isNsfw: boolean;
   isAppSeries: boolean;
+  isUpToDate?: boolean;
   chapters?: unknown[];
   chapterCount?: number;
   }
@@ -71,7 +72,7 @@ interface Series {
       <div class="basic-info">
         <div class="input-row-split">
           <div class="input-group">
-            <label for={`title-${series.id}`}>Título de la Serie</label>
+            <label for={`title-${series.id}`}>Título</label>
             <input
               type="text"
               id={`title-${series.id}`}
@@ -141,11 +142,10 @@ interface Series {
         <label for={`demographic-${series.id}`}>Demografía</label>
         <input type="text" id={`demographic-${series.id}`} name="demographic" value={series.demographic || ''} placeholder="Ej: Shonen, Seinen" />
       </div>
-    </div>
-
-    <div class="input-group full-width">
-      <label for={`alternativeNames-${series.id}`}>Nombres Alternativos</label>
-      <input type="text" id={`alternativeNames-${series.id}`} name="alternativeNames" value={series.alternativeNames || ''} placeholder="Separados por comas" />
+      <div class="input-group">
+        <label for={`alternativeNames-${series.id}`}>Nombres Alternativos</label>
+        <input type="text" id={`alternativeNames-${series.id}`} name="alternativeNames" value={series.alternativeNames || ''} placeholder="Separados por comas" />
+      </div>
     </div>
 
     <!-- SECCIÓN 3: Acciones de Gestión -->
@@ -188,6 +188,19 @@ interface Series {
             >
               <span class="dot"></span>
               +18: {series.isNsfw ? 'ON' : 'OFF'}
+            </button>
+          </div>
+
+          <div class="switch-item">
+            <input type="hidden" id={`isUpToDate_input-${series.id}`} name="isUpToDate" value={series.isUpToDate ? 'on' : 'off'} />
+            <button
+              type="button"
+              class:list={['compact-toggle', series.isUpToDate ? 'state-on' : 'state-off']}
+              data-series-id={series.id}
+              id={`toggle-uptodate-button-${series.id}`}
+            >
+              <span class="dot"></span>
+              Al día: {series.isUpToDate ? 'ON' : 'OFF'}
             </button>
           </div>
         </div>
@@ -535,9 +548,9 @@ interface Series {
 
   .floating-message {
     position: fixed;
-    top: 30px;
-    right: 30px;
-    z-index: 10000;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 100000;
     padding: 1rem 2rem;
     border-radius: 16px;
     font-weight: 800;
@@ -669,7 +682,8 @@ interface Series {
         status: formData.get('status'),
         isHidden: formData.get('isHidden') === 'on',
         isAppSeries: formData.get('isAppSeries') === 'on',
-        isNsfw: formData.get('isNsfw') === 'on'
+        isNsfw: formData.get('isNsfw') === 'on',
+        isUpToDate: formData.get('isUpToDate') === 'on'
       });
 
       displayFormMessage(seriesId, 'success', 'Serie actualizada con éxito.');
@@ -709,6 +723,8 @@ interface Series {
       handleLocalToggle(seriesId, button, 'isAppSeries');
     } else if (button.id.startsWith('toggle-nsfw-')) {
       handleLocalToggle(seriesId, button, 'isNsfw');
+    } else if (button.id.startsWith('toggle-uptodate-')) {
+      handleLocalToggle(seriesId, button, 'isUpToDate');
     }
   });
 
@@ -730,6 +746,7 @@ interface Series {
     if (type === 'isHidden') text = 'Ocultar';
     else if (type === 'isAppSeries') text = 'App';
     else if (type === 'isNsfw') text = '+18';
+    else if (type === 'isUpToDate') text = 'Al día';
 
     button.innerHTML = `${dot}${text}: ${state ? 'ON' : 'OFF'}`;
     button.className = `compact-toggle ${state ? 'state-on' : 'state-off'}`;

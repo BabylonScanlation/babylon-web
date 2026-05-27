@@ -40,6 +40,7 @@ export interface Chapter {
   messageThreadId?: number | null;
   isAppOnly?: boolean | null;
   processing?: boolean | null;
+  isNsfw?: boolean | null;
 }
 
 export interface RecentChapterSeries {

@@ -32,6 +32,7 @@ export const series = sqliteTable(
     isHidden: integer('is_hidden', { mode: 'boolean' }).default(true),
     isNsfw: integer('is_nsfw', { mode: 'boolean' }).default(false),
     isAppSeries: integer('is_app_series', { mode: 'boolean' }).default(false),
+    isUpToDate: integer('is_up_to_date', { mode: 'boolean' }).default(false),
   },
   (table) => [
     index('idx_series_hidden').on(table.isHidden),
@@ -40,6 +41,7 @@ export const series = sqliteTable(
     index('idx_series_type').on(table.type),
     index('idx_series_author').on(table.author),
     index('idx_series_artist').on(table.artist),
+    index('idx_series_up_to_date').on(table.isUpToDate),
   ]
 );
 
@@ -64,6 +66,7 @@ export const chapters = sqliteTable(
     status: text('status').notNull().default('processing'),
     urlPortada: text('url_portada'),
     views: integer('views').default(0),
+    isNsfw: integer('is_nsfw', { mode: 'boolean' }).default(false),
     createdAt: text('created_at').default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
   },
   (table) => [
@@ -75,7 +78,8 @@ export const chapters = sqliteTable(
       table.seriesId,
       table.chapterNumber,
       table.scanlationId,
-      table.language
+      table.language,
+      table.isNsfw
     ),
   ]
 );

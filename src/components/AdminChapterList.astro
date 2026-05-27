@@ -32,6 +32,9 @@ const _chapters = rawChapters.map((ch) => {
     createdAt: dateStr,
   };
 });
+
+const maxChapterNumber =
+  _chapters.length > 0 ? Math.max(..._chapters.map((ch) => ch.chapterNumber)) : -1;
 ---
 
 <chapter-manager class="chapters-manager">
@@ -95,6 +98,8 @@ const _chapters = rawChapters.map((ch) => {
               chapter={chapter}
               seriesSlug={series.slug}
               r2PublicUrlAssets={_r2PublicUrlAssets}
+              isLatest={chapter.chapterNumber === maxChapterNumber}
+              seriesIsUpToDate={!!(series as any).isUpToDate}
             />
           ))
         ) : (
@@ -111,7 +116,9 @@ const _chapters = rawChapters.map((ch) => {
 <style>
   .chapters-manager {
     background-color: #161616;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     height: auto;

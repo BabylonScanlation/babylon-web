@@ -56,6 +56,7 @@ export async function getSeriesDetails(
         language: chapters.language,
         scanlationName: scanlations.name,
         scanlationSlug: scanlations.slug,
+        isNsfw: chapters.isNsfw,
       })
       .from(chapters)
       .leftJoin(scanlations, eq(chapters.scanlationId, scanlations.id))
