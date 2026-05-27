@@ -47,11 +47,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       for (let i = 0; i < maxAttempts; i++) {
         try {
           // ORION: Forzamos que no haya caché en la lectura de R2 para el manifiesto
-          return await env.R2_CACHE.get(key, {
-            onlyIf: {
-              // Opcional: Podrías usar etags aquí, pero el get directo es más seguro para validación extrema
-            },
-          });
+          return await env.R2_ASSETS.get(key);
         } catch (e) {
           lastError = e;
           if (i < maxAttempts - 1) await new Promise((resolve) => setTimeout(resolve, 500));
@@ -91,9 +87,9 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     }
 
     console.log(
-      `[API_CH] Chapter found (ID: ${chapterData.chapterId}). Manifest key: ${slug}/${chapterNumber}/manifest.json`
+      `[API_CH] Chapter found (ID: ${chapterData.chapterId}). Manifest key: series_manifest/${slug}/${chapterNumber}/manifest.json`
     );
-    const manifestKey = `${slug}/${chapterNumber}/manifest.json`;
+    const manifestKey = `series_manifest/${slug}/${chapterNumber}/manifest.json`;
     const manifestObject = await retryGetFromR2(manifestKey);
 
     const acceptHeader = request.headers.get('Accept');
