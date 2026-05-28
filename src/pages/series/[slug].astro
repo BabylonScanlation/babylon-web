@@ -192,9 +192,9 @@ const reactions = [
             </header>
 
             <nav class="minimal-tabs">
-              <button class="tab-link active" data-tab="details">Detalles</button>
+              <button class="tab-link active" data-tab="chapters">Capítulos</button>
+              <button class="tab-link" data-tab="details">Detalles</button>
               <button class="tab-link" data-tab="synopsis">Sinopsis</button>
-              <button class="tab-link" data-tab="chapters">Capítulos</button>
               <button class="tab-link" data-tab="comments">
                 Comentarios
                 <span class="tab-count">{comments.length}</span>
@@ -203,8 +203,17 @@ const reactions = [
             </nav>
 
             <div class="tab-panes">
+              <!-- CAPÍTULOS -->
+              <div id="chapters-content" class="tab-pane active">
+                <ChapterList 
+                  chaptersByLanguage={series.chaptersByLanguage as any} 
+                  seriesSlug={series.slug} 
+                  seriesIsUpToDate={!!(series as any).isUpToDate}
+                />
+              </div>
+
               <!-- DETALLES -->
-              <div id="details-content" class="tab-pane active">
+              <div id="details-content" class="tab-pane">
                 <div class="details-list">
                   {series.author && (
                     <div class="detail-row">
@@ -258,15 +267,6 @@ const reactions = [
                 <div class="synopsis-text">
                   <p set:html={formatDescription(series.description)} />
                 </div>
-              </div>
-
-              <!-- CAPÍTULOS -->
-              <div id="chapters-content" class="tab-pane">
-                <ChapterList 
-                  chaptersByLanguage={series.chaptersByLanguage as any} 
-                  seriesSlug={series.slug} 
-                  seriesIsUpToDate={!!(series as any).isUpToDate}
-                />
               </div>
 
               <!-- COMENTARIOS -->

@@ -30,6 +30,8 @@ let allChapters: any[] = [];
 let seriesTitle: string | null = null;
 let comments: any[] = [];
 let seriesData: any = null; // Orion: Variable en scope global para el template
+let needsVersionSelection = false;
+let availableVersions: any[] = [];
 
 try {
   // 1. Obtener detalles de la serie directamente
@@ -59,54 +61,80 @@ try {
     seriesTitle = seriesData.title;
   }
 
-  // 2. Obtener payload del capítulo directamente
+  // 2. Comprobar si hay múltiples versiones de este capítulo
   const chapterNumber = parseFloat(chapter);
-  const chapterResult = await getChapterPayload(
-    drizzleDb,
-    env,
-    slug,
-    chapterNumber,
-    {},
-    Astro.locals.cfContext
-  );
-
-  console.log(`[Lector - Debug] Resultado de getChapterPayload:`, {
-    exists: !!chapterResult,
-    isProcessing: chapterResult?.processing,
-    hasPayload: !!chapterResult?.payload,
-  });
-
-  if (chapterResult) {
-    chapterPayload = chapterResult.payload;
-    chapterId = chapterResult.chapterId;
-    isProcessing = chapterResult.processing;
-
-    // Orion: Filtrar la lista global por el idioma del capítulo actual para navegación coherente
-    const currentLang = chapterResult.chapter?.language || 'es-la';
-    allChapters = allChapters.filter((ch: any) => ch.language === currentLang);
-
-    if (isProcessing) {
-      loadingMessage = 'Preparando capítulo para lectura...';
+  const explicitId = Astro.url.searchParams.get('id');
+  const explicitVersion = Astro.url.searchParams.get('version');
+  
+  // Extraemos las versiones disponibles para este número de capítulo específico
+  availableVersions = allChapters.filter((c: any) => c.chapterNumber === chapterNumber);
+  
+  if (availableVersions.length > 1 && !explicitId) {
+    // Si hay varias opciones y no se especificó ID, forzamos la pantalla de selección
+    let autoSelectId: number | undefined;
+    
+    // Auto-selección si viene por query parameter `?version=nsfw` o `?version=sfw`
+    if (explicitVersion === 'nsfw') {
+      const nsfwVer = availableVersions.find(c => c.isNsfw);
+      if (nsfwVer) autoSelectId = nsfwVer.id;
+    } else if (explicitVersion === 'sfw') {
+      const sfwVer = availableVersions.find(c => !c.isNsfw);
+      if (sfwVer) autoSelectId = sfwVer.id;
     }
-
-    if (chapterId) {
-      comments = await getCommentsForTarget(drizzleDb, 'chapter', chapterId, user?.uid);
+    
+    if (autoSelectId) {
+      // Redirigir limpiamente a la URL con ID
+      return Astro.redirect(`/series/${slug}/${chapterNumber}?id=${autoSelectId}`);
+    } else {
+      needsVersionSelection = true;
     }
-  } else {
-    // Orion: Log explícito en consola para ayudar a debugear si un capítulo falla en mostrarse
-    console.warn(`\n[Lector - Debug] ❌ Capítulo No Encontrado:`);
-    console.warn(`  - Slug Serie: "${slug}"`);
-    console.warn(`  - Número Capítulo: ${chapterNumber}`);
-    console.warn(`  - ¿Existe la serie en DB?: ${!!seriesData}`);
-    console.warn(
-      `  - Posible causa: El capítulo no existe en la BD o su estado no es 'live/app_only/processing'.\n`
+  }
+
+  if (!needsVersionSelection) {
+    let targetId = explicitId ? parseInt(explicitId) : undefined;
+
+    // 3. Obtener payload del capítulo
+    const chapterResult = await getChapterPayload(
+      drizzleDb,
+      env,
+      slug,
+      chapterNumber,
+      targetId ? { chapterId: targetId } : {},
+      Astro.locals.cfContext
     );
-    error = 'El capítulo solicitado no fue encontrado.';
+
+    console.log(`[Lector - Debug] Resultado de getChapterPayload:`, {
+      exists: !!chapterResult,
+      isProcessing: chapterResult?.processing,
+      hasPayload: !!chapterResult?.payload,
+    });
+
+    if (chapterResult) {
+      chapterPayload = chapterResult.payload;
+      chapterId = chapterResult.chapterId;
+      isProcessing = chapterResult.processing;
+
+      // Orion: Filtrar la lista global por el idioma del capítulo actual para navegación coherente
+      const currentLang = chapterResult.chapter?.language || 'es-la';
+      allChapters = allChapters.filter((ch: any) => ch.language === currentLang);
+
+      if (isProcessing) {
+        loadingMessage = 'Preparando capítulo para lectura...';
+      }
+
+      if (chapterId) {
+        comments = await getCommentsForTarget(drizzleDb, 'chapter', chapterId, user?.uid);
+      }
+    } else {
+      console.warn(`\n[Lector - Debug] ❌ Capítulo No Encontrado: ${slug}#${chapterNumber}`);
+      error = 'El capítulo solicitado no fue encontrado.';
+    }
   }
 } catch (e) {
   logError(e, 'Error crítico cargando capítulo', { slug, chapter });
   error = 'Error de conexión con el servidor.';
 }
+
 
 // Orion: Evitar que el Edge cachee la página del lector para que las métricas y comentarios sean frescos
 Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -215,7 +243,38 @@ if (error && currentChapterIndex !== -1) {
       </div>
     )}
 
-    {error ? (
+    {needsVersionSelection ? (
+        <div class="full-screen-error version-selection-container">
+            <div class="error-content-glass selection-glass">
+                <div class="status-icon-glow app-mode">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M2 15h10"></path><path d="m9 18 3-3-3-3"></path></svg>
+                </div>
+                
+                <h1 class="error-title">Múltiples Versiones</h1>
+                <p class="error-desc">Este capítulo tiene varias opciones disponibles. Por favor, selecciona la versión que deseas leer.</p>
+                
+                <div class="version-options-grid">
+                    {availableVersions.map((v) => (
+                        <a href={`/series/${slug}/${chapterNumber}?id=${v.id}`} class="version-card">
+                            <div class="version-card-content">
+                                <h3 class="version-name">Versión {v.isNsfw ? 'NSFW' : 'SFW'}</h3>
+                                {v.scanlationName && <span class="scanlation-name">{v.scanlationName}</span>}
+                                {v.isNsfw && <span class="tag-nsfw badge">Sin Censura</span>}
+                                {!v.isNsfw && <span class="tag-sfw badge">Censurado / Normal</span>}
+                            </div>
+                            <svg class="version-arrow" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </a>
+                    ))}
+                </div>
+
+                <div class="action-grid mt-4">
+                    <a href={`/series/${slug}`} class="nav-chapter-btn">
+                        <span class="sub-label">Volver a la Serie</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    ) : error ? (
         <div class="full-screen-error">
             <div class="error-content-glass">
                 <div class={`status-icon-glow ${isAppOnly ? 'app-mode' : 'error-mode'}`}>
@@ -606,6 +665,92 @@ if (error && currentChapterIndex !== -1) {
     align-items: center;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
     animation: fadeUpIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .selection-glass {
+    max-width: 560px;
+  }
+
+  .version-options-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    margin-bottom: 2rem;
+  }
+
+  .version-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.2));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 1.25rem;
+    border-radius: 16px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .version-card:hover {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.3));
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .version-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .version-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+    color: #fff;
+  }
+
+  .scanlation-name {
+    font-size: 0.8rem;
+    color: #a0a0a0;
+  }
+
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .tag-nsfw {
+    background: rgba(255, 71, 87, 0.15);
+    color: #ff4757;
+    border: 1px solid rgba(255, 71, 87, 0.3);
+  }
+
+  .tag-sfw {
+    background: rgba(46, 213, 115, 0.15);
+    color: #2ed573;
+    border: 1px solid rgba(46, 213, 115, 0.3);
+  }
+
+  .version-arrow {
+    color: rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+  }
+
+  .version-card:hover .version-arrow {
+    color: #fff;
+    transform: translateX(4px);
+  }
+
+  .mt-4 {
+    margin-top: 1rem;
   }
 
   @keyframes fadeUpIn {

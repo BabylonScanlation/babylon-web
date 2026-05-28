@@ -37,6 +37,8 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   }
 
   const chapterNumber = parseFloat(chapterNumberParam);
+  const url = new URL(request.url);
+  const targetChapterId = url.searchParams.get('id');
 
   try {
     const drizzleDb = getDB(env);
@@ -70,6 +72,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         and(
           eq(series.slug, slug),
           eq(chapters.chapterNumber, chapterNumber),
+          targetChapterId ? eq(chapters.id, parseInt(targetChapterId, 10)) : undefined,
           inArray(chapters.status, ['live', 'app_only', 'processing'])
         )
       )
@@ -87,9 +90,9 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     }
 
     console.log(
-      `[API_CH] Chapter found (ID: ${chapterData.chapterId}). Manifest key: series_manifest/${slug}/${chapterNumber}/manifest.json`
+      `[API_CH] Chapter found (ID: ${chapterData.chapterId}). Manifest key: series_manifest/${slug}/${chapterData.chapterId}/manifest.json`
     );
-    const manifestKey = `series_manifest/${slug}/${chapterNumber}/manifest.json`;
+    const manifestKey = `series_manifest/${slug}/${chapterData.chapterId}/manifest.json`;
     const manifestObject = await retryGetFromR2(manifestKey);
 
     const acceptHeader = request.headers.get('Accept');

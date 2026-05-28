@@ -72,6 +72,38 @@ const languageNames: Record<string, string> = {
   });
 </script>
 
+<script>
+  // Script para manejar el toggle de grupos de capítulos en el grid
+  document.addEventListener('DOMContentLoaded', () => {
+    const toggles = document.querySelectorAll('.chapter-group-toggle');
+    
+    toggles.forEach(toggle => {
+      toggle.addEventListener('click', (e) => {
+        // Evitar que el clic en enlaces internos dispare el toggle (si hubiera)
+        if ((e.target as HTMLElement).closest('a')) return;
+        
+        const targetId = toggle.getAttribute('data-target');
+        if (!targetId) return;
+        
+        const subItems = document.querySelectorAll(`.${targetId}`);
+        const isOpen = toggle.classList.contains('is-open');
+        
+        if (isOpen) {
+          toggle.classList.remove('is-open');
+          subItems.forEach((el) => {
+            (el as HTMLElement).style.display = 'none';
+          });
+        } else {
+          toggle.classList.add('is-open');
+          subItems.forEach((el) => {
+            (el as HTMLElement).style.display = 'block'; // Or whatever display was default, block works for grid items because they become block-level children of grid
+          });
+        }
+      });
+    });
+  });
+</script>
+
 <div class="chapters-aggregator-container">
   {languages.length > 0 ? (
     languages.map((lang) => (
@@ -107,10 +139,10 @@ const languageNames: Record<string, string> = {
             return groupedArray.map((group) => {
               const { chapterNumber, chapters: groupChapters } = group;
 
-              const renderChapterCard = (chapter: any, isSubItem = false) => {
+              const renderChapterCard = (chapter: any, isSubItem = false, groupId = '') => {
                 const isAppOnly = chapter.status === 'app_only';
                 return (
-                  <div class:list={["chapter-card-wrapper", { "sub-item": isSubItem }]}>
+                  <div class={`chapter-card-wrapper ${isSubItem ? 'sub-item' : ''} ${groupId}`} style={isSubItem ? 'display: none;' : ''}>
                     <a 
                       href={isAppOnly ? '#' : `/series/${seriesSlug}/${chapter.chapterNumber}?id=${chapter.id}`} 
                       class:list={['chapter-card-premium', { 'app-chapter-link': isAppOnly }]}
@@ -182,42 +214,43 @@ const languageNames: Record<string, string> = {
                 const hasNsfw = groupChapters.some((c: any) => c.isNsfw);
                 const hasAlDia = seriesIsUpToDate && chapterNumber === maxChapterNumber;
                 
+                const groupId = `group-${lang}-${chapterNumber}`.replace(/\s+/g, '-');
                 return (
-                  <details class="chapter-group-details">
-                    <summary class="chapter-card-premium group-summary">
-                      <div class="card-bg-glow"></div>
-                      <div class="watermark-num">{chapterNumber}</div>
-                      
-                      <div class="card-content">
-                        <div class="chapter-main">
-                          <div class="chapter-label-row">
-                            <div class="label-left">
-                              <span class="chapter-label">CAPÍTULO</span>
-                              <span class="scanlation-badge versions-badge">{groupChapters.length} Versiones</span>
+                  <>
+                    <div class="chapter-card-wrapper chapter-group-toggle" data-target={groupId} style="cursor: pointer;">
+                      <div class="chapter-card-premium group-summary">
+                        <div class="card-bg-glow"></div>
+                        <div class="watermark-num">{chapterNumber}</div>
+                        
+                        <div class="card-content">
+                          <div class="chapter-main">
+                            <div class="chapter-label-row">
+                              <div class="label-left">
+                                <span class="chapter-label">CAPÍTULO</span>
+                                <span class="scanlation-badge versions-badge">{groupChapters.length} Versiones</span>
+                              </div>
                             </div>
+                            <h4 class="chapter-num">
+                              {chapterNumber}
+                              <div class="chapter-tags">
+                                {hasAlDia && <span class="tag-al-dia">AL DÍA</span>}
+                                {hasNsfw && <span class="tag-nsfw">NSFW</span>}
+                              </div>
+                            </h4>
+                            <p class="chapter-title">Múltiples opciones disponibles</p>
                           </div>
-                          <h4 class="chapter-num">
-                            {chapterNumber}
-                            <div class="chapter-tags">
-                              {hasAlDia && <span class="tag-al-dia">AL DÍA</span>}
-                              {hasNsfw && <span class="tag-nsfw">NSFW</span>}
-                            </div>
-                          </h4>
-                          <p class="chapter-title">Múltiples opciones disponibles</p>
                         </div>
-                      </div>
 
-                      <div class="card-action">
-                        <div class="status-badge expand-badge">
-                          <span>VER</span>
-                          <svg class="expand-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        <div class="card-action">
+                          <div class="status-badge expand-badge">
+                            <span>VER</span>
+                            <svg class="expand-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                          </div>
                         </div>
                       </div>
-                    </summary>
-                    <div class="group-subitems-list">
-                      {groupChapters.map((c: any) => renderChapterCard(c, true))}
                     </div>
-                  </details>
+                    {groupChapters.map((c: any) => renderChapterCard(c, true, groupId))}
+                  </>
                 );
               }
             });
@@ -591,34 +624,18 @@ const languageNames: Record<string, string> = {
   }
 
   /* Group container styles */
-  .chapter-group-details {
-    width: 100%;
-    margin-bottom: 0;
-  }
-  
-  .chapter-group-details > summary {
-    list-style: none;
-    cursor: pointer;
-    display: flex;
-    text-decoration: none;
-  }
-  
-  .chapter-group-details > summary::-webkit-details-marker {
-    display: none;
-  }
-  
   .group-summary {
     position: relative;
     border: 1px solid rgba(255, 255, 255, 0.06);
     background: linear-gradient(145deg, rgba(30, 32, 40, 0.9), rgba(20, 22, 28, 0.95));
   }
   
-  .chapter-group-details[open] .group-summary {
+  .chapter-group-toggle.is-open .group-summary {
     border-color: rgba(99, 102, 241, 0.4);
     box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
   }
 
-  .chapter-group-details[open] .expand-icon {
+  .chapter-group-toggle.is-open .expand-icon {
     transform: rotate(180deg);
   }
   
@@ -629,18 +646,6 @@ const languageNames: Record<string, string> = {
   .versions-badge {
     background: rgba(255, 255, 255, 0.1) !important;
     color: rgba(255, 255, 255, 0.9) !important;
-  }
-  
-  .group-subitems-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-top: 1rem;
-    padding-left: 1.5rem;
-    border-left: 2px solid rgba(255, 255, 255, 0.05);
-    margin-left: 1rem;
-    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    transform-origin: top;
   }
   
   .sub-item .chapter-card-premium {

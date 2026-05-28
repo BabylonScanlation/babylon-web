@@ -158,7 +158,7 @@ const displayMangas = mangas.slice(0, 20);
   /* --- Recent Updates Grid --- */
   .updates-premium-section {
     width: 100%;
-    margin: 0 0 1.5rem 0; /* Astra: Eliminado margin-top para evitar duplicidad con el gap del padre */
+    margin: 0; /* Astra: Reducido para acercarlo al elemento inferior */
     position: relative;
   }
 
@@ -395,7 +395,7 @@ const displayMangas = mangas.slice(0, 20);
   }
 
   @media (max-width: 768px) {
-    .updates-premium-section { margin: 1rem 0; }
+    .updates-premium-section { margin: 0; }
     .section-header.centered { gap: 1rem; margin-bottom: 1.5rem; }
     .section-title { font-size: 1.1rem; letter-spacing: 0.1em; }
     .header-line { display: none; }

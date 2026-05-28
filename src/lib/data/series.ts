@@ -576,7 +576,7 @@ export async function searchSeries(
     q,
     page = 1,
     limit = 25,
-    sort = 'az',
+    sort = 'A-Z',
     type,
     status,
     genres,
@@ -626,8 +626,8 @@ export async function searchSeries(
     conditions.push(sql`series_fts MATCH ${searchTerm}`);
   }
 
-  if (type && type !== 'all') conditions.push(sql`${series.type} LIKE ${`%${type}%`}`);
-  if (status && status !== 'all') conditions.push(eq(series.status, status));
+  if (type && type !== 'all' && type !== 'Todo') conditions.push(sql`${series.type} LIKE ${`%${type}%`}`);
+  if (status && status !== 'all' && status !== 'Todo') conditions.push(eq(series.status, status));
   if (author) conditions.push(sql`${series.author} LIKE ${`%${author}%`}`);
   if (artist) conditions.push(sql`${series.artist} LIKE ${`%${artist}%`}`);
   if (publisher) conditions.push(sql`${series.publishedBy} LIKE ${`%${publisher}%`}`);
@@ -645,14 +645,18 @@ export async function searchSeries(
   const query = baseQuery.where(and(...conditions.filter(Boolean)));
 
   // Orion: Aplicamos ordenamiento inteligente
-  if (sort === 'az') {
+  if (sort === 'az' || sort === 'A-Z') {
     query.orderBy(asc(series.title));
-  } else if (sort === 'latest') {
+  } else if (sort === 'latest' || sort === 'Recientes') {
     query.orderBy(desc(series.createdAt));
-  } else if (sort === 'popular') {
+  } else if (sort === 'popular' || sort === 'Popularidad') {
     query.orderBy(desc(series.views));
-  } else if (sort === 'relevance' && q) {
-    query.orderBy(sql`rank`);
+  } else if (sort === 'relevance' || sort === 'Relevancia') {
+    if (q) {
+      query.orderBy(sql`rank`);
+    } else {
+      query.orderBy(asc(series.title));
+    }
   } else {
     query.orderBy(asc(series.title));
   }
@@ -674,6 +678,40 @@ export async function searchSeries(
 
   // Guardar en RAM por 5 minutos (300,000 ms)
   seriesMemoryCache.set(CACHE_KEY, { data: result, expires: now + 300000 });
+
+  return result;
+}
+
+/**
+ * Orion: Obtiene los metadatos disponibles para los filtros (autores, artistas, etc.)
+ */
+export async function getFilterMetadata(db: DrizzleD1Database<typeof schema>) {
+  const CACHE_KEY = `filter_metadata`;
+  const now = Date.now();
+  
+  const cached = seriesMemoryCache.get(CACHE_KEY);
+  if (cached && cached.expires > now) {
+    return cached.data as { authors: string[]; artists: string[]; publishers: string[]; magazines: string[] };
+  }
+
+  // SQLite no tiene SELECT DISTINCT tan directo para múltiples columnas disjuntas, 
+  // así que hacemos 4 queries muy ligeras en paralelo.
+  const [authorsData, artistsData, publishersData, magazinesData] = await Promise.all([
+    db.selectDistinct({ value: series.author }).from(series).where(sql`${series.author} IS NOT NULL AND ${series.author} != ''`).all(),
+    db.selectDistinct({ value: series.artist }).from(series).where(sql`${series.artist} IS NOT NULL AND ${series.artist} != ''`).all(),
+    db.selectDistinct({ value: series.publishedBy }).from(series).where(sql`${series.publishedBy} IS NOT NULL AND ${series.publishedBy} != ''`).all(),
+    db.selectDistinct({ value: series.serializedBy }).from(series).where(sql`${series.serializedBy} IS NOT NULL AND ${series.serializedBy} != ''`).all(),
+  ]);
+
+  const result = {
+    authors: authorsData.map((r) => r.value).filter(Boolean).sort() as string[],
+    artists: artistsData.map((r) => r.value).filter(Boolean).sort() as string[],
+    publishers: publishersData.map((r) => r.value).filter(Boolean).sort() as string[],
+    magazines: magazinesData.map((r) => r.value).filter(Boolean).sort() as string[],
+  };
+
+  // Guardar en RAM por 1 hora
+  seriesMemoryCache.set(CACHE_KEY, { data: result, expires: now + 3600000 });
 
   return result;
 }

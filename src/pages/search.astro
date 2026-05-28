@@ -3,7 +3,7 @@ import { env } from 'cloudflare:workers';
 import MangaList from '../components/MangaList.astro';
 import SearchFilters from '../components/SearchFilters.svelte';
 import Layout from '../layouts/Layout.astro';
-import { searchSeries } from '../lib/data/series';
+import { getFilterMetadata, searchSeries } from '../lib/data/series';
 import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
 import { siteConfig } from '../site.config';
@@ -17,6 +17,7 @@ const allowNsfw = Astro.cookies.get('babylon_nsfw')?.value === 'true';
 
 let searchResults: any[] = [];
 let pagination = { page: 1, totalPages: 1, total: 0, limit: 25 };
+let filterMetadata = { authors: [] as string[], artists: [] as string[], publishers: [] as string[], magazines: [] as string[] };
 let error: string | null = null;
 
 try {
@@ -38,6 +39,8 @@ try {
   if (searchResults.length > limit) {
     searchResults = searchResults.slice(0, limit);
   }
+  
+  filterMetadata = await getFilterMetadata(db);
 } catch (e) {
   logError(e, 'Error al realizar la búsqueda SSR', { query });
   error = 'No se pudo realizar la búsqueda.';
@@ -109,7 +112,7 @@ try {
             </div>
           </form>
 
-          <SearchFilters client:idle />
+          <SearchFilters filterMetadata={filterMetadata} client:idle />
         </div>
       </div>
     </section>
@@ -288,6 +291,11 @@ try {
     padding-top: 5rem;
     margin-bottom: 4rem;
     text-align: center;
+  }
+
+  /* Astra: Elevar el z-index cuando el modal está abierto para superar al header (5000) tanto en PC como móviles */
+  :global(body[data-reader-modal="open"]) .search-hero {
+    z-index: 6000 !important;
   }
 
   .page-title {

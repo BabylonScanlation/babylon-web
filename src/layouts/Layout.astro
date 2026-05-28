@@ -5,6 +5,7 @@ import AdblockWall from '../components/AdblockWall.astro';
 import BottomNav from '../components/BottomNav.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
+import SpeedDial from '../components/SpeedDial.svelte';
 import { getNewsCount } from '../lib/data/news';
 import { getDB } from '../lib/db';
 import { siteConfig } from '../site.config';
@@ -193,7 +194,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     </script>
     <style is:inline>
       /* Z-Index quirúrgico: UI por encima para evitar overlays */
-      .site-header,
+      body:not([data-reader-modal="open"]) .site-header,
       .modal-body,
       .hud-nav-btn,
       .nav-zone-btn,
@@ -205,6 +206,12 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       .reader-container {
         position: relative;
         z-index: 1000;
+      }
+      
+      /* Astra: Elevar todo el bloque principal cuando hay modales para superar el header (5000) */
+      body[data-reader-modal="open"] .site-main-content {
+        position: relative;
+        z-index: 6000 !important;
       }
     </style>
     <meta charset="UTF-8" />
@@ -1162,7 +1169,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           if (!target) return;
 
           const interactive = target.closest(
-            'a, button, input, textarea, select, [role="button"], .swiper-button-next, .swiper-button-prev, .nav-item'
+            'summary, a, button, input, textarea, select, [role="button"], .swiper-button-next, .swiper-button-prev, .nav-item'
           );
           if (interactive) return;
 
@@ -1205,5 +1212,6 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         });
       })();
     </script>
+    <SpeedDial client:load />
   </body>
 </html>

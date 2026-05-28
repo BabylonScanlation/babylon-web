@@ -4,22 +4,27 @@ import { z } from 'astro/zod';
 
 export const reportActions = {
   sendReport: defineAction({
+    accept: 'form',
     input: z.object({
-      type: z.enum(['chapter_fallen', 'bug', 'claim']),
-      seriesTitle: z.string(),
-      chapterNumber: z.string(),
-      url: z.string(),
+      type: z.enum(['chapter_fallen', 'bug', 'claim', 'suggestion']),
+      seriesTitle: z.string().optional(),
+      chapterNumber: z.string().optional(),
+      url: z.string().optional(),
       details: z.string().optional(),
+      scanName: z.string().optional(),
+      contactInfo: z.string().optional(),
+      file: z.any().optional(),
     }),
     handler: async (input, context) => {
       const botToken = env.TELEGRAM_BOT_TOKEN;
       const chatId = env.TELEGRAM_REPORTS_CHAT_ID;
 
-      // Mapeo de tipos a IDs de tópicos (threads) de Telegram
+      // Mapeo de tipos a IDs de tópicos (threads) de Telegram desde variables de entorno
       const topicIds: Record<string, string | undefined> = {
         chapter_fallen: env.TELEGRAM_TOPIC_FALLEN,
         bug: env.TELEGRAM_TOPIC_BUGS,
         claim: env.TELEGRAM_TOPIC_CLAIMS,
+        suggestion: env.TELEGRAM_TOPIC_SUGGESTIONS,
       };
 
       const threadId = topicIds[input.type];
@@ -34,29 +39,49 @@ export const reportActions = {
         chapter_fallen: '❌ CAPÍTULO CAÍDO',
         bug: '🐛 BUG / ERROR',
         claim: '⚖️ RECLAMACIÓN',
+        suggestion: '💡 SUGERENCIA',
       };
 
-      const message = `
-${typeLabels[input.type]}
-----------------------------
-📚 **Serie:** ${input.seriesTitle}
-🔢 **Capítulo:** ${input.chapterNumber}
-🔗 **URL:** ${input.url}
-👤 **Usuario:** ${context.locals.user?.email || 'Invitado'}
-📝 **Detalles:** ${input.details || 'Sin detalles adicionales'}
-      `;
+      let message = `${typeLabels[input.type]}\n----------------------------\n`;
+      if (input.seriesTitle) message += `📚 **Serie:** ${input.seriesTitle}\n`;
+      if (input.chapterNumber) message += `🔢 **Capítulo:** ${input.chapterNumber}\n`;
+      if (input.scanName) message += `👥 **Scan:** ${input.scanName}\n`;
+      if (input.contactInfo) message += `📞 **Contacto:** ${input.contactInfo}\n`;
+      if (input.url) message += `🔗 **URL:** ${input.url}\n`;
+      message += `👤 **Usuario:** ${context.locals.user?.email || 'Invitado'}\n`;
+      if (input.details) message += `📝 **Detalles:**\n${input.details}\n`;
 
       try {
-        const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: chatId,
-            message_thread_id: threadId,
-            text: message,
-            parse_mode: 'Markdown',
-          }),
-        });
+        let response;
+        const file = input.file;
+        const hasFile = file && typeof file === 'object' && 'size' in file && file.size > 0;
+
+        if (hasFile) {
+          // Enviar archivo adjunto usando FormData
+          const formData = new FormData();
+          formData.append('chat_id', chatId);
+          formData.append('message_thread_id', String(threadId));
+          formData.append('caption', message);
+          formData.append('parse_mode', 'Markdown');
+          formData.append('document', file as Blob);
+
+          response = await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, {
+            method: 'POST',
+            body: formData,
+          });
+        } else {
+          // Enviar mensaje de texto normal
+          response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: chatId,
+              message_thread_id: threadId,
+              text: message,
+              parse_mode: 'Markdown',
+            }),
+          });
+        }
 
         if (!response.ok) {
           const errorData = await response.json();

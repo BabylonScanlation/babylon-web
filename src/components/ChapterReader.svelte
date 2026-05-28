@@ -137,34 +137,7 @@ function prefetchNextChapter() {
   );
 }
 
-async function handleReport(type: 'chapter_fallen' | 'bug' | 'claim') {
-  const confirmMsg = {
-    chapter_fallen: '¿Estás seguro de que este capítulo tiene errores o no carga?',
-    bug: '¿Quieres reportar un error o bug en el lector?',
-    claim: '¿Quieres iniciar una reclamación o soporte directo?',
-  };
 
-  if (!window.confirm(confirmMsg[type])) return;
-
-  try {
-    const { data, error } = await actions.reports.sendReport({
-      type,
-      seriesTitle: seriesTitle || '',
-      chapterNumber: String(chapter || ''),
-      url: window.location.href,
-    });
-
-    if (error) throw error;
-    if (data?.success) {
-      alert('Reporte enviado con éxito. El equipo lo revisará pronto.');
-    } else {
-      alert(data?.error || 'Error al enviar el reporte.');
-    }
-  } catch (e) {
-    console.error(e);
-    alert('Hubo un problema al conectar con el servidor.');
-  }
-}
 
 $effect(() => {
   if (showConfig) {
@@ -797,25 +770,7 @@ import { siteConfig } from '../site.config';
         </div>
       {/if}
 
-      <div class="config-row">
-        <span class="config-label">Soporte y Reportes</span>
-        <div class="report-grid">
-          <button class="report-btn" onclick={() => handleReport('chapter_fallen')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            <span>Capítulo Caído</span>
-          </button>
-          <div class="report-row-inner">
-            <button class="report-btn" onclick={() => handleReport('bug')}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 8V12"></path><path d="M12 16H12.01"></path><circle cx="12" cy="12" r="10"></circle></svg>
-              <span>Bug / Error</span>
-            </button>
-            <button class="report-btn" onclick={() => handleReport('claim')}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
-              <span>Reclamar</span>
-            </button>
-          </div>
-        </div>
-      </div>
+
 
       <button class="btn-save-config" onclick={saveSettings}>Guardar Ajustes</button>    </div>
   </div>
@@ -1085,48 +1040,7 @@ import { siteConfig } from '../site.config';
     letter-spacing: 0.05em;
   }
 
-  .report-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
 
-  .report-row-inner {
-    display: flex;
-    gap: 0.75rem;
-  }
-
-  .report-row-inner .report-btn {
-    flex: 1;
-  }
-
-  .report-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #fff;
-    padding: 0.85rem 1rem;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .report-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: var(--accent-color);
-    transform: translateY(-1px);
-  }
-
-  .report-btn svg {
-    width: 18px;
-    height: 18px;
-    color: var(--accent-color);
-  }
 
   .tool-btn {
     background: rgba(255, 255, 255, 0.05);

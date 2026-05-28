@@ -80,7 +80,7 @@ export async function processAndCacheChapter(
     if (imageEntries.length === 0) throw new Error('No se encontraron imágenes en el ZIP.');
 
     const versionHash = Date.now().toString(36);
-    const manifestKey = `series_manifest/${slug}/${String(chapterNumber)}/manifest.json`;
+    const manifestKey = `series_manifest/${slug}/${String(chapterId)}/manifest.json`;
 
     // --- FASE 0: VALIDACIÓN DE CAMBIOS (DE-DUPLICACIÓN) ---
     try {
@@ -117,7 +117,7 @@ export async function processAndCacheChapter(
 
         const lastNumber = allNumbers[allNumbers.length - 1] as string;
         const pageNumber = parseInt(lastNumber, 10);
-        const r2Key = `series_manifest/${slug}/${chapterNumber}/${versionHash}/${name}`;
+        const r2Key = `series_manifest/${slug}/${chapterId}/${versionHash}/${name}`;
         return { pageNumber, imageUrl: `/api/r2-cache/${r2Key}` };
       })
       .filter((p): p is { pageNumber: number; imageUrl: string } => p !== null)
@@ -159,7 +159,7 @@ export async function processAndCacheChapter(
           )
             return null;
 
-          const r2Key = `series_manifest/${slug}/${String(chapterNumber)}/${versionHash}/${fileName}`;
+          const r2Key = `series_manifest/${slug}/${String(chapterId)}/${versionHash}/${fileName}`;
           const imageBuffer = await (
             entry as { getData: (writer: unknown) => Promise<Uint8Array> }
           ).getData(new Uint8ArrayWriter());
@@ -210,7 +210,7 @@ export async function processAndCacheChapter(
 
     // --- FASE C: LIMPIEZA DE VERSIONES ANTIGUAS (ORDEN TOTAL) ---
     try {
-      const prefix = `series_manifest/${slug}/${chapterNumber}/`;
+      const prefix = `series_manifest/${slug}/${chapterId}/`;
       const objects = await env.R2_ASSETS.list({ prefix });
 
       const deletePromises = objects.objects

@@ -81,7 +81,7 @@ export async function getChapterPayload(
     return null;
   }
 
-  const manifestKey = `series_manifest/${slug}/${chapterNumber}/manifest.json`;
+  const manifestKey = `series_manifest/${slug}/${chapter.id}/manifest.json`;
   let manifestContent: ChapterManifest | null = null;
 
   // Orion: Intentamos recuperar del Edge Cache primero
