@@ -52,7 +52,7 @@ export const reportActions = {
       if (input.details) message += `📝 **Detalles:**\n${input.details}\n`;
 
       try {
-        let response;
+        let response: Response;
         const file = input.file;
         const hasFile = file && typeof file === 'object' && 'size' in file && file.size > 0;
 

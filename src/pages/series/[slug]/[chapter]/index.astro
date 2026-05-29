@@ -65,23 +65,23 @@ try {
   const chapterNumber = parseFloat(chapter);
   const explicitId = Astro.url.searchParams.get('id');
   const explicitVersion = Astro.url.searchParams.get('version');
-  
+
   // Extraemos las versiones disponibles para este número de capítulo específico
   availableVersions = allChapters.filter((c: any) => c.chapterNumber === chapterNumber);
-  
+
   if (availableVersions.length > 1 && !explicitId) {
     // Si hay varias opciones y no se especificó ID, forzamos la pantalla de selección
     let autoSelectId: number | undefined;
-    
+
     // Auto-selección si viene por query parameter `?version=nsfw` o `?version=sfw`
     if (explicitVersion === 'nsfw') {
-      const nsfwVer = availableVersions.find(c => c.isNsfw);
+      const nsfwVer = availableVersions.find((c) => c.isNsfw);
       if (nsfwVer) autoSelectId = nsfwVer.id;
     } else if (explicitVersion === 'sfw') {
-      const sfwVer = availableVersions.find(c => !c.isNsfw);
+      const sfwVer = availableVersions.find((c) => !c.isNsfw);
       if (sfwVer) autoSelectId = sfwVer.id;
     }
-    
+
     if (autoSelectId) {
       // Redirigir limpiamente a la URL con ID
       return Astro.redirect(`/series/${slug}/${chapterNumber}?id=${autoSelectId}`);
@@ -134,7 +134,6 @@ try {
   logError(e, 'Error crítico cargando capítulo', { slug, chapter });
   error = 'Error de conexión con el servidor.';
 }
-
 
 // Orion: Evitar que el Edge cachee la página del lector para que las métricas y comentarios sean frescos
 Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -255,7 +254,7 @@ if (error && currentChapterIndex !== -1) {
                 
                 <div class="version-options-grid">
                     {availableVersions.map((v) => (
-                        <a href={`/series/${slug}/${chapterNumber}?id=${v.id}`} class="version-card">
+                        <a href={`/series/${slug}/${chapter}?id=${v.id}`} class="version-card">
                             <div class="version-card-content">
                                 <h3 class="version-name">Versión {v.isNsfw ? 'NSFW' : 'SFW'}</h3>
                                 {v.scanlationName && <span class="scanlation-name">{v.scanlationName}</span>}

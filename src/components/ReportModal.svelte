@@ -1,91 +1,100 @@
 <script lang="ts">
-  import { actions } from 'astro:actions';
-  import { fly, fade } from 'svelte/transition';
-  import { toast } from '../lib/stores.svelte';
+import { actions } from 'astro:actions';
+import { fade, fly } from 'svelte/transition';
+import { toast } from '../lib/stores.svelte';
 
-  type ReportType = 'chapter_fallen' | 'bug' | 'claim' | 'suggestion';
+type ReportType = 'chapter_fallen' | 'bug' | 'claim' | 'suggestion';
 
-  let { type, isOpen = false, onClose }: { type: ReportType, isOpen: boolean, onClose: () => void } = $props();
+let {
+  type,
+  isOpen = false,
+  onClose,
+}: { type: ReportType; isOpen: boolean; onClose: () => void } = $props();
 
-  let isLoading = $state(false);
-  
-  // Form fields
-  let details = $state('');
-  let seriesTitle = $state('');
-  let chapterNumber = $state('');
-  let scanName = $state('');
-  let contactInfo = $state('');
-  let fileInput: HTMLInputElement | undefined = $state();
+let isLoading = $state(false);
 
-  const typeLabels: Record<ReportType, string> = {
-    chapter_fallen: 'Reportar Capítulo Caído',
-    bug: 'Reportar Bug o Error',
-    claim: 'Reclamar Capítulos',
-    suggestion: 'Enviar Sugerencia',
-  };
+// Form fields
+let details = $state('');
+let seriesTitle = $state('');
+let chapterNumber = $state('');
+let scanName = $state('');
+let contactInfo = $state('');
+let fileInput: HTMLInputElement | undefined = $state();
 
-  const typeIcons: Record<ReportType, string> = {
-    chapter_fallen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
-    bug: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24"><path d="M12 8V12"></path><path d="M12 16H12.01"></path><circle cx="12" cy="12" r="10"></circle></svg>',
-    claim: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>',
-    suggestion: '<svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>'
-  };
+const typeLabels: Record<ReportType, string> = {
+  chapter_fallen: 'Reportar Capítulo Caído',
+  bug: 'Reportar Bug o Error',
+  claim: 'Reclamar Capítulos',
+  suggestion: 'Enviar Sugerencia',
+};
 
-  // Autocompletar datos del lector si estamos en un capítulo
-  $effect(() => {
-    if (isOpen) {
-      const bridge = document.getElementById('reader-data-bridge');
-      if (bridge) {
-        seriesTitle = bridge.getAttribute('data-series-title') || '';
-        chapterNumber = bridge.getAttribute('data-chapter') || '';
-      }
-    }
-  });
+const typeIcons: Record<ReportType, string> = {
+  chapter_fallen:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+  bug: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24"><path d="M12 8V12"></path><path d="M12 16H12.01"></path><circle cx="12" cy="12" r="10"></circle></svg>',
+  claim:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>',
+  suggestion:
+    '<svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>',
+};
 
-  async function handleSubmit(e: Event) {
-    e.preventDefault();
-    isLoading = true;
-
-    try {
-      const formData = new FormData();
-      formData.append('type', type);
-      formData.append('url', window.location.href);
-      
-      if (details.trim()) formData.append('details', details.trim());
-      
-      if (type === 'chapter_fallen') {
-        if (seriesTitle) formData.append('seriesTitle', seriesTitle);
-        if (chapterNumber) formData.append('chapterNumber', chapterNumber);
-      }
-      
-      if (type === 'claim') {
-        if (scanName) formData.append('scanName', scanName);
-        if (contactInfo) formData.append('contactInfo', contactInfo);
-      }
-      
-      if (type === 'bug' && fileInput?.files?.[0]) {
-        formData.append('file', fileInput.files[0]);
-      }
-
-      const { data, error } = await actions.reports.sendReport(formData);
-
-      if (error) throw error;
-      if (data?.success) {
-        toast.success('¡Mensaje enviado con éxito! Gracias por ayudarnos a mejorar.');
-        onClose();
-        // Reset form
-        details = ''; scanName = ''; contactInfo = '';
-        if (fileInput) fileInput.value = '';
-      } else {
-        toast.error(data?.error || 'Error al enviar el reporte.');
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Hubo un problema de conexión al enviar el reporte.');
-    } finally {
-      isLoading = false;
+// Autocompletar datos del lector si estamos en un capítulo
+$effect(() => {
+  if (isOpen) {
+    const bridge = document.getElementById('reader-data-bridge');
+    if (bridge) {
+      seriesTitle = bridge.getAttribute('data-series-title') || '';
+      chapterNumber = bridge.getAttribute('data-chapter') || '';
     }
   }
+});
+
+async function handleSubmit(e: Event) {
+  e.preventDefault();
+  isLoading = true;
+
+  try {
+    const formData = new FormData();
+    formData.append('type', type);
+    formData.append('url', window.location.href);
+
+    if (details.trim()) formData.append('details', details.trim());
+
+    if (type === 'chapter_fallen') {
+      if (seriesTitle) formData.append('seriesTitle', seriesTitle);
+      if (chapterNumber) formData.append('chapterNumber', chapterNumber);
+    }
+
+    if (type === 'claim') {
+      if (scanName) formData.append('scanName', scanName);
+      if (contactInfo) formData.append('contactInfo', contactInfo);
+    }
+
+    if (type === 'bug' && fileInput?.files?.[0]) {
+      formData.append('file', fileInput.files[0]);
+    }
+
+    const { data, error } = await actions.reports.sendReport(formData);
+
+    if (error) throw error;
+    if (data?.success) {
+      toast.success('¡Mensaje enviado con éxito! Gracias por ayudarnos a mejorar.');
+      onClose();
+      // Reset form
+      details = '';
+      scanName = '';
+      contactInfo = '';
+      if (fileInput) fileInput.value = '';
+    } else {
+      toast.error(data?.error || 'Error al enviar el reporte.');
+    }
+  } catch (err) {
+    console.error(err);
+    toast.error('Hubo un problema de conexión al enviar el reporte.');
+  } finally {
+    isLoading = false;
+  }
+}
 </script>
 
 {#if isOpen}
@@ -100,6 +109,7 @@
       </button>
 
       <div class="modal-header">
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         <div class="modal-icon {type}">{@html typeIcons[type]}</div>
         <h2>{typeLabels[type]}</h2>
       </div>

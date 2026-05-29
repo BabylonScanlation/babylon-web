@@ -1,91 +1,142 @@
-# Babylon Scanlation
+<div align="center">
+  <h1>📚 Edge-First Manga Platform (Multi-Scanlation)</h1>
+  <p><strong>A high-performance, Open Source alternative to MangaDex or TMO, built with Astro, Svelte, and Cloudflare.</strong></p>
 
-Este es el sitio web oficial para el grupo de scanlation Babylon. La plataforma permite a los usuarios leer manga y cómics traducidos por el grupo, con una experiencia de lectura optimizada y características sociales.
+  <!-- Badges -->
+  <img src="https://img.shields.io/badge/Astro-6.3-FF5D01.svg?style=for-the-badge&logo=astro&logoColor=white" alt="Astro" />
+  <img src="https://img.shields.io/badge/Svelte-5.5-FF3E00.svg?style=for-the-badge&logo=svelte&logoColor=white" alt="Svelte" />
+  <img src="https://img.shields.io/badge/Cloudflare_Pages-F38020.svg?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare" />
+  <img src="https://img.shields.io/badge/Drizzle_ORM-C5F74F.svg?style=for-the-badge&logo=drizzle&logoColor=black" alt="Drizzle ORM" />
+  <img src="https://img.shields.io/badge/TypeScript-3178C6.svg?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+</div>
 
-## 🚀 Estructura del Proyecto
+<hr />
 
-El proyecto está construido con [Astro](https://astro.build/) y utiliza el ecosistema de [Cloudflare](https://www.cloudflare.com/) para el despliegue y backend.
+## 📖 Historia del Proyecto
 
-```text
-/
-├── public/            # Archivos estáticos públicos
-├── src/               # Código fuente
-│   ├── components/    # Componentes de UI (Astro y Svelte)
-│   ├── layouts/       # Plantillas de diseño de página
-│   ├── lib/           # Lógica de negocio, clientes de DB/API y utilidades
-│   ├── pages/         # Rutas de la aplicación y endpoints API
-│   ├── db/            # Definición de esquema de base de datos (Drizzle)
-│   └── styles/        # Estilos CSS globales
-├── db_snapshots/      # Copias locales de la base de datos
-├── migrations/        # Migraciones de base de datos D1
-├── package.json       # Dependencias y scripts
-├── astro.config.mjs   # Configuración de Astro
-└── wrangler.toml      # Configuración de Cloudflare (D1, R2, Pages)
+Este proyecto nació originalmente como un CMS a la medida para **Babylon Scanlation**, impulsado por la necesidad de tener una plataforma de lectura veloz, económica y de fácil mantenimiento. A medida que el desarrollo avanzó, se fueron agregando características cada vez más compleas.
+
+Hoy en día, este repositorio ha evolucionado para convertirse en una **plataforma completa de lectura Multi-Scanlation**, diseñada arquitectónicamente al estilo de **TuMangaOnline (TMO) o MangaDex**.
+
+Desarrollada bajo el concepto de _Edge-First_ con el ecosistema de Cloudflare, permite que **múltiples grupos de scanlation** puedan registrarse, tener sus propios perfiles, gestionar miembros, y subir sus propios capítulos a las diferentes series de la plataforma, manteniendo costos de infraestructura casi nulos (Zero-Egress-Cost en imágenes) y velocidades de carga globales.
+
+## ✨ Características Principales
+
+### 🌐 Arquitectura Multi-Grupo (Multi-Tenant)
+
+- **Registro de Scanlations:** Diferentes grupos pueden crear su perfil en la plataforma (Logo, Banner, Enlaces, Redes Sociales).
+- **Gestión de Miembros:** Los líderes (Owners) pueden invitar a Editores y Moderadores a su equipo.
+- **Autoría de Capítulos:** Cada capítulo subido queda asociado al Scanlation y al Uploader responsable, permitiendo coexistir múltiples traducciones (por ejemplo, en diferentes idiomas o de distintos grupos) para un mismo capítulo.
+
+### ⚡ Rendimiento Edge-First
+
+- **Despliegue Global:** Funciona íntegramente sobre Cloudflare Workers y Pages. La latencia es mínima, sin importar dónde se encuentre el lector.
+- **Base de Datos Distribuida (D1):** Uso intensivo de Cloudflare D1 (SQLite distribuido) con **Drizzle ORM** para consultas hiperrápidas.
+- **Lector Fluido en Svelte:** Visor de capítulos nativo con Svelte 5, que incluye _prefetching_ inteligente para una lectura ininterrumpida.
+
+### 👥 Ecosistema Social y Traking
+
+- **Progreso de Lectura:** Seguimiento del historial de lectura (`UserProgress`) de los usuarios registrados.
+- **Sistema de Favoritos y Reacciones:** Los usuarios pueden seguir series y reaccionar a capítulos específicos.
+- **Comentarios Anidados:** Motor completo de comentarios (padres e hijos) para Series, Capítulos y Noticias, incluyendo sistema de votación (Upvotes/Downvotes).
+- **Control de Vistas:** Registro avanzado de visualizaciones por IP y Guest ID/User ID para evitar inflado artificial de visitas.
+
+### 🛠️ Administración y Publicidad
+
+- **Panel Administrativo (CMS):** Control general de la web (aprobación de series, gestión de reportes).
+- **Gestor de Noticias:** Sistema de publicación de noticias generales o específicas por Scanlation.
+- **Integración de Ads:** Configuración nativa para redes como Adsterra o Monetag, controlable desde un archivo global de configuración.
+
+## 📦 Stack Tecnológico
+
+| Categoría          | Tecnología                                             |
+| :----------------- | :----------------------------------------------------- |
+| **Framework Core** | [Astro](https://astro.build/) (SSR mode)               |
+| **Componentes UI** | [Svelte 5](https://svelte.dev/)                        |
+| **Base de Datos**  | [Cloudflare D1](https://developers.cloudflare.com/d1/) |
+| **ORM**            | [Drizzle ORM](https://orm.drizzle.team/)               |
+| **Storage / CDN**  | [Cloudflare R2](https://developers.cloudflare.com/r2/) |
+| **Autenticación**  | [Firebase Auth](https://firebase.google.com/)          |
+
+---
+
+## 🚀 Inicio Rápido (Desarrollo Local)
+
+El proyecto viene equipado con scripts potentes para emular perfectamente el entorno de la nube de forma local.
+
+### 1. Prerrequisitos
+
+- Node.js (v20+ recomendado)
+- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/)
+- Cuentas en Cloudflare y Firebase.
+
+### 2. Instalación
+
+Clona el repositorio e instala las dependencias:
+
+```bash
+git clone https://github.com/tu-usuario/manga-platform.git
+cd manga-platform
+npm install
 ```
 
-## 🛠️ Tecnologías Utilizadas
+Configura tus variables de entorno y el archivo central:
 
-*   **Core:** [Astro](https://astro.build/) (SSR mode)
-*   **Lenguaje:** TypeScript
-*   **Interactividad:** [Svelte](https://svelte.dev/)
-*   **Estilos:** CSS estándar con variables globales.
-*   **Infraestructura (Cloudflare):**
-    *   **Hosting:** Cloudflare Pages
-    *   **Base de Datos:** Cloudflare D1 (SQLite distribuido)
-    *   **Almacenamiento:** Cloudflare R2 (Imágenes y caché)
-*   **ORM:** [Drizzle ORM](https://orm.drizzle.team/)
-*   **Autenticación:** Firebase Authentication
-*   **Otros:** `swiper` (carruseles), `cropperjs` (edición de imágenes).
+```bash
+cp .env.example .env
+cp .env.local.example .env.local
+cp .dev.vars.example .dev.vars
+cp src/site.config.example.ts src/site.config.ts # Define el branding de tu web
+```
 
-## ⚙️ Configuración y Desarrollo Local
+### 3. Sincronización Inteligente de Base de Datos
 
-### Prerrequisitos
+Trabajar con bases de datos en el borde localmente requiere una buena sincronización. Usa nuestros scripts:
 
-*   Node.js (LTS recomendado)
-*   [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/) instalado globalmente o accesible vía npx.
+- `npm run db:offline` - **Entorno Limpio:** Aplica todas las migraciones SQL a una base de datos local vacía para empezar desde cero.
+- `npm run db:online` - **Sincronización Total:** Este script (`scripts/db-sync.js`) es una utilidad avanzada que descarga el último backup de producción (`db:pull`), resetea tu base local, aplica migraciones estructurales, deshabilita chequeos de claves foráneas temporalmente, inyecta los datos de producción en tu emulador local de D1 y, finalmente, arranca el servidor de desarrollo en un solo paso.
 
-### Instalación
+### 4. Lanzar el Servidor
 
-1.  **Instalar dependencias:**
-    ```sh
-    npm install
-    ```
+Si tu base de datos ya está lista y solo quieres arrancar el entorno de desarrollo:
 
-2.  **Configuración de Variables de Entorno:**
-    Asegúrate de tener los archivos `.env` o `.env.local` configurados con las credenciales necesarias (Firebase, etc.).
+```bash
+npm run dev:cf
+```
 
-### Flujo de Trabajo con Base de Datos (Drizzle & D1)
+_(Inicia simultáneamente el servidor Astro y Wrangler Pages para habilitar los bindings locales de R2 y D1)._
 
-El proyecto utiliza Drizzle ORM con Cloudflare D1. Aquí están los comandos principales para manejar la base de datos:
+## 📜 Comandos Disponibles
 
-*   **`npm run db:generate`**: Genera los archivos de migración SQL basados en los cambios de `src/db/schema.ts`.
-*   **`npm run db:migrate`**: Aplica las migraciones pendientes a la base de datos local (simulada por Wrangler).
-*   **`npm run db:pull`**: Descarga una copia de la base de datos de producción (`babylon-scanlation-prod`) a `./db_snapshots/dump.sql`.
-*   **`npm run db:local`**: Importa el dump descargado a tu base de datos local.
+| Comando               | Acción                                                                         |
+| :-------------------- | :----------------------------------------------------------------------------- |
+| `npm run dev:cf`      | Inicia el servidor de desarrollo emulando el stack de Cloudflare.              |
+| `npm run db:online`   | Descarga prod DB, resetea local, inyecta datos y lanza el servidor.            |
+| `npm run db:generate` | Evalúa `src/db/schema.ts` y genera archivos SQL de migración en `migrations/`. |
+| `npm run db:migrate`  | Aplica migraciones SQL pendientes a la DB emulada.                             |
+| `npm run db:purge`    | Script de utilidad (limpieza de usuarios sin verificar, etc).                  |
+| `npm run check`       | Valida estáticamente el tipado de Svelte y Astro.                              |
+| `npm run deploy`      | Compila y despliega en Cloudflare Pages (`wrangler deploy`).                   |
 
-**Comandos "Todo en uno" para desarrollo:**
+## 📂 Estructura Principal
 
-*   **`npm run db:offline`**: Reinicia la DB local y aplica migraciones. Útil para empezar limpio sin depender de datos reales.
-*   **`npm run db:online`**: Descarga la DB de producción, la importa localmente y aplica migraciones. Útil para trabajar con datos reales.
+- `src/db/schema.ts` - Corazón de los datos: _Series, Capítulos, Scanlations, ScanlationMembers, Roles, Reports, Vistas y Comentarios_.
+- `src/actions/` - Astro Actions. Maneja mutaciones seguras del servidor (Upload de capítulos, Auth, Gestión de grupos).
+- `src/components/` - Componentes modulares, divididos entre Svelte (lectores, sliders interactivos) y Astro (tarjetas SEO-friendly).
+- `scripts/` - Automatizaciones (db-sync, purge-utils, postbuild).
 
-## 🧞 Comandos Disponibles
+## 🤝 Contribuciones
 
-| Comando | Descripción |
-| :--- | :--- |
-| `npm run dev` | Inicia el servidor de desarrollo de Astro. |
-| `npm run dev:cf` | Inicia el servidor usando el proxy de Cloudflare (necesario para probar bindings D1/R2 localmente). |
-| `npm run build` | Compila el sitio para producción. |
-| `npm run preview` | Previsualiza la compilación de producción usando Wrangler. |
-| `npm run deploy` | Despliega la aplicación en Cloudflare Pages. |
-| `npm run lint` | Ejecuta ESLint para verificar el código. |
-| `npm run check` | Verifica los tipos de TypeScript en el proyecto Astro. |
+Al ser un proyecto Open Source, las contribuciones son cruciales. Desde mejorar la UI del lector con Svelte, optimizar las _queries_ de Drizzle o aportar nuevas traducciones a la interfaz, siéntete libre de abrir un **Pull Request** o proponer ideas en los _Issues_.
 
-## 🗄️ Esquema de Base de Datos
+## ⚠️ Aviso Legal (Disclaimer)
 
-Las tablas principales definidas en `src/db/schema.ts` incluyen:
-*   **Series:** Información de los mangas/cómics.
-*   **Chapters:** Capítulos asociados a una serie.
-*   **Pages:** Imágenes individuales de cada capítulo.
-*   **News:** Sistema de noticias y anuncios.
-*   **Users/AnonymousUsers:** Gestión de roles y seguimiento de invitados.
-*   **Comments/Reviews:** Interacción social en series y capítulos.
+Este proyecto se proporciona únicamente con fines educativos y de desarrollo de software (como una plantilla de CMS). Los creadores y contribuyentes de este repositorio **no se hacen responsables** del uso que los usuarios finales le den a esta plataforma, ni del contenido, imágenes, traducciones o archivos que se alojen utilizando este código. Todos los derechos de los mangas, cómics, personajes y obras derivadas pertenecen a sus respectivos autores, artistas y editoriales.
+
+## 📄 Licencia
+
+Este proyecto se distribuye bajo la licencia **MIT**. Eres libre de usar, modificar y distribuir este software para levantar tu propia plataforma.
+
+---
+
+_Cortesía de Babylon Scanlation por Lucas Goldstein._

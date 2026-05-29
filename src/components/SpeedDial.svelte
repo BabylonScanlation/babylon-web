@@ -1,60 +1,60 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { fly } from 'svelte/transition';
-  import { backOut } from 'svelte/easing';
-  import ReportModal from './ReportModal.svelte';
+import { onMount } from 'svelte';
+import { backOut } from 'svelte/easing';
+import { fly } from 'svelte/transition';
+import ReportModal from './ReportModal.svelte';
 
-  let isOpen = $state(false);
-  let isHidden = $state(false); // Para ocultarlo cuando el lector oculta su UI
-  let menuContainer: HTMLDivElement;
-  
-  type ReportType = 'chapter_fallen' | 'bug' | 'claim' | 'suggestion';
-  let isModalOpen = $state(false);
-  let currentModalType = $state<ReportType>('bug');
+let isOpen = $state(false);
+let isHidden = $state(false); // Para ocultarlo cuando el lector oculta su UI
+let menuContainer: HTMLDivElement;
 
-  function toggleOpen() {
-    isOpen = !isOpen;
+type ReportType = 'chapter_fallen' | 'bug' | 'claim' | 'suggestion';
+let isModalOpen = $state(false);
+let currentModalType = $state<ReportType>('bug');
+
+function toggleOpen() {
+  isOpen = !isOpen;
+}
+
+function handleClickOutside(e: MouseEvent) {
+  if (menuContainer && !menuContainer.contains(e.target as Node)) {
+    isOpen = false;
   }
+}
 
-  function handleClickOutside(e: MouseEvent) {
-    if (menuContainer && !menuContainer.contains(e.target as Node)) {
-      isOpen = false;
-    }
-  }
+onMount(() => {
+  document.addEventListener('click', handleClickOutside);
 
-  onMount(() => {
-    document.addEventListener('click', handleClickOutside);
+  // Ocultar inteligentemente si estamos en el lector y la UI se esconde
+  const header = document.querySelector('header');
+  if (header) {
+    const observer = new MutationObserver(() => {
+      const isReaderActive = document.body.getAttribute('data-reader-active') === 'true';
+      if (isReaderActive) {
+        isHidden = header.classList.contains('hidden');
+        if (isHidden) isOpen = false; // Cerrar el menú si se oculta
+      } else {
+        isHidden = false; // Siempre visible fuera del lector
+      }
+    });
+    observer.observe(header, { attributes: true, attributeFilter: ['class'] });
 
-    // Ocultar inteligentemente si estamos en el lector y la UI se esconde
-    const header = document.querySelector('header');
-    if (header) {
-      const observer = new MutationObserver(() => {
-        const isReaderActive = document.body.getAttribute('data-reader-active') === 'true';
-        if (isReaderActive) {
-          isHidden = header.classList.contains('hidden');
-          if (isHidden) isOpen = false; // Cerrar el menú si se oculta
-        } else {
-          isHidden = false; // Siempre visible fuera del lector
-        }
-      });
-      observer.observe(header, { attributes: true, attributeFilter: ['class'] });
-
-      return () => {
-        document.removeEventListener('click', handleClickOutside);
-        observer.disconnect();
-      };
-    }
-    
     return () => {
       document.removeEventListener('click', handleClickOutside);
+      observer.disconnect();
     };
-  });
-
-  function handleReport(type: ReportType) {
-    isOpen = false;
-    currentModalType = type;
-    isModalOpen = true;
   }
+
+  return () => {
+    document.removeEventListener('click', handleClickOutside);
+  };
+});
+
+function handleReport(type: ReportType) {
+  isOpen = false;
+  currentModalType = type;
+  isModalOpen = true;
+}
 </script>
 
 <div 

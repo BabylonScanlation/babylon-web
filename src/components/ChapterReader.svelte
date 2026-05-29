@@ -137,8 +137,6 @@ function prefetchNextChapter() {
   );
 }
 
-
-
 $effect(() => {
   if (showConfig) {
     document.body.setAttribute('data-reader-modal', 'open');

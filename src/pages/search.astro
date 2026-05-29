@@ -17,7 +17,12 @@ const allowNsfw = Astro.cookies.get('babylon_nsfw')?.value === 'true';
 
 let searchResults: any[] = [];
 let pagination = { page: 1, totalPages: 1, total: 0, limit: 25 };
-let filterMetadata = { authors: [] as string[], artists: [] as string[], publishers: [] as string[], magazines: [] as string[] };
+let filterMetadata = {
+  authors: [] as string[],
+  artists: [] as string[],
+  publishers: [] as string[],
+  magazines: [] as string[],
+};
 let error: string | null = null;
 
 try {
@@ -39,7 +44,7 @@ try {
   if (searchResults.length > limit) {
     searchResults = searchResults.slice(0, limit);
   }
-  
+
   filterMetadata = await getFilterMetadata(db);
 } catch (e) {
   logError(e, 'Error al realizar la búsqueda SSR', { query });

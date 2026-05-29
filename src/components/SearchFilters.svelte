@@ -1,47 +1,124 @@
 <script lang="ts">
-  import { navigate } from 'astro:transitions/client';
-  import { onDestroy, onMount, untrack } from 'svelte';
-  import { fade, slide } from 'svelte/transition';
-  import Combobox from './Combobox.svelte';
+import { navigate } from 'astro:transitions/client';
+import { onDestroy, onMount, untrack } from 'svelte';
+import { fade, slide } from 'svelte/transition';
+import Combobox from './Combobox.svelte';
 
-  let { filterMetadata = { authors: [], artists: [], publishers: [], magazines: [] } } = $props<{
-    filterMetadata?: { authors: string[]; artists: string[]; publishers: string[]; magazines: string[] };
-  }>();
+let { filterMetadata = { authors: [], artists: [], publishers: [], magazines: [] } } = $props<{
+  filterMetadata?: {
+    authors: string[];
+    artists: string[];
+    publishers: string[];
+    magazines: string[];
+  };
+}>();
 
-  const sortOptions = [
-    { value: 'Relevancia', label: 'Relevancia' },
-    { value: 'Popularidad', label: 'Popularidad' },
-    { value: 'Recientes', label: 'Recientes' },
-    { value: 'A-Z', label: 'A-Z' },
-  ];
+const sortOptions = [
+  { value: 'Relevancia', label: 'Relevancia' },
+  { value: 'Popularidad', label: 'Popularidad' },
+  { value: 'Recientes', label: 'Recientes' },
+  { value: 'A-Z', label: 'A-Z' },
+];
 
-  const typeOptions = [
-    { value: 'Todo', label: 'Todo' },
-    { value: 'Manga', label: 'Manga' },
-    { value: 'Manhwa', label: 'Manhwa' },
-    { value: 'Manhua', label: 'Manhua' },
-  ];
+const typeOptions = [
+  { value: 'Todo', label: 'Todo' },
+  { value: 'Manga', label: 'Manga' },
+  { value: 'Manhwa', label: 'Manhwa' },
+  { value: 'Manhua', label: 'Manhua' },
+];
 
-  const commonGenres = [
-    'Acción',
-    'Aventura',
-    'Comedia',
-    'Drama',
-    'Fantasía',
-    'Romance',
-    'Sci-Fi',
-    'Recuentos de la vida',
-    'Tragedia',
-    'Sobrenatural',
-    'Terror',
-    'Misterio',
-    'Psicológico',
-  ];
+const commonGenres = [
+  'Acción',
+  'Aventura',
+  'Comedia',
+  'Drama',
+  'Fantasía',
+  'Romance',
+  'Sci-Fi',
+  'Recuentos de la vida',
+  'Tragedia',
+  'Sobrenatural',
+  'Terror',
+  'Misterio',
+  'Psicológico',
+];
 
-  let isAdvancedOpen = $state(false);
+let isAdvancedOpen = $state(false);
 
-  // Estado real aplicado
-  let activeFilters = $state({
+// Estado real aplicado
+let activeFilters = $state({
+  sort: '',
+  type: '',
+  status: '',
+  author: '',
+  artist: '',
+  publisher: '',
+  magazine: '',
+  genres: [] as string[],
+});
+
+// Orion: Calculamos si hay filtros activos de forma reactiva con $derived
+const hasActiveFilters = $derived(
+  activeFilters.genres.length > 0 ||
+    activeFilters.type !== '' ||
+    activeFilters.author !== '' ||
+    activeFilters.artist !== '' ||
+    activeFilters.publisher !== '' ||
+    activeFilters.magazine !== '' ||
+    activeFilters.status !== ''
+);
+
+// Estado temporal (mientras el usuario edita)
+let stagingFilters = $state(
+  Object.assign(
+    {},
+    untrack(() => activeFilters)
+  )
+);
+
+onMount(() => {
+  const params = new URLSearchParams(window.location.search);
+  const loaded = {
+    sort: params.get('sort') || '',
+    type: params.get('type') || '',
+    status: params.get('status') || '',
+    author: params.get('author') || '',
+    artist: params.get('artist') || '',
+    publisher: params.get('publisher') || '',
+    magazine: params.get('magazine') || '',
+    genres: params.get('genres')?.split(',').filter(Boolean) || [],
+  };
+
+  // Migración de URLs antiguas
+  if (loaded.sort === 'az' || loaded.sort === 'A-Z') loaded.sort = '';
+  if (loaded.sort === 'latest') loaded.sort = 'Recientes';
+  if (loaded.sort === 'popular') loaded.sort = 'Popularidad';
+  if (loaded.sort === 'relevance') loaded.sort = 'Relevancia';
+  if (loaded.type === 'all' || loaded.type === 'Todo') loaded.type = '';
+  if (loaded.status === 'all' || loaded.status === 'Todo') loaded.status = '';
+
+  activeFilters = { ...loaded };
+  stagingFilters = { ...loaded };
+});
+
+onDestroy(() => {
+  if (typeof document !== 'undefined') {
+    document.body.removeAttribute('data-search-filter');
+  }
+});
+
+function toggleAdvanced() {
+  if (!isAdvancedOpen) {
+    stagingFilters = JSON.parse(JSON.stringify(activeFilters));
+    document.body.setAttribute('data-reader-modal', 'open');
+  } else {
+    document.body.removeAttribute('data-reader-modal');
+  }
+  isAdvancedOpen = !isAdvancedOpen;
+}
+
+function resetFilters() {
+  stagingFilters = {
     sort: '',
     type: '',
     status: '',
@@ -49,117 +126,45 @@
     artist: '',
     publisher: '',
     magazine: '',
-    genres: [] as string[],
-  });
+    genres: [],
+  };
+}
 
-  // Orion: Calculamos si hay filtros activos de forma reactiva con $derived
-  const hasActiveFilters = $derived(
-    activeFilters.genres.length > 0 ||
-      activeFilters.type !== '' ||
-      activeFilters.author !== '' ||
-      activeFilters.artist !== '' ||
-      activeFilters.publisher !== '' ||
-      activeFilters.magazine !== '' ||
-      activeFilters.status !== ''
-  );
+function cancel() {
+  isAdvancedOpen = false;
+  document.body.removeAttribute('data-reader-modal');
+  stagingFilters = JSON.parse(JSON.stringify(activeFilters));
+}
 
-  // Estado temporal (mientras el usuario edita)
-  let stagingFilters = $state(
-    Object.assign(
-      {},
-      untrack(() => activeFilters)
-    )
-  );
+function apply() {
+  activeFilters = JSON.parse(JSON.stringify(stagingFilters));
 
-  onMount(() => {
-    const params = new URLSearchParams(window.location.search);
-    const loaded = {
-      sort: params.get('sort') || '',
-      type: params.get('type') || '',
-      status: params.get('status') || '',
-      author: params.get('author') || '',
-      artist: params.get('artist') || '',
-      publisher: params.get('publisher') || '',
-      magazine: params.get('magazine') || '',
-      genres: params.get('genres')?.split(',').filter(Boolean) || [],
-    };
+  // Orion: Construcción de parámetros limpia para evitar avisos de mutabilidad
+  const paramsMap: Record<string, string> = {};
+  const url = new URL(window.location.href);
+  const currentQ = url.searchParams.get('q');
 
-    // Migración de URLs antiguas
-    if (loaded.sort === 'az' || loaded.sort === 'A-Z') loaded.sort = '';
-    if (loaded.sort === 'latest') loaded.sort = 'Recientes';
-    if (loaded.sort === 'popular') loaded.sort = 'Popularidad';
-    if (loaded.sort === 'relevance') loaded.sort = 'Relevancia';
-    if (loaded.type === 'all' || loaded.type === 'Todo') loaded.type = '';
-    if (loaded.status === 'all' || loaded.status === 'Todo') loaded.status = '';
+  if (currentQ) paramsMap.q = currentQ;
+  paramsMap.page = '1';
 
-    activeFilters = { ...loaded };
-    stagingFilters = { ...loaded };
-  });
-
-  onDestroy(() => {
-    if (typeof document !== 'undefined') {
-      document.body.removeAttribute('data-search-filter');
+  Object.entries(activeFilters).forEach(([k, v]) => {
+    if (k === 'genres') {
+      if (Array.isArray(v) && v.length > 0) paramsMap[k] = v.join(',');
+    } else if (v && v !== 'all' && v !== 'Todo' && v !== '') {
+      paramsMap[k] = String(v);
     }
   });
 
-  function toggleAdvanced() {
-    if (!isAdvancedOpen) {
-      stagingFilters = JSON.parse(JSON.stringify(activeFilters));
-      document.body.setAttribute('data-reader-modal', 'open');
-    } else {
-      document.body.removeAttribute('data-reader-modal');
-    }
-    isAdvancedOpen = !isAdvancedOpen;
-  }
+  const newSearchParams = new URLSearchParams(paramsMap);
 
-  function resetFilters() {
-    stagingFilters = {
-      sort: '',
-      type: '',
-      status: '',
-      author: '',
-      artist: '',
-      publisher: '',
-      magazine: '',
-      genres: [],
-    };
-  }
+  // Cerrar modal antes de navegar para UX fluida
+  isAdvancedOpen = false;
+  document.body.removeAttribute('data-reader-modal');
 
-  function cancel() {
-    isAdvancedOpen = false;
-    document.body.removeAttribute('data-reader-modal');
-    stagingFilters = JSON.parse(JSON.stringify(activeFilters));
-  }
-
-  function apply() {
-    activeFilters = JSON.parse(JSON.stringify(stagingFilters));
-
-    // Orion: Construcción de parámetros limpia para evitar avisos de mutabilidad
-    const paramsMap: Record<string, string> = {};
-    const url = new URL(window.location.href);
-    const currentQ = url.searchParams.get('q');
-
-    if (currentQ) paramsMap.q = currentQ;
-    paramsMap.page = '1';
-
-    Object.entries(activeFilters).forEach(([k, v]) => {
-      if (k === 'genres') {
-        if (Array.isArray(v) && v.length > 0) paramsMap[k] = v.join(',');
-      } else if (v && v !== 'all' && v !== 'Todo' && v !== '') {
-        paramsMap[k] = String(v);
-      }
-    });
-
-    const newSearchParams = new URLSearchParams(paramsMap);
-
-    // Cerrar modal antes de navegar para UX fluida
-    isAdvancedOpen = false;
-    document.body.removeAttribute('data-reader-modal');
-
-    // Orion: Navegación inteligente sin refresco total
-    const nextUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
-    navigate(nextUrl, { history: 'push' });
-  }
+  // Orion: Navegación inteligente sin refresco total
+  const nextUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
+  navigate(nextUrl, { history: 'push' });
+}
 </script>
 
 <div class="filter-system-container">

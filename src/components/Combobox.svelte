@@ -1,52 +1,58 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  
-  let { value = $bindable(''), options = [], placeholder = 'Escribir o elegir...', id = '', onchange } = $props<{
-    value?: string;
-    options: string[];
-    placeholder?: string;
-    id?: string;
-    onchange?: (val: string) => void;
-  }>();
+import { onDestroy, onMount } from 'svelte';
 
-  let isOpen = $state(false);
-  let container: HTMLDivElement;
-  
-  function handleClickOutside(e: MouseEvent) {
-    if (container && !container.contains(e.target as Node)) {
-      isOpen = false;
-    }
-  }
+let {
+  value = $bindable(''),
+  options = [],
+  placeholder = 'Escribir o elegir...',
+  id = '',
+  onchange,
+} = $props<{
+  value?: string;
+  options: string[];
+  placeholder?: string;
+  id?: string;
+  onchange?: (val: string) => void;
+}>();
 
-  onMount(() => {
-    document.addEventListener('click', handleClickOutside);
-  });
+let isOpen = $state(false);
+let container: HTMLDivElement;
 
-  onDestroy(() => {
-    if (typeof document !== 'undefined') {
-      document.removeEventListener('click', handleClickOutside);
-    }
-  });
-
-  let filteredOptions = $derived(
-    options.filter((opt: string) => opt.toLowerCase().includes(value.toLowerCase()))
-  );
-
-  function toggleOpen() {
-    isOpen = !isOpen;
-  }
-  
-  function selectOption(opt: string) {
-    value = opt;
+function handleClickOutside(e: MouseEvent) {
+  if (container && !container.contains(e.target as Node)) {
     isOpen = false;
-    if (onchange) onchange(opt);
   }
+}
 
-  // Also call onchange if they type in the input directly
-  function handleInput(e: Event) {
-    isOpen = true;
-    if (onchange) onchange((e.target as HTMLInputElement).value);
+onMount(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onDestroy(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('click', handleClickOutside);
   }
+});
+
+let filteredOptions = $derived(
+  options.filter((opt: string) => opt.toLowerCase().includes(value.toLowerCase()))
+);
+
+function toggleOpen() {
+  isOpen = !isOpen;
+}
+
+function selectOption(opt: string) {
+  value = opt;
+  isOpen = false;
+  if (onchange) onchange(opt);
+}
+
+// Also call onchange if they type in the input directly
+function handleInput(e: Event) {
+  isOpen = true;
+  if (onchange) onchange((e.target as HTMLInputElement).value);
+}
 </script>
 
 <div class="combobox-container" bind:this={container}>
@@ -69,7 +75,7 @@
 
   {#if isOpen && filteredOptions.length > 0}
     <ul class="dropdown">
-      {#each filteredOptions as opt}
+      {#each filteredOptions as opt (opt)}
         <li>
           <button type="button" class="dropdown-item" onclick={() => selectOption(opt)}>
             {opt}
