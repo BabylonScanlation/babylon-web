@@ -4,7 +4,6 @@ import type { APIRoute } from 'astro';
 import { and, eq } from 'drizzle-orm';
 import { chapters, series } from '../../db/schema';
 import { getDB } from '../../lib/db';
-import { logError } from '../../lib/logError';
 import { siteConfig } from '../../site.config';
 
 interface TelegramUpdate {
@@ -19,6 +18,31 @@ interface TelegramUpdate {
   };
 }
 
+// Helper: escribe un log persistente en D1 para diagnóstico en producción
+async function writeLog(
+  db: ReturnType<typeof getDB>,
+  level: 'INFO' | 'WARN' | 'ERROR',
+  message: string
+) {
+  try {
+    await db
+      .insert(series)
+      .values({
+        title: `WEBHOOK_LOG_${level}`,
+        slug: `wh-log-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        description: message.substring(0, 1000),
+        telegramTopicId: Math.floor(Math.random() * 1000000000),
+        isHidden: true,
+        createdAt: new Date().toISOString(),
+        coverImageUrl: 'LOG',
+      })
+      .run();
+  } catch {
+    // Si ni el log funciona, al menos queda en console
+    console.error(`[WebhookLog][${level}] Failed to write log: ${message}`);
+  }
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const secretToken = request.headers.get('X-Telegram-Bot-Api-Secret-Token');
   if (secretToken !== env.TELEGRAM_WEBHOOK_SECRET) {
@@ -26,112 +50,191 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response('Unauthorized', { status: 401 });
   }
 
+  const drizzleDb = getDB(env);
+
   try {
     const update = (await request.json()) as TelegramUpdate;
-
-    // ORION DEBUG: Guardar el último payload crudo en D1 para inspeccionarlo
-    try {
-      const drizzleDb = getDB(env);
-      await drizzleDb
-        .insert(series)
-        .values({
-          title: 'DEBUG_PAYLOAD',
-          slug: `debug-${Date.now()}`,
-          description: JSON.stringify(update).substring(0, 1000), // Evitar overflow
-          telegramTopicId: Math.floor(Math.random() * 1000000000), // Random ID
-          isHidden: true,
-          createdAt: new Date().toISOString(),
-          coverImageUrl: 'DEBUG',
-        })
-        .run();
-    } catch (e) {
-      console.error('Failed to log payload to D1', e);
-    }
 
     const topicId = update.message?.message_thread_id;
     const doc = update.message?.document;
 
-    if (doc && topicId) {
-      const fileName = doc.file_name || '';
-      const fileId = doc.file_id;
-      const isZip =
-        doc.mime_type === 'application/zip' ||
-        doc.mime_type === 'application/x-zip-compressed' ||
-        fileName.toLowerCase().endsWith('.zip');
+    // Log: qué recibimos
+    await writeLog(
+      drizzleDb,
+      'INFO',
+      `Received: topic=${topicId} file_name=${doc?.file_name ?? 'N/A'} file_id=${doc?.file_id ?? 'N/A'} mime=${doc?.mime_type ?? 'N/A'}`
+    );
 
-      if (isZip) {
-        const chapterNumberMatch = fileName.match(/(\d+(\.\d+)?)/);
-        if (!chapterNumberMatch) {
-          console.error(
-            `[Webhook] Error: No se pudo extraer el número del capítulo de: ${fileName}`
-          );
-          return new Response('OK - Invalid filename', { status: 200 }); // Return OK to avoid Telegram retries
-        }
-        const chapterNumber = parseFloat(chapterNumberMatch[0]);
-        const isNsfw = /nsfw/i.test(fileName);
+    if (!doc || !topicId) {
+      return new Response('OK - Ignored (No document or topic)', { status: 200 });
+    }
 
-        const drizzleDb = getDB(env);
+    const fileName = doc.file_name || '';
+    const fileId = doc.file_id;
+    const isZip =
+      doc.mime_type === 'application/zip' ||
+      doc.mime_type === 'application/x-zip-compressed' ||
+      fileName.toLowerCase().endsWith('.zip');
 
-        // 1. Buscar la serie
-        let seriesResult = await drizzleDb
-          .select({ id: series.id, title: series.title })
-          .from(series)
-          .where(eq(series.telegramTopicId, topicId))
-          .get();
+    if (!isZip) {
+      await writeLog(drizzleDb, 'WARN', `Not a ZIP: "${fileName}" mime=${doc.mime_type}`);
+      return new Response('OK - Ignored (Not a ZIP)', { status: 200 });
+    }
 
-        if (!seriesResult) {
-          const newSeriesTitle = `Serie ${topicId}`;
-          const newSeriesSlug = `serie-${topicId}`;
-          const placeholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderCover}`;
+    const chapterNumberMatch = fileName.match(/(\d+(\.\d+)?)/);
+    if (!chapterNumberMatch) {
+      await writeLog(drizzleDb, 'ERROR', `No chapter number in filename: "${fileName}"`);
+      return new Response('OK - Invalid filename', { status: 200 });
+    }
 
-          try {
-            seriesResult = await drizzleDb
-              .insert(series)
-              .values({
-                title: newSeriesTitle,
-                slug: newSeriesSlug,
-                description: 'Descripción próximamente...',
-                coverImageUrl: placeholderUrl,
-                telegramTopicId: topicId,
-                isHidden: true,
-                createdAt: new Date().toISOString(),
-              })
-              .returning({ id: series.id, title: series.title })
-              .get();
-          } catch (e: unknown) {
-            const message = e instanceof Error ? e.message : String(e);
-            if (message.includes('UNIQUE constraint failed')) {
-              seriesResult = await drizzleDb
-                .select({ id: series.id, title: series.title })
-                .from(series)
-                .where(eq(series.telegramTopicId, topicId))
-                .get();
-            }
+    const chapterNumber = parseFloat(chapterNumberMatch[0]);
+    const isNsfw = /nsfw/i.test(fileName);
 
-            if (!seriesResult) {
-              console.error('[Webhook] Error crítico al crear serie automática:', message);
-              throw e;
-            }
-          }
-        }
+    await writeLog(
+      drizzleDb,
+      'INFO',
+      `Parsed: chapter=${chapterNumber} isNsfw=${isNsfw} fileId=${fileId} fileName="${fileName}"`
+    );
 
-        if (!seriesResult) {
-          console.error(
-            `[Webhook] Error fatal: No se pudo obtener ni crear la serie para el topic ${topicId}`
-          );
-          throw new Error('No se pudo obtener o crear la serie.');
-        }
+    // 1. Buscar la serie por topicId
+    let seriesResult = await drizzleDb
+      .select({ id: series.id, title: series.title })
+      .from(series)
+      .where(eq(series.telegramTopicId, topicId))
+      .get();
 
-        const seriesId = seriesResult.id;
+    if (!seriesResult) {
+      const newSeriesTitle = `Serie ${topicId}`;
+      const newSeriesSlug = `serie-${topicId}`;
+      const placeholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderCover}`;
 
-        // 2. Verificar duplicados (Capítulo o TelegramFileId)
-        const existingChapter = await drizzleDb
-          .select({
-            id: chapters.id,
-            telegramFileId: chapters.telegramFileId,
-            status: chapters.status,
+      try {
+        seriesResult = await drizzleDb
+          .insert(series)
+          .values({
+            title: newSeriesTitle,
+            slug: newSeriesSlug,
+            description: 'Descripción próximamente...',
+            coverImageUrl: placeholderUrl,
+            telegramTopicId: topicId,
+            isHidden: true,
+            createdAt: new Date().toISOString(),
           })
-          .from(chapters)
+          .returning({ id: series.id, title: series.title })
+          .get();
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        if (message.includes('UNIQUE constraint failed')) {
+          seriesResult = await drizzleDb
+            .select({ id: series.id, title: series.title })
+            .from(series)
+            .where(eq(series.telegramTopicId, topicId))
+            .get();
+        }
+        if (!seriesResult) {
+          await writeLog(drizzleDb, 'ERROR', `Failed to create series for topic ${topicId}: ${message}`);
+          throw e;
+        }
+      }
+    }
+
+    if (!seriesResult) {
+      await writeLog(drizzleDb, 'ERROR', `No series found or created for topic ${topicId}`);
+      throw new Error('No se pudo obtener o crear la serie.');
+    }
+
+    const seriesId = seriesResult.id;
+
+    // 2. Verificar si ya existe este capítulo con el mismo isNsfw
+    const existingChapter = await drizzleDb
+      .select({
+        id: chapters.id,
+        telegramFileId: chapters.telegramFileId,
+        status: chapters.status,
+        isNsfw: chapters.isNsfw,
+      })
+      .from(chapters)
+      .where(
+        and(
+          eq(chapters.seriesId, seriesId),
+          eq(chapters.chapterNumber, chapterNumber),
+          eq(chapters.isNsfw, isNsfw)
+        )
+      )
+      .get();
+
+    const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderChapter}`;
+
+    if (existingChapter) {
+      // Ya existe → actualizar
+      await writeLog(
+        drizzleDb,
+        'INFO',
+        `Updating existing chapter id=${existingChapter.id} chapter=${chapterNumber} isNsfw=${isNsfw} oldFileId=${existingChapter.telegramFileId} newFileId=${fileId}`
+      );
+
+      await drizzleDb
+        .update(chapters)
+        .set({
+          telegramFileId: fileId,
+          status: 'live',
+          urlPortada: chapterPlaceholderUrl,
+          createdAt: new Date().toISOString(),
+        })
+        .where(eq(chapters.id, existingChapter.id))
+        .run();
+
+      return new Response('OK - Updated existing chapter');
+    }
+
+    // 3. Insertar nuevo capítulo
+    try {
+      await writeLog(
+        drizzleDb,
+        'INFO',
+        `Inserting new chapter: series=${seriesId} chapter=${chapterNumber} isNsfw=${isNsfw} fileId=${fileId}`
+      );
+
+      const chapterIdResult = await drizzleDb
+        .insert(chapters)
+        .values({
+          seriesId: seriesId,
+          chapterNumber: chapterNumber,
+          telegramFileId: fileId,
+          isNsfw: isNsfw,
+          status: 'live',
+          urlPortada: chapterPlaceholderUrl,
+          createdAt: new Date().toISOString(),
+        })
+        .returning({ id: chapters.id })
+        .get();
+
+      await writeLog(
+        drizzleDb,
+        'INFO',
+        `Inserted OK: chapter id=${chapterIdResult?.id} chapter=${chapterNumber} isNsfw=${isNsfw}`
+      );
+
+      return new Response('OK - Inserted new chapter');
+    } catch (insertError: unknown) {
+      const message = insertError instanceof Error ? insertError.message : String(insertError);
+
+      await writeLog(
+        drizzleDb,
+        'ERROR',
+        `Insert FAILED: chapter=${chapterNumber} isNsfw=${isNsfw} fileId=${fileId} error=${message}`
+      );
+
+      if (message.includes('UNIQUE constraint failed')) {
+        // Intentar recuperar con UPDATE
+        const updateResult = await drizzleDb
+          .update(chapters)
+          .set({
+            telegramFileId: fileId,
+            status: 'live',
+            urlPortada: chapterPlaceholderUrl,
+            createdAt: new Date().toISOString(),
+          })
           .where(
             and(
               eq(chapters.seriesId, seriesId),
@@ -139,89 +242,24 @@ export const POST: APIRoute = async ({ request }) => {
               eq(chapters.isNsfw, isNsfw)
             )
           )
-          .get();
+          .run();
 
-        if (existingChapter) {
-          // Orion: Si ya existe (ya sea app_only o live), permitimos actualizarlo.
-          // Esto soluciona el problema de "borrar y volver a subir" en Telegram para corregir errores.
-          const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderChapter}`;
+        await writeLog(
+          drizzleDb,
+          'WARN',
+          `UNIQUE recovery UPDATE: rows_changed=${updateResult.meta.changes} chapter=${chapterNumber} isNsfw=${isNsfw}`
+        );
 
-          await drizzleDb
-            .update(chapters)
-            .set({
-              telegramFileId: fileId,
-              status: 'live',
-              urlPortada: chapterPlaceholderUrl,
-              createdAt: new Date().toISOString(),
-            })
-            .where(eq(chapters.id, existingChapter.id))
-            .run();
-
-          return new Response('OK - Updated existing chapter');
-        }
-
-        // 3. Insertar nuevo capítulo
-        try {
-          const chapterIdResult = await drizzleDb
-            .insert(chapters)
-            .values({
-              seriesId: seriesId,
-              chapterNumber: chapterNumber,
-              telegramFileId: fileId,
-              isNsfw: isNsfw,
-              status: 'live',
-              urlPortada: null,
-              createdAt: new Date().toISOString(), // Forzar formato ISO String para evitar milisegundos en D1
-            })
-            .returning({ id: chapters.id })
-            .get();
-
-          if (chapterIdResult?.id) {
-            const newChapterId = chapterIdResult.id;
-            const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderChapter}`;
-
-            await drizzleDb
-              .update(chapters)
-              .set({ urlPortada: chapterPlaceholderUrl })
-              .where(eq(chapters.id, newChapterId))
-              .run();
-          }
-        } catch (insertError: unknown) {
-          const message = insertError instanceof Error ? insertError.message : String(insertError);
-          if (message.includes('UNIQUE constraint failed')) {
-            // Orion: Si hubo un conflicto de unicidad concurrente, intentamos recuperarlo y actualizarlo
-            const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderChapter}`;
-            await drizzleDb
-              .update(chapters)
-              .set({
-                telegramFileId: fileId,
-                status: 'live',
-                urlPortada: chapterPlaceholderUrl,
-              })
-              .where(
-                and(
-                  eq(chapters.seriesId, seriesId),
-                  eq(chapters.chapterNumber, chapterNumber),
-                  eq(chapters.isNsfw, isNsfw)
-                )
-              )
-              .run();
-
-            return new Response('OK - Recovered from unique constraint conflict', { status: 200 });
-          }
-          console.error('[Webhook] Error en la inserción del capítulo:', message);
-          throw insertError;
-        }
-
-        return new Response('OK');
-      } else {
-        return new Response('OK - Ignored (Not a ZIP)', { status: 200 });
+        return new Response('OK - Recovered from unique constraint conflict', { status: 200 });
       }
-    }
 
-    return new Response('OK - Ignored (No document or topic)', { status: 200 });
+      throw insertError;
+    }
   } catch (error) {
-    logError(error, 'Error en el webhook de Telegram');
-    return new Response('Internal Server Error', { status: 500 });
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error('[Webhook] Unhandled error:', errMsg);
+    await writeLog(drizzleDb, 'ERROR', `UNHANDLED: ${errMsg}`);
+    // Devolver 200 para evitar que Telegram reintente infinitamente
+    return new Response('OK - Internal error logged', { status: 200 });
   }
 };

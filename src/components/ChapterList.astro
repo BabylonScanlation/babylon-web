@@ -74,33 +74,33 @@ const languageNames: Record<string, string> = {
 
 <script>
   // Script para manejar el toggle de grupos de capítulos en el grid
-  document.addEventListener('DOMContentLoaded', () => {
-    const toggles = document.querySelectorAll('.chapter-group-toggle');
+  // Usamos event delegation para compatibilidad con Astro ViewTransitions
+  document.addEventListener('click', (e) => {
+    const toggle = (e.target as HTMLElement).closest('.chapter-group-toggle');
+    if (!toggle) return;
     
-    toggles.forEach(toggle => {
-      toggle.addEventListener('click', (e) => {
-        // Evitar que el clic en enlaces internos dispare el toggle (si hubiera)
-        if ((e.target as HTMLElement).closest('a')) return;
-        
-        const targetId = toggle.getAttribute('data-target');
-        if (!targetId) return;
-        
-        const subItems = document.querySelectorAll(`.${targetId}`);
-        const isOpen = toggle.classList.contains('is-open');
-        
-        if (isOpen) {
-          toggle.classList.remove('is-open');
-          subItems.forEach((el) => {
-            (el as HTMLElement).style.display = 'none';
-          });
-        } else {
-          toggle.classList.add('is-open');
-          subItems.forEach((el) => {
-            (el as HTMLElement).style.display = 'block'; // Or whatever display was default, block works for grid items because they become block-level children of grid
-          });
-        }
+    // Evitar que el clic en enlaces internos dispare el toggle (si hubiera)
+    if ((e.target as HTMLElement).closest('a')) return;
+    
+    const targetId = toggle.getAttribute('data-target');
+    if (!targetId) return;
+    
+    // Escapar el ID en caso de que tenga puntos (ej. capítulos con decimales)
+    const escapedTargetId = CSS.escape(targetId);
+    const subItems = document.querySelectorAll(`.${escapedTargetId}`);
+    const isOpen = toggle.classList.contains('is-open');
+    
+    if (isOpen) {
+      toggle.classList.remove('is-open');
+      subItems.forEach((el) => {
+        (el as HTMLElement).style.display = 'none';
       });
-    });
+    } else {
+      toggle.classList.add('is-open');
+      subItems.forEach((el) => {
+        (el as HTMLElement).style.display = 'block';
+      });
+    }
   });
 </script>
 
