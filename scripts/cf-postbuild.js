@@ -60,8 +60,15 @@ async function run() {
   // 4. Eliminar la carpeta .wrangler para romper cualquier redirección de configuración
   const wranglerCache = path.resolve('.wrangler');
   if (fs.existsSync(wranglerCache)) {
-    fs.rmSync(wranglerCache, { recursive: true, force: true });
-    console.log('✓ Carpeta .wrangler eliminada para limpiar el estado de construcción.');
+    try {
+      fs.rmSync(wranglerCache, { recursive: true, force: true });
+      console.log('✓ Carpeta .wrangler eliminada para limpiar el estado de construcción.');
+    } catch (e) {
+      console.warn(
+        'Advertencia: No se pudo eliminar la carpeta .wrangler (puede que esté en uso):',
+        e.message
+      );
+    }
   }
 
   console.log('--- Post-procesamiento completado con éxito ---');

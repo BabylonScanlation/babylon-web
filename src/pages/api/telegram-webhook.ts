@@ -32,145 +32,175 @@ export const POST: APIRoute = async ({ request }) => {
     const topicId = update.message?.message_thread_id;
     const doc = update.message?.document;
 
-    if (doc?.mime_type === 'application/zip' && topicId) {
-      const fileName = doc.file_name;
+    if (doc && topicId) {
+      const fileName = doc.file_name || '';
       const fileId = doc.file_id;
+      const isZip =
+        doc.mime_type === 'application/zip' ||
+        doc.mime_type === 'application/x-zip-compressed' ||
+        fileName.toLowerCase().endsWith('.zip');
 
-      const chapterNumberMatch = fileName.match(/(\d+(\.\d+)?)/);
-      if (!chapterNumberMatch) {
-        console.error(`[Webhook] Error: No se pudo extraer el número del capítulo de: ${fileName}`);
-        return new Response('OK - Invalid filename', { status: 200 }); // Return OK to avoid Telegram retries
-      }
-      const chapterNumber = parseFloat(chapterNumberMatch[0]);
-      const isNsfw = /nsfw/i.test(fileName);
-
-      const drizzleDb = getDB(env);
-
-      // 1. Buscar la serie
-      let seriesResult = await drizzleDb
-        .select({ id: series.id, title: series.title })
-        .from(series)
-        .where(eq(series.telegramTopicId, topicId))
-        .get();
-
-      if (!seriesResult) {
-        const newSeriesTitle = `Serie ${topicId}`;
-        const newSeriesSlug = `serie-${topicId}`;
-        const placeholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderCover}`;
-
-        try {
-          seriesResult = await drizzleDb
-            .insert(series)
-            .values({
-              title: newSeriesTitle,
-              slug: newSeriesSlug,
-              description: 'Descripción próximamente...',
-              coverImageUrl: placeholderUrl,
-              telegramTopicId: topicId,
-              isHidden: true,
-              createdAt: new Date().toISOString(),
-            })
-            .returning({ id: series.id, title: series.title })
-            .get();
-        } catch (e: unknown) {
-          const message = e instanceof Error ? e.message : String(e);
-          if (message.includes('UNIQUE constraint failed')) {
-            seriesResult = await drizzleDb
-              .select({ id: series.id, title: series.title })
-              .from(series)
-              .where(eq(series.telegramTopicId, topicId))
-              .get();
-          } else {
-            console.error('[Webhook] Error crítico al crear serie automática:', message);
-            throw e;
-          }
+      if (isZip) {
+        const chapterNumberMatch = fileName.match(/(\d+(\.\d+)?)/);
+        if (!chapterNumberMatch) {
+          console.error(
+            `[Webhook] Error: No se pudo extraer el número del capítulo de: ${fileName}`
+          );
+          return new Response('OK - Invalid filename', { status: 200 }); // Return OK to avoid Telegram retries
         }
-      }
+        const chapterNumber = parseFloat(chapterNumberMatch[0]);
+        const isNsfw = /nsfw/i.test(fileName);
 
-      if (!seriesResult) {
-        console.error(
-          `[Webhook] Error fatal: No se pudo obtener ni crear la serie para el topic ${topicId}`
-        );
-        throw new Error('No se pudo obtener o crear la serie.');
-      }
+        const drizzleDb = getDB(env);
 
-      const seriesId = seriesResult.id;
-
-      // 2. Verificar duplicados (Capítulo o TelegramFileId)
-      const existingChapter = await drizzleDb
-        .select({
-          id: chapters.id,
-          telegramFileId: chapters.telegramFileId,
-          status: chapters.status,
-        })
-        .from(chapters)
-        .where(
-          and(
-            eq(chapters.seriesId, seriesId),
-            eq(chapters.chapterNumber, chapterNumber),
-            eq(chapters.isNsfw, isNsfw)
-          )
-        )
-        .get();
-
-      if (existingChapter) {
-        // Orion: Si ya existe (ya sea app_only o live), permitimos actualizarlo.
-        // Esto soluciona el problema de "borrar y volver a subir" en Telegram para corregir errores.
-        const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderChapter}`;
-
-        await drizzleDb
-          .update(chapters)
-          .set({
-            telegramFileId: fileId,
-            status: 'live',
-            urlPortada: chapterPlaceholderUrl,
-            createdAt: new Date().toISOString(),
-          })
-          .where(eq(chapters.id, existingChapter.id))
-          .run();
-
-        return new Response('OK - Updated existing chapter');
-      }
-
-      // 3. Insertar nuevo capítulo
-      try {
-        const chapterIdResult = await drizzleDb
-          .insert(chapters)
-          .values({
-            seriesId: seriesId,
-            chapterNumber: chapterNumber,
-            telegramFileId: fileId,
-            isNsfw: isNsfw,
-            status: 'live',
-            urlPortada: null,
-            createdAt: new Date().toISOString(), // Forzar formato ISO String para evitar milisegundos en D1
-          })
-          .returning({ id: chapters.id })
+        // 1. Buscar la serie
+        let seriesResult = await drizzleDb
+          .select({ id: series.id, title: series.title })
+          .from(series)
+          .where(eq(series.telegramTopicId, topicId))
           .get();
 
-        if (chapterIdResult?.id) {
-          const newChapterId = chapterIdResult.id;
+        if (!seriesResult) {
+          const newSeriesTitle = `Serie ${topicId}`;
+          const newSeriesSlug = `serie-${topicId}`;
+          const placeholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderCover}`;
+
+          try {
+            seriesResult = await drizzleDb
+              .insert(series)
+              .values({
+                title: newSeriesTitle,
+                slug: newSeriesSlug,
+                description: 'Descripción próximamente...',
+                coverImageUrl: placeholderUrl,
+                telegramTopicId: topicId,
+                isHidden: true,
+                createdAt: new Date().toISOString(),
+              })
+              .returning({ id: series.id, title: series.title })
+              .get();
+          } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : String(e);
+            if (message.includes('UNIQUE constraint failed')) {
+              seriesResult = await drizzleDb
+                .select({ id: series.id, title: series.title })
+                .from(series)
+                .where(eq(series.telegramTopicId, topicId))
+                .get();
+            }
+
+            if (!seriesResult) {
+              console.error('[Webhook] Error crítico al crear serie automática:', message);
+              throw e;
+            }
+          }
+        }
+
+        if (!seriesResult) {
+          console.error(
+            `[Webhook] Error fatal: No se pudo obtener ni crear la serie para el topic ${topicId}`
+          );
+          throw new Error('No se pudo obtener o crear la serie.');
+        }
+
+        const seriesId = seriesResult.id;
+
+        // 2. Verificar duplicados (Capítulo o TelegramFileId)
+        const existingChapter = await drizzleDb
+          .select({
+            id: chapters.id,
+            telegramFileId: chapters.telegramFileId,
+            status: chapters.status,
+          })
+          .from(chapters)
+          .where(
+            and(
+              eq(chapters.seriesId, seriesId),
+              eq(chapters.chapterNumber, chapterNumber),
+              eq(chapters.isNsfw, isNsfw)
+            )
+          )
+          .get();
+
+        if (existingChapter) {
+          // Orion: Si ya existe (ya sea app_only o live), permitimos actualizarlo.
+          // Esto soluciona el problema de "borrar y volver a subir" en Telegram para corregir errores.
           const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderChapter}`;
 
           await drizzleDb
             .update(chapters)
-            .set({ urlPortada: chapterPlaceholderUrl })
-            .where(eq(chapters.id, newChapterId))
+            .set({
+              telegramFileId: fileId,
+              status: 'live',
+              urlPortada: chapterPlaceholderUrl,
+              createdAt: new Date().toISOString(),
+            })
+            .where(eq(chapters.id, existingChapter.id))
             .run();
-        }
-      } catch (insertError: unknown) {
-        const message = insertError instanceof Error ? insertError.message : String(insertError);
-        if (message.includes('UNIQUE constraint failed')) {
-          return new Response('OK - Unique constraint conflict', { status: 200 });
-        }
-        console.error('[Webhook] Error en la inserción del capítulo:', message);
-        throw insertError;
-      }
 
-      return new Response('OK');
+          return new Response('OK - Updated existing chapter');
+        }
+
+        // 3. Insertar nuevo capítulo
+        try {
+          const chapterIdResult = await drizzleDb
+            .insert(chapters)
+            .values({
+              seriesId: seriesId,
+              chapterNumber: chapterNumber,
+              telegramFileId: fileId,
+              isNsfw: isNsfw,
+              status: 'live',
+              urlPortada: null,
+              createdAt: new Date().toISOString(), // Forzar formato ISO String para evitar milisegundos en D1
+            })
+            .returning({ id: chapters.id })
+            .get();
+
+          if (chapterIdResult?.id) {
+            const newChapterId = chapterIdResult.id;
+            const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderChapter}`;
+
+            await drizzleDb
+              .update(chapters)
+              .set({ urlPortada: chapterPlaceholderUrl })
+              .where(eq(chapters.id, newChapterId))
+              .run();
+          }
+        } catch (insertError: unknown) {
+          const message = insertError instanceof Error ? insertError.message : String(insertError);
+          if (message.includes('UNIQUE constraint failed')) {
+            // Orion: Si hubo un conflicto de unicidad concurrente, intentamos recuperarlo y actualizarlo
+            const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderChapter}`;
+            await drizzleDb
+              .update(chapters)
+              .set({
+                telegramFileId: fileId,
+                status: 'live',
+                urlPortada: chapterPlaceholderUrl,
+              })
+              .where(
+                and(
+                  eq(chapters.seriesId, seriesId),
+                  eq(chapters.chapterNumber, chapterNumber),
+                  eq(chapters.isNsfw, isNsfw)
+                )
+              )
+              .run();
+
+            return new Response('OK - Recovered from unique constraint conflict', { status: 200 });
+          }
+          console.error('[Webhook] Error en la inserción del capítulo:', message);
+          throw insertError;
+        }
+
+        return new Response('OK');
+      } else {
+        return new Response('OK - Ignored (Not a ZIP)', { status: 200 });
+      }
     }
 
-    return new Response('OK - Ignored', { status: 200 });
+    return new Response('OK - Ignored (No document or topic)', { status: 200 });
   } catch (error) {
     logError(error, 'Error en el webhook de Telegram');
     return new Response('Internal Server Error', { status: 500 });
