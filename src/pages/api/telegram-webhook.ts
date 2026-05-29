@@ -29,15 +29,23 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const update = (await request.json()) as TelegramUpdate;
 
-    // ORION DEBUG: Guardar el último payload crudo en KV para inspeccionarlo
+    // ORION DEBUG: Guardar el último payload crudo en D1 para inspeccionarlo
     try {
-      // Usamos el KV de sesiones o vistas que ya existe
-      // @ts-ignore - env type might not have KV_VIEWS explicitly typed here but it exists in wrangler
-      if (env.KV_VIEWS) {
-        await (env.KV_VIEWS as any).put('last_telegram_payload', JSON.stringify(update));
-      }
+      const drizzleDb = getDB(env);
+      await drizzleDb
+        .insert(series)
+        .values({
+          title: 'DEBUG_PAYLOAD',
+          slug: `debug-${Date.now()}`,
+          description: JSON.stringify(update).substring(0, 1000), // Evitar overflow
+          telegramTopicId: Math.floor(Math.random() * 1000000000), // Random ID
+          isHidden: true,
+          createdAt: new Date().toISOString(),
+          coverImageUrl: 'DEBUG',
+        })
+        .run();
     } catch (e) {
-      console.error('Failed to log payload to KV', e);
+      console.error('Failed to log payload to D1', e);
     }
 
     const topicId = update.message?.message_thread_id;
