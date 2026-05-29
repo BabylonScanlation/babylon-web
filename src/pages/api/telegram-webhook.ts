@@ -29,6 +29,17 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const update = (await request.json()) as TelegramUpdate;
 
+    // ORION DEBUG: Guardar el último payload crudo en KV para inspeccionarlo
+    try {
+      // Usamos el KV de sesiones o vistas que ya existe
+      // @ts-ignore - env type might not have KV_VIEWS explicitly typed here but it exists in wrangler
+      if (env.KV_VIEWS) {
+        await (env.KV_VIEWS as any).put('last_telegram_payload', JSON.stringify(update));
+      }
+    } catch (e) {
+      console.error('Failed to log payload to KV', e);
+    }
+
     const topicId = update.message?.message_thread_id;
     const doc = update.message?.document;
 
