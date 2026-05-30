@@ -45,6 +45,7 @@ const nsfwLogoUrl = siteConfig.assets.logoHeaderNsfw.startsWith('/')
         class="speed-dial-header-btn"
         aria-label="Soporte y Ayuda"
         onclick="window.dispatchEvent(new CustomEvent('toggle-speed-dial'))"
+        style="display: none;"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 18v-6a9 9 0 0 1 18 0v6" opacity="0.5"></path>
@@ -316,27 +317,27 @@ const nsfwLogoUrl = siteConfig.assets.logoHeaderNsfw.startsWith('/')
       content: none;
     }
     .speed-dial-header-btn {
-      justify-self: end;
-      margin-right: 1.8rem;
       all: unset;
+      justify-self: end;
+      margin-right: 2.2rem;
       cursor: pointer;
       display: flex !important;
       align-items: center;
       justify-content: center;
-      background: rgba(0, 191, 255, 0.05);
+      background: rgba(255, 255, 255, 0.05);
       border: 2px solid rgba(255, 255, 255, 0.3);
       border-radius: 8px;
-      padding: 8px 10px;
+      padding: 8px 14px;
       line-height: 1;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      color: var(--accent-color, #00bfff);
+      color: rgba(255, 255, 255, 0.9);
     }
     .speed-dial-header-btn:active {
       transform: scale(0.9);
     }
     .speed-dial-header-btn svg {
-      width: 20px;
-      height: 20px;
+      width: 16px;
+      height: 16px;
       display: block;
     }
     .desktop-nav {

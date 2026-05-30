@@ -751,24 +751,6 @@ import { siteConfig } from '../site.config';
         <input id="reader-width-range" name="reader-width" type="range" min="20" max="100" step="5" bind:value={readerWidth} disabled={isMobile} />
       </div>
 
-      {#if isMobile}
-        <div class="config-row">
-          <span class="config-label">Navegación de Capítulos</span>
-          <div class="hud-nav-group modal-nav">
-            <a href={prevChapter ? `/series/${prevChapter.slug}/${prevChapter.chapter}` : '#'} class="hud-nav-btn prev" class:disabled={!prevChapter} title="Capítulo Anterior">
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="3"><polyline points="15 18 9 12 15 6"></polyline></svg>
-              <span class="nav-text">Anterior</span>
-            </a>
-            <div class="hud-sep"></div>
-            <a href={nextChapter ? `/series/${nextChapter.slug}/${nextChapter.chapter}` : '#'} class="hud-nav-btn next" class:disabled={!nextChapter} title="Capítulo Siguiente">
-              <span class="nav-text">Siguiente</span>
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="3"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </a>
-          </div>
-        </div>
-      {/if}
-
-
 
       <button class="btn-save-config" onclick={saveSettings}>Guardar Ajustes</button>    </div>
   </div>
@@ -1015,28 +997,8 @@ import { siteConfig } from '../site.config';
     margin: 0 4px;
   }
 
-  /* Modal Navigation */
-  .modal-nav {
-    justify-content: center;
-    padding: 0.5rem !important;
-    background: rgba(255, 255, 255, 0.05) !important;
-    margin-top: 0.5rem;
-  }
 
-  .modal-nav .hud-nav-btn {
-    width: auto !important;
-    height: 44px !important;
-    padding: 0 1.5rem;
-    border-radius: 12px !important;
-    gap: 0.75rem;
-  }
 
-  .nav-text {
-    font-size: 0.9rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
 
 
 

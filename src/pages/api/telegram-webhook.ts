@@ -50,9 +50,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const chapterNumberMatch = fileName.match(/(\d+(\.\d+)?)/);
     if (!chapterNumberMatch) {
-      console.error(
-        `[Webhook] Error: No se pudo extraer el número del capítulo de: ${fileName}`
-      );
+      console.error(`[Webhook] Error: No se pudo extraer el número del capítulo de: ${fileName}`);
       return new Response('OK - Invalid filename', { status: 200 });
     }
 

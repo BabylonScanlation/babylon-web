@@ -38,13 +38,10 @@ export const GET: APIRoute = async () => {
       .orderBy(chapters.chapterNumber, chapters.isNsfw)
       .all();
 
-    return new Response(
-      JSON.stringify({ total: data.length, chapters: data }, null, 2),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({ total: data.length, chapters: data }, null, 2), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (err: unknown) {
     return new Response((err as Error).message, { status: 500 });
   }

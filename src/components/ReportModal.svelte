@@ -2,6 +2,7 @@
 import { actions } from 'astro:actions';
 import { fade, fly } from 'svelte/transition';
 import { toast } from '../lib/stores.svelte';
+import Combobox from './Combobox.svelte';
 
 type ReportType = 'chapter_fallen' | 'bug' | 'claim' | 'suggestion';
 
@@ -20,6 +21,13 @@ let chapterNumber = $state('');
 let scanName = $state('');
 let contactInfo = $state('');
 let fileInput: HTMLInputElement | undefined = $state();
+
+let seriesList = $state<{ id: number; title: string }[]>([]);
+let chaptersList = $state<{ id: number; number: string }[]>([]);
+let seriesOptions = $derived(seriesList.map((s) => s.title));
+let chaptersOptions = $derived(chaptersList.map((c) => c.number));
+let isFetchingSeries = $state(false);
+let isFetchingChapters = $state(false);
 
 const typeLabels: Record<ReportType, string> = {
   chapter_fallen: 'Reportar Capítulo Caído',
@@ -43,9 +51,42 @@ $effect(() => {
   if (isOpen) {
     const bridge = document.getElementById('reader-data-bridge');
     if (bridge) {
-      seriesTitle = bridge.getAttribute('data-series-title') || '';
-      chapterNumber = bridge.getAttribute('data-chapter') || '';
+      if (!seriesTitle) seriesTitle = bridge.getAttribute('data-series-title') || '';
+      if (!chapterNumber) chapterNumber = bridge.getAttribute('data-chapter') || '';
     }
+  }
+});
+
+// Fetch all series when modal opens for chapter fallen
+$effect(() => {
+  if (isOpen && type === 'chapter_fallen' && seriesList.length === 0 && !isFetchingSeries) {
+    isFetchingSeries = true;
+    actions.reports.getSeriesList().then(({ data }) => {
+      if (data?.success && data.series) {
+        seriesList = data.series;
+      }
+      isFetchingSeries = false;
+    });
+  }
+});
+
+// Fetch chapters when a valid series is selected
+$effect(() => {
+  if (seriesTitle && seriesList.length > 0) {
+    const found = seriesList.find((s) => s.title === seriesTitle);
+    if (found) {
+      isFetchingChapters = true;
+      actions.reports.getChaptersList({ seriesId: found.id }).then(({ data }) => {
+        if (data?.success && data.chapters) {
+          chaptersList = data.chapters;
+        }
+        isFetchingChapters = false;
+      });
+    } else {
+      chaptersList = [];
+    }
+  } else {
+    chaptersList = [];
   }
 });
 
@@ -138,13 +179,21 @@ async function handleSubmit(e: Event) {
         {#if type === 'chapter_fallen'}
           <p class="help-text-main">Péganos el enlace, o dinos qué serie y capítulo están fallando.</p>
           <div class="form-row">
-            <div class="form-group">
-              <label for="series">Serie (Opcional si estás en la página)</label>
-              <input type="text" id="series" bind:value={seriesTitle} placeholder="Nombre del manga..." />
+            <div class="form-group" style="position: relative; z-index: 105;">
+              <label for="series">Serie</label>
+              {#if isFetchingSeries}
+                <input type="text" disabled placeholder="Cargando series..." />
+              {:else}
+                <Combobox id="series" bind:value={seriesTitle} options={seriesOptions} placeholder="Nombre del manga..." />
+              {/if}
             </div>
-            <div class="form-group">
+            <div class="form-group" style="position: relative; z-index: 104;">
               <label for="chapter">Capítulo</label>
-              <input type="text" id="chapter" bind:value={chapterNumber} placeholder="Ej: 45" />
+              {#if isFetchingChapters}
+                <input type="text" disabled placeholder="..." />
+              {:else}
+                <Combobox id="chapter" bind:value={chapterNumber} options={chaptersOptions} placeholder="Ej: 45" />
+              {/if}
             </div>
           </div>
           <div class="form-group">
@@ -158,7 +207,7 @@ async function handleSubmit(e: Event) {
           <div class="form-row">
             <div class="form-group">
               <label for="scan">Nombre de tu Scanlation</label>
-              <input type="text" id="scan" bind:value={scanName} placeholder="Mi Scan Fansub" required />
+              <input type="text" id="scan" bind:value={scanName} placeholder="Mi Scanlation" required />
             </div>
           </div>
           <div class="form-group">
@@ -177,7 +226,7 @@ async function handleSubmit(e: Event) {
             {#if isLoading}
               Enviando...
             {:else}
-              Enviar {typeLabels[type].split(' ')[0]}
+              Enviar
             {/if}
           </button>
         </div>

@@ -1,8 +1,73 @@
 import { defineAction } from 'astro:actions';
 import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
+import { asc, eq } from 'drizzle-orm';
+import { chapters, series } from '../db/schema';
+import { getDB } from '../lib/db';
 
 export const reportActions = {
+  getSeriesList: defineAction({
+    handler: async () => {
+      try {
+        const db = getDB(env);
+        const allSeries = await db
+          .select({ id: series.id, title: series.title })
+          .from(series)
+          .orderBy(asc(series.title))
+          .all();
+        return { success: true, series: allSeries };
+      } catch (e) {
+        console.error('[Reports Action Error getSeriesList]:', e);
+        return { success: false, error: 'Error fetching series', series: [] };
+      }
+    },
+  }),
+
+  getChaptersList: defineAction({
+    input: z.object({
+      seriesId: z.number().optional(),
+      seriesTitle: z.string().optional(),
+    }),
+    handler: async (input) => {
+      try {
+        const db = getDB(env);
+        let targetSeriesId = input.seriesId;
+
+        if (!targetSeriesId && input.seriesTitle) {
+          const s = await db
+            .select({ id: series.id })
+            .from(series)
+            .where(eq(series.title, input.seriesTitle))
+            .get();
+          if (s) targetSeriesId = s.id;
+        }
+
+        if (!targetSeriesId) {
+          return { success: false, error: 'Series not found', chapters: [] };
+        }
+
+        const allChapters = await db
+          .select({ id: chapters.id, number: chapters.chapterNumber })
+          .from(chapters)
+          .where(eq(chapters.seriesId, targetSeriesId))
+          // No necesitamos asc, Drizzle ya retorna orden natural, o podemos usar order. Depende de si es double.
+          // pero asc de string numérico falla. Por ahora traer todos.
+          .all();
+
+        // Convert numbers to strings for the frontend combobox
+        const formattedChapters = allChapters.map((c) => ({
+          id: c.id,
+          number: String(c.number),
+        }));
+
+        return { success: true, chapters: formattedChapters };
+      } catch (e) {
+        console.error('[Reports Action Error getChaptersList]:', e);
+        return { success: false, error: 'Error fetching chapters', chapters: [] };
+      }
+    },
+  }),
+
   sendReport: defineAction({
     accept: 'form',
     input: z.object({

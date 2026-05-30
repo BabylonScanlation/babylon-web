@@ -17,7 +17,11 @@ function toggleOpen() {
 }
 
 function handleClickOutside(e: MouseEvent) {
-  if (menuContainer && !menuContainer.contains(e.target as Node)) {
+  const target = e.target as Node;
+  // Ignorar clicks en el botón del header que dispara toggle-speed-dial
+  const headerBtn = document.getElementById('speed-dial-header-btn');
+  if (headerBtn && headerBtn.contains(target)) return;
+  if (menuContainer && !menuContainer.contains(target)) {
     isOpen = false;
   }
 }
@@ -320,10 +324,16 @@ function handleReport(type: ReportType) {
 
   @media (max-width: 768px) {
     .speed-dial-container {
-      bottom: 5.5rem;
-      right: 1.25rem;
+      bottom: auto;
+      top: 8.5rem;
+      right: 1.8rem;
     }
     
+    .speed-dial-menu {
+      margin-bottom: 0;
+      margin-top: 0;
+    }
+
     .sd-fab {
       display: none;
     }
