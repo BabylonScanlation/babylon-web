@@ -411,7 +411,7 @@ function setupSse(isRetry = false) {
 
   console.log(`[ChapterReader] Setting up SSE for ${slug}/${chapter} (Retry: ${isRetry})`);
   startProgressSimulation();
-  eventSource = new EventSource(`/api/series/${slug}/${chapter}`);
+  eventSource = new EventSource(`/api/series/${slug}/${chapter}?id=${chapterId}`);
 
   eventSource.addEventListener('processing', (e) => {
     // console.log('[ChapterReader] SSE Processing event');

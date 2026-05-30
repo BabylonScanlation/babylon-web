@@ -65,6 +65,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         telegramFileId: chapters.telegramFileId,
         chapterCoverUrl: chapters.urlPortada,
         status: chapters.status,
+        isNsfw: chapters.isNsfw,
       })
       .from(chapters)
       .innerJoin(series, eq(chapters.seriesId, series.id))
@@ -89,11 +90,18 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       );
     }
 
+    const nsfwFolder = chapterData.isNsfw ? '1' : '0';
+    const newManifestKey = `series_manifest/${slug}/${chapterNumber}/${nsfwFolder}/manifest.json`;
+    const legacyManifestKey = `series_manifest/${slug}/${chapterData.chapterId}/manifest.json`;
+
     console.log(
-      `[API_CH] Chapter found (ID: ${chapterData.chapterId}). Manifest key: series_manifest/${slug}/${chapterData.chapterId}/manifest.json`
+      `[API_CH] Chapter found (ID: ${chapterData.chapterId}). Manifest key: ${newManifestKey}`
     );
-    const manifestKey = `series_manifest/${slug}/${chapterData.chapterId}/manifest.json`;
-    const manifestObject = await retryGetFromR2(manifestKey);
+
+    let manifestObject = await retryGetFromR2(newManifestKey);
+    if (!manifestObject) {
+      manifestObject = await retryGetFromR2(legacyManifestKey);
+    }
 
     const acceptHeader = request.headers.get('Accept');
     const wantsStream = acceptHeader?.includes('text/event-stream');
@@ -209,12 +217,13 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
           if (attempts % 5 === 0)
             console.log(`[API_CH] SSE Loop: Polling manifest (${attempts}/${maxAttempts})...`);
 
-          const updatedManifest = await retryGetFromR2(manifestKey, 1).catch(() => null);
+          let pollingManifest = await retryGetFromR2(newManifestKey, 1);
+          if (!pollingManifest) pollingManifest = await retryGetFromR2(legacyManifestKey, 1);
 
-          if (updatedManifest) {
-            console.log('[API_CH] ⚡ Lightspeed: Manifest DETECTED! Sending completed event.');
-            const content = await updatedManifest.json();
-            const signed = await signManifest(content, env.AUTH_SECRET);
+          if (pollingManifest) {
+            console.log(`[API_CH] ⚡ Manifest appeared after ${attempts} attempts!`);
+            const manifestContent = await pollingManifest.json();
+            const signed = await signManifest(manifestContent, env.AUTH_SECRET);
             const message = `event: completed\ndata: ${JSON.stringify({ payload: { ...signed, chapterId: chapterData.chapterId } })}\n\n`;
             await writer.write(encoder.encode(message));
             await writer.close();

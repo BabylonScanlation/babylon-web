@@ -32,6 +32,7 @@
     "start": "astro start",
     "db:pull": "node scripts/db-export-custom.js",
     "db:reset:local": "if exist .wrangler\\state\\v3\\d1 rd /s /q .wrangler\\state\\v3\\d1",
+    "r2:reset:local": "if exist .wrangler\\state\\v3\\r2 rd /s /q .wrangler\\state\\v3\\r2",
     "db:patch": "node scripts/db-patch-schema.js",
     "db:load": "npm run db:patch && wrangler d1 execute babylon-scanlation-prod --local --file=./db_snapshots/dump.sql",
     "db:migrate": "wrangler d1 migrations apply babylon-scanlation-prod --local",

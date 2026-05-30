@@ -88,7 +88,7 @@ export async function processAndCacheChapter(
 
     const nsfwFolder = chapterData?.isNsfw ? '1' : '0';
     const versionHash = Date.now().toString(36);
-    const manifestKey = `series_manifest/${slug}/${String(chapterId)}/manifest.json`;
+    const manifestKey = `series_manifest/${slug}/${chapterNumber}/${nsfwFolder}/manifest.json`;
 
     // --- FASE 0: VALIDACIÓN DE CAMBIOS (DE-DUPLICACIÓN) ---
     try {
