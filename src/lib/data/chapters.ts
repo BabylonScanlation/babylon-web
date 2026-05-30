@@ -45,8 +45,10 @@ export async function getChapterPayload(
 
     if (chapterId === 0) {
       conditions.push(eq(chapters.isNsfw, false));
+      conditions.push(eq(chapters.chapterNumber, chapterNumber));
     } else if (chapterId === 1) {
       conditions.push(eq(chapters.isNsfw, true));
+      conditions.push(eq(chapters.chapterNumber, chapterNumber));
     } else if (chapterId !== undefined) {
       conditions.push(eq(chapters.id, chapterId));
     } else {
