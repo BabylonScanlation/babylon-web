@@ -39,6 +39,18 @@ const nsfwLogoUrl = siteConfig.assets.logoHeaderNsfw.startsWith('/')
           id="header-logo-img"
         />
       </a>
+      <!-- Astra: Botón de soporte en header para móviles (reemplaza FAB flotante) -->
+      <button
+        id="speed-dial-header-btn"
+        class="speed-dial-header-btn"
+        aria-label="Soporte y Ayuda"
+        onclick="window.dispatchEvent(new CustomEvent('toggle-speed-dial'))"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 18v-6a9 9 0 0 1 18 0v6" opacity="0.5"></path>
+          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" fill="currentColor" fill-opacity="0.3"></path>
+        </svg>
+      </button>
     </div>
 
     <nav class="desktop-nav">
@@ -301,11 +313,39 @@ const nsfwLogoUrl = siteConfig.assets.logoHeaderNsfw.startsWith('/')
       justify-content: center;
     }
     .logo-section::after {
-      content: "";
+      content: none;
+    }
+    .speed-dial-header-btn {
+      justify-self: end;
+      margin-right: 1.8rem;
+      all: unset;
+      cursor: pointer;
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 191, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      padding: 8px 10px;
+      line-height: 1;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      color: var(--accent-color, #00bfff);
+    }
+    .speed-dial-header-btn:active {
+      transform: scale(0.9);
+    }
+    .speed-dial-header-btn svg {
+      width: 20px;
+      height: 20px;
       display: block;
     }
     .desktop-nav {
       display: none;
+    }
+  }
+  @media (min-width: 769px) {
+    .speed-dial-header-btn {
+      display: none !important;
     }
   }
 </style>

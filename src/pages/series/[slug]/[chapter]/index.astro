@@ -85,6 +85,22 @@ try {
     if (autoSelectId) {
       // Redirigir limpiamente a la URL con ID
       return Astro.redirect(`/series/${slug}/${chapterNumber}?id=${autoSelectId}`);
+    }
+
+    // Auto-selección por cookie de preferencia guardada
+    if (!autoSelectId) {
+      const versionPref = Astro.cookies.get('babylon_version_pref')?.value;
+      if (versionPref === 'nsfw') {
+        const nsfwVer = availableVersions.find((c) => c.isNsfw);
+        if (nsfwVer) autoSelectId = nsfwVer.id;
+      } else if (versionPref === 'sfw') {
+        const sfwVer = availableVersions.find((c) => !c.isNsfw);
+        if (sfwVer) autoSelectId = sfwVer.id;
+      }
+    }
+
+    if (autoSelectId) {
+      return Astro.redirect(`/series/${slug}/${chapterNumber}?id=${autoSelectId}`);
     } else {
       needsVersionSelection = true;
     }
@@ -254,7 +270,12 @@ if (error && currentChapterIndex !== -1) {
                 
                 <div class="version-options-grid">
                     {availableVersions.map((v) => (
-                        <a href={`/series/${slug}/${chapter}?id=${v.id}`} class="version-card">
+                        <a 
+                          href={`/series/${slug}/${chapter}?id=${v.id}`} 
+                          class="version-card"
+                          data-version-type={v.isNsfw ? 'nsfw' : 'sfw'}
+                          onclick="(function(e){var cb=document.getElementById('remember-version-pref');if(cb&&cb.checked){document.cookie='babylon_version_pref='+e.currentTarget.getAttribute('data-version-type')+';path=/;max-age=31536000;SameSite=Lax'}})(event)"
+                        >
                             <div class="version-card-content">
                                 <h3 class="version-name">Versión {v.isNsfw ? 'NSFW' : 'SFW'}</h3>
                                 {v.scanlationName && <span class="scanlation-name">{v.scanlationName}</span>}
@@ -265,6 +286,11 @@ if (error && currentChapterIndex !== -1) {
                         </a>
                     ))}
                 </div>
+
+                <label class="remember-pref-label" for="remember-version-pref">
+                  <input type="checkbox" id="remember-version-pref" />
+                  <span>Recordar mi selección</span>
+                </label>
 
                 <div class="action-grid mt-4">
                     <a href={`/series/${slug}`} class="nav-chapter-btn">
@@ -750,6 +776,34 @@ if (error && currentChapterIndex !== -1) {
 
   .mt-4 {
     margin-top: 1rem;
+  }
+
+  .remember-pref-label {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 1rem;
+    transition: all 0.2s ease;
+  }
+  .remember-pref-label:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .remember-pref-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent-color, #00bfff);
+    cursor: pointer;
+  }
+  .remember-pref-label span {
+    color: #aaa;
+    font-size: 0.85rem;
+    font-weight: 600;
   }
 
   @keyframes fadeUpIn {

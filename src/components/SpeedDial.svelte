@@ -25,6 +25,10 @@ function handleClickOutside(e: MouseEvent) {
 onMount(() => {
   document.addEventListener('click', handleClickOutside);
 
+  // Escuchar evento del botón del header (móviles)
+  const handleHeaderToggle = () => toggleOpen();
+  window.addEventListener('toggle-speed-dial', handleHeaderToggle);
+
   // Ocultar inteligentemente si estamos en el lector y la UI se esconde
   const header = document.querySelector('header');
   if (header) {
@@ -41,12 +45,14 @@ onMount(() => {
 
     return () => {
       document.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('toggle-speed-dial', handleHeaderToggle);
       observer.disconnect();
     };
   }
 
   return () => {
     document.removeEventListener('click', handleClickOutside);
+    window.removeEventListener('toggle-speed-dial', handleHeaderToggle);
   };
 });
 
@@ -319,12 +325,7 @@ function handleReport(type: ReportType) {
     }
     
     .sd-fab {
-      width: 54px;
-      height: 54px;
-      border-radius: 16px;
-    }
-    .sd-fab::before {
-      border-radius: 17px;
+      display: none;
     }
   }
 </style>

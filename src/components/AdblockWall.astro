@@ -135,12 +135,21 @@
     
     wall.style.setProperty('display', 'flex', 'important');
     
+    // Ocultar header y bottom nav para que no se sobrepongan al muro
+    const header = document.getElementById('main-header');
+    const bottomNav = document.querySelector('.mobile-bottom-nav') as HTMLElement | null;
+    if (header) header.style.setProperty('display', 'none', 'important');
+    if (bottomNav) bottomNav.style.setProperty('display', 'none', 'important');
+    
     const lock = () => {
       document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
       document.body.style.touchAction = 'none';
       document.body.style.position = 'fixed';
       document.body.style.width = '100%';
+      // Asegurar que header y nav siguen ocultos
+      if (header) header.style.setProperty('display', 'none', 'important');
+      if (bottomNav) bottomNav.style.setProperty('display', 'none', 'important');
     };
     lock();
 
@@ -148,12 +157,39 @@
       if (wall.style.display === 'flex') e.preventDefault();
     }, { passive: false });
     
+    // Anti-tampering: detectar si el muro es removido del DOM
+    const wallParent = wall.parentNode;
+    if (wallParent) {
+      const tamperObserver = new MutationObserver(() => {
+        if (!document.getElementById('app-shield-root')) {
+          tamperObserver.disconnect();
+          showCompromised();
+        }
+      });
+      tamperObserver.observe(wallParent, { childList: true });
+    }
+    
     setInterval(() => {
       if (wall.style.display === 'none' || !document.getElementById('app-shield-root')) {
-        location.reload();
+        showCompromised();
       }
       if (document.body.style.overflow !== 'hidden') lock();
     }, 1000);
+  }
+
+  function showCompromised() {
+    // Crear pantalla de página comprometida
+    const overlay = document.createElement('div');
+    overlay.id = 'compromised-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1.5rem;padding:2rem;text-align:center;';
+    overlay.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ff4757" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      <h2 style="color:#ff4757;font-size:1.5rem;font-weight:800;margin:0;">Página Comprometida</h2>
+      <p style="color:#888;font-size:0.95rem;max-width:400px;line-height:1.6;">Se detectó una modificación no autorizada en la página. Por seguridad, es necesario recargar.</p>
+      <button onclick="location.reload()" style="background:#fff;color:#000;border:none;padding:1rem 2rem;border-radius:12px;font-weight:800;font-size:0.9rem;cursor:pointer;letter-spacing:0.05em;">RECARGAR PÁGINA</button>
+    `;
+    document.body.innerHTML = '';
+    document.body.appendChild(overlay);
   }
 
   if (document.readyState === 'complete') {
@@ -268,7 +304,7 @@
   .soft-notice-wrapper {
     position: fixed;
     bottom: 24px;
-    right: 24px;
+    left: 24px;
     background: #0a0a0c;
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
@@ -290,7 +326,8 @@
       white-space: normal;
       left: 20px;
       right: 20px;
-      bottom: 20px;
+      bottom: auto;
+      top: 12px;
       text-align: center;
       justify-content: center;
     }

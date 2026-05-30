@@ -18,31 +18,6 @@ interface TelegramUpdate {
   };
 }
 
-// Helper: escribe un log persistente en D1 para diagnóstico en producción
-async function writeLog(
-  db: ReturnType<typeof getDB>,
-  level: 'INFO' | 'WARN' | 'ERROR',
-  message: string
-) {
-  try {
-    await db
-      .insert(series)
-      .values({
-        title: `WEBHOOK_LOG_${level}`,
-        slug: `wh-log-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        description: message.substring(0, 1000),
-        telegramTopicId: Math.floor(Math.random() * 1000000000),
-        isHidden: true,
-        createdAt: new Date().toISOString(),
-        coverImageUrl: 'LOG',
-      })
-      .run();
-  } catch {
-    // Si ni el log funciona, al menos queda en console
-    console.error(`[WebhookLog][${level}] Failed to write log: ${message}`);
-  }
-}
-
 export const POST: APIRoute = async ({ request }) => {
   const secretToken = request.headers.get('X-Telegram-Bot-Api-Secret-Token');
   if (secretToken !== env.TELEGRAM_WEBHOOK_SECRET) {
@@ -58,13 +33,6 @@ export const POST: APIRoute = async ({ request }) => {
     const topicId = update.message?.message_thread_id;
     const doc = update.message?.document;
 
-    // Log: qué recibimos
-    await writeLog(
-      drizzleDb,
-      'INFO',
-      `Received: topic=${topicId} file_name=${doc?.file_name ?? 'N/A'} file_id=${doc?.file_id ?? 'N/A'} mime=${doc?.mime_type ?? 'N/A'}`
-    );
-
     if (!doc || !topicId) {
       return new Response('OK - Ignored (No document or topic)', { status: 200 });
     }
@@ -77,24 +45,19 @@ export const POST: APIRoute = async ({ request }) => {
       fileName.toLowerCase().endsWith('.zip');
 
     if (!isZip) {
-      await writeLog(drizzleDb, 'WARN', `Not a ZIP: "${fileName}" mime=${doc.mime_type}`);
       return new Response('OK - Ignored (Not a ZIP)', { status: 200 });
     }
 
     const chapterNumberMatch = fileName.match(/(\d+(\.\d+)?)/);
     if (!chapterNumberMatch) {
-      await writeLog(drizzleDb, 'ERROR', `No chapter number in filename: "${fileName}"`);
+      console.error(
+        `[Webhook] Error: No se pudo extraer el número del capítulo de: ${fileName}`
+      );
       return new Response('OK - Invalid filename', { status: 200 });
     }
 
     const chapterNumber = parseFloat(chapterNumberMatch[0]);
     const isNsfw = /nsfw/i.test(fileName);
-
-    await writeLog(
-      drizzleDb,
-      'INFO',
-      `Parsed: chapter=${chapterNumber} isNsfw=${isNsfw} fileId=${fileId} fileName="${fileName}"`
-    );
 
     // 1. Buscar la serie por topicId
     let seriesResult = await drizzleDb
@@ -132,14 +95,16 @@ export const POST: APIRoute = async ({ request }) => {
             .get();
         }
         if (!seriesResult) {
-          await writeLog(drizzleDb, 'ERROR', `Failed to create series for topic ${topicId}: ${message}`);
+          console.error('[Webhook] Error crítico al crear serie automática:', message);
           throw e;
         }
       }
     }
 
     if (!seriesResult) {
-      await writeLog(drizzleDb, 'ERROR', `No series found or created for topic ${topicId}`);
+      console.error(
+        `[Webhook] Error fatal: No se pudo obtener ni crear la serie para el topic ${topicId}`
+      );
       throw new Error('No se pudo obtener o crear la serie.');
     }
 
@@ -151,7 +116,6 @@ export const POST: APIRoute = async ({ request }) => {
         id: chapters.id,
         telegramFileId: chapters.telegramFileId,
         status: chapters.status,
-        isNsfw: chapters.isNsfw,
       })
       .from(chapters)
       .where(
@@ -166,13 +130,8 @@ export const POST: APIRoute = async ({ request }) => {
     const chapterPlaceholderUrl = `${env.R2_PUBLIC_URL_ASSETS}${siteConfig.assets.placeholderChapter}`;
 
     if (existingChapter) {
-      // Ya existe → actualizar
-      await writeLog(
-        drizzleDb,
-        'INFO',
-        `Updating existing chapter id=${existingChapter.id} chapter=${chapterNumber} isNsfw=${isNsfw} oldFileId=${existingChapter.telegramFileId} newFileId=${fileId}`
-      );
-
+      // Orion: Si ya existe, permitimos actualizarlo.
+      // Esto soluciona el problema de "borrar y volver a subir" en Telegram para corregir errores.
       await drizzleDb
         .update(chapters)
         .set({
@@ -189,13 +148,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // 3. Insertar nuevo capítulo
     try {
-      await writeLog(
-        drizzleDb,
-        'INFO',
-        `Inserting new chapter: series=${seriesId} chapter=${chapterNumber} isNsfw=${isNsfw} fileId=${fileId}`
-      );
-
-      const chapterIdResult = await drizzleDb
+      await drizzleDb
         .insert(chapters)
         .values({
           seriesId: seriesId,
@@ -209,25 +162,12 @@ export const POST: APIRoute = async ({ request }) => {
         .returning({ id: chapters.id })
         .get();
 
-      await writeLog(
-        drizzleDb,
-        'INFO',
-        `Inserted OK: chapter id=${chapterIdResult?.id} chapter=${chapterNumber} isNsfw=${isNsfw}`
-      );
-
       return new Response('OK - Inserted new chapter');
     } catch (insertError: unknown) {
       const message = insertError instanceof Error ? insertError.message : String(insertError);
-
-      await writeLog(
-        drizzleDb,
-        'ERROR',
-        `Insert FAILED: chapter=${chapterNumber} isNsfw=${isNsfw} fileId=${fileId} error=${message}`
-      );
-
       if (message.includes('UNIQUE constraint failed')) {
-        // Intentar recuperar con UPDATE
-        const updateResult = await drizzleDb
+        // Orion: Si hubo un conflicto de unicidad concurrente, recuperamos con UPDATE
+        await drizzleDb
           .update(chapters)
           .set({
             telegramFileId: fileId,
@@ -244,22 +184,15 @@ export const POST: APIRoute = async ({ request }) => {
           )
           .run();
 
-        await writeLog(
-          drizzleDb,
-          'WARN',
-          `UNIQUE recovery UPDATE: rows_changed=${updateResult.meta.changes} chapter=${chapterNumber} isNsfw=${isNsfw}`
-        );
-
         return new Response('OK - Recovered from unique constraint conflict', { status: 200 });
       }
-
+      console.error('[Webhook] Error en la inserción del capítulo:', message);
       throw insertError;
     }
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error('[Webhook] Unhandled error:', errMsg);
-    await writeLog(drizzleDb, 'ERROR', `UNHANDLED: ${errMsg}`);
-    // Devolver 200 para evitar que Telegram reintente infinitamente
+    // Devolver 200 para evitar reintentos infinitos de Telegram
     return new Response('OK - Internal error logged', { status: 200 });
   }
 };
