@@ -76,30 +76,30 @@ try {
     // Auto-selección si viene por query parameter `?version=nsfw` o `?version=sfw`
     if (explicitVersion === 'nsfw') {
       const nsfwVer = availableVersions.find((c) => c.isNsfw);
-      if (nsfwVer) autoSelectId = nsfwVer.id;
+      if (nsfwVer) autoSelectId = 1;
     } else if (explicitVersion === 'sfw') {
       const sfwVer = availableVersions.find((c) => !c.isNsfw);
-      if (sfwVer) autoSelectId = sfwVer.id;
+      if (sfwVer) autoSelectId = 0;
     }
 
-    if (autoSelectId) {
+    if (autoSelectId !== undefined) {
       // Redirigir limpiamente a la URL con ID
       return Astro.redirect(`/series/${slug}/${chapterNumber}?id=${autoSelectId}`);
     }
 
     // Auto-selección por cookie de preferencia guardada
-    if (!autoSelectId) {
+    if (autoSelectId === undefined) {
       const versionPref = Astro.cookies.get('babylon_version_pref')?.value;
       if (versionPref === 'nsfw') {
         const nsfwVer = availableVersions.find((c) => c.isNsfw);
-        if (nsfwVer) autoSelectId = nsfwVer.id;
+        if (nsfwVer) autoSelectId = 1;
       } else if (versionPref === 'sfw') {
         const sfwVer = availableVersions.find((c) => !c.isNsfw);
-        if (sfwVer) autoSelectId = sfwVer.id;
+        if (sfwVer) autoSelectId = 0;
       }
     }
 
-    if (autoSelectId) {
+    if (autoSelectId !== undefined) {
       return Astro.redirect(`/series/${slug}/${chapterNumber}?id=${autoSelectId}`);
     } else {
       needsVersionSelection = true;
@@ -108,6 +108,7 @@ try {
 
   if (!needsVersionSelection) {
     let targetId = explicitId ? parseInt(explicitId) : undefined;
+    if (explicitId === '0') targetId = 0;
 
     // 3. Obtener payload del capítulo
     const chapterResult = await getChapterPayload(
@@ -115,7 +116,7 @@ try {
       env,
       slug,
       chapterNumber,
-      targetId ? { chapterId: targetId } : {},
+      targetId !== undefined && !isNaN(targetId) ? { chapterId: targetId } : {},
       Astro.locals.cfContext
     );
 

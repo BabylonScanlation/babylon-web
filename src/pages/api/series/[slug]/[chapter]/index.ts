@@ -73,7 +73,13 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
         and(
           eq(series.slug, slug),
           eq(chapters.chapterNumber, chapterNumber),
-          targetChapterId ? eq(chapters.id, parseInt(targetChapterId, 10)) : undefined,
+          targetChapterId === '0'
+            ? eq(chapters.isNsfw, false)
+            : targetChapterId === '1'
+              ? eq(chapters.isNsfw, true)
+              : targetChapterId
+                ? eq(chapters.id, parseInt(targetChapterId, 10))
+                : undefined,
           inArray(chapters.status, ['live', 'app_only', 'processing'])
         )
       )

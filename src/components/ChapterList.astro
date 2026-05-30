@@ -144,7 +144,7 @@ const languageNames: Record<string, string> = {
                 return (
                   <div class={`chapter-card-wrapper ${isSubItem ? 'sub-item' : ''} ${groupId}`} style={isSubItem ? 'display: none;' : ''}>
                     <a 
-                      href={isAppOnly ? '#' : `/series/${seriesSlug}/${chapter.chapterNumber}?id=${chapter.id}`} 
+                      href={isAppOnly ? '#' : `/series/${seriesSlug}/${chapter.chapterNumber}?id=${chapter.isNsfw ? 1 : 0}`} 
                       class:list={['chapter-card-premium', { 'app-chapter-link': isAppOnly }]}
                     >
                       <div class="card-bg-glow"></div>
