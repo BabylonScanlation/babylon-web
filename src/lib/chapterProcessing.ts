@@ -79,6 +79,14 @@ export async function processAndCacheChapter(
 
     if (imageEntries.length === 0) throw new Error('No se encontraron imágenes en el ZIP.');
 
+    // Orion: Obtener isNsfw de la BD para la ruta de carpetas (0 o 1)
+    const chapterData = await drizzleDb
+      .select({ isNsfw: chapters.isNsfw })
+      .from(chapters)
+      .where(eq(chapters.id, chapterId))
+      .get();
+
+    const nsfwFolder = chapterData?.isNsfw ? '1' : '0';
     const versionHash = Date.now().toString(36);
     const manifestKey = `series_manifest/${slug}/${String(chapterId)}/manifest.json`;
 
@@ -117,18 +125,40 @@ export async function processAndCacheChapter(
 
         const lastNumber = allNumbers[allNumbers.length - 1] as string;
         const pageNumber = parseInt(lastNumber, 10);
-        const r2Key = `series_manifest/${slug}/${chapterId}/${versionHash}/${name}`;
-        return { pageNumber, imageUrl: `/api/r2-cache/${r2Key}` };
+
+        const extMatch = name.match(/\.(jpe?g|png|webp)$/i);
+        const ext = extMatch?.[1] ? extMatch[1].toLowerCase() : 'webp';
+        const cleanExt = ext === 'jpeg' ? 'jpg' : ext;
+
+        const r2Key = `${slug}/${chapterNumber}/${nsfwFolder}/${pageNumber}.${cleanExt}`;
+
+        return {
+          pageNumber,
+          imageUrl: `/api/r2-cache/${r2Key}`,
+          originalName: name,
+          r2Key,
+          cleanExt,
+        };
       })
-      .filter((p): p is { pageNumber: number; imageUrl: string } => p !== null)
+      .filter(
+        (
+          p
+        ): p is {
+          pageNumber: number;
+          imageUrl: string;
+          originalName: string;
+          r2Key: string;
+          cleanExt: string;
+        } => p !== null
+      )
       .sort((a, b) => a.pageNumber - b.pageNumber);
 
     if (virtualPages.length > 0) {
       const manifestBody = JSON.stringify({
-        version: '2.1-virtual',
+        version: '3.0-clean-paths',
         vHash: versionHash,
-        sourceFileId: fileId, // Orion: Guardamos el ID de origen para futuras comparaciones
-        pages: virtualPages,
+        sourceFileId: fileId,
+        pages: virtualPages.map((p) => ({ pageNumber: p.pageNumber, imageUrl: p.imageUrl })),
       });
 
       // 1. Subir a R2_ASSETS (Única fuente de verdad para el manifest)
@@ -145,12 +175,11 @@ export async function processAndCacheChapter(
     }
 
     // --- FASE B: BACKGROUND FILL ---
-    const pageUploadPromises = imageEntries.map((entry: Entry) =>
+    const pageUploadPromises = virtualPages.map((vp) =>
       limit(async () => {
-        const name = entry.filename;
-        if (!name) return null;
+        const entry = imageEntries.find((e) => e.filename === vp.originalName);
+        if (!entry) return null;
 
-        const fileName = name;
         try {
           // Verificamos que sea un archivo y tenga el método getData
           if (
@@ -159,36 +188,27 @@ export async function processAndCacheChapter(
           )
             return null;
 
-          const r2Key = `series_manifest/${slug}/${String(chapterId)}/${versionHash}/${fileName}`;
+          const r2Key = vp.r2Key;
           const imageBuffer = await (
             entry as { getData: (writer: unknown) => Promise<Uint8Array> }
           ).getData(new Uint8ArrayWriter());
 
-          const contentType = fileName.toLowerCase().endsWith('.webp')
-            ? 'image/webp'
-            : fileName.toLowerCase().endsWith('.png')
-              ? 'image/png'
-              : 'image/jpeg';
+          const contentType =
+            vp.cleanExt === 'webp'
+              ? 'image/webp'
+              : vp.cleanExt === 'png'
+                ? 'image/png'
+                : 'image/jpeg';
 
           let uploadSuccess = false;
           for (let attempt = 1; attempt <= 3; attempt++) {
             try {
-              // 1. Subir a R2_ASSETS (Permanente)
-              await env.R2_ASSETS.put(r2Key, imageBuffer, {
-                httpMetadata: {
-                  contentType,
-                  cacheControl: 'public, max-age=31536000, immutable',
-                },
-                customMetadata: { version: versionHash },
-              });
-
-              // 2. Subir a R2_CACHE (Temporal/Capa de entrega rápida)
+              // SOLO SUBIR A R2_CACHE
               await env.R2_CACHE.put(r2Key, imageBuffer, {
                 httpMetadata: {
                   contentType,
                   cacheControl: 'public, max-age=31536000, s-maxage=2592000, immutable',
                 },
-                customMetadata: { version: versionHash },
               });
 
               uploadSuccess = true;
@@ -199,7 +219,7 @@ export async function processAndCacheChapter(
           }
           return uploadSuccess ? true : null;
         } catch (err) {
-          logError(err, '[UPLOAD] Fallo en página', { filename: fileName });
+          logError(err, '[UPLOAD] Fallo en página', { filename: vp.originalName });
           return null;
         }
       })
@@ -208,25 +228,21 @@ export async function processAndCacheChapter(
     await Promise.all(pageUploadPromises);
     console.log(`[PROCESO] ✅ Subida de imágenes completada para ${chapterId}`);
 
-    // --- FASE C: LIMPIEZA DE VERSIONES ANTIGUAS (ORDEN TOTAL) ---
+    // --- FASE C: LIMPIEZA DE VERSIONES ANTIGUAS (ORDEN TOTAL EN CACHE) ---
     try {
-      const prefix = `series_manifest/${slug}/${chapterId}/`;
-      const objects = await env.R2_ASSETS.list({ prefix });
+      const prefix = `${slug}/${chapterNumber}/${nsfwFolder}/`;
+      const objects = await env.R2_CACHE.list({ prefix });
+
+      const newKeys = new Set(virtualPages.map((vp) => vp.r2Key));
 
       const deletePromises = objects.objects
-        .filter((obj) => {
-          // No borrar el manifest.json que acabamos de subir
-          if (obj.key === manifestKey) return false;
-          // No borrar nada que pertenezca a la versión actual
-          if (obj.key.includes(`/${versionHash}/`)) return false;
-          return true;
-        })
-        .map((obj) => env.R2_ASSETS.delete(obj.key));
+        .filter((obj) => !newKeys.has(obj.key))
+        .map((obj) => env.R2_CACHE.delete(obj.key));
 
       if (deletePromises.length > 0) {
         await Promise.all(deletePromises);
         console.log(
-          `[PROCESO] 🧹 Limpieza completada: ${deletePromises.length} archivos antiguos eliminados.`
+          `[PROCESO] 🧹 Limpieza completada: ${deletePromises.length} archivos antiguos eliminados de CACHE.`
         );
       }
     } catch (cleanErr) {

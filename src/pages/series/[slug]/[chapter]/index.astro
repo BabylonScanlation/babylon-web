@@ -156,16 +156,29 @@ Astro.response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate
 
 // Lógica para los botones de capítulo siguiente/anterior
 const currentChapterNumber = parseFloat(chapter!);
-const currentChapterIndex = allChapters.findIndex((c) => c.chapterNumber === currentChapterNumber);
 
-const currentChapter = allChapters.find((c) => c.chapterNumber === currentChapterNumber);
+// Filtrar capítulos con números duplicados (ej. múltiples versiones SFW/NSFW)
+const uniqueChapters: any[] = [];
+const seenChapters = new Set();
+for (const ch of allChapters) {
+  if (!seenChapters.has(ch.chapterNumber)) {
+    seenChapters.add(ch.chapterNumber);
+    uniqueChapters.push(ch);
+  }
+}
+
+const currentChapterIndex = uniqueChapters.findIndex(
+  (c) => c.chapterNumber === currentChapterNumber
+);
+
+const currentChapter = uniqueChapters.find((c) => c.chapterNumber === currentChapterNumber);
 const chapterTitle = currentChapter?.title || '';
 
 let nextChapterUrl: string | null = null;
 let nextChapterProp: { slug: string; chapter: string } | null = null;
 
 if (currentChapterIndex > 0) {
-  const nextChapter = allChapters[currentChapterIndex - 1];
+  const nextChapter = uniqueChapters[currentChapterIndex - 1];
   if (nextChapter) {
     nextChapterUrl = `/series/${slug}/${nextChapter.chapterNumber}`;
     nextChapterProp = { slug: slug!, chapter: nextChapter.chapterNumber.toString() };
@@ -173,10 +186,12 @@ if (currentChapterIndex > 0) {
 }
 
 let prevChapterUrl: string | null = null;
-if (currentChapterIndex !== -1 && currentChapterIndex < allChapters.length - 1) {
-  const prevChapter = allChapters[currentChapterIndex + 1];
+let prevChapterProp: { slug: string; chapter: string } | null = null;
+if (currentChapterIndex !== -1 && currentChapterIndex < uniqueChapters.length - 1) {
+  const prevChapter = uniqueChapters[currentChapterIndex + 1];
   if (prevChapter) {
     prevChapterUrl = `/series/${slug}/${prevChapter.chapterNumber}`;
+    prevChapterProp = { slug: slug!, chapter: prevChapter.chapterNumber.toString() };
   }
 }
 
@@ -187,7 +202,7 @@ let prevWebChapterUrl: string | null = null;
 if (error && currentChapterIndex !== -1) {
   // nextWebChapterUrl: Buscar hacia el futuro (capítulos más nuevos -> índices menores en array DESC)
   for (let i = currentChapterIndex - 1; i >= 0; i--) {
-    const ch = allChapters[i];
+    const ch = uniqueChapters[i];
     if (ch && ch.status === 'live') {
       nextWebChapterUrl = `/series/${slug}/${ch.chapterNumber}`;
       break;
@@ -195,8 +210,8 @@ if (error && currentChapterIndex !== -1) {
   }
 
   // prevWebChapterUrl: Buscar hacia el pasado (capítulos más antiguos -> índices mayores en array DESC)
-  for (let i = currentChapterIndex + 1; i < allChapters.length; i++) {
-    const ch = allChapters[i];
+  for (let i = currentChapterIndex + 1; i < uniqueChapters.length; i++) {
+    const ch = uniqueChapters[i];
     if (ch && ch.status === 'live') {
       prevWebChapterUrl = `/series/${slug}/${ch.chapterNumber}`;
       break;
@@ -274,13 +289,13 @@ if (error && currentChapterIndex !== -1) {
                           href={`/series/${slug}/${chapter}?id=${v.id}`} 
                           class="version-card"
                           data-version-type={v.isNsfw ? 'nsfw' : 'sfw'}
-                          onclick="(function(e){var cb=document.getElementById('remember-version-pref');if(cb&&cb.checked){document.cookie='babylon_version_pref='+e.currentTarget.getAttribute('data-version-type')+';path=/;max-age=31536000;SameSite=Lax'}})(event)"
+                          onclick="var cb=document.getElementById('remember-version-pref');if(cb&&cb.checked){document.cookie='babylon_version_pref='+this.getAttribute('data-version-type')+';path=/;max-age=31536000;SameSite=Lax'}"
                         >
                             <div class="version-card-content">
                                 <h3 class="version-name">Versión {v.isNsfw ? 'NSFW' : 'SFW'}</h3>
                                 {v.scanlationName && <span class="scanlation-name">{v.scanlationName}</span>}
                                 {v.isNsfw && <span class="tag-nsfw badge">Sin Censura</span>}
-                                {!v.isNsfw && <span class="tag-sfw badge">Censurado / Normal</span>}
+                                {!v.isNsfw && <span class="tag-sfw badge">Censurado</span>}
                             </div>
                             <svg class="version-arrow" viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                         </a>
@@ -374,7 +389,7 @@ if (error && currentChapterIndex !== -1) {
           chapterTitle={chapterTitle}
           watermark={watermark}
           nextChapter={nextChapterProp || undefined} 
-          prevChapter={prevChapterUrl ? { slug: slug!, chapter: allChapters[currentChapterIndex + 1]?.chapterNumber.toString() } : undefined}
+          prevChapter={prevChapterProp || undefined}
           isStaff={Astro.locals.isStaff}
         />
     )}

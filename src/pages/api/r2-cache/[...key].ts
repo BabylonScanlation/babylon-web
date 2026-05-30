@@ -94,26 +94,60 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
 
     // 3. JIT RECOVERY DESDE TELEGRAM (Capa 2)
     const parts = key.split('/');
-    // Nueva estructura: series_manifest / slug / chapter / hash / filename
-    if (parts.length < 5) return new Response('Not Found', { status: 404 });
+    let seriesSlug = '';
+    let chapterNumStr = '';
+    let chapterIdStr = '';
+    let nsfwFolder = '';
+    let filename = '';
+    let isLegacyPath = false;
 
-    const seriesSlug = parts[1] || '';
-    const chapterNumStr = parts[2] || '0';
-    const filename = parts.slice(4).join('/');
-    const cacheKey = `${seriesSlug}/${chapterNumStr}`;
+    if (parts[0] === 'series_manifest') {
+      // Legacy structure: series_manifest / slug / chapterId / hash / filename
+      if (parts.length < 5) return new Response('Not Found', { status: 404 });
+      seriesSlug = parts[1] || '';
+      chapterIdStr = parts[2] || '';
+      filename = parts.slice(4).join('/');
+      isLegacyPath = true;
+    } else {
+      // New structure: slug / chapterNumber / nsfwFolder(0 o 1) / filename (ej. 1.webp)
+      if (parts.length < 4) return new Response('Not Found', { status: 404 });
+      seriesSlug = parts[0] || '';
+      chapterNumStr = parts[1] || '';
+      nsfwFolder = parts[2] || '';
+      filename = parts.slice(3).join('/');
+    }
+
+    const cacheKey = isLegacyPath
+      ? `${seriesSlug}/legacy_${chapterIdStr}`
+      : `${seriesSlug}/${chapterNumStr}/${nsfwFolder}`;
 
     let filePath = ZIP_CACHE.get(cacheKey)?.filePath;
 
     if (!filePath || Date.now() - (ZIP_CACHE.get(cacheKey)?.timestamp || 0) > CACHE_TTL) {
       const db = getDB(env);
-      const chapter = await db
-        .select({ fileId: chapters.telegramFileId })
-        .from(chapters)
-        .innerJoin(series, eq(chapters.seriesId, series.id))
-        .where(
-          and(eq(series.slug, seriesSlug), eq(chapters.chapterNumber, parseFloat(chapterNumStr)))
-        )
-        .get();
+      let chapter: { fileId: string | null } | undefined;
+
+      if (isLegacyPath) {
+        chapter = await db
+          .select({ fileId: chapters.telegramFileId })
+          .from(chapters)
+          .where(eq(chapters.id, parseInt(chapterIdStr, 10)))
+          .get();
+      } else {
+        const isNsfwBool = nsfwFolder === '1';
+        chapter = await db
+          .select({ fileId: chapters.telegramFileId })
+          .from(chapters)
+          .innerJoin(series, eq(chapters.seriesId, series.id))
+          .where(
+            and(
+              eq(series.slug, seriesSlug),
+              eq(chapters.chapterNumber, parseFloat(chapterNumStr)),
+              eq(chapters.isNsfw, isNsfwBool)
+            )
+          )
+          .get();
+      }
 
       if (!chapter?.fileId) return new Response('Chapter source missing', { status: 404 });
 
@@ -132,12 +166,27 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
     const tgUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${filePath}`;
     const zipReader = new ZipReader(new HttpReader(tgUrl));
     const entries = await zipReader.getEntries();
+
     const entry = entries.find((e) => {
       const entryName = e.filename || '';
-      return (
-        entryName.toLowerCase().includes(filename.toLowerCase()) ||
-        filename.toLowerCase().includes(entryName.toLowerCase())
-      );
+
+      if (isLegacyPath) {
+        return (
+          entryName.toLowerCase().includes(filename.toLowerCase()) ||
+          filename.toLowerCase().includes(entryName.toLowerCase())
+        );
+      } else {
+        // En la nueva estructura, extraemos el número real del archivo en el ZIP
+        // y lo comparamos con el número solicitado (ej. 1.webp -> 1)
+        const allNumbers = entryName.match(/(\d+)/g);
+        if (!allNumbers || allNumbers.length === 0) return false;
+
+        const lastNumber = allNumbers[allNumbers.length - 1] as string;
+        const pageNumber = parseInt(lastNumber, 10);
+
+        const targetPage = parseInt(filename.split('.')[0] || '0', 10);
+        return pageNumber === targetPage;
+      }
     });
 
     // biome-ignore lint/suspicious/noExplicitAny: zip.js entry property access requires casting
