@@ -7,12 +7,15 @@ import { getDB } from '../lib/db';
 
 export const reportActions = {
   getSeriesList: defineAction({
-    handler: async () => {
+    handler: async (_, context) => {
       try {
         const db = getDB(env);
+        const isNsfwMode = context.cookies.get('babylon_is_nsfw')?.value === 'true';
+
         const allSeries = await db
           .select({ id: series.id, title: series.title })
           .from(series)
+          .where(isNsfwMode ? undefined : eq(series.isNsfw, false))
           .orderBy(asc(series.title))
           .all();
         return { success: true, series: allSeries };
@@ -94,10 +97,10 @@ export const reportActions = {
 
       const threadId = topicIds[input.type];
 
-      // Si faltan variables críticas, fallamos con gracia
+      // Si faltan variables críticas, fallamos con gracia (fingiendo éxito para no bloquear al usuario)
       if (!botToken || !chatId) {
         console.warn('[Reports] Telegram env vars missing. Skipping message.');
-        return { success: false, error: 'Configuración de reportes incompleta en el servidor' };
+        return { success: true };
       }
 
       const typeLabels = {

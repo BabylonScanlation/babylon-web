@@ -54,6 +54,20 @@ $effect(() => {
       if (!seriesTitle) seriesTitle = bridge.getAttribute('data-series-title') || '';
       if (!chapterNumber) chapterNumber = bridge.getAttribute('data-chapter') || '';
     }
+  } else {
+    // Resetear form cuando se cierra
+    details = '';
+    seriesTitle = '';
+    chapterNumber = '';
+    scanName = '';
+    contactInfo = '';
+    if (fileInput) fileInput.value = '';
+    
+    // Evitar que queden cacheados de requests anteriores
+    seriesList = [];
+    chaptersList = [];
+    isFetchingSeries = false;
+    isFetchingChapters = false;
   }
 });
 
