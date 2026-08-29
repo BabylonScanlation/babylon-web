@@ -368,7 +368,6 @@ function handleMouseLeave(e: MouseEvent) {
           {:else}
             <!-- Aporte Único -->
             <div class="onetime-container" in:fly={{ y: 20, duration: 300 }}>
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div class="onetime-hero">
                 <h3>Haz un Aporte</h3>
                 <p>
