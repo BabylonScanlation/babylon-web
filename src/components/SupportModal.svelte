@@ -313,7 +313,7 @@ async function submitCryptoPayment() {
                               ></polyline></svg
                             >
                             <span>
-                              {#each perk.split('**') as part, index}
+                              {#each perk.split('**') as part, index (index)}
                                 {#if index % 2 === 1}
                                   <strong>{part}</strong>
                                 {:else}
