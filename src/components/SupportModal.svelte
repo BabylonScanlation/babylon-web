@@ -101,7 +101,7 @@ const tiers = [
   },
 ];
 
-const preSetAmounts = [3, 5, 10, 20, 50];
+const preSetAmounts = [0.5, 1, 2, 3, 5];
 
 function handleOpen() {
   isOpen = true;
@@ -190,6 +190,31 @@ async function submitCryptoPayment() {
     isSubmitting = false;
   }
 }
+
+function handleMouseMove(e: MouseEvent) {
+  const target = e.currentTarget as HTMLElement;
+  const rect = target.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  target.style.setProperty('--mouse-x', `${x}px`);
+  target.style.setProperty('--mouse-y', `${y}px`);
+  
+  const centerX = rect.width / 2;
+  const centerY = rect.height / 2;
+  const rotateX = ((y - centerY) / centerY) * -8;
+  const rotateY = ((x - centerX) / centerX) * 8;
+  
+  target.style.setProperty('--rotate-x', `${rotateX}deg`);
+  target.style.setProperty('--rotate-y', `${rotateY}deg`);
+}
+
+function handleMouseLeave(e: MouseEvent) {
+  const target = e.currentTarget as HTMLElement;
+  target.style.setProperty('--rotate-x', `0deg`);
+  target.style.setProperty('--rotate-y', `0deg`);
+  target.style.setProperty('--mouse-x', `50%`);
+  target.style.setProperty('--mouse-y', `50%`);
+}
 </script>
 
 {#if isOpen}
@@ -206,6 +231,8 @@ async function submitCryptoPayment() {
       in:scale={{ duration: 400, start: 0.95, easing: cubicOut }}
       out:scale={{ duration: 200, start: 0.95 }}
       onclick={(e) => e.stopPropagation()}
+      onmousemove={handleMouseMove}
+      onmouseleave={handleMouseLeave}
     >
       <!-- Decoración de fondo premium (siempre visible) -->
       <div class="bg-glow"></div>
@@ -341,27 +368,11 @@ async function submitCryptoPayment() {
           {:else}
             <!-- Aporte Único -->
             <div class="onetime-container" in:fly={{ y: 20, duration: 300 }}>
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div class="onetime-hero">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><circle cx="12" cy="12" r="10"></circle><path
-                    d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"
-                  ></path><line x1="12" y1="18" x2="12" y2="22"></line><line
-                    x1="12"
-                    y1="2"
-                    x2="12"
-                    y2="6"
-                  ></line></svg
-                >
-                <h3>Donación Libre</h3>
+                <h3>Haz un Aporte</h3>
                 <p>
-                  Puedes apoyar con la cantidad que desees de una sola vez. No
-                  hay compromisos mensuales.
+                  Tu aporte nos ayuda a dedicar más tiempo a traducir nuevos capítulos y mejorar el proyecto. ¡Mil gracias por tu apoyo!
                 </p>
               </div>
 
@@ -389,13 +400,26 @@ async function submitCryptoPayment() {
                 <span class="currency-suffix">USD</span>
               </div>
 
-              <button
-                class="donate-btn-primary"
-                disabled={!customAmount || parseFloat(customAmount) <= 0}
-                onclick={() => processPayment(customAmount, false)}
-              >
-                Hacer Aporte de ${customAmount || '0'}
-              </button>
+              <div class="payment-actions">
+                <button
+                  class="donate-btn-primary crypto-btn"
+                  disabled={!customAmount || parseFloat(customAmount) <= 0}
+                  onclick={() => processPayment(customAmount, false)}
+                >
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                  Pagar con Cripto (${customAmount || '0'})
+                </button>
+
+                <a
+                  class="donate-btn-primary fiat-btn"
+                  href={`https://ko-fi.com/${siteConfig.donations.kofiUsername}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                  Pagar con Tarjeta (Ko-fi)
+                </a>
+              </div>
             </div>
           {/if}
         </div>
@@ -443,7 +467,12 @@ async function submitCryptoPayment() {
             </div>
 
             <!-- VIP Black Card -->
-            <div class="vip-black-card">
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div 
+              class="vip-black-card"
+              onmousemove={handleMouseMove}
+              onmouseleave={handleMouseLeave}
+            >
               <div class="vip-card-glare"></div>
               
               <div class="vip-card-content">
@@ -555,15 +584,24 @@ async function submitCryptoPayment() {
   .modal-container {
     position: relative;
     width: 100%;
-    max-width: 1100px;
+    max-width: 650px;
     max-height: 90vh;
-    background: #0f172a; /* Slate 900 */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    background: rgba(10, 10, 12, 0.98);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 2px solid rgba(59, 130, 246, 0.8);
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
     display: flex;
-    flex-direction: row; /* Desktop: Sidebar layout */
+    flex-direction: column; /* Single column layout */
     overflow: hidden;
+    transition: box-shadow 0.3s ease;
+  }
+
+  .modal-container:hover {
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.15);
   }
 
   .bg-glow {
@@ -611,17 +649,7 @@ async function submitCryptoPayment() {
   }
 
   .modal-header {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    text-align: left;
-    padding: 3rem 2rem 2rem 2rem;
-    width: 320px;
-    flex-shrink: 0;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(0, 0, 0, 0.2);
+    display: none; /* Oculto a petición para dejar un diseño directo */
   }
 
   .heart-icon-wrapper {
@@ -632,7 +660,7 @@ async function submitCryptoPayment() {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     box-shadow: 0 0 20px rgba(255, 140, 0, 0.4);
     animation: pulse-heart 2s infinite;
   }
@@ -660,7 +688,7 @@ async function submitCryptoPayment() {
   }
 
   .modal-header h2 {
-    margin: 0 0 1rem 0;
+    margin: 0 0 0.5rem 0;
     font-size: 1.8rem;
     font-weight: 800;
     color: #fff;
@@ -669,9 +697,8 @@ async function submitCryptoPayment() {
   }
 
   .modal-header p {
-    margin: 0 0 2rem 0;
+    margin: 0;
     color: #94a3b8;
-    max-width: 100%;
     line-height: 1.5;
     font-size: 0.95rem;
   }
@@ -922,29 +949,52 @@ async function submitCryptoPayment() {
     height: 100%;
     box-sizing: border-box;
   }
+  
+  .modal-container::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+      800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(255, 170, 0, 0.08),
+      transparent 40%
+    );
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.3s;
+    border-radius: 24px;
+  }
+  
+  .modal-container:hover::after {
+    opacity: 1;
+  }
+  
+  .modal-header, .onetime-hero, .preset-amounts, .custom-amount-wrapper, .donate-btn-primary {
+    z-index: 2;
+  }
 
   .onetime-hero {
     text-align: center;
     margin-bottom: 2rem;
   }
 
-  .onetime-hero svg {
-    width: 48px;
-    height: 48px;
-    color: #ffaa00;
-    margin-bottom: 1rem;
-  }
 
   .onetime-hero h3 {
     margin: 0 0 0.5rem 0;
     font-size: 1.8rem;
     color: #fff;
+    font-weight: 700;
   }
 
   .onetime-hero p {
     margin: 0;
     color: #94a3b8;
     line-height: 1.5;
+    font-size: 0.95rem;
   }
 
   .preset-amounts {
@@ -959,50 +1009,51 @@ async function submitCryptoPayment() {
   .preset-btn {
     flex: 1 1 calc(33.333% - 1rem);
     min-width: 80px;
-    padding: 0.6rem 0.8rem;
-    background: rgba(30, 41, 59, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    color: #fff;
-    font-size: 1rem;
-    font-weight: 700;
+    padding: 0.8rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    color: #94a3b8;
+    font-size: 1.1rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .preset-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    transform: translateY(-2px);
   }
 
   .preset-btn.active {
-    background: rgba(255, 170, 0, 0.15);
-    border-color: #ffaa00;
-    color: #ffaa00;
-    box-shadow: 0 0 20px rgba(255, 170, 0, 0.2);
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.8);
+    color: #60a5fa;
   }
 
   .custom-amount-wrapper {
     display: flex;
     align-items: center;
-    background: #0f172a;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    padding: 0.25rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
     width: 100%;
     margin-bottom: 1.5rem;
     transition: all 0.3s;
   }
 
   .custom-amount-wrapper:focus-within {
-    border-color: #ffaa00;
-    box-shadow: 0 0 0 2px rgba(255, 170, 0, 0.2);
+    border-color: rgba(59, 130, 246, 0.6);
+    background: rgba(0, 0, 0, 0.5);
   }
 
   .currency-prefix {
     font-size: 1.25rem;
-    color: #94a3b8;
-    font-weight: 600;
+    color: #64748b;
+    font-weight: 500;
   }
 
   .custom-amount-wrapper input {
@@ -1010,9 +1061,9 @@ async function submitCryptoPayment() {
     background: transparent;
     border: none;
     color: #fff;
-    font-size: 1.25rem;
-    font-weight: 700;
-    padding: 0.75rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    padding: 0.5rem;
     outline: none;
     text-align: center;
     width: 100%;
@@ -1027,23 +1078,78 @@ async function submitCryptoPayment() {
 
   .currency-suffix {
     color: #64748b;
-    font-weight: 600;
+    font-weight: 500;
+  }
+
+  .payment-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
   }
 
   .donate-btn-primary {
     width: 100%;
-    padding: 0.85rem;
-    background: linear-gradient(135deg, #ffaa00, #ff5500);
-    border: none;
-    border-radius: 12px;
-    color: #000;
+    padding: 1rem;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.8);
+    border-radius: 8px;
+    color: #60a5fa;
     font-size: 1rem;
-    font-weight: 800;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
     cursor: pointer;
     transition: all 0.3s;
-    box-shadow: 0 8px 25px rgba(255, 140, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    text-decoration: none;
+  }
+  
+  .donate-btn-primary.fiat-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #e2e8f0;
+  }
+
+  .donate-btn-primary.fiat-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
+    color: #fff;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+  }
+  
+  .donate-btn-primary:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.2);
+    color: #fff;
+  }
+  
+  .donate-btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-color: #334155;
+    color: #64748b;
+    background: transparent;
+  }
+  
+  .donate-btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transform: skewX(-20deg);
+    transition: left 0.5s ease;
+  }
+
+  .donate-btn-primary:hover:not(:disabled)::before {
+    left: 200%;
   }
 
   .donate-btn-primary:hover:not(:disabled) {
@@ -1067,7 +1173,7 @@ async function submitCryptoPayment() {
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    background: #0f172a;
+    background: transparent;
     z-index: 2;
   }
 
@@ -1146,10 +1252,10 @@ async function submitCryptoPayment() {
   }
 
   .web3-segment.active {
-    background: rgba(255, 140, 0, 0.15);
-    color: #ff8c00;
-    box-shadow: 0 4px 15px rgba(255, 140, 0, 0.1);
-    border: 1px solid rgba(255, 140, 0, 0.3);
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
   }
   
   .web3-segment.active .crypto-icon-small {
@@ -1165,7 +1271,7 @@ async function submitCryptoPayment() {
     overflow: hidden;
     box-shadow: 0 15px 30px rgba(0,0,0,0.6);
     background-image: 
-      radial-gradient(circle at 10% 20%, rgba(255, 140, 0, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
       url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)" opacity="0.05"/></svg>');
   }
   
@@ -1233,8 +1339,8 @@ async function submitCryptoPayment() {
   .vip-value.highlight {
     font-size: 1.5rem;
     font-weight: 900;
-    color: #ff8c00;
-    text-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+    color: #60a5fa;
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
   }
 
   .vip-address-box {
@@ -1252,8 +1358,8 @@ async function submitCryptoPayment() {
   }
   
   .vip-address-box:hover {
-    background: rgba(255, 140, 0, 0.15);
-    border-color: rgba(255, 140, 0, 0.4);
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.4);
   }
 
   /* --- CYBER INPUT --- */
@@ -1269,8 +1375,8 @@ async function submitCryptoPayment() {
   }
   
   .cyber-input-group:focus-within {
-    border-color: #ff8c00;
-    box-shadow: 0 0 20px rgba(255, 140, 0, 0.2);
+    border-color: #3b82f6;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
   }
   
   .cyber-input-group.error {
@@ -1294,8 +1400,8 @@ async function submitCryptoPayment() {
   }
 
   .cyber-submit-btn {
-    background: linear-gradient(135deg, #ff8c00, #f59e0b);
-    color: #000;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
     border: none;
     padding: 0 1.25rem;
     font-weight: 900;
@@ -1306,7 +1412,7 @@ async function submitCryptoPayment() {
   }
 
   .cyber-submit-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #ffa333, #fbbf24);
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
   }
 
   .cyber-submit-btn:disabled {

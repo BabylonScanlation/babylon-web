@@ -48,74 +48,65 @@ export const POST: APIRoute = async ({ request, locals }) => {
     let apiErrorMsg = 'Transacción no encontrada en la blockchain o monto insuficiente.';
 
     try {
-      let btcPrice = 0,
-        ethPrice = 0;
+      let pricePromise = Promise.resolve(null as any);
+      let txPromise = Promise.resolve(null as any);
+
+      // Start fetching prices
       if (currency !== 'USDT') {
-        const cgRes = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd'
-        );
-        if (cgRes.ok) {
-          const prices = (await cgRes.json()) as Record<string, { usd?: number }>;
-          btcPrice = prices?.bitcoin?.usd || 0;
-          ethPrice = prices?.ethereum?.usd || 0;
-        }
+        pricePromise = fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd')
+          .then(res => res.ok ? res.json() : null)
+          .catch(() => null);
       }
 
-      const requiredUsd = amount * 0.95;
+      // Start fetching transaction concurrently
+      if (currency === 'BTC') {
+        txPromise = fetch(`https://mempool.space/api/tx/${txHash}`)
+          .then(res => res.ok ? res.json() : { error: 'api_error' })
+          .catch(() => ({ error: 'fetch_error' }));
+      } else if (currency === 'ETH') {
+        txPromise = fetch('https://cloudflare-eth.com', {
+          method: 'POST',
+          body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getTransactionByHash', params: [txHash], id: 1 })
+        })
+          .then(res => res.ok ? res.json() : null)
+          .catch(() => null);
+      } else if (currency === 'USDT') {
+        txPromise = fetch(`https://apilist.tronscanapi.com/api/transaction-info?hash=${txHash}`)
+          .then(res => res.ok ? res.json() : null)
+          .catch(() => null);
+      }
 
-      if (currency === 'BTC' && btcPrice > 0) {
-        const res = await fetch(`https://mempool.space/api/tx/${txHash}`);
-        if (res.ok) {
-          const txData = (await res.json()) as {
-            vout: { scriptpubkey_address: string; value: number }[];
-          };
-          const vout = txData.vout.find((v) => v.scriptpubkey_address === env.PUBLIC_BTC_WALLET);
+      // Wait for both concurrent requests to finish
+      const [prices, txData] = await Promise.all([pricePromise, txPromise]);
+
+      const requiredUsd = amount * 0.95;
+      const btcPrice = prices?.bitcoin?.usd || 0;
+      const ethPrice = prices?.ethereum?.usd || 0;
+
+      if (currency === 'BTC' && txData) {
+        if (txData.error) {
+          apiErrorMsg = 'La red de Bitcoin está saturada o la transacción aún no se confirma.';
+        } else if (btcPrice > 0 && txData.vout) {
+          const vout = txData.vout.find((v: any) => v.scriptpubkey_address === env.PUBLIC_BTC_WALLET);
           if (vout) {
             const usdSent = (vout.value / 100000000) * btcPrice;
             if (usdSent >= requiredUsd) isVerified = true;
           }
-        } else {
-          apiErrorMsg = 'La red de Bitcoin está saturada o la transacción aún no se confirma.';
         }
-      } else if (currency === 'ETH' && ethPrice > 0) {
-        const res = await fetch('https://cloudflare-eth.com', {
-          method: 'POST',
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'eth_getTransactionByHash',
-            params: [txHash],
-            id: 1,
-          }),
-        });
-        if (res.ok) {
-          const txData = (await res.json()) as { result?: { to?: string; value: string } };
-          if (txData.result?.to?.toLowerCase() === env.PUBLIC_ETH_WALLET?.toLowerCase()) {
-            const ethSent = parseInt(txData.result?.value || '0', 16) / 1e18;
-            const usdSent = ethSent * ethPrice;
-            if (usdSent >= requiredUsd) isVerified = true;
-          }
+      } else if (currency === 'ETH' && ethPrice > 0 && txData) {
+        if (txData.result?.to?.toLowerCase() === env.PUBLIC_ETH_WALLET?.toLowerCase()) {
+          const ethSent = parseInt(txData.result?.value || '0', 16) / 1e18;
+          const usdSent = ethSent * ethPrice;
+          if (usdSent >= requiredUsd) isVerified = true;
         }
-      } else if (currency === 'USDT') {
-        const res = await fetch(
-          `https://apilist.tronscanapi.com/api/transaction-info?hash=${txHash}`
-        );
-        if (res.ok) {
-          const txData = (await res.json()) as {
-            trc20TransferInfo?: {
-              to_address: string;
-              symbol: string;
-              amount_str: string;
-              decimals: number;
-            }[];
-          };
-          if (txData.trc20TransferInfo) {
-            const transfer = txData.trc20TransferInfo.find(
-              (t) => t.to_address === env.PUBLIC_USDT_TRC20_WALLET && t.symbol === 'USDT'
-            );
-            if (transfer) {
-              const usdtSent = parseFloat(transfer.amount_str) / 10 ** transfer.decimals;
-              if (usdtSent >= requiredUsd) isVerified = true;
-            }
+      } else if (currency === 'USDT' && txData) {
+        if (txData.trc20TransferInfo) {
+          const transfer = txData.trc20TransferInfo.find(
+            (t: any) => t.to_address === env.PUBLIC_USDT_TRC20_WALLET && t.symbol === 'USDT'
+          );
+          if (transfer) {
+            const usdtSent = parseFloat(transfer.amount_str) / 10 ** transfer.decimals;
+            if (usdtSent >= requiredUsd) isVerified = true;
           }
         }
       }
