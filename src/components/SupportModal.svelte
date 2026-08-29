@@ -7,7 +7,7 @@ import { siteConfig } from '../site.config';
 
 // Svelte 5 Runes
 let isOpen = $state(false);
-let activeTab = $state<'monthly' | 'onetime'>('monthly');
+let activeTab = $state<'monthly' | 'onetime'>('onetime');
 let customAmount = $state<string>('');
 
 // Flujo de Checkout
@@ -251,8 +251,8 @@ async function submitCryptoPayment() {
             mejorar el contenido y traer capítulos más rápido.
           </p>
 
-          <!-- Pestañas -->
-          <div class="tabs-container">
+          <!-- Pestañas (Ocultas temporalmente a petición del admin) -->
+          <div class="tabs-container" style="display: none;">
             <button
               class="tab-btn"
               class:active={activeTab === 'monthly'}
