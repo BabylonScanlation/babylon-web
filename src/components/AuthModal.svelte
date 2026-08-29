@@ -17,15 +17,13 @@ let linkErrorMessage = $state('');
 
 let showPassword = $state(false);
 
-// Orion: Carga ultra-perezosa. Nada se baja hasta el clic.
+// Orion: Carga ultra-perezosa centralizada en authLazy.ts para evitar bugs de chunks
 async function getFullAuthStack() {
-  const [{ getClientAuth }, firebaseAuth, { actions }] = await Promise.all([
-    import('../lib/firebase/client'),
-    import('firebase/auth'),
+  const [firebaseAuth, { actions }] = await Promise.all([
+    import('../lib/firebase/authLazy'),
     import('astro:actions'),
   ]);
-  const auth = await getClientAuth();
-  return { auth, actions, ...firebaseAuth };
+  return { ...firebaseAuth, actions };
 }
 
 async function handleLogin() {

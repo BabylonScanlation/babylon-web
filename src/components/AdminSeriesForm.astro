@@ -37,6 +37,7 @@ interface Series {
     class="modern-admin-form"
     id={`update-series-form-${series.id}`}
     data-series-id={series.id}
+    enctype="multipart/form-data"
   >
     <div id={`form-message-${series.id}`} class="floating-message"></div>
     <input type="hidden" name="seriesId" value={series.id} />

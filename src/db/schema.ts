@@ -181,6 +181,8 @@ export const users = sqliteTable('Users', {
   preferences: text('preferences'),
   isPrivate: integer('is_private', { mode: 'boolean' }).default(false),
   isNsfw: integer('is_nsfw', { mode: 'boolean' }).default(false),
+  vipTier: integer('vip_tier', { mode: 'number' }).default(0).notNull(), // 0 = no VIP
+  vipExpiresAt: integer('vip_expires_at', { mode: 'timestamp_ms' }),
   tokenVersion: integer('token_version').default(1).notNull(), // Orion: Para invalidación de sesiones
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(
     sql`(strftime('%s', 'now') * 1000)`
@@ -499,5 +501,50 @@ export const userProgress = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.userId, table.seriesId] }),
     index('idx_user_progress_user').on(table.userId),
+  ]
+);
+
+export const subscriptions = sqliteTable(
+  'Subscriptions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tier: integer('tier', { mode: 'number' }).notNull(),
+    status: text('status').notNull().default('pending_crypto'), // 'active', 'pending_crypto', 'cancelled'
+    gateway: text('gateway').notNull(), // 'crypto', 'kofi'
+    txHash: text('tx_hash'),
+    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(
+      sql`(strftime('%s', 'now') * 1000)`
+    ),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).default(
+      sql`(strftime('%s', 'now') * 1000)`
+    ),
+  },
+  (table) => [
+    index('idx_subscriptions_user').on(table.userId),
+    index('idx_subscriptions_status').on(table.status),
+  ]
+);
+
+export const donations = sqliteTable(
+  'Donations',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+    amount: real('amount').notNull(),
+    currency: text('currency').notNull().default('USD'),
+    gateway: text('gateway').notNull(),
+    txHash: text('tx_hash'),
+    status: text('status').notNull().default('pending_crypto'), // 'completed', 'pending_crypto'
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(
+      sql`(strftime('%s', 'now') * 1000)`
+    ),
+  },
+  (table) => [
+    index('idx_donations_user').on(table.userId),
+    index('idx_donations_status').on(table.status),
   ]
 );

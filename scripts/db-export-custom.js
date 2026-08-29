@@ -32,7 +32,7 @@ function escapeStringOneLine(val) {
 }
 
 function query(q) {
-  return runCommand(`npx wrangler d1 execute ${DB_NAME} --remote --command "${q}" --json`);
+  return runCommand(`npx.cmd wrangler d1 execute ${DB_NAME} --remote --command "${q}" --json`);
 }
 
 function exportTable(table) {

@@ -1,5 +1,4 @@
 <script lang="ts">
-import { flip } from 'svelte/animate';
 import { fade, fly } from 'svelte/transition';
 import { toast } from '../lib/stores.svelte';
 
@@ -18,7 +17,6 @@ const icons = {
       class="toast toast-{t.type}"
       in:fly={{ x: 100, duration: 300 }}
       out:fade={{ duration: 200 }}
-      animate:flip={{ duration: 200 }}
     >
       <div class="toast-icon">
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -145,5 +143,3 @@ const icons = {
     }
   }
 </style>
-
-

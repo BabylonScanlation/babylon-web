@@ -614,15 +614,17 @@ export async function searchSeries(
       .map((word) => `${word}*`)
       .join(' ');
     // biome-ignore lint/suspicious/noExplicitAny: Drizzle dynamic query with FTS join requires casting
-    baseQuery = (baseQuery as any).innerJoin(
+    const ftsBaseQuery = (baseQuery as any).innerJoin(
       sql`series_fts`,
       eq(series.id, sql`series_fts.rowid`)
     ) as typeof baseQuery;
+    baseQuery = ftsBaseQuery;
     // biome-ignore lint/suspicious/noExplicitAny: Drizzle dynamic query with FTS join requires casting
-    countQuery = (countQuery as any).innerJoin(
+    const ftsCountQuery = (countQuery as any).innerJoin(
       sql`series_fts`,
       eq(series.id, sql`series_fts.rowid`)
     ) as typeof countQuery;
+    countQuery = ftsCountQuery;
     conditions.push(sql`series_fts MATCH ${searchTerm}`);
   }
 
@@ -662,10 +664,13 @@ export async function searchSeries(
     query.orderBy(asc(series.title));
   }
 
-  const results = (await query
-    .limit(limit)
-    .offset(offset)
-    .all()) as unknown as (typeof series.$inferSelect)[];
+  const rawResults = await query.limit(limit).offset(offset).all();
+
+  // Orion: Extraer del objeto anidado si la consulta usó JOIN
+  const results = rawResults.map(
+    // biome-ignore lint/suspicious/noExplicitAny: Drizzle dynamic join nesting
+    (r: any) => r.Series || r.series || r
+  ) as (typeof series.$inferSelect)[];
 
   const result = {
     results,

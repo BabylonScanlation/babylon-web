@@ -1,5 +1,4 @@
 <script lang="ts">
-import { navigate } from 'astro:transitions/client';
 import { onDestroy, onMount, untrack } from 'svelte';
 import { fade, slide } from 'svelte/transition';
 import Combobox from './Combobox.svelte';
@@ -89,13 +88,13 @@ onMount(() => {
     genres: params.get('genres')?.split(',').filter(Boolean) || [],
   };
 
-  // Migración de URLs antiguas
-  if (loaded.sort === 'az' || loaded.sort === 'A-Z') loaded.sort = '';
+  // Migración de URLs antiguas y compatibilidad con Combobox
+  if (loaded.sort === 'az') loaded.sort = 'A-Z';
   if (loaded.sort === 'latest') loaded.sort = 'Recientes';
   if (loaded.sort === 'popular') loaded.sort = 'Popularidad';
   if (loaded.sort === 'relevance') loaded.sort = 'Relevancia';
-  if (loaded.type === 'all' || loaded.type === 'Todo') loaded.type = '';
-  if (loaded.status === 'all' || loaded.status === 'Todo') loaded.status = '';
+  if (loaded.type === 'all') loaded.type = 'Todo';
+  if (loaded.status === 'all') loaded.status = 'Todo';
 
   activeFilters = { ...loaded };
   stagingFilters = { ...loaded };
@@ -161,9 +160,9 @@ function apply() {
   isAdvancedOpen = false;
   document.body.removeAttribute('data-reader-modal');
 
-  // Orion: Navegación inteligente sin refresco total
+  // Orion: Navegación tradicional
   const nextUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
-  navigate(nextUrl, { history: 'push' });
+  window.location.href = nextUrl;
 }
 </script>
 
@@ -411,6 +410,7 @@ function apply() {
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 0.75rem;
     width: 100%;
+    padding-bottom: 180px; /* Astra: Espacio para que el último dropdown no se corte al scrollear en móvil */
   }
 
 
@@ -464,7 +464,7 @@ function apply() {
       max-height: 85vh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow: visible;
     }
 
     .panel-body {
@@ -472,13 +472,14 @@ function apply() {
       display: flex;
       flex-direction: column;
       gap: 0.5rem; /* Separación vertical eliminada/minimizada */
-      overflow-y: auto;
+      overflow: visible;
     }
 
     /* Convertir Grids a columnas más generosas en PC */
     .all-filters-grid {
       grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: 1rem;
+      padding-bottom: 0; /* Astra: En PC no hace falta porque el overflow es visible */
     }
 
     /* Corrección de alineación de etiquetas a la IZQUIERDA */

@@ -35,9 +35,7 @@ onDestroy(() => {
 });
 
 let filteredOptions = $derived(
-  options
-    .filter((opt: string) => opt.toLowerCase().includes(value.toLowerCase()))
-    .slice(0, 50)
+  options.filter((opt: string) => opt.toLowerCase().includes(value.toLowerCase())).slice(0, 50)
 );
 
 function toggleOpen() {

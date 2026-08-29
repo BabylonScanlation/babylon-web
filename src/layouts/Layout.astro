@@ -84,8 +84,9 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
   class:list={[{ 'age-gate-active': shouldBlockContent, 'nsfw-mode': isNsfw }]}
 >
   <head>
-    <script is:inline>
-      /**
+    {siteConfig.ads.enabled && (
+      <script is:inline>
+        /**
        * Astra Orion: State-Only Precision Shield
        * Protege botones, texto e imágenes de anuncios pero permite navegación limpia.
        */
@@ -172,7 +173,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
                   if (
                     isTransparent &&
                     !node.closest(
-                      '#global-utilities-root, .site-header, .modal-body, .comments-wrapper, .ad-container-root'
+                      '#global-utilities-root, .site-header, .modal-body, .comments-wrapper, .ad-container-root, .filter-overlay, .filter-system-container'
                     )
                   ) {
                     node.style.pointerEvents = 'none';
@@ -191,7 +192,8 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           subtree: true,
         });
       })();
-    </script>
+      </script>
+    )}
     <style is:inline>
       /* Z-Index quirúrgico: UI por encima para evitar overlays */
       body:not([data-reader-modal="open"]) .site-header,
@@ -741,7 +743,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     }
 
     <div id="global-utilities-root"></div>
-    {!isAdminPage && <AdblockWall />}
+    {!isAdminPage && siteConfig.ads.enabled && <AdblockWall />}
 
     <script is:inline>
       (function () {
@@ -1105,6 +1107,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
 
       window.addEventListener('open-auth-modal', _0xB);
       window.addEventListener('show-toast', _0xB);
+      window.addEventListener('open-support-modal', _0xB);
 
       if (document.readyState !== 'loading') _0xI();
       else document.addEventListener('DOMContentLoaded', _0xI);
@@ -1146,8 +1149,9 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       _0xT('nsfw-toggle-mobile');
     </script>
 
-    <script is:inline>
-      // Orion: Global SmartClick Hijacker (Inyectado Directo)
+    {siteConfig.ads.enabled && (
+      <script is:inline>
+        // Orion: Global SmartClick Hijacker (Inyectado Directo)
       (function () {
         document.addEventListener('click', (e) => {
           // Orion: Los administradores y miembros de scanlation están exentos de publicidad
@@ -1211,7 +1215,8 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           }
         });
       })();
-    </script>
-    <SpeedDial client:load />
+      </script>
+    )}
+    <SpeedDial client:only="svelte" />
   </body>
 </html>

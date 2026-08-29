@@ -100,7 +100,7 @@ export const siteConfig = {
 
   // Publicidad
   ads: {
-    enabled: true,
+    enabled: false,
     // IDs de Adsterra
     adsterra: {
       domain: import.meta.env.PUBLIC_ADSTERRA_DOMAIN || 'levitydinerdowny.com',
@@ -124,6 +124,20 @@ export const siteConfig = {
       smartlinkUrl: import.meta.env.PUBLIC_MONETAG_SMARTLINK_URL,
       smartlink2Url: import.meta.env.PUBLIC_MONETAG_SMARTLINK_2_URL,
       smartlink3Url: import.meta.env.PUBLIC_MONETAG_SMARTLINK_3_URL,
+    },
+  },
+
+  // Pagos y Donaciones
+  donations: {
+    kofiUsername: import.meta.env.PUBLIC_KOFI_USERNAME || 'TU_USUARIO',
+    crypto: {
+      xmr:
+        import.meta.env.PUBLIC_XMR_WALLET ||
+        '87rJSbyEtYMWZ6TkQrkKtkZMRCFq5fTe423FRP1PsgorSo8VhcB5xX5CQCJSPRz9tWYKN1AtwsfbFEu7tNHEGZaNN9baJzC',
+      usdt: import.meta.env.PUBLIC_USDT_TRC20_WALLET || 'TXp3Ev3jcSr85tAd6VxEavbSXtLJ2uLVk1',
+      btc: import.meta.env.PUBLIC_BTC_WALLET || 'bc1qfqm22y750e6frk3mvucdgn228trl3tq5rs8khq',
+      eth: import.meta.env.PUBLIC_ETH_WALLET || '0xfd9F12778F097A5d44eC30A6562768bB1862297A',
+      binancePayId: import.meta.env.PUBLIC_BINANCE_PAY_ID || '12345678',
     },
   },
 };

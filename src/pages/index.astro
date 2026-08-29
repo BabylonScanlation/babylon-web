@@ -59,6 +59,28 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
             />
           )}
 
+          <div class="maintenance-alert-banner">
+            <div class="alert-content">
+              <div class="alert-icon-container">
+                <svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" class="alert-icon">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+              <div class="alert-text-container">
+                <p>Para cubrir los gastos de infraestructura y seguir trayéndoles todo el contenido sin interrupciones, <strong>nos faltan <span class="highlight-amount">$45</span> USD</strong> este mes.</p>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill"></div>
+                </div>
+              </div>
+              <a href="#" class="support-btn" onclick="window.dispatchEvent(new CustomEvent('open-support-modal')); return false;">
+                Apoyar
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+              </a>
+            </div>
+          </div>
+
         <div class="main-sections-container">
           {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (
             <div class="top-ad-banner">
@@ -117,6 +139,146 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
 
 <style is:inline>
   /* index.astro Styles */
+  .maintenance-alert-banner {
+    width: 100%;
+    max-width: 1400px;
+    margin: 1.5rem auto 0.5rem auto;
+    padding: 0 1.5rem;
+    box-sizing: border-box;
+    animation: fade-in-up 0.6s ease-out;
+  }
+  .maintenance-alert-banner .alert-content {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    background: linear-gradient(135deg, rgba(255, 140, 0, 0.08) 0%, rgba(255, 60, 0, 0.12) 100%);
+    border: 1px solid rgba(255, 120, 0, 0.2);
+    border-radius: 16px;
+    padding: 1.2rem 1.8rem;
+    box-shadow: 0 10px 30px rgba(255, 100, 0, 0.08), inset 0 0 20px rgba(255, 140, 0, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .maintenance-alert-banner .alert-content::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 4px; height: 100%;
+    background: linear-gradient(to bottom, #ffaa00, #ff5500);
+    border-radius: 4px 0 0 4px;
+  }
+
+  .alert-icon-container {
+    flex-shrink: 0;
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 140, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 140, 0, 0.3);
+    animation: pulse-icon 2s infinite;
+  }
+
+  .maintenance-alert-banner .alert-icon {
+    color: #ffaa00;
+    filter: drop-shadow(0 0 8px rgba(255, 140, 0, 0.6));
+  }
+  
+  @keyframes pulse-icon {
+    0% { box-shadow: 0 0 0 0 rgba(255, 140, 0, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 140, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 140, 0, 0); }
+  }
+
+  .alert-text-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .maintenance-alert-banner p {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: #ddd;
+    font-weight: 400;
+  }
+  
+  .maintenance-alert-banner strong {
+    color: #fff;
+    font-weight: 600;
+  }
+  
+  .highlight-amount {
+    color: #ffaa00;
+    font-weight: 900;
+    font-size: 1.2rem;
+    text-shadow: 0 0 15px rgba(255, 170, 0, 0.4);
+    letter-spacing: 0.5px;
+  }
+
+  .progress-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+  }
+
+  .progress-bar-fill {
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff5500, #ffaa00);
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(255, 170, 0, 0.5);
+  }
+
+  .support-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #ffaa00, #ff5500);
+    color: #000;
+    font-weight: 800;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.8rem 1.5rem;
+    border-radius: 100px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
+    flex-shrink: 0;
+  }
+
+  .support-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(255, 140, 0, 0.5);
+    color: #000;
+  }
+
+  @media (max-width: 768px) {
+    .maintenance-alert-banner .alert-content {
+      flex-direction: column;
+      text-align: center;
+      gap: 1rem;
+      padding: 1.5rem 1rem;
+    }
+    .maintenance-alert-banner .alert-content::before {
+      width: 100%; height: 4px;
+      border-radius: 4px 4px 0 0;
+    }
+    .support-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
   .main-content-wrapper {
     width: 100%;
   }

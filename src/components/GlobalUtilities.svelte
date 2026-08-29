@@ -2,24 +2,25 @@
 import { onMount } from 'svelte';
 import { authModal, toast } from '../lib/stores.svelte';
 import NewsCounter from './NewsCounter.svelte';
+import SupportModal from './SupportModal.svelte';
 
 let { isVerifyPage = false, shouldShowAgeGate = false } = $props();
 
-let AuthModal = $state<any>(null);
-let ToastContainer = $state<any>(null);
-let AppBanner = $state<any>(null);
-let AgeGate = $state<any>(null);
+let authModalPromise = $state<Promise<any> | null>(null);
+let toastContainerPromise = $state<Promise<any> | null>(null);
+let appBannerPromise = $state<Promise<any> | null>(null);
+let ageGatePromise = $state<Promise<any> | null>(null);
 
 // Orion: Solo cargar componentes si hay una acción que los requiera
 $effect(() => {
-  if (authModal.isOpen && !AuthModal) {
-    import('./AuthModal.svelte').then((m) => (AuthModal = m.default));
+  if (authModal.isOpen && !authModalPromise) {
+    authModalPromise = import('./AuthModal.svelte');
   }
 });
 
 $effect(() => {
-  if (toast.messages.length > 0 && !ToastContainer) {
-    import('./ToastContainer.svelte').then((m) => (ToastContainer = m.default));
+  if (toast.messages.length > 0 && !toastContainerPromise) {
+    toastContainerPromise = import('./ToastContainer.svelte');
   }
 });
 
@@ -44,33 +45,47 @@ onMount(() => {
 
   // Orion: Componentes CRÍTICOS sin delay
   if (shouldShowAgeGate) {
-    import('./AgeGate.svelte').then((m) => (AgeGate = m.default));
+    ageGatePromise = import('./AgeGate.svelte');
   }
 
   // Orion: Retrasar solo componentes secundarios (App Banner)
   setTimeout(() => {
     if (!isVerifyPage && !localStorage.getItem('babylon_app_banner_closed')) {
-      import('./AppBanner.svelte').then((m) => (AppBanner = m.default));
+      appBannerPromise = import('./AppBanner.svelte');
     }
   }, 2000);
 });
 </script>
 
-{#if ToastContainer}
-  <ToastContainer />
+{#if toastContainerPromise}
+  {#await toastContainerPromise then m}
+    {@const ToastContainer = m.default}
+    <ToastContainer />
+  {/await}
 {/if}
 
 {#if !isVerifyPage}
-  {#if AuthModal}
-    <AuthModal />
+  {#if authModalPromise}
+    {#await authModalPromise then m}
+      {@const AuthModal = m.default}
+      <AuthModal />
+    {/await}
   {/if}
-  {#if AppBanner}
-    <AppBanner />
+  {#if appBannerPromise}
+    {#await appBannerPromise then m}
+      {@const AppBanner = m.default}
+      <AppBanner />
+    {/await}
   {/if}
 {/if}
 
-{#if shouldShowAgeGate && AgeGate}
-  <AgeGate isVerificationPage={false} />
+{#if shouldShowAgeGate && ageGatePromise}
+  {#await ageGatePromise then m}
+    {@const AgeGate = m.default}
+    <AgeGate isVerificationPage={false} />
+  {/await}
 {/if}
+
+<SupportModal />
 
 <NewsCounter />

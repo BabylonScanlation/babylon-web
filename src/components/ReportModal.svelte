@@ -62,7 +62,7 @@ $effect(() => {
     scanName = '';
     contactInfo = '';
     if (fileInput) fileInput.value = '';
-    
+
     // Evitar que queden cacheados de requests anteriores
     seriesList = [];
     chaptersList = [];

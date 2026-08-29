@@ -43,7 +43,7 @@ async function main() {
   fs.writeFileSync(DUMP_PATH, safeSql);
 
   try {
-    execSync(`npx wrangler d1 execute babylon-scanlation-prod --local --file=${DUMP_PATH}`, {
+    execSync(`npx.cmd wrangler d1 execute babylon-scanlation-prod --local --file=${DUMP_PATH}`, {
       stdio: 'inherit',
     });
     console.log('✅ Base de datos sincronizada correctamente.');
@@ -53,8 +53,8 @@ async function main() {
   }
 
   // 5. Iniciar Servidor
-  console.log('🚀 Iniciando servidor de desarrollo...');
-  execSync('npm run dev:cf', { stdio: 'inherit' });
+  console.log('🚀 Iniciando servidor de desarrollo estable (Astro puro)...');
+  execSync('npm run dev', { stdio: 'inherit' });
 }
 
 main().catch((err) => {

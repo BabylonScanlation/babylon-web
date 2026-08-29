@@ -117,9 +117,7 @@ class UserStore {
   // Orion: Solo llamamos a esto después de un login exitoso o acción explícita
   async initFirebaseListener() {
     try {
-      const { getClientAuth } = await import('./firebase/client');
-      const auth = await getClientAuth();
-      const { onAuthStateChanged } = await import('firebase/auth');
+      const { auth, onAuthStateChanged } = await import('./firebase/authLazy');
 
       onAuthStateChanged(auth, async (fb) => {
         if (fb) {
