@@ -1535,4 +1535,59 @@ function handleMouseLeave(e: MouseEvent) {
       padding: 2rem;
     }
   }
+
+  @media (max-width: 600px) {
+    .modal-container {
+      width: 100%;
+      max-width: 100%;
+      max-height: 100vh;
+      border-radius: 0;
+      border: none;
+      border-top: 2px solid rgba(59, 130, 246, 0.8);
+    }
+    .modal-header {
+      padding: 1rem;
+    }
+    .checkout-pane, .crypto-pane {
+      padding: 1.5rem 1rem;
+    }
+    .vip-card-content {
+      flex-direction: column;
+      text-align: center;
+      gap: 1rem;
+      padding: 1rem;
+    }
+    .vip-details-side {
+      text-align: center;
+      align-items: center;
+      width: 100%;
+    }
+    .vip-address-box {
+      font-size: 0.7rem;
+      padding: 0.5rem;
+    }
+    .web3-segmented-control {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .web3-segment {
+      flex: 1 1 calc(50% - 0.5rem);
+      padding: 0.6rem 0;
+      font-size: 0.75rem;
+    }
+    .preset-amounts {
+      gap: 0.5rem;
+    }
+    .preset-btn {
+      padding: 0.6rem;
+      font-size: 0.9rem;
+    }
+    .onetime-hero h3 {
+      font-size: 1.4rem;
+    }
+    .donate-btn-primary {
+      font-size: 0.9rem;
+      padding: 0.8rem;
+    }
+  }
 </style>
