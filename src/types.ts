@@ -117,6 +117,7 @@ export interface User {
   preferences?: string;
   tokenVersion?: number;
   scanlations?: { id: number; role: 'owner' | 'editor' | 'moderator' }[];
+  vipTier?: number;
 }
 
 export interface Comment {

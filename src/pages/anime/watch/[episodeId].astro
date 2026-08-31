@@ -1,0 +1,289 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { siteConfig } from '../../../site.config';
+
+const { episodeId } = Astro.params;
+
+// No hacemos la extracción de video en SSR para evitar timeouts en Cloudflare o IP-Locks
+// Dejamos que el cliente llame a /api/anime/extract así la solicitud sale de la IP del usuario (o de un proxy rápido)
+---
+
+<Layout
+  title={`Viendo Episodio - ${siteConfig.name}`}
+  description={`Disfruta del mejor anime en alta calidad y sin anuncios en ${siteConfig.name}.`}
+>
+  <!-- Incluimos Plyr y HLS.js por CDN para el reproductor -->
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+  <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js" is:inline></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.3.5" is:inline></script>
+
+  <div class="watch-container">
+    <div class="header">
+      <a href="javascript:history.back()" class="back-btn">← Volver</a>
+      <h1>Reproductor Babylon <span class="badge premium">Premium</span></h1>
+    </div>
+
+    <div class="player-wrapper">
+      <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p id="loading-text">Buscando enlace puro y evadiendo bloqueos...</p>
+      </div>
+      
+      <video id="player" playsinline controls data-poster={siteConfig.assets?.placeholderChapter || ''}>
+      </video>
+    </div>
+    
+    <div class="controls-panel">
+      <p class="status-msg" id="status-msg">Iniciando protocolo de extracción...</p>
+      <button id="retry-btn" class="retry-btn hidden">Intentar extracción manual</button>
+    </div>
+  </div>
+</Layout>
+
+<script is:inline define:vars={{ episodeId }}>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const video = document.getElementById('player');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const statusMsg = document.getElementById('status-msg');
+    const retryBtn = document.getElementById('retry-btn');
+    
+    // Inicializar Plyr UI
+    const player = new Plyr(video, {
+      captions: { active: true, update: true, language: 'es' },
+      controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
+      settings: ['captions', 'quality', 'speed'],
+    });
+
+    async function loadVideo() {
+      loadingOverlay.style.display = 'flex';
+      retryBtn.classList.add('hidden');
+      statusMsg.textContent = 'Contactando con la API de extracción...';
+      
+      try {
+        // Llamada a nuestro backend proxy
+        const res = await fetch(`/api/anime/extract?id=${encodeURIComponent(episodeId)}`);
+        
+        if (!res.ok) {
+          throw new Error(`Falló la extracción. Código: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        const sources = data.sources || [];
+        
+        // Buscar el source HLS (m3u8), usualmente marcado como auto o con el link
+        const defaultSource = sources.find(s => s.quality === 'auto' || s.quality === 'default') || sources[0];
+        
+        if (!defaultSource || !defaultSource.url) {
+          throw new Error('No se encontraron enlaces de video válidos.');
+        }
+
+        const sourceUrl = defaultSource.url;
+        statusMsg.textContent = `¡Enlace obtenido de ${data.provider}! Cargando stream...`;
+
+        // Lógica HLS.js con tolerancia a fallos
+        if (Hls.isSupported()) {
+          const hls = new Hls({
+            // Configuración estricta de reintentos recomendada
+            fragLoadingMaxRetry: 6,
+            manifestLoadingMaxRetry: 6,
+            levelLoadingMaxRetry: 4,
+            fragLoadingRetryDelay: 1000,
+            manifestLoadingRetryDelay: 1000,
+            maxMaxBufferLength: 60,
+          });
+          
+          hls.loadSource(sourceUrl);
+          hls.attachMedia(video);
+          window.hls = hls;
+          
+          hls.on(Hls.Events.MANIFEST_PARSED, function () {
+            loadingOverlay.style.display = 'none';
+            statusMsg.textContent = '¡Listo para reproducir! Cero anuncios.';
+            
+            // Integrar niveles de calidad con Plyr
+            const availableQualities = hls.levels.map(l => l.height);
+            player.options.quality = {
+              default: availableQualities[0],
+              options: availableQualities,
+              forced: true,
+              onChange: (e) => updateQuality(e)
+            };
+          });
+
+          hls.on(Hls.Events.ERROR, function (event, data) {
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  console.error('Fatal network error encountered, try to recover');
+                  hls.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  console.error('Fatal media error encountered, try to recover');
+                  hls.recoverMediaError();
+                  break;
+                default:
+                  hls.destroy();
+                  showError('Error irrecuperable en el stream. El servidor de video rechazó la conexión (IP Lock).');
+                  break;
+              }
+            }
+          });
+          
+          function updateQuality(newQuality) {
+            window.hls.levels.forEach((level, levelIndex) => {
+              if (level.height === newQuality) {
+                window.hls.currentLevel = levelIndex;
+              }
+            });
+          }
+
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          // Fallback para Safari (HLS Nativo)
+          video.src = sourceUrl;
+          video.addEventListener('loadedmetadata', () => {
+            loadingOverlay.style.display = 'none';
+            statusMsg.textContent = '¡Listo para reproducir! (Modo Safari)';
+          });
+        } else {
+          showError('Tu navegador no soporta reproducción de video HLS.');
+        }
+
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+    
+    function showError(msg) {
+      loadingOverlay.style.display = 'none';
+      statusMsg.innerHTML = `<span style="color: #ef4444;">❌ Error: ${msg}</span>`;
+      retryBtn.classList.remove('hidden');
+    }
+
+    retryBtn.addEventListener('click', loadVideo);
+    
+    // Iniciar el proceso
+    loadVideo();
+  });
+</script>
+
+<style>
+  .watch-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    box-sizing: border-box;
+    color: #fff;
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .premium {
+    background: linear-gradient(45deg, #fbbf24, #d97706);
+    color: #fff;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+  }
+
+  .back-btn {
+    color: #94a3b8;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+  }
+  .back-btn:hover {
+    color: #fff;
+  }
+
+  .player-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  }
+
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.9);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(59, 130, 246, 0.3);
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .controls-panel {
+    margin-top: 1.5rem;
+    background: rgba(15, 23, 42, 0.6);
+    padding: 1rem;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .status-msg {
+    color: #94a3b8;
+    margin: 0;
+    font-family: monospace;
+  }
+
+  .retry-btn {
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  
+  .retry-btn:hover {
+    background: #2563eb;
+  }
+  
+  .hidden {
+    display: none !important;
+  }
+  
+  /* Custom Plyr Theme for Babylon */
+  :global(.plyr--video .plyr__control--overlaid) {
+    background: rgba(59, 130, 246, 0.8) !important;
+  }
+  :global(.plyr--full-ui input[type=range]) {
+    color: #3b82f6 !important;
+  }
+</style>

@@ -1,0 +1,239 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { siteConfig } from '../../site.config';
+
+const { slug } = Astro.params;
+const API_URL = import.meta.env.CONSUMET_API_URL || 'https://consumet-api-clone.vercel.app';
+
+let animeInfo: any = null;
+let error = null;
+
+try {
+  const response = await fetch(`${API_URL}/anime/gogoanime/info/${slug}`);
+  if (response.ok) {
+    animeInfo = await response.json();
+  } else {
+    error = 'No se encontró el anime.';
+  }
+} catch (e) {
+  error = 'Error de conexión al cargar los detalles.';
+  console.error(e);
+}
+---
+
+<Layout
+  title={`${animeInfo ? animeInfo.title : 'Cargando...'} - ${siteConfig.name}`}
+  description={animeInfo ? animeInfo.description : 'Detalles del anime'}
+>
+  <div class="anime-detail-container">
+    {error && <div class="error-msg">{error}</div>}
+    
+    {!error && !animeInfo && <div class="loading">Cargando detalles...</div>}
+
+    {animeInfo && (
+      <>
+        <div class="hero-section">
+          <div class="hero-bg" style={`background-image: url('${animeInfo.image}')`}></div>
+          <div class="hero-content">
+            <img src={animeInfo.image} alt={animeInfo.title} class="cover-img" />
+            <div class="info">
+              <h1>{animeInfo.title}</h1>
+              {animeInfo.otherName && <h2 class="alt-title">{animeInfo.otherName}</h2>}
+              
+              <div class="meta">
+                {animeInfo.releaseDate && <span class="badge year">{animeInfo.releaseDate}</span>}
+                {animeInfo.status && <span class="badge status">{animeInfo.status}</span>}
+                {animeInfo.type && <span class="badge type">{animeInfo.type}</span>}
+              </div>
+              
+              <p class="description">{animeInfo.description}</p>
+              
+              {animeInfo.genres && (
+                <div class="genres">
+                  {animeInfo.genres.map((g: string) => <span class="genre">{g}</span>)}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div class="episodes-section">
+          <h2>Episodios Disponibles</h2>
+          <div class="episodes-grid">
+            {animeInfo.episodes?.map((ep: any) => (
+              <a href={`/anime/watch/${ep.id}`} class="episode-card">
+                <span class="ep-number">EP {ep.number}</span>
+                <span class="play-icon">▶</span>
+              </a>
+            ))}
+            {(!animeInfo.episodes || animeInfo.episodes.length === 0) && (
+              <div class="empty">No hay episodios disponibles.</div>
+            )}
+          </div>
+        </div>
+      </>
+    )}
+  </div>
+</Layout>
+
+<style>
+  .anime-detail-container {
+    width: 100%;
+    color: #fff;
+  }
+
+  .hero-section {
+    position: relative;
+    padding: 4rem 2rem;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: blur(20px) brightness(0.2);
+    z-index: 1;
+    transform: scale(1.1);
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 1200px;
+    width: 100%;
+    display: flex;
+    gap: 3rem;
+    align-items: flex-start;
+  }
+
+  .cover-img {
+    width: 300px;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  }
+
+  .info {
+    flex-grow: 1;
+  }
+
+  .info h1 {
+    font-size: 3rem;
+    margin: 0 0 0.5rem 0;
+    font-weight: 700;
+  }
+
+  .alt-title {
+    color: #94a3b8;
+    font-size: 1.2rem;
+    margin: 0 0 1.5rem 0;
+    font-weight: 400;
+  }
+
+  .meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .badge.year { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+  .badge.status { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+  .badge.type { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+
+  .description {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #cbd5e1;
+    margin-bottom: 2rem;
+    max-width: 800px;
+  }
+
+  .genres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .genre {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 0.3rem 1rem;
+    border-radius: 100px;
+    font-size: 0.9rem;
+  }
+
+  .episodes-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+  }
+
+  .episodes-section h2 {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .episodes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+  }
+
+  .episode-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: #fff;
+    text-decoration: none;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .episode-card:hover {
+    background: #3b82f6;
+    border-color: #60a5fa;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 15px rgba(59, 130, 246, 0.3);
+  }
+
+  .ep-number {
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .play-icon {
+    font-size: 0.9rem;
+    opacity: 0.7;
+  }
+
+  .episode-card:hover .play-icon {
+    opacity: 1;
+  }
+
+  @media (max-width: 768px) {
+    .hero-content {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .meta, .genres {
+      justify-content: center;
+    }
+  }
+</style>

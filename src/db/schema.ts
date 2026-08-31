@@ -67,6 +67,7 @@ export const chapters = sqliteTable(
     urlPortada: text('url_portada'),
     views: integer('views').default(0),
     isNsfw: integer('is_nsfw', { mode: 'boolean' }).default(false),
+    minVipTier: integer('min_vip_tier', { mode: 'number' }).default(0).notNull(),
     createdAt: text('created_at').default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
   },
   (table) => [
@@ -183,6 +184,7 @@ export const users = sqliteTable('Users', {
   isNsfw: integer('is_nsfw', { mode: 'boolean' }).default(false),
   vipTier: integer('vip_tier', { mode: 'number' }).default(0).notNull(), // 0 = no VIP
   vipExpiresAt: integer('vip_expires_at', { mode: 'timestamp_ms' }),
+  profileConfig: text('profile_config'), // JSON configuration for VIP profiles
   tokenVersion: integer('token_version').default(1).notNull(), // Orion: Para invalidación de sesiones
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).default(
     sql`(strftime('%s', 'now') * 1000)`
@@ -546,5 +548,25 @@ export const donations = sqliteTable(
   (table) => [
     index('idx_donations_user').on(table.userId),
     index('idx_donations_status').on(table.status),
+  ]
+);
+
+export const chapterDownloads = sqliteTable(
+  'ChapterDownloads',
+  {
+    id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    chapterId: integer('chapter_id', { mode: 'number' })
+      .notNull()
+      .references(() => chapters.id, { onDelete: 'cascade' }),
+    downloadedAt: integer('downloaded_at', { mode: 'timestamp_ms' }).default(
+      sql`(strftime('%s', 'now') * 1000)`
+    ),
+  },
+  (table) => [
+    index('idx_chapter_downloads_user').on(table.userId),
+    index('idx_chapter_downloads_date').on(table.downloadedAt),
   ]
 );

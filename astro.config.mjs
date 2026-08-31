@@ -21,11 +21,16 @@ export default defineConfig({
       enabled: true,
     },
     imageService: 'cloudflare',
+    prerenderEnvironment: 'node',
   }),
 
   vite: {
     // Ya no se necesitan los complejos polyfills ni alias
     ssr: {
+      optimizeDeps: {
+        noDiscovery: true,
+        include: [],
+      },
       // Solo nos aseguramos de que firebase-admin (si se usa en otro lugar) sea manejado por Vite
       noExternal: ['firebase-admin'],
       external: ['@cloudflare/workers-types'],
@@ -56,7 +61,7 @@ export default defineConfig({
         'astro/virtual-modules/transitions-events.js',
         'astro/virtual-modules/transitions-swap-functions.js',
       ],
-      exclude: ['@cf-wasm/photon'],
+      exclude: ['@cf-wasm/photon', 'astro', '@astrojs/svelte', 'lucia'],
     },
     server: {
       fs: {

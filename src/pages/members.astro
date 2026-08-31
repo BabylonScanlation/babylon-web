@@ -1,0 +1,356 @@
+---
+import { env } from 'cloudflare:workers';
+import { desc, sql } from 'drizzle-orm';
+import { users } from '../db/schema';
+import Layout from '../layouts/Layout.astro';
+import { getDB } from '../lib/db';
+import { getImageUrl } from '../lib/utils';
+import { siteConfig } from '../site.config';
+
+const drizzleDb = getDB(env);
+const r2PublicUrlAssets = env?.R2_PUBLIC_URL_ASSETS;
+
+const vipMembers = await drizzleDb
+  .select({
+    username: users.username,
+    displayName: users.displayName,
+    avatarUrl: users.avatarUrl,
+    vipTier: users.vipTier,
+    profileConfig: users.profileConfig,
+  })
+  .from(users)
+  .where(sql`${users.vipTier} > 0`)
+  .orderBy(desc(users.vipTier))
+  .all();
+
+// Filter out members who might want privacy or aren't full accounts, if needed.
+
+const getTierColor = (tier: number) => {
+  switch (tier) {
+    case 1:
+      return '#4a90e2';
+    case 2:
+      return '#50e3c2';
+    case 3:
+      return '#f5a623';
+    case 4:
+      return '#d0021b';
+    case 5:
+      return '#9013fe';
+    case 6:
+      return '#bd10e0';
+    case 7:
+      return '#ff007f';
+    default:
+      return '#fff';
+  }
+};
+
+const getTierName = (tier: number) => {
+  switch (tier) {
+    case 1:
+      return 'Apoyo (Nivel 1)';
+    case 2:
+      return 'Lector (Nivel 2)';
+    case 3:
+      return 'Avanzado (Nivel 3)';
+    case 4:
+      return 'Experto (Nivel 4)';
+    case 5:
+      return 'Mecenas (Nivel 5)';
+    case 6:
+      return 'Patrocinador (Nivel 6)';
+    case 7:
+      return 'Admin (Nivel 7)';
+    default:
+      return 'VIP';
+  }
+};
+---
+
+<Layout title={`Salón de la Fama VIP - ${siteConfig.name}`} description="Conoce a los miembros más dedicados de nuestra comunidad.">
+  <main class="vip-hall-container">
+    <header class="hall-header">
+      <div class="header-glow"></div>
+      <h1>Salón de la Fama <span class="vip-highlight">VIP</span></h1>
+      <p>Un agradecimiento especial a los miembros que hacen posible que {siteConfig.name} siga creciendo.</p>
+    </header>
+
+    <div class="vip-table-wrapper">
+      <table class="vip-table">
+        <thead>
+          <tr>
+            <th>Miembro</th>
+            <th>Nivel VIP</th>
+            <th>Beneficios Destacados</th>
+          </tr>
+        </thead>
+        <tbody>
+          {vipMembers.map((member) => {
+            let glowColor = '';
+            let textColor = '';
+            try {
+              if (member.profileConfig) {
+                const config = JSON.parse(member.profileConfig);
+                if (config.textColor) textColor = config.textColor;
+                if (config.glowColor) glowColor = config.glowColor;
+              }
+            } catch (e) {
+              console.error('Error parsing config', e);
+            }
+
+            return (
+              <tr class={`tier-row tier-${member.vipTier}`}>
+                <td class="member-cell">
+                  <div class="avatar-container">
+                    <img 
+                      src={getImageUrl(member.avatarUrl, r2PublicUrlAssets, 'user')} 
+                      alt={member.displayName || member.username} 
+                      class="member-avatar"
+                      loading="lazy"
+                    />
+                    <div class="avatar-ring" style={`border-color: ${getTierColor(member.vipTier)};`}></div>
+                  </div>
+                  <div class="member-info">
+                    <span 
+                      class="member-name" 
+                      style={`color: ${textColor || '#fff'}; text-shadow: ${glowColor ? `0 0 10px ${glowColor}` : 'none'};`}
+                    >
+                      {member.displayName || member.username || 'Usuario'}
+                    </span>
+                  </div>
+                </td>
+                <td class="tier-cell">
+                  <span class="tier-badge" style={`background: ${getTierColor(member.vipTier)}22; border-color: ${getTierColor(member.vipTier)}; color: ${getTierColor(member.vipTier)};`}>
+                    {getTierName(member.vipTier)}
+                  </span>
+                </td>
+                <td class="benefits-cell">
+                  {member.vipTier >= 3 && <span class="benefit-tag">Sin Marca de Agua</span>}
+                  {member.vipTier >= 4 && <span class="benefit-tag">Descargas Ilimitadas</span>}
+                  {member.vipTier >= 5 && <span class="benefit-tag">Propuestas de Series</span>}
+                  {member.vipTier >= 7 && <span class="benefit-tag admin">Staff</span>}
+                </td>
+              </tr>
+            );
+          })}
+          
+          {vipMembers.length === 0 && (
+            <tr>
+              <td colspan="3" class="empty-state">
+                <p>Aún no hay miembros VIP. ¡Sé el primero en unirte!</p>
+                <a href="/premium" class="btn-premium">Descubrir VIP</a>
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .vip-hall-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 3rem 1rem;
+  }
+
+  .hall-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    position: relative;
+  }
+
+  .header-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 100px;
+    background: var(--accent-glow, rgba(0, 191, 255, 0.4));
+    filter: blur(80px);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .hall-header h1 {
+    font-size: 3rem;
+    font-weight: 900;
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 1;
+    line-height: 1.2;
+  }
+
+  .vip-highlight {
+    background: linear-gradient(135deg, #FFD700, #FDB931);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+  }
+
+  .hall-header p {
+    color: #888;
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .vip-table-wrapper {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+  }
+
+  .vip-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .vip-table th {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 1.5rem 2rem;
+    color: #888;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .tier-row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: background 0.3s;
+  }
+
+  .tier-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .tier-row:last-child {
+    border-bottom: none;
+  }
+
+  .vip-table td {
+    padding: 1.25rem 2rem;
+    vertical-align: middle;
+  }
+
+  .member-cell {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .avatar-container {
+    position: relative;
+    width: 48px;
+    height: 48px;
+  }
+
+  .member-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #111;
+  }
+
+  .avatar-ring {
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 2px solid;
+    pointer-events: none;
+    opacity: 0.8;
+  }
+
+  .member-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    display: block;
+    transition: all 0.2s;
+  }
+
+  .tier-badge {
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
+    font-weight: 800;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid;
+  }
+
+  .benefits-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .benefit-tag {
+    background: rgba(255, 255, 255, 0.05);
+    color: #aaa;
+    padding: 0.3rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .benefit-tag.admin {
+    background: rgba(255, 0, 127, 0.1);
+    color: #ff007f;
+    border-color: rgba(255, 0, 127, 0.3);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem !important;
+  }
+
+  .empty-state p {
+    color: #888;
+    margin-bottom: 1.5rem;
+  }
+
+  .btn-premium {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 2rem;
+    background: var(--accent-color);
+    color: #000;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 800;
+    transition: all 0.2s;
+  }
+
+  .btn-premium:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 191, 255, 0.3);
+  }
+
+  @media (max-width: 768px) {
+    .vip-table th:nth-child(3),
+    .vip-table td:nth-child(3) {
+      display: none;
+    }
+    .vip-table th, .vip-table td {
+      padding: 1rem;
+    }
+    .hall-header h1 {
+      font-size: 2.2rem;
+    }
+  }
+</style>

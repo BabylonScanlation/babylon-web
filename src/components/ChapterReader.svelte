@@ -32,6 +32,7 @@ interface Props {
   prevChapter?: { slug: string; chapter: string } | null;
   processing?: boolean;
   isStaff?: boolean;
+  vipTier?: number;
 }
 
 let {
@@ -49,6 +50,7 @@ let {
   prevChapter = null,
   processing = false,
   isStaff = false,
+  vipTier = 0,
 }: Props = $props();
 
 let pagesData = $state<Page[]>([]);
@@ -520,7 +522,7 @@ function registerView() {
           chapterId: cid,
           chapterNumber: parseFloat(chapter),
         })
-        .catch((err) => console.warn('[Reader] Failed to update progress', err));
+        .catch((err: any) => console.warn('[Reader] Failed to update progress', err));
     };
 
     if ('requestIdleCallback' in window) {
@@ -708,6 +710,17 @@ import { siteConfig } from '../site.config';
         <button class="tool-btn comment-trigger" onclick={scrollToComments} title="Comentarios">
           <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
         </button>
+        {#if isStaff || vipTier >= 3}
+          <a 
+            href={`/api/series/${slug}/${chapter}/download${chapterId ? '?id=' + chapterId : ''}`}
+            class="tool-btn download-trigger"
+            title="Descargar Capítulo"
+            target="_blank"
+            style="display: flex; align-items: center; justify-content: center; color: inherit; text-decoration: none;"
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </a>
+        {/if}
         <button class="tool-btn" onclick={(e) => {
           e.stopPropagation();
           showConfig = true;

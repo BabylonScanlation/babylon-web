@@ -48,31 +48,38 @@ export const POST: APIRoute = async ({ request, locals }) => {
     let apiErrorMsg = 'Transacción no encontrada en la blockchain o monto insuficiente.';
 
     try {
-      let pricePromise = Promise.resolve(null as any);
-      let txPromise = Promise.resolve(null as any);
+      let pricePromise: Promise<Record<string, { usd: number }> | null> = Promise.resolve(null);
+      let txPromise: Promise<Record<string, unknown> | null> = Promise.resolve(null);
 
       // Start fetching prices
       if (currency !== 'USDT') {
-        pricePromise = fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd')
-          .then(res => res.ok ? res.json() : null)
+        pricePromise = fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd'
+        )
+          .then((res) => (res.ok ? res.json() : null))
           .catch(() => null);
       }
 
       // Start fetching transaction concurrently
       if (currency === 'BTC') {
         txPromise = fetch(`https://mempool.space/api/tx/${txHash}`)
-          .then(res => res.ok ? res.json() : { error: 'api_error' })
+          .then((res) => (res.ok ? res.json() : { error: 'api_error' }))
           .catch(() => ({ error: 'fetch_error' }));
       } else if (currency === 'ETH') {
         txPromise = fetch('https://cloudflare-eth.com', {
           method: 'POST',
-          body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getTransactionByHash', params: [txHash], id: 1 })
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'eth_getTransactionByHash',
+            params: [txHash],
+            id: 1,
+          }),
         })
-          .then(res => res.ok ? res.json() : null)
+          .then((res) => (res.ok ? res.json() : null))
           .catch(() => null);
       } else if (currency === 'USDT') {
         txPromise = fetch(`https://apilist.tronscanapi.com/api/transaction-info?hash=${txHash}`)
-          .then(res => res.ok ? res.json() : null)
+          .then((res) => (res.ok ? res.json() : null))
           .catch(() => null);
       }
 
@@ -86,23 +93,28 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (currency === 'BTC' && txData) {
         if (txData.error) {
           apiErrorMsg = 'La red de Bitcoin está saturada o la transacción aún no se confirma.';
-        } else if (btcPrice > 0 && txData.vout) {
-          const vout = txData.vout.find((v: any) => v.scriptpubkey_address === env.PUBLIC_BTC_WALLET);
+        } else if (btcPrice > 0 && Array.isArray(txData.vout)) {
+          const vout = txData.vout.find(
+            (v: { scriptpubkey_address: string; value: number }) =>
+              v.scriptpubkey_address === env.PUBLIC_BTC_WALLET
+          );
           if (vout) {
             const usdSent = (vout.value / 100000000) * btcPrice;
             if (usdSent >= requiredUsd) isVerified = true;
           }
         }
       } else if (currency === 'ETH' && ethPrice > 0 && txData) {
-        if (txData.result?.to?.toLowerCase() === env.PUBLIC_ETH_WALLET?.toLowerCase()) {
-          const ethSent = parseInt(txData.result?.value || '0', 16) / 1e18;
+        const txResult = txData.result as { to?: string; value?: string } | undefined;
+        if (txResult?.to?.toLowerCase() === env.PUBLIC_ETH_WALLET?.toLowerCase()) {
+          const ethSent = parseInt(txResult?.value || '0', 16) / 1e18;
           const usdSent = ethSent * ethPrice;
           if (usdSent >= requiredUsd) isVerified = true;
         }
       } else if (currency === 'USDT' && txData) {
-        if (txData.trc20TransferInfo) {
+        if (Array.isArray(txData.trc20TransferInfo)) {
           const transfer = txData.trc20TransferInfo.find(
-            (t: any) => t.to_address === env.PUBLIC_USDT_TRC20_WALLET && t.symbol === 'USDT'
+            (t: { to_address: string; symbol: string; amount_str: string; decimals: number }) =>
+              t.to_address === env.PUBLIC_USDT_TRC20_WALLET && t.symbol === 'USDT'
           );
           if (transfer) {
             const usdtSent = parseFloat(transfer.amount_str) / 10 ** transfer.decimals;

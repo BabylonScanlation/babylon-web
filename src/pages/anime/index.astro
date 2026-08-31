@@ -1,0 +1,237 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { siteConfig } from '../../site.config';
+
+// SSR Fetch de animes recientes o populares (mock/búsqueda inicial)
+// Idealmente aquí le pegamos a nuestro propio endpoint o directamente a Consumet
+const API_URL = import.meta.env.CONSUMET_API_URL || 'https://consumet-api-clone.vercel.app';
+let animes = [];
+let error = null;
+
+try {
+  // Buscamos algo por defecto para llenar la grilla, ej: "naruto" o "one piece"
+  const response = await fetch(`${API_URL}/anime/gogoanime/top-airing`);
+  if (response.ok) {
+    const data = await response.json();
+    animes = data.results || [];
+  }
+} catch (e) {
+  error = 'No se pudieron cargar los animes recientes.';
+  console.error(e);
+}
+---
+
+<Layout
+  title={`Anime - ${siteConfig.name}`}
+  description={`Disfruta del mejor anime en alta calidad y sin anuncios en ${siteConfig.name}.`}
+>
+  <div class="anime-container">
+    <header class="anime-header">
+      <h1>Directorio de Anime</h1>
+      <p>Streaming premium sin anuncios ni interrupciones.</p>
+      
+      <div class="search-bar">
+        <input type="text" id="anime-search" placeholder="Buscar anime (ej. Jujutsu Kaisen)..." />
+        <button id="search-btn">Buscar</button>
+      </div>
+    </header>
+
+    {error && <div class="error-msg">{error}</div>}
+
+    <div class="anime-grid" id="anime-grid">
+      {animes.map((anime: any) => (
+        <a href={`/anime/${anime.id}`} class="anime-card">
+          <div class="img-wrapper">
+            <img src={anime.image} alt={anime.title} loading="lazy" />
+            <div class="overlay">
+              <span class="play-icon">▶</span>
+            </div>
+          </div>
+          <div class="anime-info">
+            <h3>{anime.title}</h3>
+            {anime.releaseDate && <span class="year">{anime.releaseDate}</span>}
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<script src="../../scripts/anime.ts"></script>
+
+<style>
+  .anime-container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    box-sizing: border-box;
+  }
+  
+  .anime-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  
+  .anime-header h1 {
+    font-size: 2.5rem;
+    color: #fff;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(90deg, #60a5fa, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .anime-header p {
+    color: #94a3b8;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+  }
+
+  .search-bar {
+    display: flex;
+    max-width: 600px;
+    margin: 0 auto;
+    gap: 0.5rem;
+  }
+
+  .search-bar input {
+    flex-grow: 1;
+    padding: 1rem 1.5rem;
+    border-radius: 100px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+  }
+
+  .search-bar input:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+
+  .search-bar button {
+    padding: 0 2rem;
+    border-radius: 100px;
+    border: none;
+    background: #3b82f6;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+
+  .search-bar button:hover {
+    background: #2563eb;
+  }
+
+  .anime-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .anime-card {
+    text-decoration: none;
+    color: #fff;
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .anime-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2);
+  }
+
+  .img-wrapper {
+    position: relative;
+    aspect-ratio: 2/3;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .img-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s;
+  }
+
+  .anime-card:hover .img-wrapper img {
+    transform: scale(1.05);
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .anime-card:hover .overlay {
+    opacity: 1;
+  }
+
+  .play-icon {
+    font-size: 3rem;
+    color: #fff;
+    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.8));
+    transform: scale(0.8);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .anime-card:hover .play-icon {
+    transform: scale(1);
+  }
+
+  .anime-info {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex-grow: 1;
+  }
+
+  .anime-info h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .year {
+    font-size: 0.85rem;
+    color: #60a5fa;
+    font-weight: 500;
+  }
+
+  .loading, .empty, .error-msg {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    color: #94a3b8;
+    font-size: 1.2rem;
+  }
+  
+  @media (max-width: 600px) {
+    .anime-grid {
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+    .anime-header h1 {
+      font-size: 2rem;
+    }
+  }
+</style>

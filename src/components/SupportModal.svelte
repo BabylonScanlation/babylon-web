@@ -198,12 +198,12 @@ function handleMouseMove(e: MouseEvent) {
   const y = e.clientY - rect.top;
   target.style.setProperty('--mouse-x', `${x}px`);
   target.style.setProperty('--mouse-y', `${y}px`);
-  
+
   const centerX = rect.width / 2;
   const centerY = rect.height / 2;
   const rotateX = ((y - centerY) / centerY) * -8;
   const rotateY = ((x - centerX) / centerX) * 8;
-  
+
   target.style.setProperty('--rotate-x', `${rotateX}deg`);
   target.style.setProperty('--rotate-y', `${rotateY}deg`);
 }

@@ -77,7 +77,7 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
           </div>
 
         <div class="main-sections-container">
-          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (
+          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (Astro.locals.user?.vipTier ?? 0) < 1 && (
             <div class="top-ad-banner">
               <AdContainer type="bannerLarge" />
             </div>
@@ -89,7 +89,7 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
             </div>
           )}
 
-          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (
+          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (Astro.locals.user?.vipTier ?? 0) < 1 && (
             <div class="middle-ad-wrapper">
               <AdContainer type="bannerSmall" />
             </div>
@@ -104,7 +104,7 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
             )}
           </div>
 
-          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (
+          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (Astro.locals.user?.vipTier ?? 0) < 1 && (
             <div class="bottom-ad-wrapper">
               <AdContainer type="square" />
             </div>

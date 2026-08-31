@@ -1,13 +1,11 @@
-import { defineMiddleware } from 'astro:middleware';
+import { defineMiddleware, sequence } from 'astro:middleware';
 import type { APIContext } from 'astro';
 import { authFlow } from './lib/middlewares/auth';
 import { shield } from './lib/middlewares/shield';
 
-export const onRequest = defineMiddleware(async (context, next): Promise<Response> => {
+// 0. Cortocircuito de Assets (Orion: Optimización Crítica de Recursos)
+const assetBypass = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
-
-  // 0. Cortocircuito de Assets (Orion: Optimización Crítica de Recursos)
-  // Evitamos que las peticiones de recursos estáticos pasen por Shield y AuthFlow.
   if (
     pathname.startsWith('/_astro/') ||
     pathname.startsWith('/fonts/') ||
@@ -23,26 +21,26 @@ export const onRequest = defineMiddleware(async (context, next): Promise<Respons
   ) {
     return next();
   }
-
-  // 1. Capa de Protección (Bot & Geo Block)
-  return (await shield(context, async () => {
-    // 2. Capa de Autenticación (JWT & D1 Session)
-    return (await authFlow(context, async () => {
-      // Orion: Inyectamos la bandera isStaff para exención de anuncios
-      const user = context.locals.user;
-      context.locals.isStaff = !!(
-        user &&
-        (user.isAdmin || (user.scanlations && user.scanlations.length > 0))
-      );
-
-      // 3. Ejecución de la Ruta
-      const response = await next();
-
-      // 4. Capa de Optimización de Headers (Edge Cache)
-      return applyOptimizedHeaders(response, context);
-    })) as Response;
-  })) as Response;
+  return next();
 });
+
+// 3. Ejecución de la Ruta y Optimización de Headers
+const finalRouteHandler = defineMiddleware(async (context, next) => {
+  // Orion: Inyectamos la bandera isStaff para exención de anuncios
+  const user = context.locals.user;
+  if (user) {
+    context.locals.isStaff = Boolean(
+      user.isAdmin || (user.scanlations && user.scanlations.length > 0)
+    );
+  } else {
+    context.locals.isStaff = false;
+  }
+
+  const response = await next();
+  return applyOptimizedHeaders(response, context);
+});
+
+export const onRequest = sequence(assetBypass, shield, authFlow, finalRouteHandler);
 
 function applyOptimizedHeaders(response: Response, context: APIContext) {
   const contentType = response.headers.get('content-type');

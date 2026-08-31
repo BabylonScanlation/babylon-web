@@ -787,19 +787,21 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
           (es) => {
             es.forEach((e) => {
               if (e.isIntersecting) {
-                const img = e.target as HTMLImageElement;
-                const ds = img.getAttribute('data-src');
-                if (ds) {
-                  img.src = ds;
-                  img.removeAttribute('data-src');
-                  const show = () => {
-                    img.style.opacity = '1';
-                    img.classList.add('loaded');
-                  };
-                  if (img.complete) show();
-                  else img.onload = show;
+                const img = e.target;
+                if (img instanceof HTMLImageElement) {
+                  const ds = img.getAttribute('data-src');
+                  if (ds) {
+                    img.src = ds;
+                    img.removeAttribute('data-src');
+                    const show = () => {
+                      img.style.opacity = '1';
+                      img.classList.add('loaded');
+                    };
+                    if (img.complete) show();
+                    else img.onload = show;
+                  }
+                  obs.unobserve(img);
                 }
-                obs.unobserve(img);
               }
             });
           },
@@ -871,16 +873,18 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
 
                     slot.innerHTML = '';
                     slot.appendChild(ifr);
-                    (el as HTMLElement).style.overflow = 'hidden';
-                    (el as HTMLElement).style.background = 'transparent';
-                    (el as HTMLElement).style.alignItems = 'flex-start';
+                    if (el instanceof HTMLElement) {
+                      el.style.overflow = 'hidden';
+                      el.style.background = 'transparent';
+                      el.style.alignItems = 'flex-start';
+                    }
 
                     // Orion: Detección de Adblock y Fallback Activo
                     ifr.onload = () => {
                       setTimeout(() => {
                         try {
                           if (
-                            (el as HTMLElement).offsetHeight === 0 ||
+                            (el instanceof HTMLElement && el.offsetHeight === 0) ||
                             window.getComputedStyle(el).display === 'none'
                           ) {
                             el.classList.add('fallback-active');
@@ -904,7 +908,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       };
 
       // Escuchar mensajes desde el iframe (Bloqueo y Resize) con Throttling
-      let _0xR: any = null;
+      let _0xR = 0;
       window.addEventListener('message', (e) => {
         if (typeof e.data === 'object' && e.data.type === 'ad-resize') {
           if (_0xR) cancelAnimationFrame(_0xR);
@@ -942,7 +946,9 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
             tY = 0;
           const wW = window.innerWidth,
             wH = window.innerHeight;
-          const onMove = (e: MouseEvent) => {
+          const onMove = function() {
+            // eslint-disable-next-line prefer-rest-params
+            const e = arguments[0];
             mX = e.clientX - wW / 2;
             mY = e.clientY - wH / 2;
           };
@@ -960,12 +966,14 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
             tY += (mY - tY) * 0.05;
 
             // Orion: Aplicamos transform directamente a las capas para evitar recalculado de estilos global
-            (layers[0] as HTMLElement).style.transform =
-              `translate3d(${tX * -0.02}px, ${(sY + tY) * -0.02}px, 0)`;
-            (layers[1] as HTMLElement).style.transform =
-              `translate3d(${tX * -0.06}px, ${(sY + tY) * -0.06}px, 0)`;
-            (layers[2] as HTMLElement).style.transform =
-              `translate3d(${tX * -0.12}px, ${(sY + tY) * -0.12}px, 0)`;
+            if (layers.length >= 3 && layers[0] instanceof HTMLElement && layers[1] instanceof HTMLElement && layers[2] instanceof HTMLElement) {
+              layers[0].style.transform =
+                `translate3d(${tX * -0.02}px, ${(sY + tY) * -0.02}px, 0)`;
+              layers[1].style.transform =
+                `translate3d(${tX * -0.06}px, ${(sY + tY) * -0.06}px, 0)`;
+              layers[2].style.transform =
+                `translate3d(${tX * -0.12}px, ${(sY + tY) * -0.12}px, 0)`;
+            }
 
             requestAnimationFrame(anim);
           };
@@ -973,7 +981,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
         }
 
         if (document.querySelector('.swiper')) {
-          if (!(window as any).Swiper) {
+          if (!window.Swiper) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
             link.href =
@@ -987,8 +995,8 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
               document.head.appendChild(s);
             });
           }
-          const S = (window as any).Swiper;
-          const h = document.querySelector('.hero-swiper') as HTMLElement;
+          const S = window.Swiper;
+          const h = document.querySelector('.hero-swiper') ;
           if (h && !(h as any).swiper)
             new S(h, {
               slidesPerView: 1,
@@ -1004,7 +1012,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
             });
           const u = document.querySelector(
             '.recent-updates-swiper'
-          ) as HTMLElement;
+          ) ;
           if (u && !(u as any).swiper)
             new S(u, {
               slidesPerView: 'auto',
@@ -1030,12 +1038,14 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       };
 
       // 5. Svelte Bridge (Orion: Carga Ultra-Diferida con Auto-Forward)
-      const _0xB = async (e: any) => {
-        if ((window as any)._babylonSvelte) return;
-        (window as any)._babylonSvelte = true;
+      const _0xB = async function() {
+        // eslint-disable-next-line prefer-rest-params
+        const e = arguments[0];
+        if (window._babylonSvelte) return;
+        window._babylonSvelte = true;
 
         const type = e.type;
-        const detail = e.detail;
+        const detail = 'detail' in e ? e.detail : null;
 
         const [{ mount }, { default: GlobalUtilitiesComp }] = await Promise.all(
           [import('svelte'), import('../components/GlobalUtilities.svelte')]
@@ -1059,46 +1069,53 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
 
       // 6. Inicialización Global
       const _0xI = () => {
-        if ((window as any)._babylonInitMain) return;
-        (window as any)._babylonInitMain = true;
+        if (window._babylonInitMain) return;
+        window._babylonInitMain = true;
         if (
           document.documentElement.classList.contains('nsfw-mode') ||
           document.cookie.includes('babylon_nsfw=true')
         ) {
           const h = document.getElementById('main-header');
           if (h) h.classList.add('nsfw-active');
-          const l = document.getElementById(
-            'header-logo-img'
-          ) as HTMLImageElement;
-          if (l) {
+          const l = document.getElementById('header-logo-img');
+          if (l instanceof HTMLImageElement) {
             const nsfwSrc = l.getAttribute('data-nsfw-src');
             if (nsfwSrc) l.src = nsfwSrc;
           }
         }
-        const updateBadges = (c: string | number) => {
-          const count = parseInt(c as string, 10);
+        const updateBadges = function(c = '') {
+          const count = parseInt(c.toString(), 10);
           document.querySelectorAll('[data-news-badge]').forEach((b) => {
-            if (!isNaN(count) && count > 0) {
-              b.textContent = count > 9 ? '+9' : count.toString();
-              b.classList.remove('hidden');
-              (b as HTMLElement).style.display = 'flex';
-            } else {
-              b.classList.add('hidden');
-              (b as HTMLElement).style.display = 'none';
+            if (b instanceof HTMLElement) {
+              if (!isNaN(count) && count > 0) {
+                b.textContent = count > 9 ? '+9' : count.toString();
+                b.classList.remove('hidden');
+                b.style.display = 'flex';
+              } else {
+                b.classList.add('hidden');
+                b.style.display = 'none';
+              }
             }
           });
         };
 
-        window.addEventListener('news-count-updated', (e: any) => {
-          updateBadges(e.detail?.count || 0);
+        window.addEventListener('news-count-updated', function() {
+          // eslint-disable-next-line prefer-rest-params
+          const e = arguments[0];
+          updateBadges(String(e.detail?.count || 0));
         });
 
         const localCount = localStorage.getItem('babylon_news_count');
-        if (localCount !== null) {
-          updateBadges(localCount);
+        if (localCount) {
+          updateBadges(String(localCount));
+        }
+        
+        if (typeof window !== 'undefined' && (window as any)._babylonNewsCount) {
+           const c = (window as any)._babylonNewsCount;
+           if (c) updateBadges(String(c));
         } else {
           const c = document.body.getAttribute(_0xS.n);
-          if (c) updateBadges(c);
+          if (c) updateBadges(String(c));
         }
         _0xA();
         _0xV();

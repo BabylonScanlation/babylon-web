@@ -54,9 +54,9 @@ export async function getSeriesDetails(
         createdAt: chapters.createdAt,
         views: chapters.views,
         language: chapters.language,
-        scanlationName: scanlations.name,
         scanlationSlug: scanlations.slug,
         isNsfw: chapters.isNsfw,
+        minVipTier: chapters.minVipTier,
       })
       .from(chapters)
       .leftJoin(scanlations, eq(chapters.scanlationId, scanlations.id))

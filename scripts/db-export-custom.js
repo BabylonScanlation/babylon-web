@@ -61,9 +61,7 @@ async function main() {
 
   // Obtener lista de todas las tablas de usuario
   console.log('🔍 Listando tablas disponibles en D1 Remote...');
-  const tablesJson = query(
-    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'drizzle_%' AND name NOT LIKE '_cf_%' AND name NOT LIKE '%_fts_%'"
-  );
+  const tablesJson = query("SELECT name FROM sqlite_master WHERE type='table'");
 
   if (!tablesJson) {
     console.error('❌ No se pudieron obtener las tablas de la base de datos remota.');
@@ -71,7 +69,15 @@ async function main() {
   }
 
   const results = JSON.parse(tablesJson)[0].results;
-  const allTables = results.map((r) => r.name);
+  const allTables = results
+    .map((r) => r.name)
+    .filter(
+      (n) =>
+        !n.startsWith('sqlite_') &&
+        !n.startsWith('drizzle_') &&
+        !n.startsWith('_cf_') &&
+        !n.includes('_fts_')
+    );
   console.log(`📑 Encontradas ${allTables.length} tablas de usuario.`);
 
   let sqlDump = 'PRAGMA foreign_keys = OFF;\n';

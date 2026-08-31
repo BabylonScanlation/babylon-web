@@ -66,5 +66,9 @@ declare global {
     handleToggleStatus?: (id: string, currentStatus: string) => Promise<void>;
     _babylonPendingEvent?: { type: string; detail: unknown };
     _babylonUtilsInjected?: boolean;
+    _babylonInitMain?: boolean;
+    _babylonSvelte?: boolean;
+    // biome-ignore lint/suspicious/noExplicitAny: Swiper uses a dynamic class type
+    Swiper?: any;
   }
 }

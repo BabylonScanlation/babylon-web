@@ -26,7 +26,7 @@ CREATE TABLE `Donations` (
 	FOREIGN KEY (`user_id`) REFERENCES `Users`(`id`) ON UPDATE no action ON DELETE set null
 );
 
-CREATE INDEX `idx_subscriptions_user` ON `Subscriptions` (`user_id`);
-CREATE INDEX `idx_subscriptions_status` ON `Subscriptions` (`status`);
-CREATE INDEX `idx_donations_user` ON `Donations` (`user_id`);
-CREATE INDEX `idx_donations_status` ON `Donations` (`status`);
+CREATE INDEX IF NOT EXISTS `idx_subscriptions_user` ON `Subscriptions` (`user_id`);
+CREATE INDEX IF NOT EXISTS `idx_subscriptions_status` ON `Subscriptions` (`status`);
+CREATE INDEX IF NOT EXISTS `idx_donations_user` ON `Donations` (`user_id`);
+CREATE INDEX IF NOT EXISTS `idx_donations_status` ON `Donations` (`status`);

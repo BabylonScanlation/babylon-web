@@ -13,7 +13,8 @@ import { siteConfig } from '../../../../site.config';
 
 const { slug, chapter } = Astro.params;
 const user = Astro.locals.user;
-const watermark = siteConfig.reader.watermark;
+const isVipOrAdmin = Astro.locals.isStaff || user?.isAdmin;
+const watermark = isVipOrAdmin || (user?.vipTier ?? 0) >= 3 ? '' : siteConfig.reader.watermark;
 
 if (!slug || !chapter) return Astro.redirect('/404');
 
@@ -268,7 +269,7 @@ if (error && currentChapterIndex !== -1) {
   </div>
 
   <main class="reader-container" id="reader-container">
-    {!Astro.locals.isStaff && !user?.isAdmin && siteConfig.ads.enabled && (
+    {!Astro.locals.isStaff && !user?.isAdmin && (user?.vipTier ?? 0) < 1 && siteConfig.ads.enabled && (
       <div class="reader-top-ad">
         <AdContainer type="native" />
       </div>
@@ -392,6 +393,7 @@ if (error && currentChapterIndex !== -1) {
           nextChapter={nextChapterProp || undefined} 
           prevChapter={prevChapterProp || undefined}
           isStaff={Astro.locals.isStaff}
+          vipTier={user?.vipTier ?? 0}
         />
     )}
   </main>

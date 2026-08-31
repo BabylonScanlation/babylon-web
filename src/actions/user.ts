@@ -22,6 +22,7 @@ const ProfileSchema = z.object({
   avatarUrl: z.url().optional(),
   bannerUrl: z.url().optional(),
   nonce: z.string().optional(),
+  profileConfig: z.string().optional(),
 });
 
 export const userActions = {
