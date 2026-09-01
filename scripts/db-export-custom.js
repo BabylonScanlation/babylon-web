@@ -90,7 +90,9 @@ function main() {
     console.error('❌ Error de Cloudflare/Wrangler:');
     console.error(parsed.error.text);
     if (parsed.error.notes) {
-      parsed.error.notes.forEach(n => console.error('   -', n.text));
+      parsed.error.notes.forEach((n) => {
+        console.error('   -', n.text);
+      });
     }
     console.error('\n⚠️ Por favor, revisa tu autenticación (ej: npx wrangler login) o tus tokens de API.');
     process.exit(1);
