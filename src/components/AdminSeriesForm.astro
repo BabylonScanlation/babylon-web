@@ -55,7 +55,7 @@ interface Series {
             height={240}
           />
           <div class="file-input-wrapper">
-            <label for={`cover-input-${series.id}`} class="custom-file-upload">
+            <div class="custom-file-upload">
               <input
                 type="file"
                 name="coverImage"
@@ -65,7 +65,7 @@ interface Series {
               />
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
               Cambiar Imagen
-            </label>
+            </div>
           </div>
         </div>
       </div>
@@ -309,6 +309,8 @@ interface Series {
     background: rgba(0,0,0,0.6);
     opacity: 0;
     transition: opacity 0.3s;
+    z-index: 100;
+    pointer-events: auto !important;
   }
 
   .preview-card:hover .file-input-wrapper {
@@ -322,11 +324,25 @@ interface Series {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     color: #fff;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
   }
 
-  .custom-file-upload input { display: none; }
+  .custom-file-upload input { 
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 20;
+  }
 
   .basic-info {
     flex-grow: 1;
@@ -711,7 +727,19 @@ interface Series {
   }
 
   document.addEventListener('click', (event) => {
-    const button = (event.target as HTMLElement).closest('.compact-toggle') as HTMLButtonElement;
+    const target = event.target as HTMLElement;
+    
+    // Si hace click en la envoltura de la imagen, disparamos el input manualmente
+    const fileWrapper = target.closest('.file-input-wrapper');
+    if (fileWrapper) {
+      // Evitar loop si el click vino directamente del input
+      if (target.tagName !== 'INPUT') {
+        const fileInput = fileWrapper.querySelector('input[type="file"]') as HTMLInputElement;
+        if (fileInput) fileInput.click();
+      }
+    }
+
+    const button = target.closest('.compact-toggle') as HTMLButtonElement;
     if (!button) return;
 
     const seriesId = button.dataset.seriesId;

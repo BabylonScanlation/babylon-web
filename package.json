@@ -66,6 +66,7 @@
     "firebase": "^12.13.0",
     "firebase-admin": "^13.9.0",
     "jose": "^6.2.3",
+    "obscura-node": "^1.1.1",
     "p-limit": "^7.3.0",
     "snarkdown": "^2.0.0",
     "svelte": "^5.55.5",

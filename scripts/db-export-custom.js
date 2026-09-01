@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -8,17 +8,32 @@ const DB_NAME = 'babylon-scanlation-prod';
 
 function getTimestamp() {
   const now = new Date();
-  // Formato: YYYY-MM-DD_HH-mm-ss (compatible con nombres de archivo)
   return now.toISOString().replace(/T/, '_').replace(/:/g, '-').slice(0, 19);
 }
 
-function runCommand(command) {
+function runCommand(commandStr) {
   try {
-    // Orion: Aumentamos el buffer para dumps grandes
-    return execSync(command, { encoding: 'utf-8', maxBuffer: 100 * 1024 * 1024 });
+    const result = spawnSync(`npx.cmd ${commandStr}`, { 
+      encoding: 'utf-8', 
+      maxBuffer: 100 * 1024 * 1024,
+      shell: true
+    });
+    
+    if (result.error) {
+       console.error(`❌ Spawn Error:`, result.error);
+       return null;
+    }
+    
+    // Ignore the Assertion crash on Windows if we got valid JSON
+    if (result.status !== 0 && !result.stdout) {
+       console.error(`❌ Error Code ${result.status}:`);
+       console.error(result.stderr);
+       return null;
+    }
+    
+    return result.stdout;
   } catch (error) {
-    console.error(`❌ Error ejecutando comando: ${command}`);
-    if (error.stderr) console.error(error.stderr);
+    console.error(`❌ Error ejecutando comando:`, error);
     return null;
   }
 }
@@ -32,7 +47,8 @@ function escapeStringOneLine(val) {
 }
 
 function query(q) {
-  return runCommand(`npx.cmd wrangler d1 execute ${DB_NAME} --remote --command "${q}" --json`);
+  // Pass the query as a single string to let shell handle quoting on Windows
+  return runCommand(`wrangler d1 execute ${DB_NAME} --remote --command "${q}" --json`);
 }
 
 function exportTable(table) {
@@ -41,7 +57,8 @@ function exportTable(table) {
   const data = query(`SELECT * FROM "${table}"`);
 
   if (data) {
-    const results = JSON.parse(data)[0].results;
+    const parsed = JSON.parse(data);
+    const results = parsed[0]?.results;
     if (results) {
       for (const row of results) {
         const cols = Object.keys(row);
@@ -53,13 +70,12 @@ function exportTable(table) {
   return tableSql;
 }
 
-async function main() {
+function main() {
   console.log('⚡ ORION: Generando exportación completa de todas las tablas...');
 
   const timestamp = getTimestamp();
   const timestampedPath = path.join(DUMP_DIR, `dump_${timestamp}.sql`);
 
-  // Obtener lista de todas las tablas de usuario
   console.log('🔍 Listando tablas disponibles en D1 Remote...');
   const tablesJson = query("SELECT name FROM sqlite_master WHERE type='table'");
 
@@ -68,7 +84,25 @@ async function main() {
     process.exit(1);
   }
 
-  const results = JSON.parse(tablesJson)[0].results;
+  const parsed = JSON.parse(tablesJson);
+  
+  if (parsed.error) {
+    console.error('❌ Error de Cloudflare/Wrangler:');
+    console.error(parsed.error.text);
+    if (parsed.error.notes) {
+      parsed.error.notes.forEach(n => console.error('   -', n.text));
+    }
+    console.error('\n⚠️ Por favor, revisa tu autenticación (ej: npx wrangler login) o tus tokens de API.');
+    process.exit(1);
+  }
+
+  const results = parsed[0]?.results;
+  
+  if (!results) {
+    console.error('❌ La respuesta JSON no tiene el formato esperado:', parsed);
+    process.exit(1);
+  }
+  
   const allTables = results
     .map((r) => r.name)
     .filter(
@@ -82,12 +116,10 @@ async function main() {
 
   let sqlDump = 'PRAGMA foreign_keys = OFF;\n';
 
-  // Orden prioritario para mitigar problemas de FK (aunque usemos FK OFF)
   const priority = ['Users', 'Series', 'Chapters', 'Pages'];
   const skip = new Set(['d1_migrations', '_cf_KV']);
   const processed = new Set();
 
-  // 1. Exportar tablas prioritarias primero
   for (const table of priority) {
     if (allTables.includes(table)) {
       sqlDump += exportTable(table);
@@ -95,7 +127,6 @@ async function main() {
     }
   }
 
-  // 2. Exportar el resto de tablas
   for (const table of allTables) {
     if (!processed.has(table) && !skip.has(table)) {
       sqlDump += exportTable(table);
@@ -109,15 +140,13 @@ async function main() {
     fs.mkdirSync(DUMP_DIR, { recursive: true });
   }
 
-  // Guardar copia con timestamp (Backup real histórico)
   fs.writeFileSync(timestampedPath, sqlDump);
   console.log(`\n💾 Backup histórico guardado en ${timestampedPath}`);
 
-  // Guardar/Actualizar dump.sql (Para sincronización automática)
   fs.writeFileSync(DUMP_PATH, sqlDump);
   console.log(`🔄 Archivo de sincronización actualizado en ${DUMP_PATH}`);
 
   console.log(`✅ Exportación completada para ${processed.size} tablas.`);
 }
 
-main().catch((err) => console.error(err));
+main();

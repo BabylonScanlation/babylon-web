@@ -116,13 +116,14 @@ export const seriesActions = {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
 
-      if (coverImage instanceof File && coverImage.size > 0) {
-        const fileExt = coverImage.name.split('.').pop() || 'jpg';
+      if (typeof coverImage === 'object' && coverImage !== null && 'size' in coverImage && (coverImage as File).size > 0 && 'arrayBuffer' in coverImage) {
+        const file = coverImage as File;
+        const fileExt = file.name.split('.').pop() || 'jpg';
         const folder = siteConfig.folders.covers;
         const fileName = `${folder}/${slug}-${Date.now()}.${fileExt}`;
 
-        await env.R2_ASSETS.put(fileName, await coverImage.arrayBuffer(), {
-          httpMetadata: { contentType: coverImage.type },
+        await env.R2_ASSETS.put(fileName, await file.arrayBuffer(), {
+          httpMetadata: { contentType: file.type },
         });
 
         coverImageUrl = fileName;
@@ -286,11 +287,12 @@ export const seriesActions = {
       }
 
       let coverImageUrl = currentSeries.coverImageUrl;
-      if (coverImage instanceof File && coverImage.size > 0) {
-        const imageExtension = coverImage.name.split('.').pop() || 'jpg';
+      if (typeof coverImage === 'object' && coverImage !== null && 'size' in coverImage && (coverImage as File).size > 0 && 'arrayBuffer' in coverImage) {
+        const file = coverImage as File;
+        const imageExtension = file.name.split('.').pop() || 'jpg';
         const imageKey = `covers/${slug}.${Date.now()}.${imageExtension}`;
-        await env.R2_ASSETS.put(imageKey, await coverImage.arrayBuffer(), {
-          httpMetadata: { contentType: coverImage.type },
+        await env.R2_ASSETS.put(imageKey, await file.arrayBuffer(), {
+          httpMetadata: { contentType: file.type },
         });
         coverImageUrl = imageKey;
       }
