@@ -272,7 +272,7 @@ export const authActions = {
 
       // Orion: Acceso seguro a propiedades dinámicas del JWT
       const email = decodedToken.email || `${uid}@firebase.auth`;
-      
+
       let existingUser = await db.select().from(users).where(eq(users.id, uid)).get();
       if (!existingUser) {
         existingUser = await db.select().from(users).where(eq(users.email, email)).get();

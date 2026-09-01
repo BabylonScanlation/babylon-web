@@ -12,6 +12,9 @@ export default defineConfig({
   devToolbar: {
     enabled: false, // Astra: Apagar la toolbar para limpieza total de recursos
   },
+  server: {
+    port: 8789,
+  },
   security: {
     checkOrigin: true,
   },

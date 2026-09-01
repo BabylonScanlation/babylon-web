@@ -13,24 +13,24 @@ function getTimestamp() {
 
 function runCommand(commandStr) {
   try {
-    const result = spawnSync(`npx.cmd ${commandStr}`, { 
-      encoding: 'utf-8', 
+    const result = spawnSync(`npx.cmd ${commandStr}`, {
+      encoding: 'utf-8',
       maxBuffer: 100 * 1024 * 1024,
-      shell: true
+      shell: true,
     });
-    
+
     if (result.error) {
-       console.error(`❌ Spawn Error:`, result.error);
-       return null;
+      console.error(`❌ Spawn Error:`, result.error);
+      return null;
     }
-    
+
     // Ignore the Assertion crash on Windows if we got valid JSON
     if (result.status !== 0 && !result.stdout) {
-       console.error(`❌ Error Code ${result.status}:`);
-       console.error(result.stderr);
-       return null;
+      console.error(`❌ Error Code ${result.status}:`);
+      console.error(result.stderr);
+      return null;
     }
-    
+
     return result.stdout;
   } catch (error) {
     console.error(`❌ Error ejecutando comando:`, error);
@@ -85,7 +85,7 @@ function main() {
   }
 
   const parsed = JSON.parse(tablesJson);
-  
+
   if (parsed.error) {
     console.error('❌ Error de Cloudflare/Wrangler:');
     console.error(parsed.error.text);
@@ -94,17 +94,19 @@ function main() {
         console.error('   -', n.text);
       });
     }
-    console.error('\n⚠️ Por favor, revisa tu autenticación (ej: npx wrangler login) o tus tokens de API.');
+    console.error(
+      '\n⚠️ Por favor, revisa tu autenticación (ej: npx wrangler login) o tus tokens de API.'
+    );
     process.exit(1);
   }
 
   const results = parsed[0]?.results;
-  
+
   if (!results) {
     console.error('❌ La respuesta JSON no tiene el formato esperado:', parsed);
     process.exit(1);
   }
-  
+
   const allTables = results
     .map((r) => r.name)
     .filter(

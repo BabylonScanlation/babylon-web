@@ -116,7 +116,13 @@ export const seriesActions = {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
 
-      if (typeof coverImage === 'object' && coverImage !== null && 'size' in coverImage && (coverImage as File).size > 0 && 'arrayBuffer' in coverImage) {
+      if (
+        typeof coverImage === 'object' &&
+        coverImage !== null &&
+        'size' in coverImage &&
+        (coverImage as File).size > 0 &&
+        'arrayBuffer' in coverImage
+      ) {
         const file = coverImage as File;
         const fileExt = file.name.split('.').pop() || 'jpg';
         const folder = siteConfig.folders.covers;
@@ -287,7 +293,14 @@ export const seriesActions = {
       }
 
       let coverImageUrl = currentSeries.coverImageUrl;
-      if (typeof coverImage === 'object' && coverImage !== null && 'size' in coverImage && (coverImage as File).size > 0 && 'arrayBuffer' in coverImage) {
+      console.log('[DEBUG action update] coverImage received:', coverImage);
+      if (
+        typeof coverImage === 'object' &&
+        coverImage !== null &&
+        'size' in coverImage &&
+        (coverImage as File).size > 0 &&
+        'arrayBuffer' in coverImage
+      ) {
         const file = coverImage as File;
         const imageExtension = file.name.split('.').pop() || 'jpg';
         const imageKey = `covers/${slug}.${Date.now()}.${imageExtension}`;
@@ -325,7 +338,7 @@ export const seriesActions = {
         .where(eq(series.id, seriesId))
         .run();
 
-      return { success: true, slug };
+      return { success: true, slug, coverImageUrl };
     },
   }),
 

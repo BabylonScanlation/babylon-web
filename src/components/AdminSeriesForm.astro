@@ -689,7 +689,7 @@ interface Series {
     const formData = new FormData(form);
 
     try {
-      const { error } = await actions.series.update(formData);
+      const { data, error } = await actions.series.update(formData);
 
       if (error) throw new Error(error.message || 'Error inesperado');
 
@@ -700,7 +700,8 @@ interface Series {
         isHidden: formData.get('isHidden') === 'on',
         isAppSeries: formData.get('isAppSeries') === 'on',
         isNsfw: formData.get('isNsfw') === 'on',
-        isUpToDate: formData.get('isUpToDate') === 'on'
+        isUpToDate: formData.get('isUpToDate') === 'on',
+        coverImageUrl: data?.coverImageUrl
       });
 
       displayFormMessage(seriesId, 'success', 'Serie actualizada con éxito.');
@@ -783,35 +784,39 @@ interface Series {
 
   document.addEventListener('change', (event) => {
     const input = event.target as HTMLInputElement;
-    if (input.id?.startsWith('cover-input-')) {
-      handleCoverPreview(input);
+    if (!input.id?.startsWith('cover-input-')) return;
+
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const objectUrl = URL.createObjectURL(file);
+
+    // Actualizar la vista previa en la tarjeta del formulario
+    const previewCard = input.closest('.preview-card') as HTMLElement;
+    if (previewCard) {
+      const imgs = previewCard.querySelectorAll('img');
+      imgs.forEach((img) => {
+        (img as HTMLImageElement).src = objectUrl;
+        (img as HTMLElement).style.opacity = '1';
+        img.classList.add('loaded');
+        img.removeAttribute('loading');
+        img.removeAttribute('data-src');
+      });
+    }
+
+    // Actualizar el poster de fondo y la miniatura en el acordeón
+    const accordion = input.closest('.series-item-container');
+    if (accordion) {
+      const posterImg = accordion.querySelector('.poster-background img') as HTMLImageElement;
+      if (posterImg) {
+        posterImg.src = objectUrl;
+        posterImg.style.opacity = '1';
+      }
+      const thumbImg = accordion.querySelector('.mini-thumb img') as HTMLImageElement;
+      if (thumbImg) {
+        thumbImg.src = objectUrl;
+        thumbImg.style.opacity = '1';
+      }
     }
   });
-
-  function handleCoverPreview(input: HTMLInputElement) {
-    const seriesId = input.dataset.seriesId;
-    if (!seriesId || !input.files?.[0]) return;
-
-    const file = input.files[0];
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif'];
-
-    if (!allowedTypes.includes(file.type)) {
-      import('../lib/stores.svelte').then(({ toast }) => {
-        toast.error(`Formato no soportado.`);
-      });
-      input.value = '';
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const previewImg = input.closest('.preview-card')?.querySelector('.cover-image') as HTMLImageElement;
-      if (previewImg && e.target && typeof e.target.result === 'string') {
-        requestAnimationFrame(() => {
-          previewImg.src = e.target?.result as string;
-        });
-      }
-    };
-    reader.readAsDataURL(file);
-  }
 </script>
