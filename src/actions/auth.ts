@@ -272,18 +272,24 @@ export const authActions = {
 
       // Orion: Acceso seguro a propiedades dinámicas del JWT
       const email = decodedToken.email || `${uid}@firebase.auth`;
-      const existingUser = await db.select().from(users).where(eq(users.id, uid)).get();
+      
+      let existingUser = await db.select().from(users).where(eq(users.id, uid)).get();
+      if (!existingUser) {
+        existingUser = await db.select().from(users).where(eq(users.email, email)).get();
+      }
+
+      const dbUid = existingUser?.id || uid;
       const usernameToUse = existingUser?.username || generateRandomUsername();
 
       await db
         .insert(users)
-        .values({ id: uid, email: email, username: usernameToUse })
+        .values({ id: dbUid, email: email, username: usernameToUse })
         .onConflictDoUpdate({
           target: users.id,
           set: {
             email: sql`excluded.email`,
             username: sql`excluded.username`,
-            updatedAt: sql`CURRENT_TIMESTAMP`,
+            updatedAt: sql`(strftime('%s', 'now') * 1000)`,
           },
         })
         .run();
