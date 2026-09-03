@@ -57,8 +57,12 @@ const { slides = [], title } = Astro.props;
                     
                     <div class="hero-actions">
                       <span class="btn-read-now">
-                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-                        LEER AHORA
+                        {slide.type === 'anime' || slide.type === 'ova' || slide.type === 'movie' ? (
+                          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                        )}
+                        {slide.type === 'anime' || slide.type === 'ova' || slide.type === 'movie' ? 'VER AHORA' : 'LEER AHORA'}
                       </span>
                     </div>
                   </div>

@@ -1,22 +1,22 @@
 ---
 import { env } from 'cloudflare:workers';
-import MangaList from '../components/MangaList.astro';
-import SearchFilters from '../components/SearchFilters.svelte';
-import Layout from '../layouts/Layout.astro';
-import { getFilterMetadata, searchSeries } from '../lib/data/series';
-import { getDB } from '../lib/db';
-import { logError } from '../lib/logError';
-import { siteConfig } from '../site.config';
+import MangaList from '../../components/MangaList.astro';
+import SearchFilters from '../../components/SearchFilters.svelte';
+import Layout from '../../layouts/Layout.astro';
+import { getFilterMetadata, searchSeries } from '../../lib/data/series';
+import { getDB } from '../../lib/db';
+import { logError } from '../../lib/logError';
+import { siteConfig } from '../../site.config';
 
 const query = Astro.url.searchParams.get('q')?.trim() || '';
 const page = parseInt(Astro.url.searchParams.get('page') || '1', 10);
-const limit = parseInt(Astro.url.searchParams.get('limit') || '25', 10);
+const limit = parseInt(Astro.url.searchParams.get('limit') || '21', 10);
 
 // Astra: NSFW Toggle via cookie global (Exclusivo)
 const allowNsfw = Astro.cookies.get('babylon_nsfw')?.value === 'true';
 
 let searchResults: any[] = [];
-let pagination = { page: 1, totalPages: 1, total: 0, limit: 25 };
+let pagination = { page: 1, totalPages: 1, total: 0, limit: 21 };
 let filterMetadata = {
   authors: [] as string[],
   artists: [] as string[],
@@ -35,6 +35,7 @@ try {
     page,
     limit,
     allowNsfw,
+    zoneFilter: 'manga',
   });
 
   searchResults = result.results;
@@ -69,7 +70,7 @@ try {
 
       <div class="search-interface-wrapper">
         <div class="search-and-filters-row">
-          <form action="/search" method="GET" class="search-bar-container" id="main-search-form">
+          <form action="/comic/explore" method="GET" class="search-bar-container" id="main-search-form">
             <div class="input-wrapper">
               <svg
                 class="search-icon"
@@ -97,7 +98,7 @@ try {
               />
               {
                 query && (
-                  <a href="/search" class="clear-btn" title="Limpiar búsqueda">
+                  <a href="/comic/explore" class="clear-btn" title="Limpiar búsqueda">
                     <svg
                       viewBox="0 0 24 24"
                       width="16"
@@ -122,7 +123,7 @@ try {
       </div>
     </section>
 
-    <script src="../scripts/search.ts"></script>
+    <script src="../../scripts/search.ts"></script>
 
     <div class="results-container">
       {

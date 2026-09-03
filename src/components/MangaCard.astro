@@ -6,10 +6,11 @@ interface Props {
   title: string;
   lastChapter: string;
   url: string;
+  type?: string;
   loading?: 'lazy' | 'eager';
 }
 
-const { coverImageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props;
+const { coverImageUrl, title, lastChapter, url, type, loading = 'lazy' } = Astro.props;
 ---
 
 <a href={url} class="card-wrapper">
@@ -43,7 +44,7 @@ const { coverImageUrl, title, lastChapter, url, loading = 'lazy' } = Astro.props
         <h3 class="mobile-title">{title}</h3>
         <div class="mobile-meta">
           <span class="chapter-pill">{lastChapter}</span>
-          <span class="read-action">LEER ›</span>
+          <span class="read-action">{type === 'anime' || type === 'ova' || type === 'movie' ? 'VER ›' : 'LEER ›'}</span>
         </div>
       </div>
     </div>

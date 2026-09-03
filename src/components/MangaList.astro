@@ -47,16 +47,12 @@ const { mangas = [], title } = Astro.props;
     display: grid !important;
     /* Astra: Grilla Fluida Universal */
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    /* Astra: Límite estricto e inviolable de 3 filas */
-    grid-template-rows: repeat(3, auto) !important;
-    grid-auto-rows: 0px !important;
-    overflow: hidden !important;
+    grid-auto-rows: auto;
     gap: 1rem;
     margin-bottom: 3rem;
     align-content: start;
   }
 
-  /* Aseguramos que los items fuera de las 3 filas no ocupen espacio visual ni de margen */
   ul li {
     overflow: hidden;
   }

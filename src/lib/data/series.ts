@@ -313,7 +313,7 @@ export async function getAnimeHomeData(
   allowNsfw = false,
   env?: BabylonEnv
 ) {
-  const CACHE_KEY = `anime_home_data_nsfw_${allowNsfw}`;
+  const CACHE_KEY = `anime_home_data_v2_nsfw_${allowNsfw}`;
   const now = Date.now();
   const kv = env?.KV_VIEWS;
 
@@ -353,6 +353,7 @@ export async function getAnimeHomeData(
         id: series.id,
         title: series.title,
         slug: series.slug,
+        type: series.type,
         coverImageUrl: series.coverImageUrl,
         views: series.views,
         createdAt: series.createdAt,
@@ -370,6 +371,7 @@ export async function getAnimeHomeData(
         id: series.id,
         title: series.title,
         slug: series.slug,
+        type: series.type,
         coverImageUrl: series.coverImageUrl,
         description: series.description,
         views: series.views,
@@ -442,6 +444,7 @@ export async function getAnimeWithRecentChapters(
       seriesId: series.id,
       slug: series.slug,
       title: series.title,
+      type: series.type,
       coverImageUrl: series.coverImageUrl,
       chapterNumber: chapters.chapterNumber,
       chapterTitle: chapters.title,
@@ -769,6 +772,7 @@ export async function searchSeries(
     publisher?: string;
     magazine?: string;
     allowNsfw?: boolean;
+    zoneFilter?: 'anime' | 'manga';
   }
 ): Promise<SearchResult> {
   const {
@@ -784,10 +788,11 @@ export async function searchSeries(
     publisher,
     magazine,
     allowNsfw = false,
+    zoneFilter,
   } = options;
 
   // Orion: Implementación de RAM Cache para búsquedas (Peticiones Cero)
-  const CACHE_KEY = `search_${allowNsfw}_${q || ''}_${page}_${limit}_${sort}_${type || ''}_${status || ''}_${genres || ''}`;
+  const CACHE_KEY = `search_${allowNsfw}_${q || ''}_${page}_${limit}_${sort}_${type || ''}_${status || ''}_${genres || ''}_${zoneFilter || ''}`;
   const now = Date.now();
   const cached = seriesMemoryCache.get(CACHE_KEY);
   if (cached && cached.expires > now) {
@@ -800,6 +805,13 @@ export async function searchSeries(
     conditions.push(eq(series.isNsfw, true));
   } else {
     conditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
+  }
+
+  const animeTypes = ['anime', 'ova', 'movie'];
+  if (zoneFilter === 'anime') {
+    conditions.push(inArray(series.type, animeTypes));
+  } else if (zoneFilter === 'manga') {
+    conditions.push(or(isNull(series.type), not(inArray(series.type, animeTypes))));
   }
 
   // Orion: Usamos el tipado dinámico de Drizzle sin recurrir a 'any'

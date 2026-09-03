@@ -1,10 +1,11 @@
-﻿---
+---
 import { env } from 'cloudflare:workers';
 import { siteConfig } from '../site.config';
 
 const currentYear = new Date().getFullYear();
 
 const r2PublicUrlAssets = env.R2_PUBLIC_URL_ASSETS;
+const isAnimeZone = Astro.url.pathname.startsWith('/anime');
 ---
 
 <footer class="premium-footer">
@@ -44,7 +45,7 @@ const r2PublicUrlAssets = env.R2_PUBLIC_URL_ASSETS;
       <div class="footer-links">
         <h4 class="footer-title">Explorar</h4>
         <ul>
-          <li><a href="/search">Biblioteca</a></li>
+          <li><a href={isAnimeZone ? "/anime/explore" : "/comic/explore"}>Biblioteca</a></li>
           <li><a href="/news">Noticias</a></li>
           <li><a href="/profile">Mi Cuenta</a></li>
         </ul>

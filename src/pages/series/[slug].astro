@@ -16,6 +16,25 @@ import { formatFullDate, getImageUrl } from '../../lib/utils';
 import { siteConfig } from '../../site.config';
 import type { Comment, SeriesDetails } from '../../types';
 
+const typeMap: Record<string, string> = {
+  'anime': 'Anime',
+  'manga': 'Manga',
+  'manhwa': 'Manhwa',
+  'manhua': 'Manhua',
+  'comic': 'Cómic',
+  'novel': 'Novela',
+  'ova': 'OVA',
+  'movie': 'Película',
+};
+
+const statusMap: Record<string, string> = {
+  'completed': 'Completado',
+  'ongoing': 'En Emisión',
+  'dropped': 'Abandonado',
+  'hiatus': 'Pausado',
+  'live': 'En Vivo',
+};
+
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect('/404');
 
@@ -178,8 +197,8 @@ const reactions = [
                   </div>
                 </div>
 
-                {series.status && <span class="mini-badge accent">{series.status}</span>}
-                {series.type && <span class="mini-badge">{series.type}</span>}
+                {series.status && <span class="mini-badge accent">{statusMap[series.status] || series.status}</span>}
+                {series.type && <span class="mini-badge">{typeMap[series.type] || series.type}</span>}
 
                 <div class="mini-badge views-badge">
                   <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="3" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>

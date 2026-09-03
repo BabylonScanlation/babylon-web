@@ -8,6 +8,7 @@ const r2PublicUrlAssets = env.R2_PUBLIC_URL_ASSETS;
 
 const currentLogo = isNsfwActive ? siteConfig.assets.logoHeaderNsfw : siteConfig.assets.logoHeader;
 const logoUrl = currentLogo.startsWith('/') ? `${r2PublicUrlAssets}${currentLogo}` : currentLogo;
+const isAnimeZone = Astro.url.pathname.startsWith('/anime');
 const sfwLogoUrl = siteConfig.assets.logoHeader.startsWith('/')
   ? `${r2PublicUrlAssets}${siteConfig.assets.logoHeader}`
   : siteConfig.assets.logoHeader;
@@ -57,8 +58,12 @@ const nsfwLogoUrl = siteConfig.assets.logoHeaderNsfw.startsWith('/')
     <nav class="desktop-nav">
       <div class="main-nav-links">
         <a href="/" class="nav-link-pc"><span>INICIO</span></a>
-        <a href="/search" class="nav-link-pc"><span>EXPLORAR</span></a>
-        <a href="/anime" class="nav-link-pc"><span>ANIME</span></a>
+        <a href={isAnimeZone ? "/anime/explore" : "/comic/explore"} class="nav-link-pc"><span>EXPLORAR</span></a>
+        {isAnimeZone ? (
+          <a href="/" class="nav-link-pc"><span>MANGA</span></a>
+        ) : (
+          <a href="/anime" class="nav-link-pc"><span>ANIME</span></a>
+        )}
         <!-- Astra: Restaurado botón original en PC -->
         <button
           id="nsfw-toggle-btn"

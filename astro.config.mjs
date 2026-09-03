@@ -64,9 +64,10 @@ export default defineConfig({
         'astro/virtual-modules/transitions-events.js',
         'astro/virtual-modules/transitions-swap-functions.js',
       ],
-      exclude: ['@cf-wasm/photon', 'astro', '@astrojs/svelte', 'lucia'],
+      exclude: ['@cf-wasm/photon', 'astro', '@astrojs/svelte', 'lucia', 'cloudflare:workers'],
     },
     server: {
+      allowedHosts: true,
       fs: {
         allow: ['..'],
       },
