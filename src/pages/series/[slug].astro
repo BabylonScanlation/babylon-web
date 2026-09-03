@@ -192,7 +192,7 @@ const reactions = [
             </header>
 
             <nav class="minimal-tabs">
-              <button class="tab-link active" data-tab="chapters">Capítulos</button>
+              <button class="tab-link active" data-tab="chapters">{series.type === 'anime' || series.type === 'ova' || series.type === 'movie' ? 'Episodios' : 'Capítulos'}</button>
               <button class="tab-link" data-tab="details">Detalles</button>
               <button class="tab-link" data-tab="synopsis">Sinopsis</button>
               <button class="tab-link" data-tab="comments">
@@ -209,6 +209,7 @@ const reactions = [
                   chaptersByLanguage={series.chaptersByLanguage as any} 
                   seriesSlug={series.slug} 
                   seriesIsUpToDate={!!(series as any).isUpToDate}
+                  seriesType={series.type || undefined}
                 />
               </div>
 

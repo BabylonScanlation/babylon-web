@@ -1,5 +1,6 @@
 ---
 import type { Series } from '../types';
+import AdminAnimeEpisodeUploader from './AdminAnimeEpisodeUploader.svelte';
 import AdminChapterList from './AdminChapterList.astro';
 import AdminChapterUploader from './AdminChapterUploader.svelte';
 import AdminSeriesForm from './AdminSeriesForm.astro';
@@ -17,6 +18,8 @@ const assetsBase = r2PublicUrlAssets || '/api/assets/proxy';
 const coverUrl = series.coverImageUrl?.startsWith('http')
   ? series.coverImageUrl
   : `${assetsBase}/${series.coverImageUrl}`.replace(/\/+/g, '/').replace(':/', '://');
+
+const isAnime = series.type === 'anime' || series.type === 'ova' || series.type === 'movie';
 ---
 
 <div class="series-item-container">
@@ -81,7 +84,13 @@ const coverUrl = series.coverImageUrl?.startsWith('http')
         </div>
         <div class="panel-column chapters-column">
           <AdminChapterList series={series} r2PublicUrlAssets={r2PublicUrlAssets} />
-          <AdminChapterUploader client:load seriesId={series.id} seriesTitle={series.title} />
+          {
+            isAnime ? (
+              <AdminAnimeEpisodeUploader client:load seriesId={series.id} seriesTitle={series.title} />
+            ) : (
+              <AdminChapterUploader client:load seriesId={series.id} seriesTitle={series.title} />
+            )
+          }
         </div>
       </div>
     </div>

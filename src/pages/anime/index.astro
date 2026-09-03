@@ -1,237 +1,338 @@
 ---
+import { env } from 'cloudflare:workers';
+import AdContainer from '../../components/AdContainer.astro';
+import FeaturedGrid from '../../components/FeaturedGrid.astro';
+import HeroCarousel from '../../components/HeroCarousel.astro';
+import RecentUpdatesGrid from '../../components/RecentUpdatesGrid.astro';
 import Layout from '../../layouts/Layout.astro';
+import { getAnimeHomeData } from '../../lib/data/series';
+import { getDB } from '../../lib/db';
+import { logError } from '../../lib/logError';
 import { siteConfig } from '../../site.config';
 
-// SSR Fetch de animes recientes o populares (mock/búsqueda inicial)
-// Idealmente aquí le pegamos a nuestro propio endpoint o directamente a Consumet
-const API_URL = import.meta.env.CONSUMET_API_URL || 'https://consumet-api-clone.vercel.app';
-let animes = [];
-let error = null;
+const r2PublicUrlAssets = env.R2_PUBLIC_URL_ASSETS;
+
+// Astra: El modo NSFW ahora es global vía cookies (Exclusivo)
+const allowNsfw = Astro.cookies.get('babylon_nsfw')?.value === 'true';
+
+let popularSeries: any[] = [];
+let seriesByChapterCount: any[] = [];
+let seriesWithRecentChapters: any[] = [];
+let hasContent = false;
 
 try {
-  // Buscamos algo por defecto para llenar la grilla, ej: "naruto" o "one piece"
-  const response = await fetch(`${API_URL}/anime/gogoanime/top-airing`);
-  if (response.ok) {
-    const data = await response.json();
-    animes = data.results || [];
-  }
-} catch (e) {
-  error = 'No se pudieron cargar los animes recientes.';
-  console.error(e);
+  const db = getDB(env);
+
+  // Orion: Carga ultra-optimizada en un solo paso
+  const homeData = await getAnimeHomeData(db, allowNsfw, env);
+
+  popularSeries = homeData.popularAnime as any;
+  seriesByChapterCount = homeData.seriesByChapterCount as any;
+  seriesWithRecentChapters = homeData.seriesWithRecentChapters;
+  hasContent = homeData.hasContent;
+} catch (error) {
+  console.error('🔥 ERROR CRÍTICO EN HOME ANIME:', error);
+  logError(error, 'Error al obtener las listas de anime (Ultra Optimizado)');
 }
+
+// Orion: Para el FeaturedGrid usamos directamente las series populares
+const featuredGridData = popularSeries.slice(0, 20);
+
+// Orion: Garantizamos que la cuadrícula esté siempre ordenada por vistas (descendente)
+featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
 ---
 
 <Layout
   title={`Anime - ${siteConfig.name}`}
-  description={`Disfruta del mejor anime en alta calidad y sin anuncios en ${siteConfig.name}.`}
+  description={`Disfruta del mejor anime en alta calidad y sin anuncios en ${siteConfig.name}. Streaming premium de anime, OVAs y películas.`}
 >
-  <div class="anime-container">
-    <header class="anime-header">
-      <h1>Directorio de Anime</h1>
-      <p>Streaming premium sin anuncios ni interrupciones.</p>
-      
-      <div class="search-bar">
-        <input type="text" id="anime-search" placeholder="Buscar anime (ej. Jujutsu Kaisen)..." />
-        <button id="search-btn">Buscar</button>
-      </div>
-    </header>
+  <h1 class="sr-only" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;">
+    {siteConfig.name} - Tu plataforma premium para ver Anime online gratis
+  </h1>
+  {
+    hasContent ? (
+      <div class="main-content-wrapper">
+          {seriesByChapterCount.length > 0 && (
+            <HeroCarousel 
+              slides={seriesByChapterCount} 
+              r2PublicUrlAssets={r2PublicUrlAssets} 
+            />
+          )}
 
-    {error && <div class="error-msg">{error}</div>}
-
-    <div class="anime-grid" id="anime-grid">
-      {animes.map((anime: any) => (
-        <a href={`/anime/${anime.id}`} class="anime-card">
-          <div class="img-wrapper">
-            <img src={anime.image} alt={anime.title} loading="lazy" />
-            <div class="overlay">
-              <span class="play-icon">▶</span>
+          <div class="support-alert-banner">
+            <div class="alert-content">
+              <div class="alert-icon-container">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="currentColor" stroke-linecap="round" stroke-linejoin="round" class="alert-icon">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+              </div>
+              <div class="alert-text-container">
+                <p>¿Te gusta nuestro trabajo? <strong>Considera hacer un pequeño aporte</strong> para ayudarnos a traducir más rápido y traer nuevos proyectos.</p>
+              </div>
+              <a href="#" class="support-btn" onclick="window.dispatchEvent(new CustomEvent('open-support-modal')); return false;">
+                Apoyar
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+              </a>
             </div>
           </div>
-          <div class="anime-info">
-            <h3>{anime.title}</h3>
-            {anime.releaseDate && <span class="year">{anime.releaseDate}</span>}
+
+        <div class="main-sections-container">
+          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (Astro.locals.user?.vipTier ?? 0) < 1 && (
+            <div class="top-ad-banner">
+              <AdContainer type="bannerLarge" />
+            </div>
+          )}
+
+          {featuredGridData.length > 0 && (
+            <div class="featured-grid-wrapper">
+              <FeaturedGrid mangas={featuredGridData.map((m) => ({...m, loading: 'lazy'}))} />
+            </div>
+          )}
+
+          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (Astro.locals.user?.vipTier ?? 0) < 1 && (
+            <div class="middle-ad-wrapper">
+              <AdContainer type="bannerSmall" />
+            </div>
+          )}
+
+          <div class="discovery-zone">
+            {seriesWithRecentChapters.length > 0 && (
+              <RecentUpdatesGrid
+                mangas={seriesWithRecentChapters}
+                title="Últimos Episodios Publicados"
+              />
+            )}
           </div>
-        </a>
-      ))}
-    </div>
-  </div>
+
+          {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (Astro.locals.user?.vipTier ?? 0) < 1 && (
+            <div class="bottom-ad-wrapper">
+              <AdContainer type="square" />
+            </div>
+          )}
+        </div>
+      </div>
+    ) : (
+      <div class="empty-state-container">
+        <img
+          src={
+            siteConfig.assets.logoEmpty.startsWith('/')
+              ? `${r2PublicUrlAssets}${siteConfig.assets.logoEmpty}`
+              : siteConfig.assets.logoEmpty
+          }
+          alt={`${siteConfig.name} Logo`}
+          class="empty-state-logo"
+        />
+        <p class="empty-state-text">
+          Lo sentimos... aún no hay animes disponibles.
+          <br />
+          Vuelve en otro momento.
+        </p>
+      </div>
+    )
+  }
 </Layout>
 
-<script src="../../scripts/anime.ts"></script>
-
-<style>
-  .anime-container {
+<style is:inline>
+  /* index.astro Styles (shared logic with anime layout) */
+  .support-alert-banner {
     width: 100%;
     max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem;
+    margin: 1.5rem auto 0.5rem auto;
+    padding: 0 1.5rem;
     box-sizing: border-box;
+    animation: fade-in-up 0.6s ease-out;
   }
-  
-  .anime-header {
-    text-align: center;
-    margin-bottom: 3rem;
-  }
-  
-  .anime-header h1 {
-    font-size: 2.5rem;
-    color: #fff;
-    margin-bottom: 0.5rem;
-    background: linear-gradient(90deg, #60a5fa, #3b82f6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .anime-header p {
-    color: #94a3b8;
-    font-size: 1.1rem;
-    margin-bottom: 2rem;
-  }
-
-  .search-bar {
+  .support-alert-banner .alert-content {
     display: flex;
-    max-width: 600px;
-    margin: 0 auto;
-    gap: 0.5rem;
-  }
-
-  .search-bar input {
-    flex-grow: 1;
-    padding: 1rem 1.5rem;
-    border-radius: 100px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(0, 0, 0, 0.5);
-    color: #fff;
-    font-size: 1rem;
-    transition: border-color 0.3s;
-  }
-
-  .search-bar input:focus {
-    outline: none;
-    border-color: #3b82f6;
-  }
-
-  .search-bar button {
-    padding: 0 2rem;
-    border-radius: 100px;
-    border: none;
-    background: #3b82f6;
-    color: #fff;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-
-  .search-bar button:hover {
-    background: #2563eb;
-  }
-
-  .anime-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    align-items: center;
     gap: 1.5rem;
-  }
-
-  .anime-card {
-    text-decoration: none;
-    color: #fff;
-    background: rgba(15, 23, 42, 0.6);
-    border-radius: 12px;
-    overflow: hidden;
-    transition: transform 0.3s, box-shadow 0.3s;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .anime-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2);
-  }
-
-  .img-wrapper {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(37, 99, 235, 0.12) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 16px;
+    padding: 1.2rem 1.8rem;
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.08), inset 0 0 20px rgba(59, 130, 246, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     position: relative;
-    aspect-ratio: 2/3;
-    width: 100%;
     overflow: hidden;
   }
-
-  .img-wrapper img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s;
-  }
-
-  .anime-card:hover .img-wrapper img {
-    transform: scale(1.05);
-  }
-
-  .overlay {
+  
+  .support-alert-banner .alert-content::before {
+    content: '';
     position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    top: 0; left: 0; width: 4px; height: 100%;
+    background: linear-gradient(to bottom, #60a5fa, #3b82f6);
+    border-radius: 4px 0 0 4px;
+  }
+
+  .alert-icon-container {
+    flex-shrink: 0;
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    animation: pulse-icon 2s infinite;
   }
 
-  .anime-card:hover .overlay {
-    opacity: 1;
-  }
-
-  .play-icon {
-    font-size: 3rem;
-    color: #fff;
-    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.8));
-    transform: scale(0.8);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-
-  .anime-card:hover .play-icon {
-    transform: scale(1);
-  }
-
-  .anime-info {
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    flex-grow: 1;
-  }
-
-  .anime-info h3 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .year {
-    font-size: 0.85rem;
+  .support-alert-banner .alert-icon {
     color: #60a5fa;
-    font-weight: 500;
-  }
-
-  .loading, .empty, .error-msg {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 3rem;
-    color: #94a3b8;
-    font-size: 1.2rem;
+    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
   }
   
-  @media (max-width: 600px) {
-    .anime-grid {
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  @keyframes pulse-icon {
+    0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+  }
+
+  .alert-text-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .support-alert-banner p {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: #ddd;
+    font-weight: 400;
+  }
+  
+  .support-alert-banner strong {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .support-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.8rem 1.5rem;
+    border-radius: 100px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    flex-shrink: 0;
+  }
+
+  .support-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+    color: #fff;
+  }
+
+  @media (max-width: 768px) {
+    .support-alert-banner .alert-content {
+      flex-direction: column;
+      text-align: center;
+      gap: 1rem;
+      padding: 1.5rem 1rem;
     }
-    .anime-header h1 {
-      font-size: 2rem;
+    .support-alert-banner .alert-content::before {
+      width: 100%; height: 4px;
+      border-radius: 4px 4px 0 0;
+    }
+    .support-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .main-content-wrapper {
+    width: 100%;
+  }
+  .top-ad-banner {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+    margin: 0 0 1rem 0; /* Astra: Añadido margen inferior. El superior lo da main-sections-container */
+    background: transparent;
+    line-height: normal;
+    height: auto;
+    /* Astra: Eliminamos min-height para que no ocupe espacio si no hay contenido aún */
+    transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .main-sections-container {
+    width: 100%;
+    padding: 0 1.5rem;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; /* Astra: Espaciado global más ajustado */
+    margin-top: 0.5rem; /* Reducido para acercar al carrusel */
+  }
+
+  .featured-grid-wrapper,
+  .middle-ad-wrapper,
+  .discovery-zone,
+  .bottom-ad-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+  }
+
+  .discovery-zone {
+    flex-direction: column;
+    margin-top: -0.5rem; /* Astra: Compensación para "pegar" el título al anuncio superior */
+  }
+
+  .empty-state-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    text-align: center;
+    padding: 1rem;
+  }
+
+  .empty-state-logo {
+    max-width: 500px;
+    width: 80%;
+    opacity: 0.8;
+    filter: drop-shadow(0 0 30px rgba(0, 191, 255, 0.2));
+    animation: pulse-logo 4s ease-in-out infinite;
+  }
+
+  @keyframes pulse-logo {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 1;
+    }
+  }
+
+  .empty-state-text {
+    color: #aaa;
+    font-size: 1.1rem;
+    max-width: 400px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .main-sections-container {
+      gap: 1.5rem;
     }
   }
 </style>

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, or, type SQL, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, not, or, type SQL, sql } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../../db/schema';
 import {
@@ -236,6 +236,10 @@ export async function getHomeData(
     commonConditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
   }
 
+  // Excluir series de tipo anime/ova/movie de la home principal (viven en /anime)
+  const animeTypes = ['anime', 'ova', 'movie'];
+  commonConditions.push(or(isNull(series.type), not(inArray(series.type, animeTypes))));
+
   // Orion: Ejecutamos absolutamente todas las queries en paralelo
   const [popular, byChapters, recentChaptersData] = await Promise.all([
     // Populares
@@ -299,6 +303,198 @@ export async function getHomeData(
   }
 
   return result;
+}
+
+/**
+ * Obtiene los datos para la Home de Anime (solo series tipo anime/ova/movie).
+ */
+export async function getAnimeHomeData(
+  db: DrizzleD1Database<typeof schema>,
+  allowNsfw = false,
+  env?: BabylonEnv
+) {
+  const CACHE_KEY = `anime_home_data_nsfw_${allowNsfw}`;
+  const now = Date.now();
+  const kv = env?.KV_VIEWS;
+
+  const cached = seriesMemoryCache.get(CACHE_KEY);
+  if (cached && cached.expires > now) {
+    return cached.data;
+  }
+
+  if (kv) {
+    try {
+      const kvCached = await kv.get(CACHE_KEY);
+      if (kvCached) {
+        const parsed = JSON.parse(kvCached);
+        seriesMemoryCache.set(CACHE_KEY, { data: parsed, expires: now + 300000 });
+        return parsed;
+      }
+    } catch (e) {
+      console.error('Error reading Anime Home KV cache:', e);
+    }
+  }
+
+  const animeTypes = ['anime', 'ova', 'movie'];
+  const animeConditions: (SQL | undefined)[] = [
+    eq(series.isHidden, false),
+    inArray(series.type, animeTypes),
+  ];
+
+  if (allowNsfw) {
+    animeConditions.push(eq(series.isNsfw, true));
+  } else {
+    animeConditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
+  }
+
+  const [popular, byChapters, recentChaptersData] = await Promise.all([
+    db
+      .select({
+        id: series.id,
+        title: series.title,
+        slug: series.slug,
+        coverImageUrl: series.coverImageUrl,
+        views: series.views,
+        createdAt: series.createdAt,
+        description: series.description,
+        status: series.status,
+      })
+      .from(series)
+      .where(and(...animeConditions.filter(Boolean)))
+      .orderBy(desc(series.views))
+      .limit(60)
+      .all(),
+
+    db
+      .select({
+        id: series.id,
+        title: series.title,
+        slug: series.slug,
+        coverImageUrl: series.coverImageUrl,
+        description: series.description,
+        views: series.views,
+        chapterCount: sql<number>`count(DISTINCT ${chapters.chapterNumber})`.as('chapterCount'),
+      })
+      .from(series)
+      .leftJoin(chapters, eq(series.id, chapters.seriesId))
+      .where(and(...animeConditions.filter(Boolean), eq(chapters.status, 'live')))
+      .groupBy(series.id)
+      .orderBy(desc(sql`chapterCount`))
+      .limit(5)
+      .all(),
+
+    getAnimeWithRecentChapters(db, allowNsfw),
+  ]);
+
+  const result = {
+    popularAnime: popular,
+    seriesByChapterCount: byChapters,
+    seriesWithRecentChapters: recentChaptersData,
+    hasContent: popular.length > 0 || recentChaptersData.length > 0,
+  };
+
+  if (result.hasContent) {
+    seriesMemoryCache.set(CACHE_KEY, { data: result, expires: now + 300000 });
+    if (kv) {
+      kv.put(CACHE_KEY, JSON.stringify(result), { expirationTtl: 600 }).catch((e: unknown) => {
+        console.error('Error writing Anime Home KV cache:', e);
+      });
+    }
+  }
+
+  return result;
+}
+
+export async function getAnimeWithRecentChapters(
+  db: DrizzleD1Database<typeof schema>,
+  allowNsfw: boolean = false
+): Promise<RecentChapterSeries[]> {
+  const seriesConditions: (SQL | undefined)[] = [eq(series.isHidden, false)];
+  if (allowNsfw) {
+    seriesConditions.push(eq(series.isNsfw, true));
+  } else {
+    seriesConditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
+  }
+  const animeTypesRecent = ['anime', 'ova', 'movie'];
+  seriesConditions.push(inArray(series.type, animeTypesRecent));
+
+  const recentSeriesIds = await db
+    .select({ seriesId: chapters.seriesId })
+    .from(chapters)
+    .innerJoin(series, eq(chapters.seriesId, series.id))
+    .where(
+      and(
+        eq(chapters.status, 'live'),
+        ...seriesConditions.filter(Boolean),
+        sql`${chapters.chapterNumber} > 0`
+      )
+    )
+    .groupBy(chapters.seriesId)
+    .orderBy(desc(sql`MAX(${chapters.createdAt})`))
+    .limit(30)
+    .all();
+
+  const targetIds = recentSeriesIds.map((r) => r.seriesId).filter(Boolean) as number[];
+  if (targetIds.length === 0) return [];
+
+  const rawData = await db
+    .select({
+      seriesId: series.id,
+      slug: series.slug,
+      title: series.title,
+      coverImageUrl: series.coverImageUrl,
+      chapterNumber: chapters.chapterNumber,
+      chapterTitle: chapters.title,
+      chapterCreatedAt: chapters.createdAt,
+    })
+    .from(chapters)
+    .innerJoin(series, eq(chapters.seriesId, series.id))
+    .where(
+      and(
+        eq(chapters.status, 'live'),
+        inArray(chapters.seriesId, targetIds),
+        sql`${chapters.chapterNumber} > 0`
+      )
+    )
+    .orderBy(desc(chapters.createdAt))
+    .all();
+
+  const seriesMap = new Map<string, RecentChapterSeries>();
+  for (const row of rawData) {
+    if (!seriesMap.has(row.slug)) {
+      seriesMap.set(row.slug, {
+        id: row.seriesId,
+        slug: row.slug,
+        title: row.title,
+        coverImageUrl: row.coverImageUrl,
+        recentChapters: [],
+        lastUpdate: row.chapterCreatedAt,
+      });
+    }
+
+    const entry = seriesMap.get(row.slug);
+    if (!entry) continue;
+
+    const rowTime = parseToTimestamp(row.chapterCreatedAt);
+    const entryTime = parseToTimestamp(entry.lastUpdate);
+    if (rowTime > entryTime) {
+      entry.lastUpdate = row.chapterCreatedAt;
+    }
+
+    if (entry.recentChapters.length < 3) {
+      if (!entry.recentChapters.some((c: { number: number }) => c.number === row.chapterNumber)) {
+        entry.recentChapters.push({
+          number: row.chapterNumber,
+          title: row.chapterTitle,
+          createdAt: row.chapterCreatedAt,
+        });
+      }
+    }
+  }
+
+  return Array.from(seriesMap.values()).sort((a, b) => {
+    return parseToTimestamp(b.lastUpdate) - parseToTimestamp(a.lastUpdate);
+  });
 }
 
 /**
@@ -420,6 +616,9 @@ export async function getSeriesWithRecentChapters(
   } else {
     seriesConditions.push(or(eq(series.isNsfw, false), isNull(series.isNsfw)));
   }
+  // Excluir anime de la lista de capítulos recientes (manga home)
+  const animeTypesRecent = ['anime', 'ova', 'movie'];
+  seriesConditions.push(or(isNull(series.type), not(inArray(series.type, animeTypesRecent))));
 
   // 1. Obtener los IDs de las ÚLTIMAS 25 SERIES distintas que han actualizado
   const recentSeriesIds = await db

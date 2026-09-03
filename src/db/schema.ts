@@ -62,7 +62,7 @@ export const chapters = sqliteTable(
     volumeNumber: integer('volume_number', { mode: 'number' }),
     language: text('language').notNull().default('es-la'),
     title: text('title'),
-    telegramFileId: text('telegram_file_id').notNull().unique(),
+    telegramFileId: text('telegram_file_id').unique(), // REMOVED .notNull() for Anime compatibility
     status: text('status').notNull().default('processing'),
     urlPortada: text('url_portada'),
     views: integer('views').default(0),
@@ -136,6 +136,22 @@ export const pages = sqliteTable(
     imageUrl: text('image_url').notNull(),
   },
   (table) => [index('idx_pages_chapter_id').on(table.chapterId)]
+);
+
+export const episodeServers = sqliteTable(
+  'EpisodeServers',
+  {
+    id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+    chapterId: integer('chapter_id', { mode: 'number' })
+      .notNull()
+      .references(() => chapters.id, { onDelete: 'cascade' }),
+    serverName: text('server_name').notNull(), // ej. "Doodstream", "Fembed", "Mega"
+    iframeUrl: text('iframe_url').notNull(), // la URL del embed
+    language: text('language').notNull().default('es-la'), // para soportar audio latino vs sub
+    displayOrder: integer('display_order', { mode: 'number' }).notNull().default(0),
+    isDirectVideo: integer('is_direct_video', { mode: 'boolean' }).default(false), // true = .mp4/.m3u8, false = iframe
+  },
+  (table) => [index('idx_episode_servers_chapter_id').on(table.chapterId)]
 );
 
 export const anonymousUsers = sqliteTable(

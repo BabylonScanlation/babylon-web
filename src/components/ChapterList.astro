@@ -16,9 +16,11 @@ interface Props {
   chaptersByLanguage: Record<string, Chapter[]>;
   seriesSlug: string;
   seriesIsUpToDate?: boolean;
+  seriesType?: string;
 }
 
-const { chaptersByLanguage, seriesSlug, seriesIsUpToDate } = Astro.props;
+const { chaptersByLanguage, seriesSlug, seriesIsUpToDate, seriesType } = Astro.props;
+const isAnime = seriesType === 'anime' || seriesType === 'ova' || seriesType === 'movie';
 
 const allChapters = Object.values(chaptersByLanguage).flat();
 const maxChapterNumber =
@@ -144,7 +146,7 @@ const languageNames: Record<string, string> = {
                 return (
                   <div class={`chapter-card-wrapper ${isSubItem ? 'sub-item' : ''} ${groupId}`} style={isSubItem ? 'display: none;' : ''}>
                     <a 
-                      href={isAppOnly ? '#' : `/series/${seriesSlug}/${chapter.chapterNumber}?id=${chapter.isNsfw ? 1 : 0}`} 
+                      href={isAppOnly ? '#' : (isAnime ? `/anime/watch/${chapter.id}` : `/series/${seriesSlug}/${chapter.chapterNumber}?id=${chapter.isNsfw ? 1 : 0}`)} 
                       class:list={['chapter-card-premium', { 'app-chapter-link': isAppOnly }]}
                     >
                       <div class="card-bg-glow"></div>
@@ -154,7 +156,7 @@ const languageNames: Record<string, string> = {
                         <div class="chapter-main">
                           <div class="chapter-label-row">
                             <div class="label-left">
-                              <span class="chapter-label">CAPÍTULO</span>
+                              <span class="chapter-label">{isAnime ? 'EPISODIO' : 'CAPÍTULO'}</span>
                               {chapter.scanlationName && (
                                 <span class="scanlation-badge">{chapter.scanlationName}</span>
                               )}
@@ -198,8 +200,12 @@ const languageNames: Record<string, string> = {
                           </div>
                         ) : (
                           <div class="status-badge read">
-                            <span>LEER</span>
-                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                            <span>{isAnime ? 'VER' : 'LEER'}</span>
+                            {isAnime ? (
+                              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            ) : (
+                              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                            )}
                           </div>
                         )}
                       </div>
@@ -226,7 +232,7 @@ const languageNames: Record<string, string> = {
                           <div class="chapter-main">
                             <div class="chapter-label-row">
                               <div class="label-left">
-                                <span class="chapter-label">CAPÍTULO</span>
+                                <span class="chapter-label">{isAnime ? 'EPISODIO' : 'CAPÍTULO'}</span>
                                 <span class="scanlation-badge versions-badge">{groupChapters.length} Versiones</span>
                               </div>
                             </div>

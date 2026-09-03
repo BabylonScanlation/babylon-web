@@ -172,7 +172,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
 
       const task = processAndCacheChapter(
         env,
-        chapterData.telegramFileId,
+        chapterData.telegramFileId ?? '',
         slug,
         chapterNumber,
         chapterData.chapterId

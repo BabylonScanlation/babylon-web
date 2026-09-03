@@ -3,7 +3,14 @@ import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
 import { and, eq, isNull, max, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
-import { chapters, chapterViews as chapterViewsTable, comments, pages, series } from '../db/schema';
+import {
+  chapters,
+  chapterViews as chapterViewsTable,
+  comments,
+  episodeServers,
+  pages,
+  series,
+} from '../db/schema';
 import { canManageScanlation } from '../lib/auth-utils';
 import { hashIpAddress } from '../lib/crypto';
 import { getDB } from '../lib/db';
@@ -474,6 +481,124 @@ export const chapterActions = {
 
       await db.update(chapters).set({ isNsfw }).where(eq(chapters.id, chapterId)).run();
       return { success: true };
+    },
+  }),
+
+  addAnimeEpisode: defineAction({
+    accept: 'form',
+    input: z.object({
+      seriesId: z.string().transform((v) => parseInt(v, 10)),
+      chapterNumber: z.string().transform((v) => parseFloat(v)),
+      language: z.string().default('es-la'),
+      title: z.string().optional(),
+      servers: z.string(), // JSON string: [{ serverName: 'Mega', iframeUrl: '...' }]
+    }),
+    handler: async (input, context) => {
+      const { user } = context.locals;
+      const { seriesId, chapterNumber, language, title, servers } = input;
+
+      const db = getDB(env);
+
+      if (!user) throw new Error('Unauthorized');
+      if (!user.isAdmin) {
+        throw new Error('Solo administradores pueden añadir episodios de anime por ahora');
+      }
+
+      const seriesData = await db
+        .select({ id: series.id, slug: series.slug, type: series.type })
+        .from(series)
+        .where(eq(series.id, seriesId))
+        .get();
+
+      if (!seriesData) throw new Error('Serie no encontrada');
+      if (seriesData.type !== 'anime' && seriesData.type !== 'ova' && seriesData.type !== 'movie') {
+        throw new Error('Esta serie no es un anime');
+      }
+
+      let parsedServersArray: {
+        serverName: string;
+        iframeUrl: string;
+        language?: string;
+        isDirectVideo?: boolean;
+      }[];
+      try {
+        parsedServersArray = JSON.parse(servers);
+      } catch (err: unknown) {
+        throw new Error('Formato de servidores inválido', { cause: err });
+      }
+
+      if (!parsedServersArray || parsedServersArray.length === 0) {
+        throw new Error('Debes proveer al menos un servidor');
+      }
+
+      // Check if episode already exists
+      const existing = await db
+        .select()
+        .from(chapters)
+        .where(
+          and(
+            eq(chapters.seriesId, seriesId),
+            eq(chapters.chapterNumber, chapterNumber),
+            eq(chapters.language, language)
+          )
+        )
+        .get();
+
+      let chapterId = existing?.id;
+
+      if (!existing) {
+        const insertResult = await db
+          .insert(chapters)
+          .values({
+            seriesId,
+            chapterNumber,
+            title: title || `Episodio ${chapterNumber}`,
+            uploaderId: user.uid,
+            language,
+            isNsfw: false,
+            status: 'live', // Episodes are immediately live since they don't need Telegram processing
+            urlPortada: `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`,
+            createdAt: new Date().toISOString(),
+          })
+          .returning({ id: chapters.id });
+
+        if (!insertResult || insertResult.length === 0 || !insertResult[0]) {
+          throw new Error('Error al registrar el episodio en la base de datos');
+        }
+        chapterId = insertResult[0].id;
+      } else {
+        if (!chapterId) throw new Error('ID de capítulo no disponible para actualizar');
+        await db
+          .update(chapters)
+          .set({ title: title || existing.title })
+          .where(eq(chapters.id, chapterId))
+          .run();
+
+        // Delete old servers to replace them
+        await db.delete(episodeServers).where(eq(episodeServers.chapterId, chapterId)).run();
+      }
+
+      if (!chapterId) throw new Error('ID de capítulo no disponible para insertar servidores');
+
+      // Insert servers
+      for (let i = 0; i < parsedServersArray.length; i++) {
+        const s = parsedServersArray[i];
+        if (!s?.serverName || !s.iframeUrl) continue;
+
+        await db
+          .insert(episodeServers)
+          .values({
+            chapterId: chapterId,
+            serverName: s.serverName,
+            iframeUrl: s.iframeUrl,
+            language: s.language || language,
+            displayOrder: i,
+            isDirectVideo: s.isDirectVideo || false,
+          })
+          .run();
+      }
+
+      return { success: true, chapterNumber, chapterId };
     },
   }),
 };
