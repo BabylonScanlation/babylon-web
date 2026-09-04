@@ -23,7 +23,10 @@ const initSearchGrid = () => {
   // --- Opción A: Sincronizador de Rejilla ---
   function syncGridLimit() {
     // Solo ejecutar en la página del catálogo (donde tiene sentido el parámetro limit)
-    if (!window.location.pathname.startsWith('/catalogo') && !window.location.pathname.startsWith('/series')) {
+    if (
+      !window.location.pathname.startsWith('/catalogo') &&
+      !window.location.pathname.startsWith('/series')
+    ) {
       return;
     }
 

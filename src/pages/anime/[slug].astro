@@ -12,32 +12,31 @@ try {
   const response = await fetch(`${API_URL}/anime/gogoanime/info/${slug}`);
   if (response.ok) {
     animeInfo = await response.json();
-    
+
     // Traducciones para la zona de anime (Consumet API)
     const statusMapAPI: Record<string, string> = {
-      'completed': 'Completado',
-      'ongoing': 'En Emisión',
-      'upcoming': 'Próximamente',
-      'hiatus': 'Pausado'
+      completed: 'Completado',
+      ongoing: 'En Emisión',
+      upcoming: 'Próximamente',
+      hiatus: 'Pausado',
     };
-    
+
     const typeMapAPI: Record<string, string> = {
       'tv series': 'Serie TV',
-      'tv': 'Serie TV',
-      'movie': 'Película',
-      'special': 'Especial',
-      'ova': 'OVA',
-      'ona': 'ONA'
+      tv: 'Serie TV',
+      movie: 'Película',
+      special: 'Especial',
+      ova: 'OVA',
+      ona: 'ONA',
     };
 
     if (animeInfo.status && statusMapAPI[animeInfo.status.toLowerCase()]) {
       animeInfo.status = statusMapAPI[animeInfo.status.toLowerCase()];
     }
-    
+
     if (animeInfo.type && typeMapAPI[animeInfo.type.toLowerCase()]) {
       animeInfo.type = typeMapAPI[animeInfo.type.toLowerCase()];
     }
-
   } else {
     error = 'No se encontró el anime.';
   }

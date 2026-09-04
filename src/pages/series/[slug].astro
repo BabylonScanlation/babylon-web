@@ -17,22 +17,22 @@ import { siteConfig } from '../../site.config';
 import type { Comment, SeriesDetails } from '../../types';
 
 const typeMap: Record<string, string> = {
-  'anime': 'Anime',
-  'manga': 'Manga',
-  'manhwa': 'Manhwa',
-  'manhua': 'Manhua',
-  'comic': 'Cómic',
-  'novel': 'Novela',
-  'ova': 'OVA',
-  'movie': 'Película',
+  anime: 'Anime',
+  manga: 'Manga',
+  manhwa: 'Manhwa',
+  manhua: 'Manhua',
+  comic: 'Cómic',
+  novel: 'Novela',
+  ova: 'OVA',
+  movie: 'Película',
 };
 
 const statusMap: Record<string, string> = {
-  'completed': 'Completado',
-  'ongoing': 'En Emisión',
-  'dropped': 'Abandonado',
-  'hiatus': 'Pausado',
-  'live': 'En Vivo',
+  completed: 'Completado',
+  ongoing: 'En Emisión',
+  dropped: 'Abandonado',
+  hiatus: 'Pausado',
+  live: 'En Vivo',
 };
 
 const { slug } = Astro.params;

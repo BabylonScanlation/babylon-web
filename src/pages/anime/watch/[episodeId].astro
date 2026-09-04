@@ -1,10 +1,10 @@
 ---
+import { env } from 'cloudflare:workers';
 import { eq } from 'drizzle-orm';
 import { chapters, episodeServers, series } from '../../../db/schema';
 import Layout from '../../../layouts/Layout.astro';
 import { getDB } from '../../../lib/db';
 import { siteConfig } from '../../../site.config';
-import { env } from 'cloudflare:workers';
 
 const { episodeId } = Astro.params;
 if (!episodeId || isNaN(Number(episodeId))) {
