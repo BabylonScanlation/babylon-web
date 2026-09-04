@@ -237,13 +237,13 @@ const reactions = [
                 <div class="details-list">
                   {series.author && (
                     <div class="detail-row">
-                      <span class="label">Autor</span>
+                      <span class="label">{series.type === 'anime' || series.type === 'ova' || series.type === 'movie' ? 'Creador Original' : 'Autor'}</span>
                       <span class="value">{series.author}</span>
                     </div>
                   )}
                   {series.artist && (
                     <div class="detail-row">
-                      <span class="label">Artista</span>
+                      <span class="label">{series.type === 'anime' || series.type === 'ova' || series.type === 'movie' ? 'Estudio' : 'Artista'}</span>
                       <span class="value">{series.artist}</span>
                     </div>
                   )}
@@ -265,13 +265,13 @@ const reactions = [
                   )}
                   {series.publishedBy && (
                     <div class="detail-row">
-                      <span class="label">Editorial</span>
+                      <span class="label">{series.type === 'anime' || series.type === 'ova' || series.type === 'movie' ? 'Productora' : 'Editorial'}</span>
                       <span class="value">{series.publishedBy}</span>
                     </div>
                   )}
                   {series.serializedBy && (
                     <div class="detail-row">
-                      <span class="label">Revista / Sitio</span>
+                      <span class="label">{series.type === 'anime' || series.type === 'ova' || series.type === 'movie' ? 'Cadena / Emisora' : 'Revista / Sitio'}</span>
                       <span class="value">{series.serializedBy}</span>
                     </div>
                   )}

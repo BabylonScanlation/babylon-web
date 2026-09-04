@@ -4,7 +4,7 @@ DELETE FROM Chapters WHERE series_id = (SELECT id FROM Series WHERE slug = 'scho
 DELETE FROM Series WHERE slug = 'school-rumble';
 
 -- Insert Series
-INSERT INTO Series (title, slug, description, cover_image_url, telegram_topic_id, status, type, genres, is_hidden, is_nsfw)
+INSERT INTO Series (title, slug, description, cover_image_url, telegram_topic_id, status, type, genres, is_hidden, is_nsfw, author, artist, published_by, demographic, alternative_names)
 VALUES (
   'School Rumble',
   'school-rumble',
@@ -15,7 +15,12 @@ VALUES (
   'anime',
   'Comedia, Romance, Escolar',
   0,
-  0
+  0,
+  'Jin Kobayashi',
+  'Studio Comet',
+  'TV Tokyo',
+  'Shounen',
+  'School Rumble!'
 );
 
 -- Insert Chapters
