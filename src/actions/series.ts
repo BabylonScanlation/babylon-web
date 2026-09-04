@@ -125,7 +125,8 @@ export const seriesActions = {
       ) {
         const file = coverImage as File;
         const fileExt = file.name.split('.').pop() || 'jpg';
-        const folder = siteConfig.folders.covers;
+        const isAnime = ['anime', 'ova', 'movie'].includes(input.type?.toLowerCase() || '');
+        const folder = isAnime ? siteConfig.folders.coversAnime : siteConfig.folders.coversComic;
         const fileName = `${folder}/${slug}-${Date.now()}.${fileExt}`;
 
         await env.R2_ASSETS.put(fileName, await file.arrayBuffer(), {
@@ -303,7 +304,9 @@ export const seriesActions = {
       ) {
         const file = coverImage as File;
         const imageExtension = file.name.split('.').pop() || 'jpg';
-        const imageKey = `covers/${slug}.${Date.now()}.${imageExtension}`;
+        const isAnime = ['anime', 'ova', 'movie'].includes(input.type?.toLowerCase() || currentSeries.type?.toLowerCase() || '');
+        const folder = isAnime ? siteConfig.folders.coversAnime : siteConfig.folders.coversComic;
+        const imageKey = `${folder}/${slug}.${Date.now()}.${imageExtension}`;
         await env.R2_ASSETS.put(imageKey, await file.arrayBuffer(), {
           httpMetadata: { contentType: file.type },
         });

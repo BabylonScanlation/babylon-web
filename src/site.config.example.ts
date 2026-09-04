@@ -22,8 +22,8 @@ export const siteConfig = {
     logoEmpty: '/iconpage/logo-empty.webp',
     ogImage: '/og-image.webp',
     favicon: '/favicon.png',
-    placeholderCover: '/covers/placeholder-cover.jpg',
-    placeholderChapter: '/covers/placeholder-chapter.jpg',
+    placeholderCover: '/covers/comic/placeholder-cover.jpg',
+    placeholderChapter: '/covers/comic/placeholder-chapter.jpg',
   },
 
   // Tema Visual
@@ -59,7 +59,8 @@ export const siteConfig = {
 
   // Estructura de Archivos (R2)
   folders: {
-    covers: 'covers',
+    coversComic: 'covers/comic',
+    coversAnime: 'covers/anime',
     chapters: 'chapters',
     news: 'news',
     app: 'app-releases',

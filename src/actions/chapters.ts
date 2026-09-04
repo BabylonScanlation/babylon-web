@@ -290,7 +290,7 @@ export const chapterActions = {
             language,
             isNsfw,
             status: 'processing',
-            urlPortada: `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`,
+            urlPortada: `${env.R2_PUBLIC_URL_ASSETS}/covers/comic/placeholder-chapter.jpg`,
             createdAt: new Date().toISOString(),
           })
           .returning({ id: chapters.id });
@@ -557,7 +557,7 @@ export const chapterActions = {
             language,
             isNsfw: false,
             status: 'live', // Episodes are immediately live since they don't need Telegram processing
-            urlPortada: `${env.R2_PUBLIC_URL_ASSETS}/covers/placeholder-chapter.jpg`,
+            urlPortada: `${env.R2_PUBLIC_URL_ASSETS}/covers/comic/placeholder-chapter.jpg`,
             createdAt: new Date().toISOString(),
           })
           .returning({ id: chapters.id });
