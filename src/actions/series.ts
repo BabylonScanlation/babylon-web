@@ -203,6 +203,7 @@ export const seriesActions = {
 
       await db.insert(series).values({
         ...input,
+        type: input.type?.trim().toLowerCase() || null,
         slug,
         coverImageUrl,
         telegramTopicId,
@@ -330,7 +331,7 @@ export const seriesActions = {
           title: input.title,
           description: input.description,
           status: input.status,
-          type: input.type,
+          type: input.type?.trim().toLowerCase() || null,
           author: input.author,
           artist: input.artist,
           slug,
