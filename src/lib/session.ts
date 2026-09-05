@@ -11,6 +11,8 @@ export interface UserSessionPayload {
   tokenVersion: number;
   scans?: number[];
   jti?: string;
+  vipTier?: number;
+  vipExpiresAt?: number | null;
 }
 
 export async function createToken(payload: UserSessionPayload, secret: string): Promise<string> {

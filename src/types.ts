@@ -118,6 +118,7 @@ export interface User {
   tokenVersion?: number;
   scanlations?: { id: number; role: 'owner' | 'editor' | 'moderator' }[];
   vipTier?: number;
+  vipExpiresAt?: number | null;
 }
 
 export interface Comment {
@@ -162,6 +163,8 @@ export interface JWTPayload {
   scans?: number[];
   iat?: number;
   exp?: number;
+  vipTier?: number;
+  vipExpiresAt?: number | null;
 }
 
 export interface FirebaseDecodedToken {

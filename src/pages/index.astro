@@ -1,5 +1,6 @@
 ---
 import { env } from 'cloudflare:workers';
+import { desc, sql } from 'drizzle-orm';
 import AdContainer from '../components/AdContainer.astro';
 import FeaturedGrid from '../components/FeaturedGrid.astro';
 import HeroCarousel from '../components/HeroCarousel.astro';
@@ -9,6 +10,8 @@ import { getHomeData } from '../lib/data/series';
 import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
 import { siteConfig } from '../site.config';
+import { users } from '../db/schema';
+import { getImageUrl } from '../lib/utils';
 
 const r2PublicUrlAssets = env.R2_PUBLIC_URL_ASSETS;
 
@@ -18,6 +21,7 @@ const allowNsfw = Astro.cookies.get('babylon_nsfw')?.value === 'true';
 let popularSeries: any[] = [];
 let seriesByChapterCount: any[] = [];
 let seriesWithRecentChapters: any[] = [];
+let vipMembers: any[] = [];
 let hasContent = false;
 
 try {
@@ -30,6 +34,19 @@ try {
   seriesByChapterCount = homeData.seriesByChapterCount as any;
   seriesWithRecentChapters = homeData.seriesWithRecentChapters;
   hasContent = homeData.hasContent;
+
+  vipMembers = await db
+    .select({
+      username: users.username,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+      vipTier: users.vipTier,
+      profileConfig: users.profileConfig,
+    })
+    .from(users)
+    .where(sql`${users.vipTier} > 0`)
+    .orderBy(desc(users.vipTier))
+    .all();
 } catch (error) {
   console.error('🔥 ERROR CRÍTICO EN HOME:', error);
   logError(error, 'Error al obtener las listas de series (Ultra Optimizado)');
@@ -40,6 +57,19 @@ const featuredGridData = popularSeries.slice(0, 20);
 
 // Orion: Garantizamos que la cuadrícula esté siempre ordenada por vistas (descendente)
 featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
+
+const getTierColor = (tier: number) => {
+  switch (tier) {
+    case 1: return '#4a90e2';
+    case 2: return '#50e3c2';
+    case 3: return '#f5a623';
+    case 4: return '#d0021b';
+    case 5: return '#9013fe';
+    case 6: return '#bd10e0';
+    case 7: return '#ff007f';
+    default: return '#fff';
+  }
+};
 ---
 
 <Layout
@@ -103,6 +133,28 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
               />
             )}
           </div>
+
+          {vipMembers.length > 0 && (
+            <div class="vip-mural-wrapper">
+              <div class="vip-mural-header">
+                <h2>👑 Salón de la Fama VIP</h2>
+                <a href="/members" class="view-all-vips">Ver todos</a>
+              </div>
+              <div class="vip-mural-grid">
+                {vipMembers.slice(0, 8).map((member) => (
+                  <a href={`/u/${member.username}`} class="vip-avatar-card">
+                    <div class="mural-avatar-container">
+                      <div class="mural-avatar-ring" style={`border-color: ${getTierColor(member.vipTier)};`}></div>
+                      <img src={getImageUrl(member.avatarUrl, r2PublicUrlAssets, 'user')} alt={member.displayName || member.username} loading="lazy" />
+                    </div>
+                    <span class="vip-name" style={`color: ${getTierColor(member.vipTier)};`}>
+                      {member.displayName || member.username || 'Usuario'}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           {!Astro.locals.isStaff && !Astro.locals.user?.isAdmin && (Astro.locals.user?.vipTier ?? 0) < 1 && (
             <div class="bottom-ad-wrapper">
@@ -230,6 +282,84 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
     transform: translateY(-2px) scale(1.05);
     box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
     color: #fff;
+  }
+
+  /* --- VIP Mural Styles --- */
+  .vip-mural-wrapper {
+    width: 100%;
+    margin: 2rem 0;
+    box-sizing: border-box;
+  }
+  .vip-mural-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0 0.5rem;
+  }
+  .vip-mural-header h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #ffd700;
+    margin: 0;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+  }
+  .view-all-vips {
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: color 0.2s;
+  }
+  .view-all-vips:hover {
+    color: #fff;
+  }
+  .vip-mural-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding: 1rem 0;
+    justify-content: center;
+  }
+  .vip-avatar-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    transition: transform 0.2s;
+    width: 80px;
+  }
+  .vip-avatar-card:hover {
+    transform: translateY(-5px);
+  }
+  .mural-avatar-container {
+    position: relative;
+    width: 60px;
+    height: 60px;
+  }
+  .mural-avatar-container img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #111;
+  }
+  .mural-avatar-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid;
+    opacity: 0.8;
+  }
+  .vip-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
   }
 
   @media (max-width: 768px) {

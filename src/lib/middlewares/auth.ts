@@ -58,16 +58,23 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
       }
 
       if (!isRevoked) {
-        locals.user = {
-          uid: payload.uid,
-          email: payload.email,
-          username: payload.username || undefined,
-          displayName: payload.displayName || undefined,
-          isAdmin: payload.role === 'admin' || payload.uid === env.SUPER_ADMIN_UID,
-          isNsfw: payload.isNsfw,
-          tokenVersion: payload.tokenVersion,
-          scanlations: payload.scans?.map((id) => ({ id, role: 'editor' })) || [], // El rol 'editor' es el mínimo por defecto en fast-path
-        };
+        // Si el VIP ya expiró según el token, forzamos slow-path para que actualice la DB
+        if (payload.vipExpiresAt && Date.now() > payload.vipExpiresAt) {
+          // No seteamos locals.user, lo que forzará el slow-path más abajo
+        } else {
+          locals.user = {
+            uid: payload.uid,
+            email: payload.email,
+            username: payload.username || undefined,
+            displayName: payload.displayName || undefined,
+            isAdmin: payload.role === 'admin' || payload.uid === env.SUPER_ADMIN_UID,
+            isNsfw: payload.isNsfw,
+            tokenVersion: payload.tokenVersion,
+            scanlations: payload.scans?.map((id) => ({ id, role: 'editor' })) || [], // El rol 'editor' es el mínimo por defecto en fast-path
+            vipTier: payload.vipTier || 0,
+            vipExpiresAt: payload.vipExpiresAt || null,
+          };
+        }
       } else {
         // Token revocado -> Limpiar cookies
         deleteSession(context as unknown as SessionContext);
@@ -117,6 +124,22 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
           .where(eq(scanlationMembers.userId, uid))
           .all();
 
+        // Validar expiración VIP
+        const now = Date.now();
+        let currentVipTier = result.user.vipTier || 0;
+        let currentVipExpiresAt = result.user.vipExpiresAt ? result.user.vipExpiresAt.getTime() : null;
+
+        if (currentVipExpiresAt && now > currentVipExpiresAt) {
+          // VIP expirado -> Degradamos en DB (Slow path)
+          currentVipTier = 0;
+          currentVipExpiresAt = null;
+          try {
+            await db.update(users).set({ vipTier: 0, vipExpiresAt: null }).where(eq(users.id, uid));
+          } catch(e) { 
+            console.error('Error degradando VIP', e); 
+          }
+        }
+
         const userObj = {
           uid,
           email: result.user.email,
@@ -128,6 +151,8 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
           preferences: result.user.preferences || '{}',
           tokenVersion: result.user.tokenVersion,
           scanlations: memberships as { id: number; role: 'owner' | 'editor' | 'moderator' }[],
+          vipTier: currentVipTier,
+          vipExpiresAt: currentVipExpiresAt,
         };
         locals.user = userObj;
 
@@ -144,6 +169,8 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
               isNsfw: userObj.isNsfw,
               tokenVersion: userObj.tokenVersion,
               scans: memberships.map((m) => m.id),
+              vipTier: userObj.vipTier,
+              vipExpiresAt: userObj.vipExpiresAt,
             },
             env.JWT_SECRET
           );

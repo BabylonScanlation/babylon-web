@@ -1,568 +1,597 @@
 <script lang="ts">
-import { actions } from 'astro:actions';
-import { onMount } from 'svelte';
-import { fade, fly } from 'svelte/transition';
-import AdContainer from './AdContainer.svelte';
-import ReaderPage from './ReaderPage.svelte';
+  import { actions } from 'astro:actions';
+  import { onMount } from 'svelte';
+  import { fade, fly } from 'svelte/transition';
+  import AdContainer from './AdContainer.svelte';
+  import ReaderPage from './ReaderPage.svelte';
 
-interface Page {
-  url?: string;
-  imageUrl?: string;
-  tiles?: string[];
-  cols?: number;
-  rows?: number;
-  width?: number;
-  height?: number;
-  pageNumber?: number;
-  [key: string]: unknown;
-}
-
-interface Props {
-  slug?: string;
-  chapter?: string;
-  initialPages?: Page[];
-  initialImageUrls?: string[];
-  chapterPayload?: any;
-  chapterId?: number | null;
-  seriesTitle?: string | null;
-  chapterTitle?: string;
-  watermark?: string;
-  initialLoadingMessage?: string | null;
-  nextChapter?: { slug: string; chapter: string } | null;
-  prevChapter?: { slug: string; chapter: string } | null;
-  processing?: boolean;
-  isStaff?: boolean;
-  vipTier?: number;
-}
-
-let {
-  slug = '',
-  chapter = '',
-  initialPages = [],
-  initialImageUrls = [],
-  chapterPayload = null,
-  chapterId = null,
-  seriesTitle = '',
-  chapterTitle = '',
-  watermark = '',
-  initialLoadingMessage = null,
-  nextChapter = null,
-  prevChapter = null,
-  processing = false,
-  isStaff = false,
-  vipTier = 0,
-}: Props = $props();
-
-let pagesData = $state<Page[]>([]);
-let loadingMessage = $state<string | null>(null);
-let isProcessing = $state(false);
-let error = $state<string | null>(null);
-let isComplete = $state(false);
-
-// Orion: Flags para evitar peticiones redundantes
-let viewRegistered = false;
-let hasReadThreshold = false;
-
-// Astra: Sincronización inicial silenciosa
-onMount(() => {
-  loadingMessage = initialLoadingMessage;
-  isProcessing = processing;
-});
-
-let viewMode = $state<'cascade' | 'single'>('cascade');
-let readerWidth = $state(40);
-let currentPageIndex = $state(0);
-let scrollProgress = $state(0);
-
-let showConfig = $state(false);
-let controlsVisible = $state(true);
-let lastScrollY = 0;
-let isMobile = $state(false);
-let hasPrefetched = false; // Prevent multiple prefetches
-
-// SSE & Progress
-let simulatedProgress = $state(0);
-let eventSource: EventSource | null = null;
-let progressInterval: number | undefined;
-let retryCount = 0;
-
-// Astra: Gestión de estado reactiva (Svelte 5)
-let activeSlug = $state<string>();
-let activeChapter = $state<string>();
-
-$effect(() => {
-  // 1. Detección de cambio de capítulo para Reset (Navegación)
-  if (slug !== activeSlug || chapter !== activeChapter) {
-    // console.log('[Reader] Resetting state for new chapter');
-    activeSlug = slug;
-    activeChapter = chapter;
-    pagesData = [];
-    isComplete = false;
-    hasPrefetched = false;
-    simulatedProgress = 0;
-    retryCount = 0;
-    error = null;
-    if (eventSource) eventSource.close();
+  interface Page {
+    url?: string;
+    imageUrl?: string;
+    tiles?: string[];
+    cols?: number;
+    rows?: number;
+    width?: number;
+    height?: number;
+    pageNumber?: number;
+    [key: string]: unknown;
   }
 
-  // 2. Sincronización desde Props (Población inicial o tras reset)
-  if (pagesData.length === 0) {
-    if (initialPages && initialPages.length > 0) {
-      pagesData = initialPages;
-    } else if (initialImageUrls && initialImageUrls.length > 0) {
-      pagesData = initialImageUrls.map((url: string) => ({ url }));
+  interface Props {
+    slug?: string;
+    chapter?: string;
+    initialPages?: Page[];
+    initialImageUrls?: string[];
+    chapterPayload?: any;
+    chapterId?: number | null;
+    seriesTitle?: string | null;
+    chapterTitle?: string;
+    watermark?: string;
+    initialLoadingMessage?: string | null;
+    nextChapter?: { slug: string; chapter: string } | null;
+    prevChapter?: { slug: string; chapter: string } | null;
+    processing?: boolean;
+    isStaff?: boolean;
+    vipTier?: number;
+  }
+
+  let {
+    slug = '',
+    chapter = '',
+    initialPages = [],
+    initialImageUrls = [],
+    chapterPayload = null,
+    chapterId = null,
+    seriesTitle = '',
+    chapterTitle = '',
+    watermark = '',
+    initialLoadingMessage = null,
+    nextChapter = null,
+    prevChapter = null,
+    processing = false,
+    isStaff = false,
+    vipTier = 0,
+  }: Props = $props();
+
+  let pagesData = $state<Page[]>([]);
+  let loadingMessage = $state<string | null>(null);
+  let isProcessing = $state(false);
+  let error = $state<string | null>(null);
+  let isComplete = $state(false);
+
+  // Orion: Flags para evitar peticiones redundantes
+  let viewRegistered = false;
+  let hasReadThreshold = false;
+
+  // Astra: Sincronización inicial silenciosa
+  onMount(() => {
+    loadingMessage = initialLoadingMessage;
+    isProcessing = processing;
+  });
+
+  let viewMode = $state<'cascade' | 'single'>('cascade');
+  let readerWidth = $state(40);
+  let currentPageIndex = $state(0);
+  let scrollProgress = $state(0);
+
+  let showConfig = $state(false);
+  let controlsVisible = $state(true);
+  let lastScrollY = 0;
+  let isMobile = $state(false);
+  let hasPrefetched = false; // Prevent multiple prefetches
+
+  // SSE & Progress
+  let simulatedProgress = $state(0);
+  let eventSource: EventSource | null = null;
+  let progressInterval: number | undefined;
+  let retryCount = 0;
+
+  // Astra: Gestión de estado reactiva (Svelte 5)
+  let activeSlug = $state<string>();
+  let activeChapter = $state<string>();
+
+  $effect(() => {
+    // 1. Detección de cambio de capítulo para Reset (Navegación)
+    if (slug !== activeSlug || chapter !== activeChapter) {
+      // console.log('[Reader] Resetting state for new chapter');
+      activeSlug = slug;
+      activeChapter = chapter;
+      pagesData = [];
+      isComplete = false;
+      hasPrefetched = false;
+      simulatedProgress = 0;
+      retryCount = 0;
+      error = null;
+      if (eventSource) eventSource.close();
     }
-  }
 
-  // 3. Control de Estado de Carga
-  if (pagesData.length > 0 && isProcessing) {
-    isProcessing = false;
-  }
-});
-
-$effect(() => {
-  // Check for prefetch opportunity in single page mode
-  if (viewMode === 'single' && !hasPrefetched && nextChapter && pagesData.length > 0) {
-    if (currentPageIndex >= pagesData.length - 2) {
-      prefetchNextChapter();
-    }
-  }
-});
-
-function prefetchNextChapter() {
-  if (!nextChapter || hasPrefetched) return;
-  hasPrefetched = true;
-  console.log(`[Reader] Prefetching next chapter: ${nextChapter.chapter}`);
-  // Trigger the API to ensure processing starts
-  fetch(`/api/series/${nextChapter.slug}/${nextChapter.chapter}`, { method: 'GET' }).catch((err) =>
-    console.warn('[Reader] Prefetch failed', err)
-  );
-}
-
-$effect(() => {
-  if (showConfig) {
-    document.body.setAttribute('data-reader-modal', 'open');
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
-    controlsVisible = true;
-  } else {
-    document.body.removeAttribute('data-reader-modal');
-    document.documentElement.style.overflow = '';
-    document.body.style.overflow = '';
-    if (isProcessing) document.body.style.overflow = 'hidden';
-  }
-  return () => {
-    document.body.removeAttribute('data-reader-modal');
-    document.documentElement.style.overflow = '';
-    document.body.style.overflow = '';
-  };
-});
-
-let readerEl = $state<HTMLElement | null>(null);
-
-onMount(() => {
-  // console.log('[ChapterReader] onMount starting...');
-  // Lógica de recuperación de datos desde el Bridge (Bypass de Cloudflare / Respaldo)
-  const bridge = document.getElementById('reader-data-bridge');
-  if (bridge) {
-    slug = bridge.getAttribute('data-slug') || slug;
-    chapter = bridge.getAttribute('data-chapter') || chapter;
-    const bridgePayload = bridge.getAttribute('data-payload');
-    if (bridgePayload) {
-      try {
-        chapterPayload = JSON.parse(bridgePayload);
-      } catch (e) {
-        console.error('Error parsing bridge payload', e);
+    // 2. Sincronización desde Props (Población inicial o tras reset)
+    if (pagesData.length === 0) {
+      if (initialPages && initialPages.length > 0) {
+        pagesData = initialPages;
+      } else if (initialImageUrls && initialImageUrls.length > 0) {
+        pagesData = initialImageUrls.map((url: string) => ({ url }));
       }
     }
 
-    const rawId = bridge.getAttribute('data-chapter-id');
-    if (rawId) chapterId = parseInt(rawId);
-
-    const processingAttr = bridge.getAttribute('data-processing') === 'true';
-    isProcessing = processingAttr;
-
-    loadingMessage = bridge.getAttribute('data-loading-msg') || loadingMessage;
-    seriesTitle = bridge.getAttribute('data-series-title') || seriesTitle;
-    watermark = bridge.getAttribute('data-watermark') || watermark;
-  }
-
-  isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  );
-
-  // Astra: Activar modo lectura total para eliminar paddings del layout
-  document.body.setAttribute('data-reader-active', 'true');
-
-  // Intentar recuperar configuración guardada de forma segura
-  try {
-    const savedWidth = localStorage.getItem('readerWidth');
-    if (savedWidth) readerWidth = parseInt(savedWidth);
-    else if (isMobile) readerWidth = 100;
-
-    const savedMode = localStorage.getItem('viewMode');
-    if (savedMode === 'cascade' || savedMode === 'single') viewMode = savedMode;
-  } catch (e) {
-    console.warn('No se pudo acceder a localStorage', e);
-  }
-
-  // Enfocar el lector
-  readerEl?.focus();
-
-  const mainHeader = document.querySelector('header');
-  const topNav = document.getElementById('reader-top-nav-wrapper');
-
-  let ticking = false;
-
-  const handleScroll = () => {
-    if (!ticking) {
-      ticking = true;
-      window.requestAnimationFrame(() => {
-        // --- READS ---
-        const isModalOpen = document.body.getAttribute('data-reader-modal') === 'open';
-        const currentScroll = window.scrollY;
-        const docHeight = document.documentElement.scrollHeight;
-        const winHeight = window.innerHeight;
-
-        // --- WRITES & LOGIC ---
-        if (isModalOpen) {
-          ticking = false;
-          return;
-        }
-
-        const scrollHeight = docHeight - winHeight;
-        scrollProgress = scrollHeight > 0 ? (currentScroll / scrollHeight) * 100 : 0;
-
-        // Orion: Activar umbral de lectura
-        if (scrollProgress > 40) hasReadThreshold = true;
-
-        // Prefetch Trigger
-        if (scrollProgress > 80 && !hasPrefetched && nextChapter) {
-          prefetchNextChapter();
-        }
-
-        if (currentScroll > 100 && currentScroll > lastScrollY + 15) {
-          if (controlsVisible) {
-            controlsVisible = false;
-            mainHeader?.classList.add('hidden');
-            topNav?.classList.add('hidden');
-          }
-        } else if (currentScroll < lastScrollY - 15 || currentScroll < 50) {
-          if (!controlsVisible) {
-            controlsVisible = true;
-            mainHeader?.classList.remove('hidden');
-            topNav?.classList.remove('hidden');
-          }
-        }
-
-        lastScrollY = currentScroll;
-        ticking = false;
-      });
+    // 3. Control de Estado de Carga
+    if (pagesData.length > 0 && isProcessing) {
+      isProcessing = false;
     }
-  };
+  });
 
-  window.addEventListener('scroll', handleScroll, { passive: true });
-  window.addEventListener('keydown', handleKeydown, { passive: true });
-
-  // Lógica de hidratación diferida
-  setTimeout(() => {
-    if (chapterPayload && pagesData.length === 0) {
-      try {
-        console.log('[READER] Hydrating data...');
-        const decrypted = chapterPayload;
-        if (decrypted) {
-          let incomingPages = [];
-          if (decrypted.pages) incomingPages = decrypted.pages;
-          else if (decrypted.imageUrls)
-            incomingPages = decrypted.imageUrls.map((url: string) => ({ url }));
-
-          if (incomingPages.length > 0) {
-            console.log(`[READER] Pages received: ${incomingPages.length}`);
-            pagesData = incomingPages.sort(
-              (a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0)
-            );
-            if (isProcessing) isProcessing = false;
-          } else {
-            console.warn('[READER] No pages found in payload');
-          }
-        }
-      } catch (e) {
-        console.error('[READER] Critical error during hydration:', e);
-        error = 'Error al cargar el contenido del capítulo.';
+  $effect(() => {
+    // Check for prefetch opportunity in single page mode
+    if (
+      viewMode === 'single' &&
+      !hasPrefetched &&
+      nextChapter &&
+      pagesData.length > 0
+    ) {
+      if (currentPageIndex >= pagesData.length - 2) {
+        prefetchNextChapter();
       }
     }
+  });
 
-    if (isProcessing) setupSse();
+  function prefetchNextChapter() {
+    if (!nextChapter || hasPrefetched) return;
+    hasPrefetched = true;
+    console.log(`[Reader] Prefetching next chapter: ${nextChapter.chapter}`);
+    // Trigger the API to ensure processing starts
+    fetch(`/api/series/${nextChapter.slug}/${nextChapter.chapter}`, {
+      method: 'GET',
+    }).catch((err) => console.warn('[Reader] Prefetch failed', err));
+  }
 
-    // Astra: Registrar vista diferida al cerrar/desmontar
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') registerView();
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Save cleanup to remove listener
-    return () => {
-      registerView(); // Registrar al desmontar el componente (Astro View Transitions)
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('keydown', handleKeydown);
-      document.body.removeAttribute('data-reader-active');
+  $effect(() => {
+    if (showConfig) {
+      document.body.setAttribute('data-reader-modal', 'open');
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      controlsVisible = true;
+    } else {
       document.body.removeAttribute('data-reader-modal');
-      if (eventSource) eventSource.close();
-    };
-  }, 100);
-});
-
-function handleGlobalClick(e: MouseEvent) {
-  if (showConfig) return;
-
-  // Ignorar clics en elementos interactivos o dentro del HUD
-  const target = e.target as HTMLElement;
-  if (
-    target.closest('button') ||
-    target.closest('a') ||
-    target.closest('.floating-hud') ||
-    target.closest('.reader-cfg-panel')
-  ) {
-    return;
-  }
-
-  const width = window.innerWidth;
-  const x = e.clientX;
-
-  // Zonas: 25% Izquierda, 50% Centro, 25% Derecha
-  const zoneLeft = width * 0.25;
-  const zoneRight = width * 0.75;
-
-  if (x < zoneLeft) {
-    handleZoneClick('left');
-  } else if (x > zoneRight) {
-    handleZoneClick('right');
-  } else {
-    handleZoneClick('center');
-  }
-}
-
-function handleZoneClick(zone: 'left' | 'center' | 'right') {
-  if (viewMode === 'cascade') {
-    if (zone === 'center') toggleControls();
-  } else {
-    if (zone === 'left') changePage(-1);
-    else if (zone === 'right') changePage(1);
-    else toggleControls();
-  }
-}
-
-function toggleControls() {
-  if (showConfig) return;
-  controlsVisible = !controlsVisible;
-  const mainHeader = document.querySelector('header');
-  const topNav = document.getElementById('reader-top-nav-wrapper');
-
-  if (!controlsVisible) {
-    mainHeader?.classList.add('hidden');
-    topNav?.classList.add('hidden');
-  } else {
-    mainHeader?.classList.remove('hidden');
-    topNav?.classList.remove('hidden');
-  }
-}
-
-function handleKeydown(e: KeyboardEvent) {
-  if (viewMode === 'single') {
-    if (e.key === 'ArrowLeft') changePage(-1);
-    else if (e.key === 'ArrowRight') changePage(1);
-  }
-  if (e.key === ' ' || e.key === 'Enter') {
-    toggleControls();
-  }
-  if (e.key === 'Escape') {
-    if (showConfig) showConfig = false;
-  }
-}
-
-// Astra: Forzar scroll arriba al cambiar de página en modo single
-$effect(() => {
-  if (viewMode === 'single' && currentPageIndex >= 0) {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  }
-});
-
-function changePage(delta: number) {
-  const newIndex = currentPageIndex + delta;
-  if (newIndex >= 0 && newIndex < pagesData.length) {
-    currentPageIndex = newIndex;
-    if (newIndex > 0) hasReadThreshold = true;
-  } else if (delta > 0 && newIndex >= pagesData.length && nextChapter) {
-    // Astra: Navegar al siguiente capítulo si estamos al final
-    window.location.href = `/series/${nextChapter.slug}/${nextChapter.chapter}`;
-  } else if (delta < 0 && newIndex < 0 && prevChapter) {
-    // Astra: Navegar al capítulo anterior si estamos al inicio
-    window.location.href = `/series/${prevChapter.slug}/${prevChapter.chapter}`;
-  }
-}
-
-function scrollToComments() {
-  const el = document.getElementById('comments-wrapper');
-  if (el) el.scrollIntoView({ behavior: 'smooth' });
-}
-
-function setupSse(isRetry = false) {
-  if (!isRetry) retryCount = 0;
-  if (eventSource) eventSource.close();
-
-  console.log(`[ChapterReader] Setting up SSE for ${slug}/${chapter} (Retry: ${isRetry})`);
-  startProgressSimulation();
-  eventSource = new EventSource(`/api/series/${slug}/${chapter}?id=${chapterId}`);
-
-  eventSource.addEventListener('processing', (e) => {
-    // console.log('[ChapterReader] SSE Processing event');
-    retryCount = 0;
-    try {
-      const rawData = JSON.parse(e.data);
-      const data = rawData.payload || rawData;
-      if (data.message) loadingMessage = data.message;
-    } catch {
-      console.error('Error parsing SSE processing event');
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      if (isProcessing) document.body.style.overflow = 'hidden';
     }
+    return () => {
+      document.body.removeAttribute('data-reader-modal');
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    };
   });
 
-  eventSource.addEventListener('completed', (e) => {
-    console.log('[ChapterReader] SSE Completed event received');
-    isComplete = true;
-    try {
-      const rawData = JSON.parse(e.data);
-      const data = rawData.payload || rawData;
+  let readerEl = $state<HTMLElement | null>(null);
 
-      clearInterval(progressInterval);
-      simulatedProgress = 100;
-      loadingMessage = '¡Capítulo listo!';
-
-      let incomingPages = [];
-      if (data.pages) {
-        console.log(`[ChapterReader] SSE Pages received: ${data.pages.length}`);
-        incomingPages = data.pages;
-      } else if (data.imageUrls) {
-        console.log(`[ChapterReader] SSE Image URLs received: ${data.imageUrls.length}`);
-        incomingPages = data.imageUrls.map((url: string) => ({ url }));
+  onMount(() => {
+    // console.log('[ChapterReader] onMount starting...');
+    // Lógica de recuperación de datos desde el Bridge (Bypass de Cloudflare / Respaldo)
+    const bridge = document.getElementById('reader-data-bridge');
+    if (bridge) {
+      slug = bridge.getAttribute('data-slug') || slug;
+      chapter = bridge.getAttribute('data-chapter') || chapter;
+      const bridgePayload = bridge.getAttribute('data-payload');
+      if (bridgePayload) {
+        try {
+          chapterPayload = JSON.parse(bridgePayload);
+        } catch (e) {
+          console.error('Error parsing bridge payload', e);
+        }
       }
 
-      if (incomingPages.length > 0) {
-        pagesData = incomingPages.sort(
-          (a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0)
+      const rawId = bridge.getAttribute('data-chapter-id');
+      if (rawId) chapterId = parseInt(rawId);
+
+      const processingAttr = bridge.getAttribute('data-processing') === 'true';
+      isProcessing = processingAttr;
+
+      loadingMessage =
+        bridge.getAttribute('data-loading-msg') || loadingMessage;
+      seriesTitle = bridge.getAttribute('data-series-title') || seriesTitle;
+      watermark = bridge.getAttribute('data-watermark') || watermark;
+    }
+
+    isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+
+    // Astra: Activar modo lectura total para eliminar paddings del layout
+    document.body.setAttribute('data-reader-active', 'true');
+
+    // Intentar recuperar configuración guardada de forma segura
+    try {
+      const savedWidth = localStorage.getItem('readerWidth');
+      if (savedWidth) readerWidth = parseInt(savedWidth);
+      else if (isMobile) readerWidth = 100;
+
+      const savedMode = localStorage.getItem('viewMode');
+      if (savedMode === 'cascade' || savedMode === 'single')
+        viewMode = savedMode;
+    } catch (e) {
+      console.warn('No se pudo acceder a localStorage', e);
+    }
+
+    // Enfocar el lector
+    readerEl?.focus();
+
+    const mainHeader = document.querySelector('header');
+    const topNav = document.getElementById('reader-top-nav-wrapper');
+
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        window.requestAnimationFrame(() => {
+          // --- READS ---
+          const isModalOpen =
+            document.body.getAttribute('data-reader-modal') === 'open';
+          const currentScroll = window.scrollY;
+          const docHeight = document.documentElement.scrollHeight;
+          const winHeight = window.innerHeight;
+
+          // --- WRITES & LOGIC ---
+          if (isModalOpen) {
+            ticking = false;
+            return;
+          }
+
+          const scrollHeight = docHeight - winHeight;
+          scrollProgress =
+            scrollHeight > 0 ? (currentScroll / scrollHeight) * 100 : 0;
+
+          // Orion: Activar umbral de lectura
+          if (scrollProgress > 40) hasReadThreshold = true;
+
+          // Prefetch Trigger
+          if (scrollProgress > 80 && !hasPrefetched && nextChapter) {
+            prefetchNextChapter();
+          }
+
+          if (currentScroll > 100 && currentScroll > lastScrollY + 15) {
+            if (controlsVisible) {
+              controlsVisible = false;
+              mainHeader?.classList.add('hidden');
+              topNav?.classList.add('hidden');
+            }
+          } else if (currentScroll < lastScrollY - 15 || currentScroll < 50) {
+            if (!controlsVisible) {
+              controlsVisible = true;
+              mainHeader?.classList.remove('hidden');
+              topNav?.classList.remove('hidden');
+            }
+          }
+
+          lastScrollY = currentScroll;
+          ticking = false;
+        });
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('keydown', handleKeydown, { passive: true });
+
+    // Lógica de hidratación diferida
+    setTimeout(() => {
+      if (chapterPayload && pagesData.length === 0) {
+        try {
+          console.log('[READER] Hydrating data...');
+          const decrypted = chapterPayload;
+          if (decrypted) {
+            let incomingPages = [];
+            if (decrypted.pages) incomingPages = decrypted.pages;
+            else if (decrypted.imageUrls)
+              incomingPages = decrypted.imageUrls.map((url: string) => ({
+                url,
+              }));
+
+            if (incomingPages.length > 0) {
+              console.log(`[READER] Pages received: ${incomingPages.length}`);
+              pagesData = incomingPages.sort(
+                (a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0)
+              );
+              if (isProcessing) isProcessing = false;
+            } else {
+              console.warn('[READER] No pages found in payload');
+            }
+          }
+        } catch (e) {
+          console.error('[READER] Critical error during hydration:', e);
+          error = 'Error al cargar el contenido del capítulo.';
+        }
+      }
+
+      if (isProcessing) setupSse();
+
+      // Astra: Registrar vista diferida al cerrar/desmontar
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') registerView();
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      // Save cleanup to remove listener
+      return () => {
+        registerView(); // Registrar al desmontar el componente (Astro View Transitions)
+        document.removeEventListener(
+          'visibilitychange',
+          handleVisibilityChange
         );
-      }
+        window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('keydown', handleKeydown);
+        document.body.removeAttribute('data-reader-active');
+        document.body.removeAttribute('data-reader-modal');
+        if (eventSource) eventSource.close();
+      };
+    }, 100);
+  });
 
-      isProcessing = false;
-      if (chapterId) registerView();
-      if (eventSource) eventSource.close();
-    } catch (err) {
-      console.error('[ChapterReader] Error processing completed event:', err);
-      error = 'Error al procesar la respuesta del servidor.';
-      isProcessing = false;
+  function handleGlobalClick(e: MouseEvent) {
+    if (showConfig) return;
+
+    // Ignorar clics en elementos interactivos o dentro del HUD
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') ||
+      target.closest('a') ||
+      target.closest('.floating-hud') ||
+      target.closest('.reader-cfg-panel')
+    ) {
+      return;
+    }
+
+    const width = window.innerWidth;
+    const x = e.clientX;
+
+    // Zonas: 25% Izquierda, 50% Centro, 25% Derecha
+    const zoneLeft = width * 0.25;
+    const zoneRight = width * 0.75;
+
+    if (x < zoneLeft) {
+      handleZoneClick('left');
+    } else if (x > zoneRight) {
+      handleZoneClick('right');
+    } else {
+      handleZoneClick('center');
+    }
+  }
+
+  function handleZoneClick(zone: 'left' | 'center' | 'right') {
+    if (viewMode === 'cascade') {
+      if (zone === 'center') toggleControls();
+    } else {
+      if (zone === 'left') changePage(-1);
+      else if (zone === 'right') changePage(1);
+      else toggleControls();
+    }
+  }
+
+  function toggleControls() {
+    if (showConfig) return;
+    controlsVisible = !controlsVisible;
+    const mainHeader = document.querySelector('header');
+    const topNav = document.getElementById('reader-top-nav-wrapper');
+
+    if (!controlsVisible) {
+      mainHeader?.classList.add('hidden');
+      topNav?.classList.add('hidden');
+    } else {
+      mainHeader?.classList.remove('hidden');
+      topNav?.classList.remove('hidden');
+    }
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (viewMode === 'single') {
+      if (e.key === 'ArrowLeft') changePage(-1);
+      else if (e.key === 'ArrowRight') changePage(1);
+    }
+    if (e.key === ' ' || e.key === 'Enter') {
+      toggleControls();
+    }
+    if (e.key === 'Escape') {
+      if (showConfig) showConfig = false;
+    }
+  }
+
+  // Astra: Forzar scroll arriba al cambiar de página en modo single
+  $effect(() => {
+    if (viewMode === 'single' && currentPageIndex >= 0) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }
   });
 
-  eventSource.addEventListener('processing_error', (e) => {
-    console.error('[ChapterReader] SSE Processing Error event');
-    isComplete = true;
-    clearInterval(progressInterval);
-    try {
-      const rawData = JSON.parse(e.data);
-      const data = rawData.payload || rawData;
-      error = data.error || 'Error en el servidor de procesamiento.';
-    } catch {
-      error = 'Error desconocido en el servidor.';
+  function changePage(delta: number) {
+    const newIndex = currentPageIndex + delta;
+    if (newIndex >= 0 && newIndex < pagesData.length) {
+      currentPageIndex = newIndex;
+      if (newIndex > 0) hasReadThreshold = true;
+    } else if (delta > 0 && newIndex >= pagesData.length && nextChapter) {
+      // Astra: Navegar al siguiente capítulo si estamos al final
+      window.location.href = `/series/${nextChapter.slug}/${nextChapter.chapter}`;
+    } else if (delta < 0 && newIndex < 0 && prevChapter) {
+      // Astra: Navegar al capítulo anterior si estamos al inicio
+      window.location.href = `/series/${prevChapter.slug}/${prevChapter.chapter}`;
     }
-    isProcessing = false;
+  }
+
+  function scrollToComments() {
+    const el = document.getElementById('comments-wrapper');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function setupSse(isRetry = false) {
+    if (!isRetry) retryCount = 0;
     if (eventSource) eventSource.close();
-  });
 
-  eventSource.addEventListener('error', () => {
-    if (isComplete) return;
-    console.warn(`[ChapterReader] SSE Error (Retry ${retryCount + 1}/3)`);
+    console.log(
+      `[ChapterReader] Setting up SSE for ${slug}/${chapter} (Retry: ${isRetry})`
+    );
+    startProgressSimulation();
+    eventSource = new EventSource(
+      `/api/series/${slug}/${chapter}?id=${chapterId}`
+    );
 
-    if (retryCount < 3) {
-      console.warn(`SSE connection lost. Retrying... (${retryCount + 1}/3)`);
-      retryCount++;
-      if (eventSource) eventSource.close();
-      setTimeout(() => setupSse(true), 2000);
-    } else {
-      error =
-        'Se perdió la conexión con el servidor de procesamiento. Reintente recargando la página.';
+    eventSource.addEventListener('processing', (e) => {
+      // console.log('[ChapterReader] SSE Processing event');
+      retryCount = 0;
+      try {
+        const rawData = JSON.parse(e.data);
+        const data = rawData.payload || rawData;
+        if (data.message) loadingMessage = data.message;
+      } catch {
+        console.error('Error parsing SSE processing event');
+      }
+    });
+
+    eventSource.addEventListener('completed', (e) => {
+      console.log('[ChapterReader] SSE Completed event received');
+      isComplete = true;
+      try {
+        const rawData = JSON.parse(e.data);
+        const data = rawData.payload || rawData;
+
+        clearInterval(progressInterval);
+        simulatedProgress = 100;
+        loadingMessage = '¡Capítulo listo!';
+
+        let incomingPages = [];
+        if (data.pages) {
+          console.log(
+            `[ChapterReader] SSE Pages received: ${data.pages.length}`
+          );
+          incomingPages = data.pages;
+        } else if (data.imageUrls) {
+          console.log(
+            `[ChapterReader] SSE Image URLs received: ${data.imageUrls.length}`
+          );
+          incomingPages = data.imageUrls.map((url: string) => ({ url }));
+        }
+
+        if (incomingPages.length > 0) {
+          pagesData = incomingPages.sort(
+            (a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0)
+          );
+        }
+
+        isProcessing = false;
+        if (chapterId) registerView();
+        if (eventSource) eventSource.close();
+      } catch (err) {
+        console.error('[ChapterReader] Error processing completed event:', err);
+        error = 'Error al procesar la respuesta del servidor.';
+        isProcessing = false;
+      }
+    });
+
+    eventSource.addEventListener('processing_error', (e) => {
+      console.error('[ChapterReader] SSE Processing Error event');
+      isComplete = true;
+      clearInterval(progressInterval);
+      try {
+        const rawData = JSON.parse(e.data);
+        const data = rawData.payload || rawData;
+        error = data.error || 'Error en el servidor de procesamiento.';
+      } catch {
+        error = 'Error desconocido en el servidor.';
+      }
       isProcessing = false;
       if (eventSource) eventSource.close();
-    }
-  });
-}
-
-function registerView() {
-  if (!chapterId || !hasReadThreshold || viewRegistered) return;
-  const cid = chapterId; // Astra: Garantizamos que es number para TS
-  viewRegistered = true;
-
-  // Tarea 1: Registrar vista (Prioridad media)
-  if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(() => {
-      actions.chapters.registerView({ chapterId: cid }).catch(() => {});
     });
-  } else {
-    actions.chapters.registerView({ chapterId: cid }).catch(() => {});
+
+    eventSource.addEventListener('error', () => {
+      if (isComplete) return;
+      console.warn(`[ChapterReader] SSE Error (Retry ${retryCount + 1}/3)`);
+
+      if (retryCount < 3) {
+        console.warn(`SSE connection lost. Retrying... (${retryCount + 1}/3)`);
+        retryCount++;
+        if (eventSource) eventSource.close();
+        setTimeout(() => setupSse(true), 2000);
+      } else {
+        error =
+          'Se perdió la conexión con el servidor de procesamiento. Reintente recargando la página.';
+        isProcessing = false;
+        if (eventSource) eventSource.close();
+      }
+    });
   }
 
-  // Tarea 2: Actualizar progreso (Prioridad baja)
-  const bridge = document.getElementById('reader-data-bridge');
-  const seriesId = bridge ? parseInt(bridge.getAttribute('data-series-id') || '0') : 0;
+  function registerView() {
+    if (!chapterId || !hasReadThreshold || viewRegistered) return;
+    const cid = chapterId; // Astra: Garantizamos que es number para TS
+    viewRegistered = true;
 
-  if (seriesId > 0) {
-    const task = () => {
-      actions.user
-        .updateProgress({
-          seriesId,
-          chapterId: cid,
-          chapterNumber: parseFloat(chapter),
-        })
-        .catch((err: any) => console.warn('[Reader] Failed to update progress', err));
-    };
-
+    // Tarea 1: Registrar vista (Prioridad media)
     if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(task, { timeout: 5000 });
+      window.requestIdleCallback(() => {
+        actions.chapters.registerView({ chapterId: cid }).catch(() => {});
+      });
     } else {
-      setTimeout(task, 2000);
+      actions.chapters.registerView({ chapterId: cid }).catch(() => {});
+    }
+
+    // Tarea 2: Actualizar progreso (Prioridad baja)
+    const bridge = document.getElementById('reader-data-bridge');
+    const seriesId = bridge
+      ? parseInt(bridge.getAttribute('data-series-id') || '0')
+      : 0;
+
+    if (seriesId > 0) {
+      const task = () => {
+        actions.user
+          .updateProgress({
+            seriesId,
+            chapterId: cid,
+            chapterNumber: parseFloat(chapter),
+          })
+          .catch((err: any) =>
+            console.warn('[Reader] Failed to update progress', err)
+          );
+      };
+
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(task, { timeout: 5000 });
+      } else {
+        setTimeout(task, 2000);
+      }
     }
   }
-}
 
-function startProgressSimulation() {
-  clearInterval(progressInterval);
-  simulatedProgress = 0;
+  function startProgressSimulation() {
+    clearInterval(progressInterval);
+    simulatedProgress = 0;
 
-  // Orion: Curva de progresión tipo "Zeno" o "Phi"
-  // Avanza rápido al principio y se va cortando a la mitad conforme se acerca al final.
-  progressInterval = window.setInterval(() => {
-    if (simulatedProgress < 99) {
-      // Calculamos cuánto falta para llegar a 100
-      const remaining = 100 - simulatedProgress;
+    // Orion: Curva de progresión tipo "Zeno" o "Phi"
+    // Avanza rápido al principio y se va cortando a la mitad conforme se acerca al final.
+    progressInterval = window.setInterval(() => {
+      if (simulatedProgress < 99) {
+        // Calculamos cuánto falta para llegar a 100
+        const remaining = 100 - simulatedProgress;
 
-      // El incremento es una pequeña fracción de lo que queda (se corta a la mitad/proporción)
-      // Esto hace que nunca llegue a 100 por sí solo.
-      const increment = remaining * 0.015;
+        // El incremento es una pequeña fracción de lo que queda (se corta a la mitad/proporción)
+        // Esto hace que nunca llegue a 100 por sí solo.
+        const increment = remaining * 0.015;
 
-      simulatedProgress += Math.max(0.01, increment);
-    }
-  }, 150); // Intervalo más corto para que el movimiento sea fluido (60fps feel)
-}
+        simulatedProgress += Math.max(0.01, increment);
+      }
+    }, 150); // Intervalo más corto para que el movimiento sea fluido (60fps feel)
+  }
 
-function saveSettings() {
-  localStorage.setItem('readerWidth', readerWidth.toString());
-  localStorage.setItem('viewMode', viewMode);
-  showConfig = false;
-}
+  function saveSettings() {
+    localStorage.setItem('readerWidth', readerWidth.toString());
+    localStorage.setItem('viewMode', viewMode);
+    showConfig = false;
+  }
 
-// Orion: Detectar si el capítulo es solo para la app (Protección de contenido)
-const isInAppOnly = $derived(chapterPayload === 'inapp' || loadingMessage === 'inapp');
+  // Orion: Detectar si el capítulo es solo para la app (Protección de contenido)
+  const isInAppOnly = $derived(
+    chapterPayload === 'inapp' || loadingMessage === 'inapp'
+  );
 
-import { siteConfig } from '../site.config';
+  import { siteConfig } from '../site.config';
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -575,39 +604,102 @@ import { siteConfig } from '../site.config';
   tabindex="-1"
   bind:this={readerEl}
 >
-  <div class="top-progress-bar" style="transform: scaleX({scrollProgress / 100})"></div>
+  <div
+    class="top-progress-bar"
+    style="transform: scaleX({scrollProgress / 100})"
+  ></div>
 
   <div class="reader-container" style="width: {isMobile ? 100 : readerWidth}%">
     {#if isInAppOnly}
       <div class="loader-overlay" in:fade>
-         <div class="glass-inapp">
-            <div class="inapp-icon">
-              <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-            </div>
-            <h3>Contenido Exclusivo</h3>
-            <p class="inapp-desc">Este capítulo solo está disponible a través de nuestra aplicación oficial para una mejor experiencia.</p>
+        <div class="glass-inapp">
+          <div class="inapp-icon">
+            <svg
+              viewBox="0 0 24 24"
+              width="48"
+              height="48"
+              stroke="currentColor"
+              stroke-width="1.5"
+              fill="none"
+              ><rect x="5" y="2" width="14" height="20" rx="2" ry="2"
+              ></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg
+            >
+          </div>
+          <h3>Contenido Exclusivo</h3>
+          <p class="inapp-desc">
+            Este capítulo solo está disponible a través de nuestra aplicación
+            oficial para una mejor experiencia.
+          </p>
 
-            <div class="inapp-actions">
-              <a href={siteConfig.app.androidUrl} class="btn-download-app" download>
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Descargar App
-              </a>
-              <button class="btn-back-inapp" onclick={() => window.history.back()}>
-                Volver
-              </button>
-            </div>
-         </div>
+          <div class="inapp-actions">
+            <a
+              href={siteConfig.app.androidUrl}
+              class="btn-download-app"
+              download
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                stroke="currentColor"
+                stroke-width="2.5"
+                fill="none"
+                ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                ></path><polyline points="7 10 12 15 17 10"></polyline><line
+                  x1="12"
+                  y1="15"
+                  x2="12"
+                  y2="3"
+                ></line></svg
+              >
+              Descargar App
+            </a>
+            <button
+              class="btn-back-inapp"
+              onclick={() => window.history.back()}
+            >
+              Volver
+            </button>
+          </div>
+        </div>
       </div>
     {:else if error}
       <div class="loader-overlay" in:fade>
         <div class="glass-error">
           <div class="error-icon-anim">
-            <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <svg
+              viewBox="0 0 24 24"
+              width="40"
+              height="40"
+              stroke="currentColor"
+              stroke-width="1.5"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><circle cx="12" cy="12" r="10"></circle><line
+                x1="12"
+                y1="8"
+                x2="12"
+                y2="12"
+              ></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg
+            >
           </div>
           <h3>Conexión Interrumpida</h3>
           <p class="error-desc">{error}</p>
           <button class="btn-retry" onclick={() => window.location.reload()}>
-            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              stroke="currentColor"
+              stroke-width="2.5"
+              fill="none"
+              ><polyline points="23 4 23 10 17 10"></polyline><polyline
+                points="1 20 1 14 7 14"
+              ></polyline><path
+                d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+              ></path></svg
+            >
             Reintentar
           </button>
         </div>
@@ -616,19 +708,32 @@ import { siteConfig } from '../site.config';
       <div class="loader-overlay" in:fade>
         <div class="glass-loader">
           <div class="loader-visual">
-            <img src="/favicon.png" alt={seriesTitle || 'Logo'} class="loader-logo" />
+            <img
+              src="/favicon.png"
+              alt={seriesTitle || 'Logo'}
+              class="loader-logo"
+            />
             <div class="loader-ring"></div>
           </div>
           <div class="loader-info">
             {#key loadingMessage}
-              <div in:fly={{ y: 10, duration: 400 }} out:fly={{ y: -10, duration: 300 }}>
+              <div
+                in:fly={{ y: 10, duration: 400 }}
+                out:fly={{ y: -10, duration: 300 }}
+              >
                 <p class="main-loading-text">{loadingMessage}</p>
-                <p class="sub-loading-text">Esto solo lo tendrás que hacer una vez, gracias por su paciencia.</p>
+                <p class="sub-loading-text">
+                  Esto solo lo tendrás que hacer una vez, gracias por su
+                  paciencia.
+                </p>
               </div>
             {/key}
             <div class="progress-section">
               <div class="bar-container">
-                <div class="bar-fill" style="transform: scaleX({simulatedProgress / 100})"></div>
+                <div
+                  class="bar-fill"
+                  style="transform: scaleX({simulatedProgress / 100})"
+                ></div>
               </div>
               <div class="progress-meta">
                 <span class="status-dot"></span>
@@ -636,7 +741,10 @@ import { siteConfig } from '../site.config';
               </div>
             </div>
 
-            <button class="cancel-load-btn" onclick={() => window.history.back()}>
+            <button
+              class="cancel-load-btn"
+              onclick={() => window.history.back()}
+            >
               Cancelar
             </button>
           </div>
@@ -647,8 +755,17 @@ import { siteConfig } from '../site.config';
         {#if viewMode === 'cascade'}
           {#each pagesData as page, i (i)}
             <div class="page-frame">
-              <ReaderPage {page} alt={`Página ${i + 1}`} watermark={watermark || undefined} loading={i < 2 ? 'eager' : 'lazy'} />
-              <div class="no-copy-shield" role="presentation" oncontextmenu={(e) => e.preventDefault()}></div>
+              <ReaderPage
+                {page}
+                alt={`Página ${i + 1}`}
+                watermark={watermark || undefined}
+                loading={i < 2 ? 'eager' : 'lazy'}
+              />
+              <div
+                class="no-copy-shield"
+                role="presentation"
+                oncontextmenu={(e) => e.preventDefault()}
+              ></div>
             </div>
           {/each}
         {:else}
@@ -657,16 +774,60 @@ import { siteConfig } from '../site.config';
               {#key currentPageIndex}
                 {@const currentPage = pagesData[currentPageIndex] as Page}
                 <div class="page-frame">
-                  <ReaderPage page={currentPage} alt={`Página ${currentPageIndex + 1}`} watermark={watermark || undefined} loading="eager" />
-                  <div class="no-copy-shield" role="presentation" oncontextmenu={(e) => e.preventDefault()}></div>
-                  <div class="page-counter-floating">{currentPageIndex + 1} / {pagesData.length}</div>
+                  <ReaderPage
+                    page={currentPage}
+                    alt={`Página ${currentPageIndex + 1}`}
+                    watermark={watermark || undefined}
+                    loading="eager"
+                  />
+                  <div
+                    class="no-copy-shield"
+                    role="presentation"
+                    oncontextmenu={(e) => e.preventDefault()}
+                  ></div>
+                  <div class="page-counter-floating">
+                    {currentPageIndex + 1} / {pagesData.length}
+                  </div>
 
                   <!-- Botones de Navegación Visuales -->
-                  <button class="nav-zone-btn left" onclick={(e) => { e.stopPropagation(); changePage(-1); }} aria-label="Página anterior" class:hidden={currentPageIndex === 0 && !prevChapter}>
-                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  <button
+                    class="nav-zone-btn left"
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      changePage(-1);
+                    }}
+                    aria-label="Página anterior"
+                    class:hidden={currentPageIndex === 0 && !prevChapter}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="32"
+                      height="32"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      fill="none"
+                      ><polyline points="15 18 9 12 15 6"></polyline></svg
+                    >
                   </button>
-                  <button class="nav-zone-btn right" onclick={(e) => { e.stopPropagation(); changePage(1); }} aria-label="Página siguiente" class:hidden={currentPageIndex === pagesData.length - 1 && !nextChapter}>
-                    <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  <button
+                    class="nav-zone-btn right"
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      changePage(1);
+                    }}
+                    aria-label="Página siguiente"
+                    class:hidden={currentPageIndex === pagesData.length - 1 &&
+                      !nextChapter}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="32"
+                      height="32"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      fill="none"
+                      ><polyline points="9 18 15 12 9 6"></polyline></svg
+                    >
                   </button>
                 </div>
               {/key}
@@ -684,11 +845,22 @@ import { siteConfig } from '../site.config';
     {/if}
   </div>
 
-  <div id="reader-floating-hud" class="floating-hud {controlsVisible ? 'visible' : 'hidden'}">
+  <div
+    id="reader-floating-hud"
+    class="floating-hud {controlsVisible ? 'visible' : 'hidden'}"
+  >
     <div class="hud-glass">
       <div class="hud-section info">
         <a href={`/series/${slug}`} class="back-pill" title="Volver a la serie">
-          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            stroke="currentColor"
+            fill="none"
+            stroke-width="2.5"
+            ><polyline points="15 18 9 12 15 6"></polyline></svg
+          >
         </a>
         <div class="chapter-label">
           <span class="s-title">{chapterTitle}</span>
@@ -698,34 +870,131 @@ import { siteConfig } from '../site.config';
 
       <div class="hud-section tools">
         <div class="hud-nav-group">
-          <a href={prevChapter ? `/series/${prevChapter.slug}/${prevChapter.chapter}` : '#'} class="hud-nav-btn prev" class:disabled={!prevChapter} title="Capítulo Anterior">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="3"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          <a
+            href={prevChapter
+              ? `/series/${prevChapter.slug}/${prevChapter.chapter}`
+              : '#'}
+            class="hud-nav-btn prev"
+            class:disabled={!prevChapter}
+            title="Capítulo Anterior"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              stroke="currentColor"
+              fill="none"
+              stroke-width="3"
+              ><polyline points="15 18 9 12 15 6"></polyline></svg
+            >
           </a>
           <div class="hud-sep"></div>
-          <a href={nextChapter ? `/series/${nextChapter.slug}/${nextChapter.chapter}` : '#'} class="hud-nav-btn next" class:disabled={!nextChapter} title="Capítulo Siguiente">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="3"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          <a
+            href={nextChapter
+              ? `/series/${nextChapter.slug}/${nextChapter.chapter}`
+              : '#'}
+            class="hud-nav-btn next"
+            class:disabled={!nextChapter}
+            title="Capítulo Siguiente"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              stroke="currentColor"
+              fill="none"
+              stroke-width="3"
+              ><polyline points="9 18 15 12 9 6"></polyline></svg
+            >
           </a>
         </div>
 
-        <button class="tool-btn comment-trigger" onclick={scrollToComments} title="Comentarios">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        <button
+          class="tool-btn comment-trigger"
+          onclick={scrollToComments}
+          title="Comentarios"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            stroke="currentColor"
+            fill="none"
+            stroke-width="2.5"
+            ><path
+              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            ></path></svg
+          >
         </button>
         {#if isStaff || vipTier >= 3}
-          <a 
+          <a
             href={`/api/series/${slug}/${chapter}/download${chapterId ? '?id=' + chapterId : ''}`}
             class="tool-btn download-trigger"
             title="Descargar Capítulo"
             target="_blank"
             style="display: flex; align-items: center; justify-content: center; color: inherit; text-decoration: none;"
           >
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              stroke="currentColor"
+              fill="none"
+              stroke-width="2.5"
+              ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+              ></path><polyline points="7 10 12 15 17 10"></polyline><line
+                x1="12"
+                y1="15"
+                x2="12"
+                y2="3"
+              ></line></svg
+            >
           </a>
+        {:else}
+          <button 
+            class="tool-btn download-trigger"
+            title="Descargas exclusivas para VIP Nivel 3+"
+            onclick={(e) => {
+              e.stopPropagation();
+              window.dispatchEvent(new CustomEvent('open-support-modal'));
+            }}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              stroke="currentColor"
+              fill="none"
+              stroke-width="2.5"
+              ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+              ></path><polyline points="7 10 12 15 17 10"></polyline><line
+                x1="12"
+                y1="15"
+                x2="12"
+                y2="3"
+              ></line></svg
+            >
+          </button>
         {/if}
-        <button class="tool-btn" onclick={(e) => {
-          e.stopPropagation();
-          showConfig = true;
-        }} title="Configuración">
-          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2.5"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <button
+          class="tool-btn"
+          onclick={(e) => {
+            e.stopPropagation();
+            showConfig = true;
+          }}
+          title="Configuración"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            stroke="currentColor"
+            fill="none"
+            stroke-width="2.5"
+            ><circle cx="12" cy="12" r="3"></circle><path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+            ></path></svg
+          >
         </button>
       </div>
     </div>
@@ -739,33 +1008,56 @@ import { siteConfig } from '../site.config';
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}
   >
-        <div
-          class="reader-cfg-panel"
-          role="dialog"
-          tabindex="-1"
-          aria-modal="true"
-          onclick={(e) => e.stopPropagation()}
-          onkeydown={(e) => e.stopPropagation()}
-        >      <div class="modal-header-compact">
+    <div
+      class="reader-cfg-panel"
+      role="dialog"
+      tabindex="-1"
+      aria-modal="true"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+    >
+      <div class="modal-header-compact">
         <h3>Configuración</h3>
-        <button class="close-modal-btn" onclick={() => showConfig = false}>✕</button>
+        <button class="close-modal-btn" onclick={() => (showConfig = false)}
+          >✕</button
+        >
       </div>
 
       <div class="config-row">
         <label for="view-mode-cascade">Modo de Vista</label>
         <div class="pill-group" id="view-mode-select">
-          <button id="view-mode-cascade" class:active={viewMode === 'cascade'} onclick={() => viewMode = 'cascade'}>Cascada</button>
-          <button id="view-mode-single" class:active={viewMode === 'single'} onclick={() => viewMode = 'single'}>Paginado</button>
+          <button
+            id="view-mode-cascade"
+            class:active={viewMode === 'cascade'}
+            onclick={() => (viewMode = 'cascade')}>Cascada</button
+          >
+          <button
+            id="view-mode-single"
+            class:active={viewMode === 'single'}
+            onclick={() => (viewMode = 'single')}>Paginado</button
+          >
         </div>
       </div>
 
       <div class="config-row">
-        <label for="reader-width-range">Ancho del Lector ({readerWidth}%)</label>
-        <input id="reader-width-range" name="reader-width" type="range" min="20" max="100" step="5" bind:value={readerWidth} disabled={isMobile} />
+        <label for="reader-width-range">Ancho del Lector ({readerWidth}%)</label
+        >
+        <input
+          id="reader-width-range"
+          name="reader-width"
+          type="range"
+          min="20"
+          max="100"
+          step="5"
+          bind:value={readerWidth}
+          disabled={isMobile}
+        />
       </div>
 
-
-      <button class="btn-save-config" onclick={saveSettings}>Guardar Ajustes</button>    </div>
+      <button class="btn-save-config" onclick={saveSettings}
+        >Guardar Ajustes</button
+      >
+    </div>
   </div>
 </main>
 
@@ -858,7 +1150,7 @@ import { siteConfig } from '../site.config';
     padding: 2.5rem 2rem;
     width: 100%;
     max-width: 650px;
-    box-shadow: 0 -10px 50px rgba(0,0,0,0.9);
+    box-shadow: 0 -10px 50px rgba(0, 0, 0, 0.9);
     position: relative;
     transform: translateY(100%);
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -869,8 +1161,8 @@ import { siteConfig } from '../site.config';
   }
 
   /* Astra: Ocultar herramientas de lectura cuando estamos en comentarios */
-  :global(body[data-in-comments="true"]) .floating-hud,
-  :global(body[data-in-comments="true"]) .reader-cfg-backdrop {
+  :global(body[data-in-comments='true']) .floating-hud,
+  :global(body[data-in-comments='true']) .reader-cfg-backdrop {
     display: none !important;
     opacity: 0 !important;
     pointer-events: none !important;
@@ -914,15 +1206,15 @@ import { siteConfig } from '../site.config';
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
     gap: 1.5rem;
   }
 
-  .hud-section.info { 
-    display: flex; 
-    align-items: center; 
-    gap: 1rem; 
-    flex: 1; 
+  .hud-section.info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
     min-width: 0;
   }
 
@@ -946,29 +1238,41 @@ import { siteConfig } from '../site.config';
     flex-shrink: 0;
   }
 
-  .back-pill:hover { 
-    background: rgba(0, 191, 255, 0.1); 
-    color: var(--accent-color); 
+  .back-pill:hover {
+    background: rgba(0, 191, 255, 0.1);
+    color: var(--accent-color);
     border-color: var(--accent-color);
   }
 
-  .chapter-label { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-  .s-title { 
-    font-size: 0.75rem; 
-    font-weight: 800; 
-    color: #888; 
-    text-transform: uppercase; 
-    letter-spacing: 0.04em; 
+  .chapter-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  .s-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     width: 100%;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     line-clamp: 2;
     overflow: hidden;
-    line-height: 1.2; 
+    line-height: 1.2;
     white-space: normal;
   }
-  .c-num { font-size: 0.85rem; font-weight: 700; color: #fff; line-height: 1.2; white-space: nowrap; }
+  .c-num {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
 
   /* HUD Central Navigation */
   .hud-nav-group {
@@ -1010,11 +1314,6 @@ import { siteConfig } from '../site.config';
     margin: 0 4px;
   }
 
-
-
-
-
-
   .tool-btn {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1029,15 +1328,16 @@ import { siteConfig } from '../site.config';
     justify-content: center;
   }
 
-  .tool-btn:hover { 
-    color: var(--accent-color); 
-    border-color: var(--accent-color); 
-    background: rgba(0, 191, 255, 0.1); 
+  .tool-btn:hover {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    background: rgba(0, 191, 255, 0.1);
     transform: translateY(-2px);
   }
-  
-  .tool-btn:active { transform: scale(0.9); }
 
+  .tool-btn:active {
+    transform: scale(0.9);
+  }
 
   /* Error State */
   .glass-error {
@@ -1068,10 +1368,30 @@ import { siteConfig } from '../site.config';
     animation: pulse-error 2s infinite;
   }
 
-  @keyframes pulse-error { 0% { box-shadow: 0 0 0 0 rgba(255, 80, 80, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(255, 80, 80, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 80, 80, 0); } }
+  @keyframes pulse-error {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 80, 80, 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 15px rgba(255, 80, 80, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(255, 80, 80, 0);
+    }
+  }
 
-  .glass-error h3 { font-size: 1.25rem; font-weight: 800; color: #fff; margin: 0 0 0.5rem 0; }
-  .error-desc { color: #aaa; margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.5; }
+  .glass-error h3 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 0.5rem 0;
+  }
+  .error-desc {
+    color: #aaa;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
 
   /* In-App Exclusive Style */
   .glass-inapp {
@@ -1084,7 +1404,9 @@ import { siteConfig } from '../site.config';
     text-align: center;
     width: 100%;
     max-width: 400px;
-    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 191, 255, 0.1);
+    box-shadow:
+      0 30px 100px rgba(0, 0, 0, 0.8),
+      0 0 40px rgba(0, 191, 255, 0.1);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1092,14 +1414,24 @@ import { siteConfig } from '../site.config';
   }
 
   @keyframes slideUpIn {
-    from { opacity: 0; transform: translateY(30px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    from {
+      opacity: 0;
+      transform: translateY(30px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
 
   .inapp-icon {
     width: 90px;
     height: 90px;
-    background: linear-gradient(135deg, rgba(0, 191, 255, 0.2) 0%, rgba(0, 119, 255, 0.1) 100%);
+    background: linear-gradient(
+      135deg,
+      rgba(0, 191, 255, 0.2) 0%,
+      rgba(0, 119, 255, 0.1) 100%
+    );
     color: var(--accent-color);
     border-radius: 24px;
     display: flex;
@@ -1189,9 +1521,16 @@ import { siteConfig } from '../site.config';
     transition: all 0.2s;
   }
 
-  .btn-retry:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1); }
-  .btn-retry svg { transition: transform 0.5s ease; }
-  .btn-retry:hover svg { transform: rotate(180deg); }
+  .btn-retry:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
+  }
+  .btn-retry svg {
+    transition: transform 0.5s ease;
+  }
+  .btn-retry:hover svg {
+    transform: rotate(180deg);
+  }
 
   /* Loader */
   .loader-overlay {
@@ -1237,9 +1576,17 @@ import { siteConfig } from '../site.config';
     animation: spin 1.5s linear infinite;
   }
 
-  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
-  .loader-logo { width: 50px; z-index: 2; animation: pulse 2s infinite; }
+  .loader-logo {
+    width: 50px;
+    z-index: 2;
+    animation: pulse 2s infinite;
+  }
 
   .loader-info {
     position: relative;
@@ -1269,8 +1616,20 @@ import { siteConfig } from '../site.config';
     width: 100%;
   }
 
-  .bar-container { background: rgba(255, 255, 255, 0.05); height: 6px; border-radius: 100px; overflow: hidden; margin-bottom: 1rem; }
-  .bar-fill { background: var(--accent-color); height: 100%; transform-origin: left; transition: transform 0.4s cubic-bezier(0.1, 0.7, 0.1, 1); box-shadow: 0 0 20px var(--accent-color); }
+  .bar-container {
+    background: rgba(255, 255, 255, 0.05);
+    height: 6px;
+    border-radius: 100px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+  .bar-fill {
+    background: var(--accent-color);
+    height: 100%;
+    transform-origin: left;
+    transition: transform 0.4s cubic-bezier(0.1, 0.7, 0.1, 1);
+    box-shadow: 0 0 20px var(--accent-color);
+  }
 
   .progress-meta {
     display: flex;
@@ -1288,11 +1647,36 @@ import { siteConfig } from '../site.config';
     animation: blink 1s infinite;
   }
 
-  @keyframes blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.4;
+      transform: scale(0.8);
+    }
+  }
 
-  .pct { font-size: 0.85rem; font-weight: 900; color: #555; font-family: 'JetBrains Mono', monospace; }
+  .pct {
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: #555;
+    font-family: 'JetBrains Mono', monospace;
+  }
 
-  @keyframes pulse { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } }
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 0.5;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+  }
 
   .modal-header-compact {
     display: flex;
@@ -1302,8 +1686,8 @@ import { siteConfig } from '../site.config';
   }
 
   .close-modal-btn {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: #fff;
     width: 40px; /* Astra: Target táctil optimizado */
     height: 40px;
@@ -1317,19 +1701,76 @@ import { siteConfig } from '../site.config';
 
   .close-modal-btn:active {
     transform: scale(0.9);
-    background: rgba(255,255,255,0.15);
+    background: rgba(255, 255, 255, 0.15);
   }
 
-  .reader-cfg-panel h3 { margin: 0; font-size: 1.1rem; font-weight: 800; }
-  .config-row { margin-bottom: 2rem; }
-  .config-row label, .config-label { display: block; font-size: 0.75rem; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 1rem; }
-  .pill-group { display: flex; background: #0a0a0a; padding: 4px; border-radius: 14px; gap: 4px; }
-  .pill-group button { flex: 1; background: transparent; border: none; color: #555; padding: 0.6rem; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-  .pill-group button.active { background: var(--accent-color); color: #000; }
-  input[type="range"] { width: 100%; accent-color: var(--accent-color); }
-  .btn-save-config { width: 100%; background: #fff; color: #000; border: none; padding: 1rem; border-radius: 14px; font-weight: 800; cursor: pointer; }
+  .reader-cfg-panel h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+  }
+  .config-row {
+    margin-bottom: 2rem;
+  }
+  .config-row label,
+  .config-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #555;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .pill-group {
+    display: flex;
+    background: #0a0a0a;
+    padding: 4px;
+    border-radius: 14px;
+    gap: 4px;
+  }
+  .pill-group button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #555;
+    padding: 0.6rem;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .pill-group button.active {
+    background: var(--accent-color);
+    color: #000;
+  }
+  input[type='range'] {
+    width: 100%;
+    accent-color: var(--accent-color);
+  }
+  .btn-save-config {
+    width: 100%;
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 1rem;
+    border-radius: 14px;
+    font-weight: 800;
+    cursor: pointer;
+  }
 
-  .page-counter-floating { position: fixed; top: 1.5rem; right: 1.5rem; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); padding: 4px 12px; border-radius: 100px; font-size: 0.75rem; font-weight: 800; border: 1px solid rgba(255, 255, 255, 0.1); z-index: 100; }
+  .page-counter-floating {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 100;
+  }
 
   /* Estilos para botones de navegación lateral */
   .nav-zone-btn {
@@ -1384,22 +1825,64 @@ import { siteConfig } from '../site.config';
   }
 
   @media (max-width: 768px) {
-    .floating-hud { bottom: 1rem; width: 98%; max-width: none; }
-    .hud-glass { padding: 0.5rem 0.75rem; gap: 0.35rem; border-radius: 20px; }
-    .hud-section { gap: 0.35rem; }
-    .hud-section.info { flex: 1; min-width: 0; overflow: hidden; }
-    .s-title { font-size: 0.75rem; display: block !important; }
-    .c-num { font-size: 0.9rem; white-space: nowrap; }
-    .back-pill, .tool-btn { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; }
-    .hud-nav-btn { width: 30px; height: 32px; flex-shrink: 0; }
-    .hud-nav-group { padding: 2px; }
+    .floating-hud {
+      bottom: 1rem;
+      width: 98%;
+      max-width: none;
+    }
+    .hud-glass {
+      padding: 0.5rem 0.75rem;
+      gap: 0.35rem;
+      border-radius: 20px;
+    }
+    .hud-section {
+      gap: 0.35rem;
+    }
+    .hud-section.info {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .s-title {
+      font-size: 0.75rem;
+      display: block !important;
+    }
+    .c-num {
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .back-pill,
+    .tool-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      flex-shrink: 0;
+    }
+    .hud-nav-btn {
+      width: 30px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+    .hud-nav-group {
+      padding: 2px;
+    }
   }
 
   @media (max-width: 400px) {
-    .hud-glass { padding: 0.4rem 0.5rem; gap: 0.25rem; }
-    .s-title { font-size: 0.65rem; }
-    .c-num { font-size: 0.8rem; }
-    .back-pill { width: 30px; height: 30px; }
+    .hud-glass {
+      padding: 0.4rem 0.5rem;
+      gap: 0.25rem;
+    }
+    .s-title {
+      font-size: 0.65rem;
+    }
+    .c-num {
+      font-size: 0.8rem;
+    }
+    .back-pill {
+      width: 30px;
+      height: 30px;
+    }
   }
 
   .cancel-load-btn {

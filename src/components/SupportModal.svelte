@@ -7,7 +7,7 @@ import { siteConfig } from '../site.config';
 
 // Svelte 5 Runes
 let isOpen = $state(false);
-let activeTab = $state<'monthly' | 'onetime'>('onetime');
+let activeTab = $state<'monthly' | 'onetime'>('monthly');
 let customAmount = $state<string>('');
 
 // Flujo de Checkout
@@ -256,8 +256,9 @@ function handleMouseLeave(e: MouseEvent) {
       </button>
 
       {#if checkoutStep === 'tiers'}
-        <!-- Header del Modal -->
-        <header class="modal-header">
+        <div class="tiers-layout-wrapper">
+          <!-- Header del Modal -->
+          <header class="modal-header">
           <div class="heart-icon-wrapper">
             <svg
               class="heart-icon"
@@ -278,8 +279,8 @@ function handleMouseLeave(e: MouseEvent) {
             mejorar el contenido y traer capítulos más rápido.
           </p>
 
-          <!-- Pestañas (Ocultas temporalmente a petición del admin) -->
-          <div class="tabs-container" style="display: none;">
+          <!-- Pestañas de Selección -->
+          <div class="tabs-container">
             <button
               class="tab-btn"
               class:active={activeTab === 'monthly'}
@@ -353,12 +354,22 @@ function handleMouseLeave(e: MouseEvent) {
                       </ul>
                     </div>
 
-                    <div class="tier-footer">
-                      <button
-                        class="subscribe-btn"
-                        onclick={() => processPayment(tier, true)}
+                    <div class="tier-footer" style="display: flex; flex-direction: column; gap: 8px;">
+                      <a
+                        class="subscribe-btn fiat-btn"
+                        href={`https://ko-fi.com/${siteConfig.donations.kofiUsername}/tiers`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style="text-align: center; text-decoration: none;"
                       >
-                        Unirse ahora
+                        Ko-fi / Tarjeta
+                      </a>
+                      <button
+                        class="subscribe-btn crypto-btn-secondary"
+                        onclick={() => processPayment(tier, true)}
+                        style="background: transparent; color: #cbd5e1; border-color: rgba(255, 255, 255, 0.1);"
+                      >
+                        Pagar con Cripto
                       </button>
                     </div>
                   </div>
@@ -421,6 +432,7 @@ function handleMouseLeave(e: MouseEvent) {
               </div>
             </div>
           {/if}
+        </div>
         </div>
       {:else if checkoutStep === 'crypto_payment'}
         <div class="checkout-pane crypto-pane" in:fade={{ duration: 200 }}>
@@ -583,7 +595,8 @@ function handleMouseLeave(e: MouseEvent) {
   .modal-container {
     position: relative;
     width: 100%;
-    max-width: 650px;
+    max-width: 950px;
+    min-height: 550px;
     max-height: 90vh;
     background: rgba(10, 10, 12, 0.98);
     backdrop-filter: blur(12px);
@@ -647,8 +660,23 @@ function handleMouseLeave(e: MouseEvent) {
     height: 18px;
   }
 
+  .tiers-layout-wrapper {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+  }
+
   .modal-header {
-    display: none; /* Oculto a petición para dejar un diseño directo */
+    width: 300px;
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.03);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    flex-shrink: 0;
   }
 
   .heart-icon-wrapper {
@@ -706,11 +734,15 @@ function handleMouseLeave(e: MouseEvent) {
     display: flex;
     flex-direction: column;
     width: 100%;
+    margin-top: auto;
     gap: 0.5rem;
-    margin-top: auto; /* Pushes tabs to the bottom of the sidebar */
+    background: transparent;
+    padding: 0;
+    border: none;
   }
 
   .tab-btn {
+    width: 100%;
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.05);
     color: #94a3b8;
@@ -726,10 +758,15 @@ function handleMouseLeave(e: MouseEvent) {
     justify-content: space-between;
   }
 
+  .tab-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
   .tab-btn.active {
     background: rgba(255, 170, 0, 0.1);
-    border-color: #ffaa00;
     color: #ffaa00;
+    border-color: #ffaa00;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   }
 
