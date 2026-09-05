@@ -211,7 +211,7 @@ const reactions = [
             </header>
 
             <nav class="minimal-tabs">
-              <button class="tab-link active" data-tab="chapters">{series.type?.toLowerCase() === 'anime' || series.type?.toLowerCase() === 'ova' || series.type?.toLowerCase() === 'movie' ? 'Episodios' : 'Capítulos'}</button>
+              <button class="tab-link active" data-tab="chapters">{series.type?.trim().toLowerCase() === 'anime' || series.type?.trim().toLowerCase() === 'ova' || series.type?.trim().toLowerCase() === 'movie' ? 'Episodios' : 'Capítulos'}</button>
               <button class="tab-link" data-tab="details">Detalles</button>
               <button class="tab-link" data-tab="synopsis">Sinopsis</button>
               <button class="tab-link" data-tab="comments">
@@ -237,13 +237,13 @@ const reactions = [
                 <div class="details-list">
                   {series.author && (
                     <div class="detail-row">
-                      <span class="label">{series.type?.toLowerCase() === 'anime' || series.type?.toLowerCase() === 'ova' || series.type?.toLowerCase() === 'movie' ? 'Creador Original' : 'Autor'}</span>
+                      <span class="label">{series.type?.trim().toLowerCase() === 'anime' || series.type?.trim().toLowerCase() === 'ova' || series.type?.trim().toLowerCase() === 'movie' ? 'Creador Original' : 'Autor'}</span>
                       <span class="value">{series.author}</span>
                     </div>
                   )}
                   {series.artist && (
                     <div class="detail-row">
-                      <span class="label">{series.type?.toLowerCase() === 'anime' || series.type?.toLowerCase() === 'ova' || series.type?.toLowerCase() === 'movie' ? 'Estudio' : 'Artista'}</span>
+                      <span class="label">{series.type?.trim().toLowerCase() === 'anime' || series.type?.trim().toLowerCase() === 'ova' || series.type?.trim().toLowerCase() === 'movie' ? 'Estudio' : 'Artista'}</span>
                       <span class="value">{series.artist}</span>
                     </div>
                   )}
@@ -265,13 +265,13 @@ const reactions = [
                   )}
                   {series.publishedBy && (
                     <div class="detail-row">
-                      <span class="label">{series.type?.toLowerCase() === 'anime' || series.type?.toLowerCase() === 'ova' || series.type?.toLowerCase() === 'movie' ? 'Productora' : 'Editorial'}</span>
+                      <span class="label">{series.type?.trim().toLowerCase() === 'anime' || series.type?.trim().toLowerCase() === 'ova' || series.type?.trim().toLowerCase() === 'movie' ? 'Productora' : 'Editorial'}</span>
                       <span class="value">{series.publishedBy}</span>
                     </div>
                   )}
                   {series.serializedBy && (
                     <div class="detail-row">
-                      <span class="label">{series.type?.toLowerCase() === 'anime' || series.type?.toLowerCase() === 'ova' || series.type?.toLowerCase() === 'movie' ? 'Cadena / Emisora' : 'Revista / Sitio'}</span>
+                      <span class="label">{series.type?.trim().toLowerCase() === 'anime' || series.type?.trim().toLowerCase() === 'ova' || series.type?.trim().toLowerCase() === 'movie' ? 'Cadena / Emisora' : 'Revista / Sitio'}</span>
                       <span class="value">{series.serializedBy}</span>
                     </div>
                   )}
