@@ -1,3 +1,4 @@
+import { BlobReader, ZipReader } from '@zip.js/zip.js';
 import { defineAction } from 'astro:actions';
 import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
@@ -168,6 +169,42 @@ export const chapterActions = {
       const db = getDB(env);
 
       if (!user) throw new Error('Unauthorized');
+
+      // Validar internamente el contenido del ZIP/CBZ por seguridad
+      try {
+        const zipReader = new ZipReader(new BlobReader(file));
+        const entries = await zipReader.getEntries();
+        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.xml', '.json', '.txt'];
+        
+        let hasImages = false;
+        for (const entry of entries) {
+          if (entry.directory) continue;
+          
+          const filenameLower = entry.filename.toLowerCase();
+          const ext = filenameLower.includes('.') ? filenameLower.substring(filenameLower.lastIndexOf('.')) : '';
+          
+          if (!allowedExtensions.includes(ext)) {
+            throw new Error(`Archivo peligroso o no permitido detectado dentro del comprimido: ${entry.filename}`);
+          }
+          
+          if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'].includes(ext)) {
+            hasImages = true;
+          }
+        }
+
+        if (!hasImages) {
+          throw new Error('El archivo comprimido está vacío o no contiene imágenes.');
+        }
+        await zipReader.close();
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message.includes('detectado dentro del comprimido')) {
+          throw err;
+        }
+        if (err instanceof Error && err.message.includes('no contiene imágenes')) {
+          throw err;
+        }
+        throw new Error('El archivo proporcionado no es un archivo ZIP o CBZ válido, o está corrupto. (Estructura inválida)');
+      }
 
       // Validar si el usuario puede subir en nombre de este scanlation
       // Si no se envía scanlationId, el usuario debe ser Admin para subir "en nombre de la plataforma"
