@@ -1,4 +1,4 @@
-// src/types.ts
+﻿// src/types.ts
 
 import type { D1Database, KVNamespace, R2Bucket } from '@cloudflare/workers-types';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';

@@ -1,4 +1,4 @@
-import { env } from 'cloudflare:workers';
+﻿import { env } from 'cloudflare:workers';
 // src/lib/middlewares/auth.ts
 import type { APIContext, MiddlewareNext } from 'astro';
 import { and, eq, gt } from 'drizzle-orm';
@@ -8,8 +8,8 @@ import { getDB } from '../db-client';
 import { logError } from '../logError';
 import { deleteSession, setAuthCookie, verifyToken } from '../session';
 
-// Orion: Caché L1 en RAM para revocaciones de JWT (Ahorro de lecturas KV)
-// Cacheamos el estado de revocación por 60 segundos por Isolate.
+// Orion: Cach├® L1 en RAM para revocaciones de JWT (Ahorro de lecturas KV)
+// Cacheamos el estado de revocaci├│n por 60 segundos por Isolate.
 const revocationCache = new Map<string, { revoked: boolean; expires: number }>();
 
 export function clearSessionCache(context: Pick<SessionContext, 'cookies'>) {
@@ -31,12 +31,12 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
   const sessionId = cookies.get('user_session')?.value;
   const isAdminRoute = currentPath.startsWith('/admin');
 
-  // 1. FAST-PATH: Verificación JWT (Zero D1 Reads - 15 min expiración)
-  // Orion: Si es una ruta Admin, saltamos el Fast-Path para garantizar seguridad máxima
+  // 1. FAST-PATH: Verificaci├│n JWT (Zero D1 Reads - 15 min expiraci├│n)
+  // Orion: Si es una ruta Admin, saltamos el Fast-Path para garantizar seguridad m├íxima
   if (authCookie && env?.JWT_SECRET && !isAdminRoute) {
     const payload = await verifyToken(authCookie, env.JWT_SECRET);
     if (payload) {
-      // Verificación de Blacklist en KV con Caché L1 en RAM (Orion: Optimización Crítica)
+      // Verificaci├│n de Blacklist en KV con Cach├® L1 en RAM (Orion: Optimizaci├│n Cr├¡tica)
       const cacheKey = payload.jti || '';
       const now = Date.now();
       const cached = revocationCache.get(cacheKey);
@@ -49,7 +49,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
         // Guardamos en RAM por 60 segundos
         revocationCache.set(cacheKey, { revoked: isRevoked, expires: now + 60000 });
 
-        // Limpieza periódica aleatoria del caché
+        // Limpieza peri├│dica aleatoria del cach├®
         if (Math.random() < 0.05) {
           for (const [k, v] of revocationCache.entries()) {
             if (v.expires < now) revocationCache.delete(k);
@@ -58,9 +58,9 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
       }
 
       if (!isRevoked) {
-        // Si el VIP ya expiró según el token, forzamos slow-path para que actualice la DB
+        // Si el VIP ya expir├│ seg├║n el token, forzamos slow-path para que actualice la DB
         if (payload.vipExpiresAt && Date.now() > payload.vipExpiresAt) {
-          // No seteamos locals.user, lo que forzará el slow-path más abajo
+          // No seteamos locals.user, lo que forzar├í el slow-path m├ís abajo
         } else {
           locals.user = {
             uid: payload.uid,
@@ -70,7 +70,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
             isAdmin: payload.role === 'admin' || payload.uid === env.SUPER_ADMIN_UID,
             isNsfw: payload.isNsfw,
             tokenVersion: payload.tokenVersion,
-            scanlations: payload.scans?.map((id) => ({ id, role: 'editor' })) || [], // El rol 'editor' es el mínimo por defecto en fast-path
+            scanlations: payload.scans?.map((id) => ({ id, role: 'editor' })) || [], // El rol 'editor' es el m├¡nimo por defecto en fast-path
             vipTier: payload.vipTier || 0,
             vipExpiresAt: payload.vipExpiresAt || null,
           };
@@ -82,7 +82,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
     }
   }
 
-  // 2. SLOW-PATH: Verificación de sesión en D1 (Si el JWT expiró, no existe, es ruta Admin, o necesitamos revalidar)
+  // 2. SLOW-PATH: Verificaci├│n de sesi├│n en D1 (Si el JWT expir├│, no existe, es ruta Admin, o necesitamos revalidar)
   if ((!locals.user || isAdminRoute) && sessionId && db && !locals.isBot) {
     try {
       const result = await db
@@ -104,17 +104,17 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
         const role =
           env.SUPER_ADMIN_UID && uid === env.SUPER_ADMIN_UID ? 'admin' : result.role || 'user';
 
-        // Orion: Validación de Seguridad Nuclear - Verificar tokenVersion si venimos de un JWT
+        // Orion: Validaci├│n de Seguridad Nuclear - Verificar tokenVersion si venimos de un JWT
         if (authCookie && isAdminRoute && env?.JWT_SECRET) {
           const payload = await verifyToken(authCookie, env.JWT_SECRET);
           if (payload && payload.tokenVersion !== result.user.tokenVersion) {
-            // La versión del token no coincide con la DB -> Sesión comprometida o revocada
+            // La versi├│n del token no coincide con la DB -> Sesi├│n comprometida o revocada
             deleteSession(context as unknown as SessionContext);
             return context.redirect('/');
           }
         }
 
-        // Cargar membresías de Scanlation (Orion: RBAC Multi-tenant)
+        // Cargar membres├¡as de Scanlation (Orion: RBAC Multi-tenant)
         const memberships = await db
           .select({
             id: scanlationMembers.scanlationId,
@@ -124,10 +124,12 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
           .where(eq(scanlationMembers.userId, uid))
           .all();
 
-        // Validar expiración VIP
+        // Validar expiraci├│n VIP
         const now = Date.now();
         let currentVipTier = result.user.vipTier || 0;
-        let currentVipExpiresAt = result.user.vipExpiresAt ? result.user.vipExpiresAt.getTime() : null;
+        let currentVipExpiresAt = result.user.vipExpiresAt
+          ? result.user.vipExpiresAt.getTime()
+          : null;
 
         if (currentVipExpiresAt && now > currentVipExpiresAt) {
           // VIP expirado -> Degradamos en DB (Slow path)
@@ -135,8 +137,8 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
           currentVipExpiresAt = null;
           try {
             await db.update(users).set({ vipTier: 0, vipExpiresAt: null }).where(eq(users.id, uid));
-          } catch(e) { 
-            console.error('Error degradando VIP', e); 
+          } catch (e) {
+            console.error('Error degradando VIP', e);
           }
         }
 
@@ -156,7 +158,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
         };
         locals.user = userObj;
 
-        // Auto-refresh: Emitimos un nuevo JWT válido por 15 mins ya que la sesión D1 es válida
+        // Auto-refresh: Emitimos un nuevo JWT v├ílido por 15 mins ya que la sesi├│n D1 es v├ílida
         if (env?.JWT_SECRET) {
           await setAuthCookie(
             context as unknown as SessionContext,
@@ -176,7 +178,7 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
           );
         }
       } else {
-        // Sesión no válida en D1 (ej. expirada o usuario baneado/sesión borrada)
+        // Sesi├│n no v├ílida en D1 (ej. expirada o usuario baneado/sesi├│n borrada)
         deleteSession(context as unknown as SessionContext);
       }
     } catch (error) {

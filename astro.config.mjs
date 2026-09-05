@@ -72,8 +72,8 @@ export default defineConfig({
         allow: ['..'],
       },
       watch: {
-        ignored: ['**/.wrangler/**']
-      }
+        ignored: ['**/.wrangler/**'],
+      },
     },
     build: {
       // Orion: Endurecimiento de Seguridad (Hardening)

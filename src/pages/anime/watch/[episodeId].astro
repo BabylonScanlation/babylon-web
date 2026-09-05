@@ -194,7 +194,7 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
                 name: 'rewind10',
                 position: 'left',
                 index: 9,
-                html: '<svg class="custom-player-btn hide-on-mobile" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 3C17.15 3 21.08 6.03 22.45 10.16L20.08 10.91C19.01 7.63 15.95 5.25 12.35 5.25C10.35 5.25 8.52 5.97 7.1 7.18L10 10H3V3L5.6 5.6C7.45 4 9.85 3 12.5 3M10 12L6.15 19.05H8.45L9.1 17.5H12.9L13.55 19.05H15.85L12 12M10 15.2L11 13L12 15.2H10Z"/></svg>',
+                html: '<svg class="custom-player-btn" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 3C17.15 3 21.08 6.03 22.45 10.16L20.08 10.91C19.01 7.63 15.95 5.25 12.35 5.25C10.35 5.25 8.52 5.97 7.1 7.18L10 10H3V3L5.6 5.6C7.45 4 9.85 3 12.5 3M10 12L6.15 19.05H8.45L9.1 17.5H12.9L13.55 19.05H15.85L12 12M10 15.2L11 13L12 15.2H10Z"/></svg>',
                 tooltip: 'Retroceder 10s',
                 click: function () {
                   if (art && typeof art.currentTime !== 'undefined') {
@@ -206,7 +206,7 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
                 name: 'forward10',
                 position: 'left',
                 index: 12,
-                html: '<svg class="custom-player-btn hide-on-mobile" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 3C6.85 3 2.92 6.03 1.55 10.16L3.92 10.91C4.99 7.63 8.05 5.25 11.65 5.25C13.65 5.25 15.48 5.97 16.9 7.18L14 10H21V3L18.4 5.6C16.55 4 14.15 3 11.5 3M14 12L17.85 19.05H15.55L14.9 17.5H11.1L10.45 19.05H8.15L12 12M14 15.2L13 13L12 15.2H14Z"/></svg>',
+                html: '<svg class="custom-player-btn" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 3C6.85 3 2.92 6.03 1.55 10.16L3.92 10.91C4.99 7.63 8.05 5.25 11.65 5.25C13.65 5.25 15.48 5.97 16.9 7.18L14 10H21V3L18.4 5.6C16.55 4 14.15 3 11.5 3M14 12L17.85 19.05H15.55L14.9 17.5H11.1L10.45 19.05H8.15L12 12M14 15.2L13 13L12 15.2H14Z"/></svg>',
                 tooltip: 'Adelantar 10s',
                 click: function () {
                   if (art && typeof art.currentTime !== 'undefined') {
@@ -215,9 +215,10 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
                 },
               },
               {
+                name: 'subtitle',
                 position: 'right',
                 index: 10,
-                html: '<svg class="custom-player-btn hide-on-mobile" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M10 11h4"></path><path d="M10 15h4"></path></svg>',
+                html: '<svg class="custom-player-btn" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M10 11h4"></path><path d="M10 15h4"></path></svg>',
                 tooltip: 'Cargar subtítulo local (.srt/.vtt/.ass)',
                 click: function () {
                   const input = document.createElement('input');
@@ -546,9 +547,7 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
       display: none !important;
     }
     
-    .art-controls .hide-on-mobile,
-    .art-control-rewind10,
-    .art-control-forward10 {
+    .art-controls .hide-on-mobile {
       display: none !important;
     }
     
@@ -581,20 +580,22 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
     /* ORDEN ESTRICTO EN MÓVILES (IZQUIERDA) */
     .art-controls-left {
       display: flex !important;
-      gap: 0 !important;
+      gap: 4px !important;
     }
     .art-controls-left > * { order: 99 !important; }
     .art-control-playAndPause { order: 1 !important; }
-    .art-control-skipOp { order: 2 !important; }
-    .art-control-volume { order: 3 !important; }
-    .art-control-time { order: 4 !important; }
+    .art-control-rewind10 { order: 2 !important; display: flex !important; opacity: 1 !important; visibility: visible !important; }
+    .art-control-forward10 { order: 3 !important; display: flex !important; opacity: 1 !important; visibility: visible !important; }
+    .art-control-skipOp { order: 4 !important; }
+    .art-control-time { order: 5 !important; }
 
     /* ORDEN ESTRICTO EN MÓVILES (DERECHA) */
     .art-controls-right {
       display: flex !important;
-      gap: 0 !important;
+      gap: 4px !important;
     }
     .art-controls-right > * { order: 99 !important; }
+    /* El botón de subtítulos se añadió con index 10 originalmente, pero no tenía name. Artplayer le asigna clase basada en su index a veces, o podemos usar el selector general. Al no tener nombre, usa 'art-control' genérico pero podemos ordenarlo si le damos name, o se ordenará al final. Mejor le doy un name arriba o uso nth-child, pero el order 99 lo manda al final, lo cual está bien. */
     .art-control-pip { order: 1 !important; }
     .art-control-setting { order: 2 !important; }
     .art-control-customFullscreen { order: 3 !important; display: flex !important; opacity: 1 !important; visibility: visible !important; }

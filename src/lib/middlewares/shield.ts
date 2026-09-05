@@ -127,8 +127,19 @@ export async function shield(context: APIContext, next: MiddlewareNext) {
   return next();
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function getBlockedHtml(reason: string, ip: string | null) {
-  const siteName = siteConfig.name;
+  const siteName = escapeHtml(siteConfig.name);
+  const safeReason = escapeHtml(reason);
+  const safeIp = escapeHtml(ip || 'Unknown');
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -147,7 +158,7 @@ function getBlockedHtml(reason: string, ip: string | null) {
         <span style="font-size: 4rem;">🛡️</span>
         <h1>Access Denied</h1>
         <p>Your connection has been flagged by our security systems.<br>You are not allowed to access this resource.</p>
-        <div class="details">Reason: ${reason}<br>Origin: ${ip || 'Unknown'}</div>
+        <div class="details">Reason: ${safeReason}<br>Origin: ${safeIp}</div>
       </div>
     </body>
     </html>

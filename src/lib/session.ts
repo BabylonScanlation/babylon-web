@@ -1,4 +1,4 @@
-import { jwtVerify, SignJWT } from 'jose';
+﻿import { jwtVerify, SignJWT } from 'jose';
 import type { SessionContext } from '../types';
 
 export interface UserSessionPayload {

@@ -3,27 +3,6 @@ import type { APIContext } from 'astro';
 import { authFlow } from './lib/middlewares/auth';
 import { shield } from './lib/middlewares/shield';
 
-// 0. Cortocircuito de Assets (Orion: Optimización Crítica de Recursos)
-const assetBypass = defineMiddleware(async (context, next) => {
-  const { pathname } = context.url;
-  if (
-    pathname.startsWith('/_astro/') ||
-    pathname.startsWith('/fonts/') ||
-    pathname.startsWith('/favicon.') ||
-    pathname === '/robots.txt' ||
-    pathname === '/sitemap-index.xml' ||
-    pathname.endsWith('.webp') ||
-    pathname.endsWith('.png') ||
-    pathname.endsWith('.jpg') ||
-    pathname.endsWith('.svg') ||
-    pathname.endsWith('.js') ||
-    pathname.endsWith('.css')
-  ) {
-    return next();
-  }
-  return next();
-});
-
 // 3. Ejecución de la Ruta y Optimización de Headers
 const finalRouteHandler = defineMiddleware(async (context, next) => {
   // Orion: Inyectamos la bandera isStaff para exención de anuncios
@@ -40,7 +19,7 @@ const finalRouteHandler = defineMiddleware(async (context, next) => {
   return applyOptimizedHeaders(response, context);
 });
 
-export const onRequest = sequence(assetBypass, shield, authFlow, finalRouteHandler);
+export const onRequest = sequence(shield, authFlow, finalRouteHandler);
 
 function applyOptimizedHeaders(response: Response, context: APIContext) {
   const contentType = response.headers.get('content-type');

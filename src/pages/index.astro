@@ -60,14 +60,22 @@ featuredGridData.sort((a, b) => (b.views || 0) - (a.views || 0));
 
 const getTierColor = (tier: number) => {
   switch (tier) {
-    case 1: return '#4a90e2';
-    case 2: return '#50e3c2';
-    case 3: return '#f5a623';
-    case 4: return '#d0021b';
-    case 5: return '#9013fe';
-    case 6: return '#bd10e0';
-    case 7: return '#ff007f';
-    default: return '#fff';
+    case 1:
+      return '#4a90e2';
+    case 2:
+      return '#50e3c2';
+    case 3:
+      return '#f5a623';
+    case 4:
+      return '#d0021b';
+    case 5:
+      return '#9013fe';
+    case 6:
+      return '#bd10e0';
+    case 7:
+      return '#ff007f';
+    default:
+      return '#fff';
   }
 };
 ---

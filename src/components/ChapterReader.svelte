@@ -1,597 +1,570 @@
 <script lang="ts">
-  import { actions } from 'astro:actions';
-  import { onMount } from 'svelte';
-  import { fade, fly } from 'svelte/transition';
-  import AdContainer from './AdContainer.svelte';
-  import ReaderPage from './ReaderPage.svelte';
-
-  interface Page {
-    url?: string;
-    imageUrl?: string;
-    tiles?: string[];
-    cols?: number;
-    rows?: number;
-    width?: number;
-    height?: number;
-    pageNumber?: number;
-    [key: string]: unknown;
-  }
-
-  interface Props {
-    slug?: string;
-    chapter?: string;
-    initialPages?: Page[];
-    initialImageUrls?: string[];
-    chapterPayload?: any;
-    chapterId?: number | null;
-    seriesTitle?: string | null;
-    chapterTitle?: string;
-    watermark?: string;
-    initialLoadingMessage?: string | null;
-    nextChapter?: { slug: string; chapter: string } | null;
-    prevChapter?: { slug: string; chapter: string } | null;
-    processing?: boolean;
-    isStaff?: boolean;
-    vipTier?: number;
-  }
-
-  let {
-    slug = '',
-    chapter = '',
-    initialPages = [],
-    initialImageUrls = [],
-    chapterPayload = null,
-    chapterId = null,
-    seriesTitle = '',
-    chapterTitle = '',
-    watermark = '',
-    initialLoadingMessage = null,
-    nextChapter = null,
-    prevChapter = null,
-    processing = false,
-    isStaff = false,
-    vipTier = 0,
-  }: Props = $props();
-
-  let pagesData = $state<Page[]>([]);
-  let loadingMessage = $state<string | null>(null);
-  let isProcessing = $state(false);
-  let error = $state<string | null>(null);
-  let isComplete = $state(false);
-
-  // Orion: Flags para evitar peticiones redundantes
-  let viewRegistered = false;
-  let hasReadThreshold = false;
-
-  // Astra: Sincronización inicial silenciosa
-  onMount(() => {
-    loadingMessage = initialLoadingMessage;
-    isProcessing = processing;
-  });
-
-  let viewMode = $state<'cascade' | 'single'>('cascade');
-  let readerWidth = $state(40);
-  let currentPageIndex = $state(0);
-  let scrollProgress = $state(0);
-
-  let showConfig = $state(false);
-  let controlsVisible = $state(true);
-  let lastScrollY = 0;
-  let isMobile = $state(false);
-  let hasPrefetched = false; // Prevent multiple prefetches
-
-  // SSE & Progress
-  let simulatedProgress = $state(0);
-  let eventSource: EventSource | null = null;
-  let progressInterval: number | undefined;
-  let retryCount = 0;
-
-  // Astra: Gestión de estado reactiva (Svelte 5)
-  let activeSlug = $state<string>();
-  let activeChapter = $state<string>();
-
-  $effect(() => {
-    // 1. Detección de cambio de capítulo para Reset (Navegación)
-    if (slug !== activeSlug || chapter !== activeChapter) {
-      // console.log('[Reader] Resetting state for new chapter');
-      activeSlug = slug;
-      activeChapter = chapter;
-      pagesData = [];
-      isComplete = false;
-      hasPrefetched = false;
-      simulatedProgress = 0;
-      retryCount = 0;
-      error = null;
-      if (eventSource) eventSource.close();
-    }
-
-    // 2. Sincronización desde Props (Población inicial o tras reset)
-    if (pagesData.length === 0) {
-      if (initialPages && initialPages.length > 0) {
-        pagesData = initialPages;
-      } else if (initialImageUrls && initialImageUrls.length > 0) {
-        pagesData = initialImageUrls.map((url: string) => ({ url }));
-      }
-    }
-
-    // 3. Control de Estado de Carga
-    if (pagesData.length > 0 && isProcessing) {
-      isProcessing = false;
-    }
-  });
-
-  $effect(() => {
-    // Check for prefetch opportunity in single page mode
-    if (
-      viewMode === 'single' &&
-      !hasPrefetched &&
-      nextChapter &&
-      pagesData.length > 0
-    ) {
-      if (currentPageIndex >= pagesData.length - 2) {
-        prefetchNextChapter();
-      }
-    }
-  });
-
-  function prefetchNextChapter() {
-    if (!nextChapter || hasPrefetched) return;
-    hasPrefetched = true;
-    console.log(`[Reader] Prefetching next chapter: ${nextChapter.chapter}`);
-    // Trigger the API to ensure processing starts
-    fetch(`/api/series/${nextChapter.slug}/${nextChapter.chapter}`, {
-      method: 'GET',
-    }).catch((err) => console.warn('[Reader] Prefetch failed', err));
-  }
-
-  $effect(() => {
-    if (showConfig) {
-      document.body.setAttribute('data-reader-modal', 'open');
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
-      controlsVisible = true;
-    } else {
-      document.body.removeAttribute('data-reader-modal');
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
-      if (isProcessing) document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      document.body.removeAttribute('data-reader-modal');
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
-    };
-  });
-
-  let readerEl = $state<HTMLElement | null>(null);
-
-  onMount(() => {
-    // console.log('[ChapterReader] onMount starting...');
-    // Lógica de recuperación de datos desde el Bridge (Bypass de Cloudflare / Respaldo)
-    const bridge = document.getElementById('reader-data-bridge');
-    if (bridge) {
-      slug = bridge.getAttribute('data-slug') || slug;
-      chapter = bridge.getAttribute('data-chapter') || chapter;
-      const bridgePayload = bridge.getAttribute('data-payload');
-      if (bridgePayload) {
-        try {
-          chapterPayload = JSON.parse(bridgePayload);
-        } catch (e) {
-          console.error('Error parsing bridge payload', e);
-        }
-      }
-
-      const rawId = bridge.getAttribute('data-chapter-id');
-      if (rawId) chapterId = parseInt(rawId);
-
-      const processingAttr = bridge.getAttribute('data-processing') === 'true';
-      isProcessing = processingAttr;
-
-      loadingMessage =
-        bridge.getAttribute('data-loading-msg') || loadingMessage;
-      seriesTitle = bridge.getAttribute('data-series-title') || seriesTitle;
-      watermark = bridge.getAttribute('data-watermark') || watermark;
-    }
-
-    isMobile =
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      );
-
-    // Astra: Activar modo lectura total para eliminar paddings del layout
-    document.body.setAttribute('data-reader-active', 'true');
-
-    // Intentar recuperar configuración guardada de forma segura
-    try {
-      const savedWidth = localStorage.getItem('readerWidth');
-      if (savedWidth) readerWidth = parseInt(savedWidth);
-      else if (isMobile) readerWidth = 100;
-
-      const savedMode = localStorage.getItem('viewMode');
-      if (savedMode === 'cascade' || savedMode === 'single')
-        viewMode = savedMode;
-    } catch (e) {
-      console.warn('No se pudo acceder a localStorage', e);
-    }
-
-    // Enfocar el lector
-    readerEl?.focus();
-
-    const mainHeader = document.querySelector('header');
-    const topNav = document.getElementById('reader-top-nav-wrapper');
-
-    let ticking = false;
-
-    const handleScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        window.requestAnimationFrame(() => {
-          // --- READS ---
-          const isModalOpen =
-            document.body.getAttribute('data-reader-modal') === 'open';
-          const currentScroll = window.scrollY;
-          const docHeight = document.documentElement.scrollHeight;
-          const winHeight = window.innerHeight;
-
-          // --- WRITES & LOGIC ---
-          if (isModalOpen) {
-            ticking = false;
-            return;
-          }
-
-          const scrollHeight = docHeight - winHeight;
-          scrollProgress =
-            scrollHeight > 0 ? (currentScroll / scrollHeight) * 100 : 0;
-
-          // Orion: Activar umbral de lectura
-          if (scrollProgress > 40) hasReadThreshold = true;
-
-          // Prefetch Trigger
-          if (scrollProgress > 80 && !hasPrefetched && nextChapter) {
-            prefetchNextChapter();
-          }
-
-          if (currentScroll > 100 && currentScroll > lastScrollY + 15) {
-            if (controlsVisible) {
-              controlsVisible = false;
-              mainHeader?.classList.add('hidden');
-              topNav?.classList.add('hidden');
-            }
-          } else if (currentScroll < lastScrollY - 15 || currentScroll < 50) {
-            if (!controlsVisible) {
-              controlsVisible = true;
-              mainHeader?.classList.remove('hidden');
-              topNav?.classList.remove('hidden');
-            }
-          }
-
-          lastScrollY = currentScroll;
-          ticking = false;
-        });
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('keydown', handleKeydown, { passive: true });
-
-    // Lógica de hidratación diferida
-    setTimeout(() => {
-      if (chapterPayload && pagesData.length === 0) {
-        try {
-          console.log('[READER] Hydrating data...');
-          const decrypted = chapterPayload;
-          if (decrypted) {
-            let incomingPages = [];
-            if (decrypted.pages) incomingPages = decrypted.pages;
-            else if (decrypted.imageUrls)
-              incomingPages = decrypted.imageUrls.map((url: string) => ({
-                url,
-              }));
-
-            if (incomingPages.length > 0) {
-              console.log(`[READER] Pages received: ${incomingPages.length}`);
-              pagesData = incomingPages.sort(
-                (a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0)
-              );
-              if (isProcessing) isProcessing = false;
-            } else {
-              console.warn('[READER] No pages found in payload');
-            }
-          }
-        } catch (e) {
-          console.error('[READER] Critical error during hydration:', e);
-          error = 'Error al cargar el contenido del capítulo.';
-        }
-      }
-
-      if (isProcessing) setupSse();
-
-      // Astra: Registrar vista diferida al cerrar/desmontar
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'hidden') registerView();
-      };
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-
-      // Save cleanup to remove listener
-      return () => {
-        registerView(); // Registrar al desmontar el componente (Astro View Transitions)
-        document.removeEventListener(
-          'visibilitychange',
-          handleVisibilityChange
-        );
-        window.removeEventListener('scroll', handleScroll);
-        window.removeEventListener('keydown', handleKeydown);
-        document.body.removeAttribute('data-reader-active');
-        document.body.removeAttribute('data-reader-modal');
-        if (eventSource) eventSource.close();
-      };
-    }, 100);
-  });
-
-  function handleGlobalClick(e: MouseEvent) {
-    if (showConfig) return;
-
-    // Ignorar clics en elementos interactivos o dentro del HUD
-    const target = e.target as HTMLElement;
-    if (
-      target.closest('button') ||
-      target.closest('a') ||
-      target.closest('.floating-hud') ||
-      target.closest('.reader-cfg-panel')
-    ) {
-      return;
-    }
-
-    const width = window.innerWidth;
-    const x = e.clientX;
-
-    // Zonas: 25% Izquierda, 50% Centro, 25% Derecha
-    const zoneLeft = width * 0.25;
-    const zoneRight = width * 0.75;
-
-    if (x < zoneLeft) {
-      handleZoneClick('left');
-    } else if (x > zoneRight) {
-      handleZoneClick('right');
-    } else {
-      handleZoneClick('center');
-    }
-  }
-
-  function handleZoneClick(zone: 'left' | 'center' | 'right') {
-    if (viewMode === 'cascade') {
-      if (zone === 'center') toggleControls();
-    } else {
-      if (zone === 'left') changePage(-1);
-      else if (zone === 'right') changePage(1);
-      else toggleControls();
-    }
-  }
-
-  function toggleControls() {
-    if (showConfig) return;
-    controlsVisible = !controlsVisible;
-    const mainHeader = document.querySelector('header');
-    const topNav = document.getElementById('reader-top-nav-wrapper');
-
-    if (!controlsVisible) {
-      mainHeader?.classList.add('hidden');
-      topNav?.classList.add('hidden');
-    } else {
-      mainHeader?.classList.remove('hidden');
-      topNav?.classList.remove('hidden');
-    }
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (viewMode === 'single') {
-      if (e.key === 'ArrowLeft') changePage(-1);
-      else if (e.key === 'ArrowRight') changePage(1);
-    }
-    if (e.key === ' ' || e.key === 'Enter') {
-      toggleControls();
-    }
-    if (e.key === 'Escape') {
-      if (showConfig) showConfig = false;
-    }
-  }
-
-  // Astra: Forzar scroll arriba al cambiar de página en modo single
-  $effect(() => {
-    if (viewMode === 'single' && currentPageIndex >= 0) {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    }
-  });
-
-  function changePage(delta: number) {
-    const newIndex = currentPageIndex + delta;
-    if (newIndex >= 0 && newIndex < pagesData.length) {
-      currentPageIndex = newIndex;
-      if (newIndex > 0) hasReadThreshold = true;
-    } else if (delta > 0 && newIndex >= pagesData.length && nextChapter) {
-      // Astra: Navegar al siguiente capítulo si estamos al final
-      window.location.href = `/series/${nextChapter.slug}/${nextChapter.chapter}`;
-    } else if (delta < 0 && newIndex < 0 && prevChapter) {
-      // Astra: Navegar al capítulo anterior si estamos al inicio
-      window.location.href = `/series/${prevChapter.slug}/${prevChapter.chapter}`;
-    }
-  }
-
-  function scrollToComments() {
-    const el = document.getElementById('comments-wrapper');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-  }
-
-  function setupSse(isRetry = false) {
-    if (!isRetry) retryCount = 0;
-    if (eventSource) eventSource.close();
-
-    console.log(
-      `[ChapterReader] Setting up SSE for ${slug}/${chapter} (Retry: ${isRetry})`
-    );
-    startProgressSimulation();
-    eventSource = new EventSource(
-      `/api/series/${slug}/${chapter}?id=${chapterId}`
-    );
-
-    eventSource.addEventListener('processing', (e) => {
-      // console.log('[ChapterReader] SSE Processing event');
-      retryCount = 0;
-      try {
-        const rawData = JSON.parse(e.data);
-        const data = rawData.payload || rawData;
-        if (data.message) loadingMessage = data.message;
-      } catch {
-        console.error('Error parsing SSE processing event');
-      }
-    });
-
-    eventSource.addEventListener('completed', (e) => {
-      console.log('[ChapterReader] SSE Completed event received');
-      isComplete = true;
-      try {
-        const rawData = JSON.parse(e.data);
-        const data = rawData.payload || rawData;
-
-        clearInterval(progressInterval);
-        simulatedProgress = 100;
-        loadingMessage = '¡Capítulo listo!';
-
-        let incomingPages = [];
-        if (data.pages) {
-          console.log(
-            `[ChapterReader] SSE Pages received: ${data.pages.length}`
-          );
-          incomingPages = data.pages;
-        } else if (data.imageUrls) {
-          console.log(
-            `[ChapterReader] SSE Image URLs received: ${data.imageUrls.length}`
-          );
-          incomingPages = data.imageUrls.map((url: string) => ({ url }));
-        }
-
-        if (incomingPages.length > 0) {
-          pagesData = incomingPages.sort(
-            (a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0)
-          );
-        }
-
-        isProcessing = false;
-        if (chapterId) registerView();
-        if (eventSource) eventSource.close();
-      } catch (err) {
-        console.error('[ChapterReader] Error processing completed event:', err);
-        error = 'Error al procesar la respuesta del servidor.';
-        isProcessing = false;
-      }
-    });
-
-    eventSource.addEventListener('processing_error', (e) => {
-      console.error('[ChapterReader] SSE Processing Error event');
-      isComplete = true;
-      clearInterval(progressInterval);
-      try {
-        const rawData = JSON.parse(e.data);
-        const data = rawData.payload || rawData;
-        error = data.error || 'Error en el servidor de procesamiento.';
-      } catch {
-        error = 'Error desconocido en el servidor.';
-      }
-      isProcessing = false;
-      if (eventSource) eventSource.close();
-    });
-
-    eventSource.addEventListener('error', () => {
-      if (isComplete) return;
-      console.warn(`[ChapterReader] SSE Error (Retry ${retryCount + 1}/3)`);
-
-      if (retryCount < 3) {
-        console.warn(`SSE connection lost. Retrying... (${retryCount + 1}/3)`);
-        retryCount++;
-        if (eventSource) eventSource.close();
-        setTimeout(() => setupSse(true), 2000);
-      } else {
-        error =
-          'Se perdió la conexión con el servidor de procesamiento. Reintente recargando la página.';
-        isProcessing = false;
-        if (eventSource) eventSource.close();
-      }
-    });
-  }
-
-  function registerView() {
-    if (!chapterId || !hasReadThreshold || viewRegistered) return;
-    const cid = chapterId; // Astra: Garantizamos que es number para TS
-    viewRegistered = true;
-
-    // Tarea 1: Registrar vista (Prioridad media)
-    if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(() => {
-        actions.chapters.registerView({ chapterId: cid }).catch(() => {});
-      });
-    } else {
-      actions.chapters.registerView({ chapterId: cid }).catch(() => {});
-    }
-
-    // Tarea 2: Actualizar progreso (Prioridad baja)
-    const bridge = document.getElementById('reader-data-bridge');
-    const seriesId = bridge
-      ? parseInt(bridge.getAttribute('data-series-id') || '0')
-      : 0;
-
-    if (seriesId > 0) {
-      const task = () => {
-        actions.user
-          .updateProgress({
-            seriesId,
-            chapterId: cid,
-            chapterNumber: parseFloat(chapter),
-          })
-          .catch((err: any) =>
-            console.warn('[Reader] Failed to update progress', err)
-          );
-      };
-
-      if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(task, { timeout: 5000 });
-      } else {
-        setTimeout(task, 2000);
-      }
-    }
-  }
-
-  function startProgressSimulation() {
-    clearInterval(progressInterval);
+import { actions } from 'astro:actions';
+import { onMount } from 'svelte';
+import { fade, fly } from 'svelte/transition';
+import AdContainer from './AdContainer.svelte';
+import ReaderPage from './ReaderPage.svelte';
+
+interface Page {
+  url?: string;
+  imageUrl?: string;
+  tiles?: string[];
+  cols?: number;
+  rows?: number;
+  width?: number;
+  height?: number;
+  pageNumber?: number;
+  [key: string]: unknown;
+}
+
+interface Props {
+  slug?: string;
+  chapter?: string;
+  initialPages?: Page[];
+  initialImageUrls?: string[];
+  chapterPayload?: any;
+  chapterId?: number | null;
+  seriesTitle?: string | null;
+  chapterTitle?: string;
+  watermark?: string;
+  initialLoadingMessage?: string | null;
+  nextChapter?: { slug: string; chapter: string } | null;
+  prevChapter?: { slug: string; chapter: string } | null;
+  processing?: boolean;
+  isStaff?: boolean;
+  vipTier?: number;
+}
+
+let {
+  slug = '',
+  chapter = '',
+  initialPages = [],
+  initialImageUrls = [],
+  chapterPayload = null,
+  chapterId = null,
+  seriesTitle = '',
+  chapterTitle = '',
+  watermark = '',
+  initialLoadingMessage = null,
+  nextChapter = null,
+  prevChapter = null,
+  processing = false,
+  isStaff = false,
+  vipTier = 0,
+}: Props = $props();
+
+let pagesData = $state<Page[]>([]);
+let loadingMessage = $state<string | null>(null);
+let isProcessing = $state(false);
+let error = $state<string | null>(null);
+let isComplete = $state(false);
+
+// Orion: Flags para evitar peticiones redundantes
+let viewRegistered = false;
+let hasReadThreshold = false;
+
+// Astra: Sincronización inicial silenciosa
+onMount(() => {
+  loadingMessage = initialLoadingMessage;
+  isProcessing = processing;
+});
+
+let viewMode = $state<'cascade' | 'single'>('cascade');
+let readerWidth = $state(40);
+let currentPageIndex = $state(0);
+let scrollProgress = $state(0);
+
+let showConfig = $state(false);
+let controlsVisible = $state(true);
+let lastScrollY = 0;
+let isMobile = $state(false);
+let hasPrefetched = false; // Prevent multiple prefetches
+
+// SSE & Progress
+let simulatedProgress = $state(0);
+let eventSource: EventSource | null = null;
+let progressInterval: number | undefined;
+let retryCount = 0;
+
+// Astra: Gestión de estado reactiva (Svelte 5)
+let activeSlug = $state<string>();
+let activeChapter = $state<string>();
+
+$effect(() => {
+  // 1. Detección de cambio de capítulo para Reset (Navegación)
+  if (slug !== activeSlug || chapter !== activeChapter) {
+    // console.log('[Reader] Resetting state for new chapter');
+    activeSlug = slug;
+    activeChapter = chapter;
+    pagesData = [];
+    isComplete = false;
+    hasPrefetched = false;
     simulatedProgress = 0;
+    retryCount = 0;
+    error = null;
+    if (eventSource) eventSource.close();
+  }
 
-    // Orion: Curva de progresión tipo "Zeno" o "Phi"
-    // Avanza rápido al principio y se va cortando a la mitad conforme se acerca al final.
-    progressInterval = window.setInterval(() => {
-      if (simulatedProgress < 99) {
-        // Calculamos cuánto falta para llegar a 100
-        const remaining = 100 - simulatedProgress;
+  // 2. Sincronización desde Props (Población inicial o tras reset)
+  if (pagesData.length === 0) {
+    if (initialPages && initialPages.length > 0) {
+      pagesData = initialPages;
+    } else if (initialImageUrls && initialImageUrls.length > 0) {
+      pagesData = initialImageUrls.map((url: string) => ({ url }));
+    }
+  }
 
-        // El incremento es una pequeña fracción de lo que queda (se corta a la mitad/proporción)
-        // Esto hace que nunca llegue a 100 por sí solo.
-        const increment = remaining * 0.015;
+  // 3. Control de Estado de Carga
+  if (pagesData.length > 0 && isProcessing) {
+    isProcessing = false;
+  }
+});
 
-        simulatedProgress += Math.max(0.01, increment);
+$effect(() => {
+  // Check for prefetch opportunity in single page mode
+  if (viewMode === 'single' && !hasPrefetched && nextChapter && pagesData.length > 0) {
+    if (currentPageIndex >= pagesData.length - 2) {
+      prefetchNextChapter();
+    }
+  }
+});
+
+function prefetchNextChapter() {
+  if (!nextChapter || hasPrefetched) return;
+  hasPrefetched = true;
+  console.log(`[Reader] Prefetching next chapter: ${nextChapter.chapter}`);
+  // Trigger the API to ensure processing starts
+  fetch(`/api/series/${nextChapter.slug}/${nextChapter.chapter}`, {
+    method: 'GET',
+  }).catch((err) => console.warn('[Reader] Prefetch failed', err));
+}
+
+$effect(() => {
+  if (showConfig) {
+    document.body.setAttribute('data-reader-modal', 'open');
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    controlsVisible = true;
+  } else {
+    document.body.removeAttribute('data-reader-modal');
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    if (isProcessing) document.body.style.overflow = 'hidden';
+  }
+  return () => {
+    document.body.removeAttribute('data-reader-modal');
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+  };
+});
+
+let readerEl = $state<HTMLElement | null>(null);
+
+onMount(() => {
+  // console.log('[ChapterReader] onMount starting...');
+  // Lógica de recuperación de datos desde el Bridge (Bypass de Cloudflare / Respaldo)
+  const bridge = document.getElementById('reader-data-bridge');
+  if (bridge) {
+    slug = bridge.getAttribute('data-slug') || slug;
+    chapter = bridge.getAttribute('data-chapter') || chapter;
+    const bridgePayload = bridge.getAttribute('data-payload');
+    if (bridgePayload) {
+      try {
+        chapterPayload = JSON.parse(bridgePayload);
+      } catch (e) {
+        console.error('Error parsing bridge payload', e);
       }
-    }, 150); // Intervalo más corto para que el movimiento sea fluido (60fps feel)
+    }
+
+    const rawId = bridge.getAttribute('data-chapter-id');
+    if (rawId) chapterId = parseInt(rawId);
+
+    const processingAttr = bridge.getAttribute('data-processing') === 'true';
+    isProcessing = processingAttr;
+
+    loadingMessage = bridge.getAttribute('data-loading-msg') || loadingMessage;
+    seriesTitle = bridge.getAttribute('data-series-title') || seriesTitle;
+    watermark = bridge.getAttribute('data-watermark') || watermark;
   }
 
-  function saveSettings() {
-    localStorage.setItem('readerWidth', readerWidth.toString());
-    localStorage.setItem('viewMode', viewMode);
-    showConfig = false;
-  }
-
-  // Orion: Detectar si el capítulo es solo para la app (Protección de contenido)
-  const isInAppOnly = $derived(
-    chapterPayload === 'inapp' || loadingMessage === 'inapp'
+  isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
   );
 
-  import { siteConfig } from '../site.config';
+  // Astra: Activar modo lectura total para eliminar paddings del layout
+  document.body.setAttribute('data-reader-active', 'true');
+
+  // Intentar recuperar configuración guardada de forma segura
+  try {
+    const savedWidth = localStorage.getItem('readerWidth');
+    if (savedWidth) readerWidth = parseInt(savedWidth);
+    else if (isMobile) readerWidth = 100;
+
+    const savedMode = localStorage.getItem('viewMode');
+    if (savedMode === 'cascade' || savedMode === 'single') viewMode = savedMode;
+  } catch (e) {
+    console.warn('No se pudo acceder a localStorage', e);
+  }
+
+  // Enfocar el lector
+  readerEl?.focus();
+
+  const mainHeader = document.querySelector('header');
+  const topNav = document.getElementById('reader-top-nav-wrapper');
+
+  let ticking = false;
+
+  const handleScroll = () => {
+    if (!ticking) {
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        // --- READS ---
+        const isModalOpen = document.body.getAttribute('data-reader-modal') === 'open';
+        const currentScroll = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight;
+        const winHeight = window.innerHeight;
+
+        // --- WRITES & LOGIC ---
+        if (isModalOpen) {
+          ticking = false;
+          return;
+        }
+
+        const scrollHeight = docHeight - winHeight;
+        scrollProgress = scrollHeight > 0 ? (currentScroll / scrollHeight) * 100 : 0;
+
+        // Orion: Activar umbral de lectura
+        if (scrollProgress > 40) hasReadThreshold = true;
+
+        // Prefetch Trigger
+        if (scrollProgress > 80 && !hasPrefetched && nextChapter) {
+          prefetchNextChapter();
+        }
+
+        if (currentScroll > 100 && currentScroll > lastScrollY + 15) {
+          if (controlsVisible) {
+            controlsVisible = false;
+            mainHeader?.classList.add('hidden');
+            topNav?.classList.add('hidden');
+          }
+        } else if (currentScroll < lastScrollY - 15 || currentScroll < 50) {
+          if (!controlsVisible) {
+            controlsVisible = true;
+            mainHeader?.classList.remove('hidden');
+            topNav?.classList.remove('hidden');
+          }
+        }
+
+        lastScrollY = currentScroll;
+        ticking = false;
+      });
+    }
+  };
+
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  window.addEventListener('keydown', handleKeydown, { passive: true });
+
+  // Lógica de hidratación diferida
+  setTimeout(() => {
+    if (chapterPayload && pagesData.length === 0) {
+      try {
+        console.log('[READER] Hydrating data...');
+        const decrypted = chapterPayload;
+        if (decrypted) {
+          let incomingPages = [];
+          if (decrypted.pages) incomingPages = decrypted.pages;
+          else if (decrypted.imageUrls)
+            incomingPages = decrypted.imageUrls.map((url: string) => ({
+              url,
+            }));
+
+          if (incomingPages.length > 0) {
+            console.log(`[READER] Pages received: ${incomingPages.length}`);
+            pagesData = incomingPages.sort(
+              (a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0)
+            );
+            if (isProcessing) isProcessing = false;
+          } else {
+            console.warn('[READER] No pages found in payload');
+          }
+        }
+      } catch (e) {
+        console.error('[READER] Critical error during hydration:', e);
+        error = 'Error al cargar el contenido del capítulo.';
+      }
+    }
+
+    if (isProcessing) setupSse();
+
+    // Astra: Registrar vista diferida al cerrar/desmontar
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') registerView();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Save cleanup to remove listener
+    return () => {
+      registerView(); // Registrar al desmontar el componente (Astro View Transitions)
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('keydown', handleKeydown);
+      document.body.removeAttribute('data-reader-active');
+      document.body.removeAttribute('data-reader-modal');
+      if (eventSource) eventSource.close();
+    };
+  }, 100);
+});
+
+function handleGlobalClick(e: MouseEvent) {
+  if (showConfig) return;
+
+  // Ignorar clics en elementos interactivos o dentro del HUD
+  const target = e.target as HTMLElement;
+  if (
+    target.closest('button') ||
+    target.closest('a') ||
+    target.closest('.floating-hud') ||
+    target.closest('.reader-cfg-panel')
+  ) {
+    return;
+  }
+
+  const width = window.innerWidth;
+  const x = e.clientX;
+
+  // Zonas: 25% Izquierda, 50% Centro, 25% Derecha
+  const zoneLeft = width * 0.25;
+  const zoneRight = width * 0.75;
+
+  if (x < zoneLeft) {
+    handleZoneClick('left');
+  } else if (x > zoneRight) {
+    handleZoneClick('right');
+  } else {
+    handleZoneClick('center');
+  }
+}
+
+function handleZoneClick(zone: 'left' | 'center' | 'right') {
+  if (viewMode === 'cascade') {
+    if (zone === 'center') toggleControls();
+  } else {
+    if (zone === 'left') changePage(-1);
+    else if (zone === 'right') changePage(1);
+    else toggleControls();
+  }
+}
+
+function toggleControls() {
+  if (showConfig) return;
+  controlsVisible = !controlsVisible;
+  const mainHeader = document.querySelector('header');
+  const topNav = document.getElementById('reader-top-nav-wrapper');
+
+  if (!controlsVisible) {
+    mainHeader?.classList.add('hidden');
+    topNav?.classList.add('hidden');
+  } else {
+    mainHeader?.classList.remove('hidden');
+    topNav?.classList.remove('hidden');
+  }
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if (viewMode === 'single') {
+    if (e.key === 'ArrowLeft') changePage(-1);
+    else if (e.key === 'ArrowRight') changePage(1);
+  }
+  if (e.key === ' ' || e.key === 'Enter') {
+    toggleControls();
+  }
+  if (e.key === 'Escape') {
+    if (showConfig) showConfig = false;
+  }
+}
+
+// Astra: Forzar scroll arriba al cambiar de página en modo single
+$effect(() => {
+  if (viewMode === 'single' && currentPageIndex >= 0) {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }
+});
+
+function changePage(delta: number) {
+  const newIndex = currentPageIndex + delta;
+  if (newIndex >= 0 && newIndex < pagesData.length) {
+    currentPageIndex = newIndex;
+    if (newIndex > 0) hasReadThreshold = true;
+  } else if (delta > 0 && newIndex >= pagesData.length && nextChapter) {
+    // Astra: Navegar al siguiente capítulo si estamos al final
+    window.location.href = `/series/${nextChapter.slug}/${nextChapter.chapter}`;
+  } else if (delta < 0 && newIndex < 0 && prevChapter) {
+    // Astra: Navegar al capítulo anterior si estamos al inicio
+    window.location.href = `/series/${prevChapter.slug}/${prevChapter.chapter}`;
+  }
+}
+
+function scrollToComments() {
+  const el = document.getElementById('comments-wrapper');
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+function setupSse(isRetry = false) {
+  if (!isRetry) retryCount = 0;
+  if (eventSource) eventSource.close();
+
+  console.log(`[ChapterReader] Setting up SSE for ${slug}/${chapter} (Retry: ${isRetry})`);
+  startProgressSimulation();
+  eventSource = new EventSource(`/api/series/${slug}/${chapter}?id=${chapterId}`);
+
+  eventSource.addEventListener('processing', (e) => {
+    // console.log('[ChapterReader] SSE Processing event');
+    retryCount = 0;
+    try {
+      const rawData = JSON.parse(e.data);
+      const data = rawData.payload || rawData;
+      if (data.message) loadingMessage = data.message;
+    } catch {
+      console.error('Error parsing SSE processing event');
+    }
+  });
+
+  eventSource.addEventListener('completed', (e) => {
+    console.log('[ChapterReader] SSE Completed event received');
+    isComplete = true;
+    try {
+      const rawData = JSON.parse(e.data);
+      const data = rawData.payload || rawData;
+
+      clearInterval(progressInterval);
+      simulatedProgress = 100;
+      loadingMessage = '¡Capítulo listo!';
+
+      let incomingPages = [];
+      if (data.pages) {
+        console.log(`[ChapterReader] SSE Pages received: ${data.pages.length}`);
+        incomingPages = data.pages;
+      } else if (data.imageUrls) {
+        console.log(`[ChapterReader] SSE Image URLs received: ${data.imageUrls.length}`);
+        incomingPages = data.imageUrls.map((url: string) => ({ url }));
+      }
+
+      if (incomingPages.length > 0) {
+        pagesData = incomingPages.sort(
+          (a: Page, b: Page) => (a.pageNumber || 0) - (b.pageNumber || 0)
+        );
+      }
+
+      isProcessing = false;
+      if (chapterId) registerView();
+      if (eventSource) eventSource.close();
+    } catch (err) {
+      console.error('[ChapterReader] Error processing completed event:', err);
+      error = 'Error al procesar la respuesta del servidor.';
+      isProcessing = false;
+    }
+  });
+
+  eventSource.addEventListener('processing_error', (e) => {
+    console.error('[ChapterReader] SSE Processing Error event');
+    isComplete = true;
+    clearInterval(progressInterval);
+    try {
+      const rawData = JSON.parse(e.data);
+      const data = rawData.payload || rawData;
+      error = data.error || 'Error en el servidor de procesamiento.';
+    } catch {
+      error = 'Error desconocido en el servidor.';
+    }
+    isProcessing = false;
+    if (eventSource) eventSource.close();
+  });
+
+  eventSource.addEventListener('error', () => {
+    if (isComplete) return;
+    console.warn(`[ChapterReader] SSE Error (Retry ${retryCount + 1}/3)`);
+
+    if (retryCount < 3) {
+      console.warn(`SSE connection lost. Retrying... (${retryCount + 1}/3)`);
+      retryCount++;
+      if (eventSource) eventSource.close();
+      setTimeout(() => setupSse(true), 2000);
+    } else {
+      error =
+        'Se perdió la conexión con el servidor de procesamiento. Reintente recargando la página.';
+      isProcessing = false;
+      if (eventSource) eventSource.close();
+    }
+  });
+}
+
+function registerView() {
+  if (!chapterId || !hasReadThreshold || viewRegistered) return;
+  const cid = chapterId; // Astra: Garantizamos que es number para TS
+  viewRegistered = true;
+
+  // Tarea 1: Registrar vista (Prioridad media)
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(() => {
+      actions.chapters.registerView({ chapterId: cid }).catch(() => {});
+    });
+  } else {
+    actions.chapters.registerView({ chapterId: cid }).catch(() => {});
+  }
+
+  // Tarea 2: Actualizar progreso (Prioridad baja)
+  const bridge = document.getElementById('reader-data-bridge');
+  const seriesId = bridge ? parseInt(bridge.getAttribute('data-series-id') || '0') : 0;
+
+  if (seriesId > 0) {
+    const task = () => {
+      actions.user
+        .updateProgress({
+          seriesId,
+          chapterId: cid,
+          chapterNumber: parseFloat(chapter),
+        })
+        .catch((err: any) => console.warn('[Reader] Failed to update progress', err));
+    };
+
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(task, { timeout: 5000 });
+    } else {
+      setTimeout(task, 2000);
+    }
+  }
+}
+
+function startProgressSimulation() {
+  clearInterval(progressInterval);
+  simulatedProgress = 0;
+
+  // Orion: Curva de progresión tipo "Zeno" o "Phi"
+  // Avanza rápido al principio y se va cortando a la mitad conforme se acerca al final.
+  progressInterval = window.setInterval(() => {
+    if (simulatedProgress < 99) {
+      // Calculamos cuánto falta para llegar a 100
+      const remaining = 100 - simulatedProgress;
+
+      // El incremento es una pequeña fracción de lo que queda (se corta a la mitad/proporción)
+      // Esto hace que nunca llegue a 100 por sí solo.
+      const increment = remaining * 0.015;
+
+      simulatedProgress += Math.max(0.01, increment);
+    }
+  }, 150); // Intervalo más corto para que el movimiento sea fluido (60fps feel)
+}
+
+function saveSettings() {
+  localStorage.setItem('readerWidth', readerWidth.toString());
+  localStorage.setItem('viewMode', viewMode);
+  showConfig = false;
+}
+
+// Orion: Detectar si el capítulo es solo para la app (Protección de contenido)
+const isInAppOnly = $derived(chapterPayload === 'inapp' || loadingMessage === 'inapp');
+
+import { siteConfig } from '../site.config';
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
