@@ -11,33 +11,46 @@ if (!episodeId || isNaN(Number(episodeId))) {
   return Astro.redirect('/404');
 }
 
-const db = getDB(env);
+const loadData = async () => {
+  try {
+    const db = getDB(env);
+    const chapter = await db
+      .select({
+        id: chapters.id,
+        chapterNumber: chapters.chapterNumber,
+        title: chapters.title,
+        seriesId: chapters.seriesId,
+        seriesTitle: series.title,
+        seriesSlug: series.slug,
+        seriesCover: series.coverImageUrl,
+      })
+      .from(chapters)
+      .innerJoin(series, eq(chapters.seriesId, series.id))
+      .where(eq(chapters.id, Number(episodeId)))
+      .get();
 
-const chapterData = await db
-  .select({
-    id: chapters.id,
-    chapterNumber: chapters.chapterNumber,
-    title: chapters.title,
-    seriesId: chapters.seriesId,
-    seriesTitle: series.title,
-    seriesSlug: series.slug,
-    seriesCover: series.coverImageUrl,
-  })
-  .from(chapters)
-  .innerJoin(series, eq(chapters.seriesId, series.id))
-  .where(eq(chapters.id, Number(episodeId)))
-  .get();
+    if (!chapter) return null;
 
-if (!chapterData) return Astro.redirect('/404');
+    const srvs = await db
+      .select()
+      .from(episodeServers)
+      .where(eq(episodeServers.chapterId, Number(episodeId)))
+      .orderBy(episodeServers.displayOrder)
+      .all();
 
-const servers = await db
-  .select()
-  .from(episodeServers)
-  .where(eq(episodeServers.chapterId, Number(episodeId)))
-  .orderBy(episodeServers.displayOrder)
-  .all();
+    return { chapter, srvs };
+  } catch (err) {
+    console.error('[Watch] Error crítico al cargar datos del episodio:', err);
+    return null;
+  }
+};
 
-const defaultServerUrl = servers.length > 0 && servers[0] ? servers[0].iframeUrl : '';
+const data = await loadData();
+if (!data) return Astro.redirect('/404');
+
+const chapterData = data.chapter;
+const servers = data.srvs;
+const defaultServerUrl = servers.length > 0 && servers[0] ? (servers[0].iframeUrl as string) : '';
 const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
 ---
 
@@ -64,9 +77,7 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
       <>
         <div class="player-wrapper" id="player-container">
           {servers[0]?.isDirectVideo ? (
-             <video id="video-player" playsinline controls preload="metadata">
-                <source src={defaultServerUrl} type="video/mp4" />
-             </video>
+             <div id="artplayer-app" style="width:100%;height:100%;" data-url={defaultServerUrl}></div>
           ) : (
              <iframe id="iframe-player" src={defaultServerUrl} allowfullscreen="true"></iframe>
           )}
@@ -95,13 +106,18 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
 
   <script>
     import { actions } from 'astro:actions';
+    import Artplayer from 'artplayer';
+    import artplayerEs from 'artplayer/i18n/es';
     
     // Registrar vista del episodio en segundo plano
     const currentEpisodeId = parseInt(window.location.pathname.split('/').pop() || '0');
     if (currentEpisodeId) {
-      // Usamos requestIdleCallback para no bloquear el renderizado del reproductor
-      const registerFn = () => {
-        actions.chapters.registerView({ chapterId: currentEpisodeId }).catch(() => {});
+      const registerFn = async () => {
+        try {
+          await actions.chapters.registerView({ chapterId: currentEpisodeId });
+        } catch (err) {
+          console.error('[Watch] Error al registrar la vista:', err);
+        }
       };
       if ('requestIdleCallback' in window) {
         requestIdleCallback(registerFn);
@@ -109,13 +125,162 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
         setTimeout(registerFn, 1000);
       }
     }
-  </script>
 
-  <script is:inline>
     document.addEventListener('DOMContentLoaded', function() {
       const buttons = document.querySelectorAll('.server-btn');
       const container = document.getElementById('player-container');
       if (!buttons.length || !container) return;
+
+      let art: any = null;
+
+      function initArtplayer(url: string) {
+        if (art) {
+          art.destroy(false);
+        }
+        container!.innerHTML = '<div id="artplayer-app" style="width:100%;height:100%;"></div>';
+        try {
+          art = new Artplayer({
+            container: '#artplayer-app',
+            url: url,
+            theme: '#4facfe',
+            lang: 'es',
+            subtitle: {
+              url: '',
+              style: {
+                color: '#fff',
+                fontSize: '22px',
+                textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+              },
+            },
+            i18n: {
+              es: artplayerEs,
+            },
+            volume: 0.8,
+            isLive: false,
+            muted: false,
+            autoplay: false,
+            pip: true,
+            autoSize: true,
+            autoMini: true,
+            screenshot: true,
+            setting: true,
+            loop: false,
+            flip: true,
+            playbackRate: true,
+            aspectRatio: true,
+            fullscreen: true,
+            fullscreenWeb: true,
+            subtitleOffset: true,
+            miniProgressBar: true,
+            mutex: true,
+            backdrop: true,
+            playsInline: true,
+            autoPlayback: true,
+            airplay: true,
+            controls: [
+              {
+                position: 'left',
+                index: 9,
+                html: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 3C17.15 3 21.08 6.03 22.45 10.16L20.08 10.91C19.01 7.63 15.95 5.25 12.35 5.25C10.35 5.25 8.52 5.97 7.1 7.18L10 10H3V3L5.6 5.6C7.45 4 9.85 3 12.5 3M10 12L6.15 19.05H8.45L9.1 17.5H12.9L13.55 19.05H15.85L12 12M10 15.2L11 13L12 15.2H10Z"/></svg>',
+                tooltip: 'Retroceder 10s',
+                click: function () {
+                  if (art && typeof art.currentTime !== 'undefined') {
+                    art.currentTime = Math.max(0, art.currentTime - 10);
+                  }
+                },
+              },
+              {
+                position: 'left',
+                index: 11,
+                html: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4l8 6-8 6V4zm9 0l8 6-8 6V4z"/></svg>',
+                tooltip: 'Saltar OP/ED (+90s)',
+                click: function () {
+                  if (art && typeof art.currentTime !== 'undefined') {
+                    art.currentTime += 90;
+                  }
+                },
+              },
+              {
+                position: 'left',
+                index: 12,
+                html: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 3C6.85 3 2.92 6.03 1.55 10.16L3.92 10.91C4.99 7.63 8.05 5.25 11.65 5.25C13.65 5.25 15.48 5.97 16.9 7.18L14 10H21V3L18.4 5.6C16.55 4 14.15 3 11.5 3M14 12L17.85 19.05H15.55L14.9 17.5H11.1L10.45 19.05H8.15L12 12M14 15.2L13 13L12 15.2H14Z"/></svg>',
+                tooltip: 'Adelantar 10s',
+                click: function () {
+                  if (art && typeof art.currentTime !== 'undefined') {
+                    art.currentTime += 10;
+                  }
+                },
+              },
+              {
+                position: 'right',
+                index: 20,
+                html: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M10 11h4"></path><path d="M10 15h4"></path></svg>',
+                tooltip: 'Cargar subtítulo local (.srt/.vtt/.ass)',
+                click: function () {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = '.srt,.vtt,.ass';
+                  input.onchange = (e) => {
+                    const target = e.target as HTMLInputElement;
+                    const file = target.files?.[0];
+                    if (file) {
+                      const url = URL.createObjectURL(file);
+                      if (art && art.subtitle) {
+                        art.subtitle.url = url;
+                        art.notice.show = `Subtítulo cargado: ${file.name}`;
+                      }
+                    }
+                  };
+                  input.click();
+                }
+              }
+            ],
+            settings: [
+              {
+                width: 250,
+                html: 'Modo de imagen',
+                tooltip: 'Normal',
+                icon: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>',
+                selector: [
+                  {
+                    default: true,
+                    html: 'Normal',
+                    tooltip: 'Normal',
+                  },
+                  {
+                    html: 'Rellenar pantalla',
+                    tooltip: 'Rellenar',
+                  },
+                ],
+                onSelect: function (item: any) {
+                  if (art && art.video) {
+                    if (item.html === 'Rellenar pantalla') {
+                      art.video.style.objectFit = 'cover';
+                    } else {
+                      art.video.style.objectFit = 'contain';
+                    }
+                  }
+                  return item.html;
+                },
+              },
+            ],
+          });
+
+          art.on('error', (error: any) => {
+            console.error('[ArtPlayer] Error detectado durante la reproducción:', error);
+          });
+        } catch (err) {
+          console.error('[ArtPlayer] Error fatal al inicializar el reproductor:', err);
+          container!.innerHTML = '<div style="color:red; padding: 20px;">Error al cargar el reproductor de video.</div>';
+        }
+      }
+
+      // Initial load
+      const initialArtEl = document.getElementById('artplayer-app');
+      if (initialArtEl) {
+        const url = initialArtEl.getAttribute('data-url');
+        if (url) initArtplayer(url);
+      }
 
       buttons.forEach(function(btn) {
         btn.addEventListener('click', function() {
@@ -124,26 +289,15 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
           
           const url = btn.getAttribute('data-url');
           const isDirect = btn.getAttribute('data-direct') === 'true';
-
-          container.innerHTML = '';
           
-          if (isDirect) {
-            const video = document.createElement('video');
-            video.id = 'video-player';
-            video.controls = true;
-            video.playsInline = true;
-            video.preload = 'metadata';
-            const source = document.createElement('source');
-            source.src = url;
-            source.type = 'video/mp4';
-            video.appendChild(source);
-            container.appendChild(video);
+          if (isDirect && url) {
+            initArtplayer(url);
           } else {
-            const iframe = document.createElement('iframe');
-            iframe.id = 'iframe-player';
-            iframe.src = url;
-            iframe.allowFullscreen = true;
-            container.appendChild(iframe);
+            if (art) {
+              art.destroy(false);
+              art = null;
+            }
+            container!.innerHTML = `<iframe id="iframe-player" src="${url}" allowfullscreen="true" style="width:100%;height:100%;border:none;border-radius:12px;"></iframe>`;
           }
         });
       });
@@ -247,6 +401,7 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
     background: linear-gradient(transparent, rgba(0,0,0,0.8));
   }
 
+
   .controls-panel {
     margin-top: 1.5rem;
     background: #111;
@@ -309,5 +464,11 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
     background: #111;
     border-radius: 12px;
     color: #888;
+  }
+</style>
+
+<style is:global>
+  .art-settings {
+    min-width: 350px !important;
   }
 </style>

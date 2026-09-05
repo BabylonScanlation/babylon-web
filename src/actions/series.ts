@@ -304,7 +304,9 @@ export const seriesActions = {
       ) {
         const file = coverImage as File;
         const imageExtension = file.name.split('.').pop() || 'jpg';
-        const isAnime = ['anime', 'ova', 'movie'].includes(input.type?.toLowerCase() || currentSeries.type?.toLowerCase() || '');
+        const isAnime = ['anime', 'ova', 'movie'].includes(
+          input.type?.toLowerCase() || currentSeries.type?.toLowerCase() || ''
+        );
         const folder = isAnime ? siteConfig.folders.coversAnime : siteConfig.folders.coversComic;
         const imageKey = `${folder}/${slug}.${Date.now()}.${imageExtension}`;
         await env.R2_ASSETS.put(imageKey, await file.arrayBuffer(), {
