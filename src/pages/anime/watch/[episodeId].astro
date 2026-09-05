@@ -160,8 +160,8 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
             muted: false,
             autoplay: false,
             pip: true,
-            autoSize: true,
-            autoMini: true,
+            autoSize: false,
+            autoMini: false,
             screenshot: true,
             setting: true,
             loop: false,
@@ -169,7 +169,7 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
             playbackRate: true,
             aspectRatio: true,
             fullscreen: true,
-            fullscreenWeb: true,
+            fullscreenWeb: false,
             subtitleOffset: true,
             miniProgressBar: true,
             mutex: true,
@@ -179,20 +179,10 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
             airplay: true,
             controls: [
               {
-                position: 'left',
-                index: 9,
-                html: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 3C17.15 3 21.08 6.03 22.45 10.16L20.08 10.91C19.01 7.63 15.95 5.25 12.35 5.25C10.35 5.25 8.52 5.97 7.1 7.18L10 10H3V3L5.6 5.6C7.45 4 9.85 3 12.5 3M10 12L6.15 19.05H8.45L9.1 17.5H12.9L13.55 19.05H15.85L12 12M10 15.2L11 13L12 15.2H10Z"/></svg>',
-                tooltip: 'Retroceder 10s',
-                click: function () {
-                  if (art && typeof art.currentTime !== 'undefined') {
-                    art.currentTime = Math.max(0, art.currentTime - 10);
-                  }
-                },
-              },
-              {
+                name: 'skipOp',
                 position: 'left',
                 index: 11,
-                html: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4l8 6-8 6V4zm9 0l8 6-8 6V4z"/></svg>',
+                html: '<svg class="custom-player-btn" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4l8 6-8 6V4zm9 0l8 6-8 6V4z"/></svg>',
                 tooltip: 'Saltar OP/ED (+90s)',
                 click: function () {
                   if (art && typeof art.currentTime !== 'undefined') {
@@ -201,9 +191,22 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
                 },
               },
               {
+                name: 'rewind10',
+                position: 'left',
+                index: 9,
+                html: '<svg class="custom-player-btn hide-on-mobile" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 3C17.15 3 21.08 6.03 22.45 10.16L20.08 10.91C19.01 7.63 15.95 5.25 12.35 5.25C10.35 5.25 8.52 5.97 7.1 7.18L10 10H3V3L5.6 5.6C7.45 4 9.85 3 12.5 3M10 12L6.15 19.05H8.45L9.1 17.5H12.9L13.55 19.05H15.85L12 12M10 15.2L11 13L12 15.2H10Z"/></svg>',
+                tooltip: 'Retroceder 10s',
+                click: function () {
+                  if (art && typeof art.currentTime !== 'undefined') {
+                    art.currentTime = Math.max(0, art.currentTime - 10);
+                  }
+                },
+              },
+              {
+                name: 'forward10',
                 position: 'left',
                 index: 12,
-                html: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 3C6.85 3 2.92 6.03 1.55 10.16L3.92 10.91C4.99 7.63 8.05 5.25 11.65 5.25C13.65 5.25 15.48 5.97 16.9 7.18L14 10H21V3L18.4 5.6C16.55 4 14.15 3 11.5 3M14 12L17.85 19.05H15.55L14.9 17.5H11.1L10.45 19.05H8.15L12 12M14 15.2L13 13L12 15.2H14Z"/></svg>',
+                html: '<svg class="custom-player-btn hide-on-mobile" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 3C6.85 3 2.92 6.03 1.55 10.16L3.92 10.91C4.99 7.63 8.05 5.25 11.65 5.25C13.65 5.25 15.48 5.97 16.9 7.18L14 10H21V3L18.4 5.6C16.55 4 14.15 3 11.5 3M14 12L17.85 19.05H15.55L14.9 17.5H11.1L10.45 19.05H8.15L12 12M14 15.2L13 13L12 15.2H14Z"/></svg>',
                 tooltip: 'Adelantar 10s',
                 click: function () {
                   if (art && typeof art.currentTime !== 'undefined') {
@@ -213,8 +216,8 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
               },
               {
                 position: 'right',
-                index: 20,
-                html: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M10 11h4"></path><path d="M10 15h4"></path></svg>',
+                index: 10,
+                html: '<svg class="custom-player-btn hide-on-mobile" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M10 11h4"></path><path d="M10 15h4"></path></svg>',
                 tooltip: 'Cargar subtítulo local (.srt/.vtt/.ass)',
                 click: function () {
                   const input = document.createElement('input');
@@ -232,6 +235,18 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
                     }
                   };
                   input.click();
+                }
+              },
+              {
+                name: 'customFullscreen',
+                position: 'right',
+                index: 40,
+                html: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>',
+                tooltip: 'Pantalla Completa',
+                click: function () {
+                  if (art) {
+                    art.fullscreen = !art.fullscreen;
+                  }
                 }
               }
             ],
@@ -268,6 +283,12 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
 
           art.on('error', (error: any) => {
             console.error('[ArtPlayer] Error detectado durante la reproducción:', error);
+          });
+
+          art.on('ready', () => {
+            const containerEl = document.getElementById('artplayer-app');
+            if (!containerEl) return;
+            // Orden en PC manejado enteramente por los index y defaults de ArtPlayer.
           });
         } catch (err) {
           console.error('[ArtPlayer] Error fatal al inicializar el reproductor:', err);
@@ -307,10 +328,10 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
 
 <style>
   .watch-container {
-    width: 100%;
-    max-width: 1200px;
+    width: 95%;
+    max-width: none;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 2rem 0;
     box-sizing: border-box;
     color: #fff;
     min-height: 80vh;
@@ -379,21 +400,23 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
     width: 100%;
     aspect-ratio: 16/9;
     background: #000;
-    border-radius: 12px;
+    border-radius: 0 !important;
     overflow: hidden;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .player-wrapper iframe,
-  .player-wrapper video {
+  .player-wrapper video,
+  :global(.art-video-player),
+  :global(.art-video-player video) {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     border: none;
-    border-radius: 12px;
+    border-radius: 0 !important;
   }
 
   /* Estilizar controles nativos del video */
@@ -468,7 +491,315 @@ const pageTitle = chapterData.title || `Episodio ${chapterData.chapterNumber}`;
 </style>
 
 <style is:global>
+  /* Fuerte overrriding para forzar que el video ocupe el 95% del ancho en móviles */
+  @media (max-width: 1024px) {
+    .watch-container {
+      padding: 0 !important;
+      margin: 0 auto !important;
+      max-width: 95% !important;
+      width: 95% !important;
+    }
+
+    .player-wrapper {
+      width: 100% !important;
+      max-width: 100% !important;
+      border-radius: 0 !important;
+      border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+  }
+
   .art-settings {
     min-width: 350px !important;
+  }
+  
+  /* Forzar orden visual en la parte derecha */
+  .art-controls-right {
+    display: flex !important;
+        });
+      });
+    });
+  </script>
+</Layout>
+
+<style>
+  .watch-container {
+    width: 95%;
+    max-width: none;
+    margin: 0 auto;
+    padding: 2rem 0;
+    box-sizing: border-box;
+    color: #fff;
+    min-height: 80vh;
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .breadcrumb {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .breadcrumb h1 {
+    font-size: 1.8rem;
+    margin: 0;
+    font-weight: 800;
+  }
+  
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #aaa;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 0.5rem 1.2rem 0.5rem 0.8rem;
+    border-radius: 100px;
+    font-size: 0.9rem;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  
+  .back-btn strong {
+    color: #fff;
+    font-weight: 700;
+  }
+  
+  .back-btn svg {
+    transition: transform 0.3s ease;
+    color: #4facfe;
+  }
+  
+  .back-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(79, 172, 254, 0.4);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.15);
+    transform: translateY(-2px);
+  }
+  
+  .back-btn:hover svg {
+    transform: translateX(-4px);
+  }
+
+  .player-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    border-radius: 0 !important;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .player-wrapper iframe,
+  .player-wrapper video,
+  :global(.art-video-player),
+  :global(.art-video-player video) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 0 !important;
+  }
+
+  /* Estilizar controles nativos del video */
+  .player-wrapper video::-webkit-media-controls-panel {
+    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  }
+
+
+  .controls-panel {
+    margin-top: 1.5rem;
+    background: #111;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1.5rem;
+    border-radius: 12px;
+  }
+
+  .server-options {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .servers-label {
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+  }
+
+  .server-buttons {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .server-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #222;
+    color: #ccc;
+    border: 1px solid #333;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+  }
+  
+  .server-btn:hover {
+    background: #333;
+    color: #fff;
+  }
+
+  .server-btn.active {
+    background: #4facfe;
+    color: #000;
+    border-color: #4facfe;
+    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+  }
+
+  .no-servers {
+    padding: 4rem;
+    text-align: center;
+    background: #111;
+    border-radius: 12px;
+    color: #888;
+  }
+</style>
+
+<style is:global>
+  /* Fuerte overrriding para forzar que el video ocupe el 95% del ancho en móviles */
+  @media (max-width: 1024px) {
+    .watch-container {
+      padding: 0 !important;
+      margin: 0 auto !important;
+      max-width: 95% !important;
+      width: 95% !important;
+    }
+
+    .player-wrapper {
+      width: 100% !important;
+      max-width: 100% !important;
+      border-radius: 0 !important;
+      border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+  }
+
+  .art-settings {
+    min-width: 350px !important;
+  }
+  
+  /* Forzar orden visual en la parte derecha */
+  .art-controls-right {
+    display: flex !important;
+    justify-content: flex-end !important;
+  }
+  .art-control-setting {
+    order: 4 !important;
+  }
+  .art-control-fullscreen {
+    order: 5 !important;
+  }
+  .art-control-fullscreenWeb {
+    display: none !important;
+  }
+
+  @media (max-width: 1024px) {
+    .art-settings {
+      min-width: 250px !important;
+    }
+    
+    .art-control-volume,
+    .art-control-time,
+    .art-control-playAndPause,
+    .art-control-pip,
+    .art-control-setting,
+    .art-control-customFullscreen {
+      display: flex !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+
+    .art-control-fullscreen {
+      display: none !important;
+    }
+    
+    .art-controls .hide-on-mobile,
+    .art-control-rewind10,
+    .art-control-forward10 {
+      display: none !important;
+    }
+    
+    .art-control {
+      padding: 0 !important;
+      margin: 0 !important;
+      min-width: 0 !important;
+    }
+    
+    .art-control svg {
+      width: 20px !important;
+      height: 20px !important;
+    }
+    .art-control-time {
+      font-size: 11px !important;
+      padding: 0 2px !important;
+      margin-left: 2px !important;
+    }
+    .art-volume-slider {
+      display: none !important;
+    }
+
+    .art-controls {
+      justify-content: space-between !important;
+    }
+    .art-control-progress {
+      display: none !important;
+    }
+
+    /* ORDEN ESTRICTO EN MÓVILES (IZQUIERDA) */
+    .art-controls-left {
+      display: flex !important;
+      gap: 0 !important;
+    }
+    .art-controls-left > * { order: 99 !important; }
+    .art-control-playAndPause { order: 1 !important; }
+    .art-control-skipOp { order: 2 !important; }
+    .art-control-volume { order: 3 !important; }
+    .art-control-time { order: 4 !important; }
+
+    /* ORDEN ESTRICTO EN MÓVILES (DERECHA) */
+    .art-controls-right {
+      display: flex !important;
+      gap: 0 !important;
+    }
+    .art-controls-right > * { order: 99 !important; }
+    .art-control-pip { order: 1 !important; }
+    .art-control-setting { order: 2 !important; }
+    .art-control-customFullscreen { order: 3 !important; display: flex !important; opacity: 1 !important; visibility: visible !important; }
+  }
+
+  /* En PC: ocultar el botón custom de fullscreen (ya existe el nativo) */
+  @media (min-width: 1025px) {
+    .art-control-customFullscreen {
+      display: none !important;
+    }
   }
 </style>
