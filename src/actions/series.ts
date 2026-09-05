@@ -1,4 +1,5 @@
 import { defineAction } from 'astro:actions';
+import { verifyImageSignature } from '../lib/security';
 import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
 import { and, eq, sql } from 'drizzle-orm';
@@ -124,6 +125,9 @@ export const seriesActions = {
         'arrayBuffer' in coverImage
       ) {
         const file = coverImage as File;
+        if (!(await verifyImageSignature(file))) {
+          throw new Error('La imagen de portada proporcionada no es válida.');
+        }
         const fileExt = file.name.split('.').pop() || 'jpg';
         const isAnime = ['anime', 'ova', 'movie'].includes(input.type?.toLowerCase() || '');
         const folder = isAnime ? siteConfig.folders.coversAnime : siteConfig.folders.coversComic;
@@ -304,6 +308,9 @@ export const seriesActions = {
         'arrayBuffer' in coverImage
       ) {
         const file = coverImage as File;
+        if (!(await verifyImageSignature(file))) {
+          throw new Error('La imagen de portada proporcionada no es válida.');
+        }
         const imageExtension = file.name.split('.').pop() || 'jpg';
         const isAnime = ['anime', 'ova', 'movie'].includes(
           input.type?.toLowerCase() || currentSeries.type?.toLowerCase() || ''

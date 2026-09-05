@@ -59,6 +59,12 @@ export const newsActions = {
       if (!user || !isScanlationMember(user)) throw new Error('Unauthorized');
 
       const { image, newsId } = input;
+      
+      const { verifyImageSignature } = await import('../lib/security');
+      if (!(await verifyImageSignature(image))) {
+        throw new Error('La imagen proporcionada no es válida.');
+      }
+
       const db = getDB(env);
 
       // Orion: Seguridad Multi-tenant

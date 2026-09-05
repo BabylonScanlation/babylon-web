@@ -478,6 +478,11 @@ export const chapterActions = {
       if (!canManageScanlation(user, chapterData.scanlationId)) {
         throw new Error('Forbidden');
       }
+      
+      const { verifyImageSignature } = await import('../lib/security');
+      if (!(await verifyImageSignature(thumbnailImage))) {
+        throw new Error('La imagen proporcionada no es válida.');
+      }
 
       const thumbnailKey = `chapter-thumbnails/${chapterId}-${Date.now()}.${thumbnailImage.name.split('.').pop()}`;
       await env.R2_ASSETS.put(thumbnailKey, await thumbnailImage.arrayBuffer(), {
