@@ -9,7 +9,7 @@ VALUES (
   'School Rumble',
   'school-rumble',
   'Tenma Tsukamoto es una estudiante de preparatoria que está enamorada de Oji Karasuma, un chico excéntrico y despistado. Al mismo tiempo, Kenji Harima, el delincuente de la escuela, está perdidamente enamorado de Tenma. Una comedia romántica llena de enredos escolares.',
-  'https://m.media-amazon.com/images/M/MV5BMmRkYmEzMTEtZTJmYy00OWFmLThjZGItYjNkOGZiNDJjNmEwXkEyXkFqcGc@._V1_FMjpg_UX580_.jpg',
+  'covers/anime/school-rumble.jpg',
   987654321,
   'completed',
   'anime',
@@ -26,11 +26,11 @@ VALUES (
 -- Insert Chapters
 INSERT INTO Chapters (series_id, chapter_number, language, title, status)
 VALUES 
-((SELECT id FROM Series WHERE slug = 'school-rumble'), 1, 'es-la', 'Episodio 1', 'live'),
-((SELECT id FROM Series WHERE slug = 'school-rumble'), 2, 'es-la', 'Episodio 2', 'live'),
-((SELECT id FROM Series WHERE slug = 'school-rumble'), 3, 'es-la', 'Episodio 3', 'live'),
-((SELECT id FROM Series WHERE slug = 'school-rumble'), 4, 'es-la', 'Episodio 4', 'live'),
-((SELECT id FROM Series WHERE slug = 'school-rumble'), 5, 'es-la', 'Episodio 5', 'live');
+((SELECT id FROM Series WHERE slug = 'school-rumble'), 1, 'es-la', 'Nuevo semestre: ¡Todos emocionados!', 'live'),
+((SELECT id FROM Series WHERE slug = 'school-rumble'), 2, 'es-la', '¡Test desconocido! / ¡Atrapada en el lavabo!', 'live'),
+((SELECT id FROM Series WHERE slug = 'school-rumble'), 3, 'es-la', '¡Mirando de frente! / ¡Mirando a otra parte!', 'live'),
+((SELECT id FROM Series WHERE slug = 'school-rumble'), 4, 'es-la', '¡Cerdos resoplando! / ¡Gatos maullando!', 'live'),
+((SELECT id FROM Series WHERE slug = 'school-rumble'), 5, 'es-la', '¡Un amor ardiente!', 'live');
 
 -- Insert Episode Servers (Links to MP4)
 INSERT INTO EpisodeServers (chapter_id, server_name, iframe_url, language, is_direct_video)
