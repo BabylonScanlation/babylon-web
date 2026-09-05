@@ -39,8 +39,8 @@ async function _uploadChapters() {
 
     _progressText = `Subiendo ${i + 1}/${total}`;
 
-    if (!file.name.endsWith('.zip')) {
-      toast.error(`Ignorado ${file.name}: No es ZIP`);
+    if (!file.name.toLowerCase().endsWith('.zip') && !file.name.toLowerCase().endsWith('.cbz')) {
+      toast.error(`Ignorado ${file.name}: No es ZIP o CBZ`);
       errorCount++;
       continue;
     }
@@ -84,14 +84,14 @@ async function _uploadChapters() {
 <div class="uploader-card">
   <div class="header">
     <h3>Subir Capítulos</h3>
-    <p>Arrastra archivos ZIP o selecciónalos. El nombre del archivo debe ser el número del capítulo (ej: 1.zip, 2.5.zip).</p>
+    <p>Arrastra archivos ZIP o CBZ o selecciónalos. El nombre del archivo debe ser el número del capítulo (ej: 1.zip, 2.5.cbz).</p>
   </div>
 
   <div class="upload-area" class:active={selectedFiles}>
     <input 
       type="file" 
       multiple 
-      accept=".zip" 
+      accept=".zip,.cbz" 
       onchange={_handleFileChange}
       bind:this={fileInput}
       id="file-upload"
@@ -104,7 +104,7 @@ async function _uploadChapters() {
       {#if selectedFiles}
         <span class="file-count">{selectedFiles.length} archivos seleccionados</span>
       {:else}
-        <span class="hint">Click para seleccionar o soltar archivos ZIP</span>
+        <span class="hint">Click para seleccionar o soltar archivos ZIP o CBZ</span>
       {/if}
     </label>
   </div>

@@ -42,7 +42,8 @@ export const POST: APIRoute = async ({ request }) => {
     const isZip =
       doc.mime_type === 'application/zip' ||
       doc.mime_type === 'application/x-zip-compressed' ||
-      fileName.toLowerCase().endsWith('.zip');
+      fileName.toLowerCase().endsWith('.zip') ||
+      fileName.toLowerCase().endsWith('.cbz');
 
     if (!isZip) {
       return new Response('OK - Ignored (Not a ZIP)', { status: 200 });

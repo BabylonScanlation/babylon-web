@@ -125,12 +125,12 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       throw new Error('Fallo al descargar de Telegram');
     }
 
-    const filename = `${slug}-capitulo-${chapterNumber}${chapterData.isNsfw ? '-nsfw' : ''}.zip`;
+    const filename = `${slug}-capitulo-${chapterNumber}${chapterData.isNsfw ? '-nsfw' : ''}.cbz`;
 
     return new Response(tgRes.body, {
       status: 200,
       headers: {
-        'Content-Type': 'application/zip',
+        'Content-Type': 'application/vnd.comicbook+zip',
         'Content-Disposition': `attachment; filename="${filename}"`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
