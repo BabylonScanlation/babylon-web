@@ -7,6 +7,7 @@ let isOpen = $state(false);
 let _chapterId = $state<string | null>(null);
 let _seriesSlug = $state<string | null>(null);
 let _chapterNumber = $state<string | null>(null);
+let _currentImageUrl = $state<string>('');
 
 // --- Helper Functions ---
 const closeModal = () => {
@@ -18,6 +19,7 @@ const handleOpenModal = (event: Event) => {
     chapterId: string;
     seriesSlug: string;
     chapterNumber: string;
+    currentImageUrl?: string;
   }>;
   const { detail } = customEvent;
 
@@ -25,6 +27,7 @@ const handleOpenModal = (event: Event) => {
     _chapterId = detail.chapterId;
     _seriesSlug = detail.seriesSlug;
     _chapterNumber = detail.chapterNumber;
+    _currentImageUrl = detail.currentImageUrl || '';
     isOpen = true;
   } else {
     logError('Modal opened with incomplete data', 'AdminThumbnailCropperModal', detail);
@@ -75,6 +78,10 @@ $effect(() => {
           <p>Estado: {isOpen ? 'Abierto' : 'Cerrado'}</p>
           <p>Capítulo ID: {_chapterId}</p>
           <p>Serie Slug: {_seriesSlug}</p>
+          {#if _currentImageUrl}
+            <p>Imagen actual:</p>
+            <img src={_currentImageUrl} alt="Miniatura actual" class="current-thumb" />
+          {/if}
         </div>
       </div>
       <div class="modal-footer">
@@ -148,5 +155,13 @@ $effect(() => {
   .btn-secondary {
     background-color: #555;
     color: white;
+  }
+
+  .current-thumb {
+    margin-top: 0.5rem;
+    max-width: 120px;
+    max-height: 160px;
+    border-radius: 4px;
+    border: 1px solid #555;
   }
 </style>

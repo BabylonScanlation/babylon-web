@@ -146,8 +146,9 @@ function _openCropper() {
   window.dispatchEvent(
     new CustomEvent('openCropperModal', {
       detail: {
-        chapterId: chapter.id,
-        seriesSlug: seriesSlug,
+        chapterId: String(chapter.id),
+        seriesSlug,
+        chapterNumber: String(chapter.chapterNumber),
         currentImageUrl: chapter.urlPortada || '',
       },
     })
