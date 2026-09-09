@@ -385,8 +385,9 @@ try {
       flex: 1;
     }
 
-    /* Centrado vertical si está vacío */
-    .series-grid:has(.empty-state) {
+    /* Centrado vertical si está vacío (solo cuando el grid en sí no tiene series,
+       no cuando una tarjeta anidada muestra su propio empty-state de capítulos) */
+    .series-grid:has(> .empty-state) {
       display: flex;
       align-items: center;
       justify-content: center;
