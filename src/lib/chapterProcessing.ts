@@ -269,6 +269,16 @@ export async function processAndCacheChapter(
   } catch (error) {
     logError(error, '[PROCESO] Error crítico', { seriesSlug: slug, chapterNumber, chapterId });
     try {
+      // Limpiamos cualquier manifest incompleto para evitar que el lector
+      // consuma un capítulo a medio procesar. Con status 'live' y sin manifest,
+      // el healing del lector reintentará el procesamiento en la siguiente visita.
+      const manifestKeys = [
+        `series_manifest/${slug}/${chapterNumber}/0/manifest.json`,
+        `series_manifest/${slug}/${chapterNumber}/1/manifest.json`,
+        `series_manifest/${slug}/${chapterId}/manifest.json`,
+      ];
+      await env.R2_ASSETS.delete(manifestKeys).catch(() => {});
+
       await drizzleDb
         .update(chapters)
         .set({ status: 'live' })

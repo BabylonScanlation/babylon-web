@@ -29,7 +29,14 @@ export async function authFlow(context: APIContext, next: MiddlewareNext) {
 
   const authCookie = cookies.get('user_auth')?.value;
   const sessionId = cookies.get('user_session')?.value;
-  const isAdminRoute = currentPath.startsWith('/admin');
+  // Orion: Forzamos slow-path (validación en D1) en todas las rutas de escritura
+  // para garantizar que roles/membresías de Scanlation estén actualizados.
+  // Así, un miembro removido de un Scanlation pierde permisos de inmediato,
+  // sin esperar a que expire el JWT del fast-path (30 min).
+  const isAdminRoute =
+    currentPath.startsWith('/admin') ||
+    currentPath.startsWith('/api/admin') ||
+    currentPath.startsWith('/_actions/');
 
   // 1. FAST-PATH: Verificaci├│n JWT (Zero D1 Reads - 15 min expiraci├│n)
   // Orion: Si es una ruta Admin, saltamos el Fast-Path para garantizar seguridad m├íxima

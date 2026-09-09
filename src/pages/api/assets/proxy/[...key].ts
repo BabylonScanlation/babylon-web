@@ -24,9 +24,10 @@ export const GET: APIRoute = async ({ params, locals, request, cookies }) => {
   const babylonService = request.headers.get('X-Babylon-Service');
 
   // EL MURO DEFINITIVO: Solo permitimos peticiones que traigan nuestro encabezado secreto.
+  // Si no es el loader y no es una petición de imagen del navegador, bloqueamos.
+  // Esto previene que alguien pegue la URL del proxy en el navegador directamente.
   if (babylonService !== 'nuclear-loader' && !request.headers.get('Accept')?.includes('image/')) {
-    // Si no es el loader y no es una petición de imagen del navegador, bloqueamos.
-    // Esto previene que alguien pegue la URL del proxy en el navegador directamente.
+    return new Response('Direct navigation is not allowed', { status: 403 });
   }
 
   // Orion: Seguridad - Bloqueo Nuclear

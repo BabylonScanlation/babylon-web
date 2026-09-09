@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers';
 // src/pages/api/news/count.ts
 import type { APIRoute } from 'astro';
-import { count, desc, eq, sql } from 'drizzle-orm';
+import { and, count, eq, gt } from 'drizzle-orm';
 import { news, users } from '../../../db/schema';
 import { getDB } from '../../../lib/db';
 
@@ -61,30 +61,30 @@ export const GET: APIRoute = async ({ locals, cookies }) => {
     }
 
     // Caso 2: Calcular diferencial respecto al último visto
-    const latestNews = await drizzleDb
-      .select({ id: news.id })
+    const lastSeenNews = await drizzleDb
+      .select({ createdAt: news.createdAt })
       .from(news)
-      .where(eq(news.status, 'published'))
-      .orderBy(desc(sql`CAST(${news.createdAt} AS INTEGER)`))
-      .limit(50)
-      .all();
+      .where(eq(news.id, String(lastSeenId)))
+      .get();
 
     let unreadCount = 0;
-    if (latestNews && latestNews.length > 0) {
-      const lastSeenIdStr = String(lastSeenId).trim();
-      const lastSeenIndex = latestNews.findIndex((n) => String(n.id).trim() === lastSeenIdStr);
-
-      if (lastSeenIndex === -1) {
-        // Fallback al conteo total
-        const result = await drizzleDb
-          .select({ total: count() })
-          .from(news)
-          .where(eq(news.status, 'published'))
-          .get();
-        unreadCount = result?.total ?? 0;
-      } else {
-        unreadCount = lastSeenIndex;
-      }
+    if (!lastSeenNews) {
+      // El ID guardado ya no existe → fallback al conteo total
+      const result = await drizzleDb
+        .select({ total: count() })
+        .from(news)
+        .where(eq(news.status, 'published'))
+        .get();
+      unreadCount = result?.total ?? 0;
+    } else {
+      // Contamos las noticias publicadas posteriores a la última vista.
+      // Esto escala sin importar cuántas noticias existan (antes el tope de 50 lo rompía).
+      const unreadResult = await drizzleDb
+        .select({ total: count() })
+        .from(news)
+        .where(and(eq(news.status, 'published'), gt(news.createdAt, lastSeenNews.createdAt)))
+        .get();
+      unreadCount = unreadResult?.total ?? 0;
     }
 
     return new Response(JSON.stringify({ count: unreadCount }), {

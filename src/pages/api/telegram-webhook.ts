@@ -18,6 +18,22 @@ interface TelegramUpdate {
   };
 }
 
+// Orion: Invalida los manifests de un capítulo en R2 para forzar su regeneración
+// cuando el archivo fuente de Telegram cambia (re-subida o corrección).
+async function invalidateChapterManifests(
+  seriesSlug: string | undefined,
+  chapterNumber: number,
+  chapterId: number
+) {
+  if (!seriesSlug) return;
+  const keys = [
+    `series_manifest/${seriesSlug}/${chapterNumber}/0/manifest.json`,
+    `series_manifest/${seriesSlug}/${chapterNumber}/1/manifest.json`,
+    `series_manifest/${seriesSlug}/${chapterId}/manifest.json`,
+  ];
+  await env.R2_ASSETS.delete(keys).catch(() => {});
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const secretToken = request.headers.get('X-Telegram-Bot-Api-Secret-Token');
   if (secretToken !== env.TELEGRAM_WEBHOOK_SECRET) {
@@ -60,7 +76,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     // 1. Buscar la serie por topicId
     let seriesResult = await drizzleDb
-      .select({ id: series.id, title: series.title })
+      .select({ id: series.id, title: series.title, slug: series.slug })
       .from(series)
       .where(eq(series.telegramTopicId, topicId))
       .get();
@@ -82,13 +98,13 @@ export const POST: APIRoute = async ({ request }) => {
             isHidden: true,
             createdAt: new Date().toISOString(),
           })
-          .returning({ id: series.id, title: series.title })
+          .returning({ id: series.id, title: series.title, slug: series.slug })
           .get();
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : String(e);
         if (message.includes('UNIQUE constraint failed')) {
           seriesResult = await drizzleDb
-            .select({ id: series.id, title: series.title })
+            .select({ id: series.id, title: series.title, slug: series.slug })
             .from(series)
             .where(eq(series.telegramTopicId, topicId))
             .get();
@@ -142,6 +158,12 @@ export const POST: APIRoute = async ({ request }) => {
         .where(eq(chapters.id, existingChapter.id))
         .run();
 
+      // Si el archivo fuente cambió, invalidamos los manifests para que el
+      // healing del lector regenere el capítulo con el archivo nuevo.
+      if (existingChapter.telegramFileId !== fileId) {
+        await invalidateChapterManifests(seriesResult.slug, chapterNumber, existingChapter.id);
+      }
+
       return new Response('OK - Updated existing chapter');
     }
 
@@ -166,6 +188,18 @@ export const POST: APIRoute = async ({ request }) => {
       const message = insertError instanceof Error ? insertError.message : String(insertError);
       if (message.includes('UNIQUE constraint failed')) {
         // Orion: Si hubo un conflicto de unicidad concurrente, recuperamos con UPDATE
+        const conflicting = await drizzleDb
+          .select({ id: chapters.id, telegramFileId: chapters.telegramFileId })
+          .from(chapters)
+          .where(
+            and(
+              eq(chapters.seriesId, seriesId),
+              eq(chapters.chapterNumber, chapterNumber),
+              eq(chapters.isNsfw, isNsfw)
+            )
+          )
+          .get();
+
         await drizzleDb
           .update(chapters)
           .set({
@@ -182,6 +216,10 @@ export const POST: APIRoute = async ({ request }) => {
             )
           )
           .run();
+
+        if (conflicting && conflicting.telegramFileId !== fileId) {
+          await invalidateChapterManifests(seriesResult.slug, chapterNumber, conflicting.id);
+        }
 
         return new Response('OK - Recovered from unique constraint conflict', { status: 200 });
       }

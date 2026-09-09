@@ -2,7 +2,7 @@ import { defineAction } from 'astro:actions';
 import { verifyImageSignature } from '../lib/security';
 import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
 import { chapters, series } from '../db/schema';
 import { isScanlationMember } from '../lib/auth-utils';
@@ -269,13 +269,16 @@ export const seriesActions = {
 
       // Validar permisos (TMO Model)
       if (!user.isAdmin) {
+        const scanlationIds = user.scanlations?.map((s) => s.id) || [];
         const participation = await db
           .select({ id: chapters.id })
           .from(chapters)
           .where(
             and(
               eq(chapters.seriesId, seriesId),
-              sql`${chapters.scanlationId} IN (${sql.raw(user.scanlations?.map((s) => s.id).join(',') || '0')})`
+              scanlationIds.length > 0
+                ? inArray(chapters.scanlationId, scanlationIds)
+                : inArray(chapters.scanlationId, [-1])
             )
           )
           .limit(1)
@@ -503,13 +506,16 @@ export const seriesActions = {
 
       // Validación permisos (TMO Model)
       if (!user.isAdmin) {
+        const scanlationIds = user.scanlations?.map((s) => s.id) || [];
         const participation = await db
           .select({ id: chapters.id })
           .from(chapters)
           .where(
             and(
               eq(chapters.seriesId, seriesId),
-              sql`${chapters.scanlationId} IN (${sql.raw(user.scanlations?.map((s) => s.id).join(',') || '0')})`
+              scanlationIds.length > 0
+                ? inArray(chapters.scanlationId, scanlationIds)
+                : inArray(chapters.scanlationId, [-1])
             )
           )
           .limit(1)

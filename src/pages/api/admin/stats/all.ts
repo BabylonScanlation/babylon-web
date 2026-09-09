@@ -1,6 +1,17 @@
 import { env } from 'cloudflare:workers';
-import { desc, eq, sql } from 'drizzle-orm';
-import { anonymousUsers, series, seriesViews, users } from '../../../../db/schema';
+import { desc, eq, type SQLWrapper, sql } from 'drizzle-orm';
+import {
+  anonymousUsers,
+  comments,
+  favorites,
+  newsComments,
+  series,
+  seriesComments,
+  seriesRatings,
+  seriesReactions,
+  seriesViews,
+  users,
+} from '../../../../db/schema';
 import { createApiRoute } from '../../../../lib/api';
 
 export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => {
@@ -28,11 +39,12 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
 
     // Orion: SQL Maestro para normalizar CUALQUIER formato de fecha a milisegundos (ms)
     // Maneja: ISO Strings, YYYY-MM-DD, Segundos y Milisegundos.
-    const sqlNormalizeToMs = (col: string) => sql`
+    // Recibe la columna del schema directamente (sin sql.raw) para evitar SQL injection.
+    const sqlNormalizeToMs = (col: SQLWrapper) => sql`
       CASE 
-        WHEN ${sql.raw(col)} LIKE '20%' THEN strftime('%s', ${sql.raw(col)}) * 1000
-        WHEN CAST(${sql.raw(col)} AS INTEGER) < 10000000000 THEN CAST(${sql.raw(col)} AS INTEGER) * 1000
-        ELSE CAST(${sql.raw(col)} AS INTEGER)
+        WHEN ${col} LIKE '20%' THEN strftime('%s', ${col}) * 1000
+        WHEN CAST(${col} AS INTEGER) < 10000000000 THEN CAST(${col} AS INTEGER) * 1000
+        ELSE CAST(${col} AS INTEGER)
       END
     `;
 
@@ -51,12 +63,14 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
       // 2. Vistas Diarias (Gráfico de Tráfico)
       db
         .select({
-          date: sql`DATE(${sqlNormalizeToMs('viewed_at')} / 1000, 'unixepoch')`,
+          date: sql`DATE(${sqlNormalizeToMs(seriesViews.viewedAt)} / 1000, 'unixepoch')`,
           count: sql`COUNT(*)`,
         })
         .from(seriesViews)
         .where(
-          range === 'all' ? undefined : sql`${sqlNormalizeToMs('viewed_at')} >= ${timestampLimit}`
+          range === 'all'
+            ? undefined
+            : sql`${sqlNormalizeToMs(seriesViews.viewedAt)} >= ${timestampLimit}`
         )
         .groupBy(sql`1`)
         .orderBy(desc(sql`1`))
@@ -84,11 +98,11 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
           })
           .from(
             sql`(
-              SELECT series_id, ${sqlNormalizeToMs('created_at')} as ms FROM SeriesReactions
+              SELECT series_id, ${sqlNormalizeToMs(seriesReactions.createdAt)} as ms FROM SeriesReactions
               UNION ALL
-              SELECT series_id, ${sqlNormalizeToMs('created_at')} as ms FROM Favorites WHERE type = 'series'
+              SELECT series_id, ${sqlNormalizeToMs(favorites.createdAt)} as ms FROM Favorites WHERE type = 'series'
               UNION ALL
-              SELECT series_id, ${sqlNormalizeToMs('created_at')} as ms FROM SeriesRatings
+              SELECT series_id, ${sqlNormalizeToMs(seriesRatings.createdAt)} as ms FROM SeriesRatings
             ) as all_interactions`
           )
           .innerJoin(series, eq(sql`all_interactions.series_id`, series.id))
@@ -108,11 +122,11 @@ export const GET = createApiRoute({ auth: 'admin' }, async ({ locals, url }) => 
           })
           .from(
             sql`(
-              SELECT user_id, ${sqlNormalizeToMs('created_at')} as ms FROM Comments
+              SELECT user_id, ${sqlNormalizeToMs(comments.createdAt)} as ms FROM Comments
               UNION ALL
-              SELECT user_id, ${sqlNormalizeToMs('created_at')} as ms FROM SeriesComments
+              SELECT user_id, ${sqlNormalizeToMs(seriesComments.createdAt)} as ms FROM SeriesComments
               UNION ALL
-              SELECT user_id, ${sqlNormalizeToMs('created_at')} as ms FROM NewsComments
+              SELECT user_id, ${sqlNormalizeToMs(newsComments.createdAt)} as ms FROM NewsComments
             ) as all_comments`
           )
           .leftJoin(users, eq(sql`all_comments.user_id`, users.id))
