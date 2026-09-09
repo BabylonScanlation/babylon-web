@@ -6,9 +6,10 @@ import AdminChapterListItem from './AdminChapterListItem.svelte';
 interface Props {
   series: Series;
   r2PublicUrlAssets: string;
+  isAnime?: boolean;
 }
 
-const { series, r2PublicUrlAssets: _r2PublicUrlAssets } = Astro.props;
+const { series, r2PublicUrlAssets: _r2PublicUrlAssets, isAnime = false } = Astro.props;
 const rawChapters = series.chapters || [];
 
 // Orion: Saneamos los capítulos para evitar el bug de serialización de Astro
@@ -40,7 +41,7 @@ const maxChapterNumber =
 <chapter-manager class="chapters-manager">
   <div class="manager-header">
     <div class="header-title">
-      <h3>Capítulos</h3>
+      <h3>{isAnime ? 'Episodios' : 'Capítulos'}</h3>
       <span class="counter-badge chapter-count">{_chapters.length}</span>
     </div>
 
@@ -98,6 +99,7 @@ const maxChapterNumber =
               chapter={chapter}
               seriesSlug={series.slug}
               r2PublicUrlAssets={_r2PublicUrlAssets}
+              isAnime={isAnime}
               isLatest={chapter.chapterNumber === maxChapterNumber}
               seriesIsUpToDate={!!(series as any).isUpToDate}
             />
@@ -105,7 +107,7 @@ const maxChapterNumber =
         ) : (
           <div class="empty-state">
             <div class="empty-icon">📂</div>
-            <p>Sin capítulos aún</p>
+            <p>{isAnime ? 'Sin episodios aún' : 'Sin capítulos aún'}</p>
           </div>
         )
       }

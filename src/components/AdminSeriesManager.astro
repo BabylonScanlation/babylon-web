@@ -1,5 +1,6 @@
 ---
 import type { Series } from '../types';
+import AdminAnimeEpisodeUploader from './AdminAnimeEpisodeUploader.svelte';
 import AdminChapterList from './AdminChapterList.astro';
 import AdminChapterUploader from './AdminChapterUploader.svelte';
 import AdminSeriesForm from './AdminSeriesForm.astro';
@@ -82,9 +83,11 @@ const isAnime = series.type === 'anime' || series.type === 'ova' || series.type 
           <AdminSeriesForm series={series as any} />
         </div>
         <div class="panel-column chapters-column">
-          <AdminChapterList series={series} r2PublicUrlAssets={r2PublicUrlAssets} />
+          <AdminChapterList series={series} r2PublicUrlAssets={r2PublicUrlAssets} isAnime={isAnime} />
           {
-            !isAnime && (
+            isAnime ? (
+              <AdminAnimeEpisodeUploader client:load seriesId={series.id} seriesTitle={series.title} />
+            ) : (
               <AdminChapterUploader client:load seriesId={series.id} seriesTitle={series.title} />
             )
           }

@@ -7,6 +7,7 @@ interface Props {
   chapter: Chapter;
   seriesSlug: string;
   r2PublicUrlAssets: string;
+  isAnime?: boolean;
   isLatest?: boolean;
   seriesIsUpToDate?: boolean;
 }
@@ -15,6 +16,7 @@ let {
   chapter,
   seriesSlug,
   r2PublicUrlAssets,
+  isAnime = false,
   isLatest = false,
   seriesIsUpToDate = false,
 }: Props = $props();
@@ -209,7 +211,7 @@ const _finalUrl = $derived.by(() => {
         {:else}
             <div class="title-display" onclick={() => (_isEditing = true)} aria-hidden="true">
                 <span class="chapter-num">
-                  Cap. {chapter.chapterNumber}
+                  {isAnime ? 'Ep.' : 'Cap.'} {chapter.chapterNumber}
                   {#if isLatest && seriesIsUpToDate}
                     <span class="tag-al-dia">AL DÍA</span>
                   {/if}

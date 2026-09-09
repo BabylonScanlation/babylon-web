@@ -82,7 +82,17 @@ const showScanlationSelector = scanlations.length > 1 || user?.isAdmin;
         </div>
         <div class="form-group">
           <label for="new-type">Tipo</label>
-          <input type="text" id="new-type" name="type" placeholder="Ej: Manhwa" class="glass-input" />
+          <select id="new-type" name="type" class="glass-input">
+            <option value="" selected disabled hidden>Selecciona el tipo...</option>
+            <option value="anime">Anime</option>
+            <option value="ova">OVA</option>
+            <option value="movie">Película</option>
+            <option value="manga">Manga</option>
+            <option value="manhwa">Manhwa</option>
+            <option value="manhua">Manhua</option>
+            <option value="comic">Cómic</option>
+            <option value="novel">Novela</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="new-author">Autor</label>

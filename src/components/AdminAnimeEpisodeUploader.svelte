@@ -78,7 +78,10 @@ async function handleAddEpisode(e: Event) {
 <div class="uploader-card">
   <div class="header">
     <h3>Añadir Episodio de Anime</h3>
-    <p>Agrega los servidores de video para el episodio.</p>
+    <p>
+      Agrega los servidores de video para el episodio. Puedes usar enlaces de iframe
+      (Mega, Someprox...) o vídeo directo (MP4, M3U8, Archive.org, etc.).
+    </p>
   </div>
 
   <form onsubmit={handleAddEpisode} class="episode-form">
@@ -111,6 +114,10 @@ async function handleAddEpisode(e: Event) {
             <input type="text" placeholder="Nombre (Ej: Mega)" bind:value={server.serverName} required />
             <input type="text" placeholder="URL del Iframe o Video" bind:value={server.iframeUrl} required />
           </div>
+          <label class="direct-toggle">
+            <input type="checkbox" bind:checked={server.isDirectVideo} />
+            <span>Video directo</span>
+          </label>
           <button type="button" aria-label="Eliminar servidor" class="btn-remove" onclick={() => removeServer(index)} disabled={servers.length === 1}>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
           </button>
@@ -190,6 +197,27 @@ async function handleAddEpisode(e: Event) {
     transition: all 0.2s;
   }
   .btn-add:hover { border-color: var(--accent-color); color: var(--accent-color); }
+
+  .direct-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #aaa;
+    cursor: pointer;
+    white-space: nowrap;
+    margin-bottom: 0.4rem;
+  }
+  .direct-toggle input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent-color);
+    cursor: pointer;
+  }
+  @media (max-width: 600px) {
+    .direct-toggle { align-self: flex-start; margin-bottom: 0; }
+  }
 
   .actions { margin-top: 1rem; }
   .action-btn { background: var(--accent-color); color: #000; border: none; padding: 1rem; border-radius: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s; width: 100%; }
