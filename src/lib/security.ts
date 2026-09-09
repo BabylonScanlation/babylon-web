@@ -26,8 +26,14 @@ export async function verifyImageSignature(file: File): Promise<boolean> {
   // WEBP: RIFF .... WEBP
   if (
     arr.length >= 12 &&
-    arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46 && // RIFF
-    arr[8] === 0x57 && arr[9] === 0x45 && arr[10] === 0x42 && arr[11] === 0x50 // WEBP
+    arr[0] === 0x52 &&
+    arr[1] === 0x49 &&
+    arr[2] === 0x46 &&
+    arr[3] === 0x46 && // RIFF
+    arr[8] === 0x57 &&
+    arr[9] === 0x45 &&
+    arr[10] === 0x42 &&
+    arr[11] === 0x50 // WEBP
   ) {
     return true;
   }

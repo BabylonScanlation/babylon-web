@@ -1,5 +1,4 @@
 import { defineAction } from 'astro:actions';
-import { verifyImageSignature } from '../lib/security';
 import { env } from 'cloudflare:workers';
 import { z } from 'astro/zod';
 import { and, eq, inArray, sql } from 'drizzle-orm';
@@ -9,6 +8,7 @@ import { isScanlationMember } from '../lib/auth-utils';
 import { hashIpAddress } from '../lib/crypto';
 import { getDB } from '../lib/db';
 import { logError } from '../lib/logError';
+import { verifyImageSignature } from '../lib/security';
 import { siteConfig } from '../site.config';
 
 async function clearSeriesR2Data(

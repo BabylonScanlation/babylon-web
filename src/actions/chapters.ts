@@ -1,6 +1,6 @@
-import { BlobReader, ZipReader } from '@zip.js/zip.js';
 import { defineAction } from 'astro:actions';
 import { env } from 'cloudflare:workers';
+import { BlobReader, ZipReader } from '@zip.js/zip.js';
 import { z } from 'astro/zod';
 import { and, eq, isNull, max, sql } from 'drizzle-orm';
 import * as schema from '../db/schema';
@@ -174,19 +174,33 @@ export const chapterActions = {
       try {
         const zipReader = new ZipReader(new BlobReader(file));
         const entries = await zipReader.getEntries();
-        const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.xml', '.json', '.txt'];
-        
+        const allowedExtensions = [
+          '.jpg',
+          '.jpeg',
+          '.png',
+          '.webp',
+          '.gif',
+          '.avif',
+          '.xml',
+          '.json',
+          '.txt',
+        ];
+
         let hasImages = false;
         for (const entry of entries) {
           if (entry.directory) continue;
-          
+
           const filenameLower = entry.filename.toLowerCase();
-          const ext = filenameLower.includes('.') ? filenameLower.substring(filenameLower.lastIndexOf('.')) : '';
-          
+          const ext = filenameLower.includes('.')
+            ? filenameLower.substring(filenameLower.lastIndexOf('.'))
+            : '';
+
           if (!allowedExtensions.includes(ext)) {
-            throw new Error(`Archivo peligroso o no permitido detectado dentro del comprimido: ${entry.filename}`);
+            throw new Error(
+              `Archivo peligroso o no permitido detectado dentro del comprimido: ${entry.filename}`
+            );
           }
-          
+
           if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'].includes(ext)) {
             hasImages = true;
           }
@@ -203,7 +217,10 @@ export const chapterActions = {
         if (err instanceof Error && err.message.includes('no contiene imágenes')) {
           throw err;
         }
-        throw new Error('El archivo proporcionado no es un archivo ZIP o CBZ válido, o está corrupto. (Estructura inválida)', { cause: err });
+        throw new Error(
+          'El archivo proporcionado no es un archivo ZIP o CBZ válido, o está corrupto. (Estructura inválida)',
+          { cause: err }
+        );
       }
 
       // Validar si el usuario puede subir en nombre de este scanlation
@@ -478,7 +495,7 @@ export const chapterActions = {
       if (!canManageScanlation(user, chapterData.scanlationId)) {
         throw new Error('Forbidden');
       }
-      
+
       const { verifyImageSignature } = await import('../lib/security');
       if (!(await verifyImageSignature(thumbnailImage))) {
         throw new Error('La imagen proporcionada no es válida.');

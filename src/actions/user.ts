@@ -160,7 +160,7 @@ export const userActions = {
       if (!user) throw new Error('Unauthorized');
 
       const { type, file } = input;
-      
+
       const { verifyImageSignature } = await import('../lib/security');
       if (!(await verifyImageSignature(file))) {
         throw new Error('La imagen proporcionada no es válida.');
