@@ -203,7 +203,7 @@ export const chapterActions = {
         if (err instanceof Error && err.message.includes('no contiene imágenes')) {
           throw err;
         }
-        throw new Error('El archivo proporcionado no es un archivo ZIP o CBZ válido, o está corrupto. (Estructura inválida)');
+        throw new Error('El archivo proporcionado no es un archivo ZIP o CBZ válido, o está corrupto. (Estructura inválida)', { cause: err });
       }
 
       // Validar si el usuario puede subir en nombre de este scanlation
