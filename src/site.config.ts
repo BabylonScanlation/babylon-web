@@ -26,17 +26,17 @@ export const siteConfig = {
     placeholderChapter: '/covers/comic/placeholder-chapter.jpg',
   },
 
-  // Tema Visual (Paper Noir)
+  // Tema Visual
   theme: {
-    accent: '#d4a24e',
-    accentGlow: 'rgba(212, 162, 78, 0.3)',
-    background: '#0b0a08',
-    backgroundAlt: '#0b0a08',
+    accent: '#00bfff',
+    accentGlow: 'rgba(0, 191, 255, 0.4)',
+    background: '#050505',
+    backgroundAlt: '#020205',
 
     // Configuración de efectos
     cosmos: {
-      enabled: false,
-      physicsEnabled: false,
+      enabled: true,
+      physicsEnabled: true,
     },
   },
 

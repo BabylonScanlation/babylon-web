@@ -230,12 +230,6 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       )
     }
     <meta name="theme-color" content={siteConfig.theme.accent} />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap"
-    />
     <meta
       name="google-site-verification"
       content="p13-r-hLZ82o8n9SUSdk_-bOPDu6aqYAvk8jf8ihFvw"
@@ -707,7 +701,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       })();
     </script>
     {
-      siteConfig.theme.cosmos.enabled ? (
+      siteConfig.theme.cosmos.enabled && (
         <div class="cosmos-bg">
           <div
             class="stars-layer base"
@@ -729,11 +723,6 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
               <span />
             </>
           </div>
-        </div>
-      ) : (
-        <div class="noir-bg">
-          <div class="noir-glow-top" />
-          <div class="noir-vignette" />
         </div>
       )
     }
