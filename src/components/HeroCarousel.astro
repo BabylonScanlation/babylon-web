@@ -138,7 +138,7 @@ const { slides = [], title } = Astro.props;
       inset: 0;
       z-index: 0;
       overflow: hidden;
-      filter: blur(20px) brightness(0.4) saturate(1.2); /* Astra: Desenfoque suavizado y brillo recuperado */
+      filter: blur(28px) brightness(0.35) saturate(0.95); /* Paper Noir: desenfoque suave, sin saturación forzada */
       transform: scale(1.1);
 
     }
@@ -157,11 +157,12 @@ const { slides = [], title } = Astro.props;
     .slide-overlay-master {
     position: absolute;
     inset: 0;
-    background: radial-gradient(
-      circle at 50% 50%,
-      rgba(0, 0, 0, 0.5) 0%,
-      rgba(0, 0, 0, 0.85) 100%
-    ); /* Astra: Overlay más centrado y oscuro */
+    background: linear-gradient(
+      180deg,
+      rgba(11, 10, 8, 0.25) 0%,
+      rgba(11, 10, 8, 0.62) 45%,
+      rgba(11, 10, 8, 0.94) 100%
+    ); /* Paper Noir: degradado vertical cálido */
     z-index: 1;
     }
 
@@ -194,9 +195,9 @@ const { slides = [], title } = Astro.props;
     aspect-ratio: 2 / 3;
     border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transform: perspective(1000px) rotateY(10deg);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--border-soft);
+    transform: perspective(1000px) rotateY(3deg);
     transition: all 0.5s ease;
     }
 
@@ -213,29 +214,12 @@ const { slides = [], title } = Astro.props;
 
     .art-shimmer {
     position: absolute;
-    top: 0;
-    left: -150%;
-    width: 100%;
-    height: 100%;
+    inset: 0;
     background: linear-gradient(
-      120deg,
-      transparent,
-      rgba(255, 255, 255, 0.1),
-      transparent
+      180deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      transparent 40%
     );
-    animation: shimmer 4s infinite;
-    }
-
-    @keyframes shimmer {
-    0% {
-      left: -150%;
-    }
-    30% {
-      left: 150%;
-    }
-    100% {
-      left: 150%;
-    }
     }
 
     /* Text Glass Box */
@@ -249,24 +233,25 @@ const { slides = [], title } = Astro.props;
 
     .badge-new {
     width: fit-content;
-    background: var(--accent-glow);
-    color: var(--accent-color);
-    padding: 4px 12px;
+    background: rgba(212, 162, 78, 0.14);
+    color: #e8b765;
+    padding: 5px 14px;
     border-radius: 100px;
-    font-size: 0.75rem;
+    font-size: 0.68rem;
     font-weight: 800;
-    letter-spacing: 0.1em;
-    border: 1px solid var(--accent-color);
-    opacity: 0.9;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    border: 1px solid rgba(232, 183, 101, 0.4);
+    opacity: 0.95;
     }
 
     .hero-title {
     font-size: 3.5rem; /* Astra: Reducido ligeramente de 4rem para mayor seguridad */
-    font-weight: 900;
+    font-weight: 800;
     margin: 0;
-    line-height: 1.2;
+    line-height: 1.15;
     padding-bottom: 0.1em;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.005em;
     /* Soluci├│n al filtro oscuro: usar drop-shadow en vez de text-shadow sobre texto transparente */
     filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.6));
     /* Astra: Control de desbordamiento para t├¡tulos largos */
@@ -280,11 +265,11 @@ const { slides = [], title } = Astro.props;
     /* Degradado met├ílico aplicado por cada l├¡nea individualmente */
     background: linear-gradient(
       to bottom,
-      #ffffff 0%,
-      #ffffff 15%,
-      #dcdcdc 50%,
-      #aaaaaa 85%,
-      #888888 100%
+      #f8f2e7 0%,
+      #f8f2e7 15%,
+      #e5dbc7 50%,
+      #b9ae9c 85%,
+      #978c7b 100%
     );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -296,7 +281,7 @@ const { slides = [], title } = Astro.props;
 
     .hero-description {
     font-size: 1.15rem;
-    color: #aaa;
+    color: #b7b0a4;
     line-height: 1.6;
     margin: 0;
     display: -webkit-box;
@@ -314,13 +299,20 @@ const { slides = [], title } = Astro.props;
     display: inline-flex;
     align-items: center; gap: 0.75rem;
     background: var(--accent-color);
-    color: #000;
+    color: #14110c;
     padding: 1rem 2.5rem;
-    border-radius: 16px;
+    border-radius: 12px;
     font-weight: 800;
-    font-size: 1rem;
-    box-shadow: 0 10px 25px var(--accent-glow);
+    font-size: 0.95rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .slide-main-link:hover .btn-read-now {
+    transform: scale(1.04) translateY(-3px);
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--accent-strong);
     }
 
     @media (max-width: 900px) {
@@ -389,8 +381,8 @@ const { slides = [], title } = Astro.props;
     }
 
     .slide-main-link:hover .btn-read-now {
-    transform: scale(1.05) translateY(-3px);
-    box-shadow: 0 15px 35px var(--accent-glow);
+    transform: scale(1.04) translateY(-3px);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--accent-strong);
     }
 
     .carousel-outer-frame :global(.premium-pagination.swiper-pagination) {
@@ -447,9 +439,9 @@ const { slides = [], title } = Astro.props;
     position: absolute !important;
     width: 56px !important;
     height: 56px !important;
-    background: rgba(10, 10, 15, 0.5) !important;
-    backdrop-filter: blur(15px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(15px) saturate(180%) !important;
+    background: rgba(20, 18, 14, 0.7) !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-radius: 50% !important;
     color: #fff !important;
@@ -477,12 +469,10 @@ const { slides = [], title } = Astro.props;
     filter: none !important;
     }
     .premium-nav:hover {
-    background: rgba(10, 10, 15, 0.5) !important;
+    background: rgba(26, 23, 18, 0.85) !important;
     border-color: var(--accent-color) !important;
-    transform: translateY(-50%) scale(1.1) !important;
-    box-shadow:
-      0 0 10px var(--accent-color),
-      0 0 20px var(--accent-glow) !important;
+    transform: translateY(-50%) scale(1.08) !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--accent-color) !important;
     }
     .premium-nav:hover svg {
     color: var(--accent-color) !important;

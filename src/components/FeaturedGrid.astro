@@ -97,14 +97,14 @@ const displayMangas = mangas.slice(0, 20);
 
   .section-title {
     font-size: 1.6rem;
-    color: #fff;
+    color: #f5efe3;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    font-weight: 900;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.14em;
     white-space: nowrap;
   }
 
@@ -125,10 +125,10 @@ const displayMangas = mangas.slice(0, 20);
     position: relative;
     height: 100%;
     width: 100%;
-    border-radius: 24px;
+    border-radius: 16px;
     overflow: hidden;
-    background: #1a1a1a;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
     text-decoration: none;
     transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
     display: block;
@@ -141,9 +141,9 @@ const displayMangas = mangas.slice(0, 20);
   }
 
   .featured-card-wrapper:hover .featured-card-premium {
-    transform: translateY(-10px);
-    border-color: var(--accent-color);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    transform: translateY(-8px);
+    border-color: rgba(232, 183, 101, 0.55);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
   }
 
   .card-art-box {
@@ -168,8 +168,8 @@ const displayMangas = mangas.slice(0, 20);
     inset: 0;
     background: linear-gradient(
       to top,
-      rgba(0, 0, 0, 0.95) 0%,
-      rgba(0, 0, 0, 0.6) 50%,
+      rgba(11, 10, 8, 0.96) 0%,
+      rgba(11, 10, 8, 0.55) 55%,
       transparent 100%
     );
   }
@@ -182,11 +182,11 @@ const displayMangas = mangas.slice(0, 20);
   }
 
   .glass-tag {
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(20, 18, 14, 0.72);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #fff;
+    border: 1px solid var(--border-soft);
+    color: #f5efe3;
     font-size: 0.75rem;
     padding: 4px 10px;
     border-radius: 100px;
@@ -251,7 +251,7 @@ const displayMangas = mangas.slice(0, 20);
 
   .action-pill {
     background: var(--accent-color);
-    color: #000;
+    color: #14110c;
     padding: 6px 14px;
     border-radius: 100px;
     font-size: 0.7rem;
@@ -260,7 +260,7 @@ const displayMangas = mangas.slice(0, 20);
     display: flex;
     align-items: center;
     gap: 8px;
-    box-shadow: 0 10px 20px var(--accent-glow);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
   }
 
   @media (max-width: 640px) {
@@ -381,16 +381,16 @@ const displayMangas = mangas.slice(0, 20);
     color: #fff !important;
   }
   .featured-card-premium:hover .glass-tag {
-    color: var(--accent-color) !important;
-    border-color: var(--accent-color) !important;
-    box-shadow: 0 0 20px var(--accent-glow) !important;
+    color: #e8b765 !important;
+    border-color: rgba(232, 183, 101, 0.5) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4) !important;
     transform: translateY(0) scale(1.04) !important;
   }
   .featured-card-premium:hover .action-pill {
     background: var(--accent-color) !important;
-    color: #000 !important;
+    color: #14110c !important;
     border-color: var(--accent-color) !important;
-    box-shadow: 0 0 20px var(--accent-glow) !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4) !important;
     transform: translateY(0) scale(1.04) !important;
   }
   @media (max-width: 1024px) {

@@ -184,20 +184,19 @@ const displayMangas = mangas.slice(0, 20);
 
   .section-title {
     font-size: 1.6rem;
-    color: #fff;
+    color: #f5efe3;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    font-weight: 900;
+    font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.14em;
     white-space: nowrap;
   }
 
   .section-title svg {
     color: var(--accent-color);
-    filter: drop-shadow(0 0 8px var(--accent-color));
   }
 
   .swiper-outer-container {
@@ -266,7 +265,7 @@ const displayMangas = mangas.slice(0, 20);
     border-radius: 100px !important;
     opacity: 1 !important;
     visibility: visible !important;
-    box-shadow: 0 0 15px var(--accent-color) !important; /* Astra: Brillo más intenso */
+    box-shadow: 0 2px 10px rgba(212, 162, 78, 0.35) !important; /* Paper Noir: brillo contenido */
     cursor: grab !important;
   }
 
@@ -282,18 +281,18 @@ const displayMangas = mangas.slice(0, 20);
     position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 24px;
+    border-radius: 16px;
     overflow: hidden;
-    background: #111;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
     transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
     isolation: isolate;
   }
 
   .premium-update-card-wrapper:hover .premium-update-card-inner {
     transform: translateY(-8px);
-    border-color: var(--accent-color);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    border-color: rgba(232, 183, 101, 0.55);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.5);
   }
 
   .main-cover {
@@ -312,8 +311,8 @@ const displayMangas = mangas.slice(0, 20);
     inset: 0;
     background: linear-gradient(
       to top,
-      rgba(0, 0, 0, 0.98) 0%,
-      rgba(0, 0, 0, 0.6) 40%,
+      rgba(11, 10, 8, 0.96) 0%,
+      rgba(11, 10, 8, 0.55) 45%,
       transparent 100%
     );
   }
@@ -355,10 +354,10 @@ const displayMangas = mangas.slice(0, 20);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(20, 20, 20, 0.9); /* Astra: Fondo sólido para máximo rendimiento */
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(24, 21, 16, 0.92); /* Paper Noir: superficie cálida */
+    border: 1px solid var(--border-soft);
     padding: 8px 12px;
-    border-radius: 12px;
+    border-radius: 10px;
     text-decoration: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     /* Astra: Prevenir parpadeos */
@@ -374,18 +373,18 @@ const displayMangas = mangas.slice(0, 20);
   .chap-badge {
     font-size: 0.75rem;
     font-weight: 900;
-    color: var(--accent-color);
+    color: #e8b765;
     transition: color 0.3s;
   }
 
   .chapter-pill:hover .chap-badge {
-    color: #000;
+    color: #14110c;
   }
 
   .time-text {
     font-size: 0.65rem;
     font-weight: 700;
-    color: #888;
+    color: var(--text-muted);
     text-transform: uppercase;
   }
 

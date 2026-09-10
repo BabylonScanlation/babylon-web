@@ -116,14 +116,14 @@ const isAnimeZone = Astro.url.pathname.startsWith('/anime');
 <style is:inline>
   .premium-footer {
     position: relative;
-    background: rgba(10, 10, 10, 0.8);
+    background: rgba(16, 14, 11, 0.85);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-top: none;
     padding: 2.5rem 0 1rem;
     margin-top: 4rem;
     overflow: hidden;
-    color: #bbb;
+    color: #b7b0a4;
   }
 
   .footer-glow {
@@ -174,14 +174,14 @@ const isAnimeZone = Astro.url.pathname.startsWith('/anime');
   .logo-img {
     height: 50px;
     width: auto;
-    filter: drop-shadow(0 0 10px var(--accent-glow));
+    filter: drop-shadow(0 2px 10px rgba(212, 162, 78, 0.18));
   }
 
   .brand-description {
     font-size: 0.95rem;
     line-height: 1.6;
     max-width: 320px;
-    color: #ddd;
+    color: #d9d2c6;
   }
 
   .social-pills {
@@ -232,11 +232,11 @@ const isAnimeZone = Astro.url.pathname.startsWith('/anime');
   }
 
   .footer-title {
-    color: #fff;
+    color: #f5efe3;
     font-size: 1rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     margin-bottom: 1.5rem;
   }
 
@@ -259,13 +259,13 @@ const isAnimeZone = Astro.url.pathname.startsWith('/anime');
 
   .footer-links a {
     font-size: 0.95rem;
-    color: #aaa;
+    color: var(--text-muted);
     transition: all 0.2s;
     text-decoration: none;
   }
 
   .footer-links a:hover {
-    color: #fff;
+    color: #f5efe3;
     padding-left: 5px;
   }
 
@@ -273,7 +273,7 @@ const isAnimeZone = Astro.url.pathname.startsWith('/anime');
     font-size: 0.9rem;
     line-height: 1.5;
     margin-bottom: 1.5rem;
-    color: #ddd;
+    color: #d9d2c6;
   }
 
   .app-download-container {
