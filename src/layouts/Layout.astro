@@ -73,7 +73,7 @@ const slMonetag2 =
 const slMonetag3 =
   env?.PUBLIC_MONETAG_SMARTLINK_3_URL || import.meta.env.PUBLIC_MONETAG_SMARTLINK_3_URL || '';
 
-// Orion: URL Base — canonical/og SIEMPRE contra el dominio canónico (evita www/pages.dev)
+// Orion: URL Base — canonical/og SIEMPRE contra el dominio canónico (evita www/dominios duplicados)
 const siteUrl = siteConfig.url;
 const canonicalOrigin = new URL(siteUrl).origin;
 const pagePath = Astro.url.pathname.endsWith('/')

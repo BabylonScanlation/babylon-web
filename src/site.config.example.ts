@@ -3,7 +3,7 @@ export const siteConfig = {
   shortName: 'MyScan',
   description:
     'Tu destino definitivo para leer manga, manhwa y manhua con la mejor calidad y velocidad.',
-  url: 'https://myscanlation.pages.dev',
+  url: 'https://babylontoons.com',
   author: 'Your Name',
 
   // SEO & Social
