@@ -3,7 +3,7 @@ export const siteConfig = {
   shortName: 'Babylon',
   description:
     'Tu destino definitivo para leer manga, manhwa y manhua con la mejor calidad y velocidad.',
-  url: 'https://babylon-scanlation.pages.dev',
+  url: 'https://babylontoons.com',
   author: 'Lucas Goldstein',
 
   // SEO & Social
@@ -77,7 +77,6 @@ export const siteConfig = {
       'anthropic',
       'claude',
       'google-batch',
-      'bingbot',
       'ccbot',
       'bytespider',
       'megaindex',

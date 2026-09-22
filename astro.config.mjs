@@ -88,6 +88,12 @@ export default defineConfig({
     svelte(),
     sitemap({
       customPages: [`${siteConfig.url}/sitemap-dynamic.xml`],
+      filter: (page) =>
+        !page.includes('/admin') &&
+        !page.includes('/verify') &&
+        !page.includes('/profile') &&
+        !page.includes('/u/') &&
+        !page.includes('/api/'),
     }),
   ],
 });

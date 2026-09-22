@@ -37,9 +37,23 @@ export async function shield(context: APIContext, next: MiddlewareNext) {
   const currentPath = url.pathname;
   const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
 
-  // 1. BYPASS para Googlebot y SEO
-  const isGoogle = lowerUa.includes('google') || lowerUa.includes('sitemaps');
-  locals.isBot = isGoogle;
+  // 1. BYPASS para buscadores (age-gate, rate-limit, geo) — SEO
+  const isSearchEngine =
+    lowerUa.includes('google') ||
+    lowerUa.includes('sitemaps') ||
+    lowerUa.includes('bingbot') ||
+    lowerUa.includes('duckduckbot') ||
+    lowerUa.includes('yandexbot') ||
+    lowerUa.includes('applebot') ||
+    lowerUa.includes('baiduspider') ||
+    lowerUa.includes('slurp') ||
+    lowerUa.includes('facebookexternalhit') ||
+    lowerUa.includes('twitterbot') ||
+    lowerUa.includes('linkedinbot') ||
+    lowerUa.includes('telegrambot') ||
+    lowerUa.includes('whatsapp') ||
+    lowerUa.includes('pinterest');
+  locals.isBot = isSearchEngine;
 
   // 0. VERIFY REDIRECT (Optimización Crítica para evitar doble petición a la Home)
   const isVerified = context.cookies.get('site_verified')?.value === 'true';
@@ -53,9 +67,13 @@ export async function shield(context: APIContext, next: MiddlewareNext) {
     currentPath.startsWith('/_actions/') ||
     currentPath.startsWith('/js/') ||
     currentPath.startsWith('/_astro') ||
-    currentPath.startsWith('/favicon.png');
+    currentPath.startsWith('/favicon.png') ||
+    currentPath.endsWith('.xml') ||
+    currentPath.includes('sitemap') ||
+    currentPath === '/robots.txt' ||
+    currentPath === '/sw.js';
 
-  if (!isVerified && !isPublicPath && !isGoogle) {
+  if (!isVerified && !isPublicPath && !isSearchEngine) {
     // Orion: Usamos rewrite en lugar de redirect para servir el contenido de verificación
     // instantáneamente sin disparar una segunda petición del navegador.
     return context.rewrite('/verify');
@@ -67,13 +85,14 @@ export async function shield(context: APIContext, next: MiddlewareNext) {
     currentPath === '/manifest.json' ||
     currentPath === '/index.json' ||
     currentPath.startsWith('/repo/') ||
-    currentPath === '/sw.js'
+    currentPath === '/sw.js' ||
+    currentPath === '/robots.txt'
   ) {
     return next();
   }
 
   // 2. RATE LIMITING (Peticiones Cero en RAM)
-  if (!isGoogle && !(await checkRateLimit(clientIp))) {
+  if (!isSearchEngine && !(await checkRateLimit(clientIp))) {
     return new Response(getBlockedHtml('Too Many Requests. Rate Limit Exceeded.', clientIp), {
       status: 429,
       headers: { 'Content-Type': 'text/html', 'Retry-After': '60' },
@@ -83,7 +102,7 @@ export async function shield(context: APIContext, next: MiddlewareNext) {
   const country = request.headers.get('cf-ipcountry');
   const blacklistedCountries = siteConfig.security.blacklistedCountries;
 
-  if (country && blacklistedCountries.includes(country) && !isGoogle) {
+  if (country && blacklistedCountries.includes(country) && !isSearchEngine) {
     return new Response(getBlockedHtml('Geographic Restriction', country), {
       status: 403,
       headers: { 'Content-Type': 'text/html' },

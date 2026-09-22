@@ -21,17 +21,6 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   }
 
   const isAdmin = user?.isAdmin || isStaff;
-  const vipTier = user?.vipTier ?? 0;
-
-  if (!isAdmin && vipTier < 3) {
-    return new Response(
-      JSON.stringify({ error: 'Esta función requiere ser VIP Nivel 3 o superior.' }),
-      {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-  }
 
   if (!slug || !chapterNumberParam) {
     return new Response(JSON.stringify({ error: 'Parámetros inválidos.' }), { status: 400 });
@@ -64,35 +53,36 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       return new Response(JSON.stringify({ error: 'Capítulo no encontrado.' }), { status: 404 });
     }
 
-    // 2. Enforce Monthly Quotas for Nivel 3 (Nivel 4+ is unlimited)
-    if (!isAdmin && vipTier === 3 && user?.uid) {
+    // 2. Daily quota for regular users (VIP 4+ and staff/admin are unlimited)
+    const vipTier = user?.vipTier ?? 0;
+    const isUnlimited = isAdmin || vipTier >= 4;
+
+    if (!isUnlimited && user?.uid) {
       const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfDay = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+      );
 
       const countRes = await drizzleDb
         .select({ count: sql<number>`count(*)` })
         .from(chapterDownloads)
         .where(
-          and(
-            eq(chapterDownloads.userId, user.uid),
-            gte(chapterDownloads.downloadedAt, startOfMonth)
-          )
+          and(eq(chapterDownloads.userId, user.uid), gte(chapterDownloads.downloadedAt, startOfDay))
         )
         .get();
 
-      const downloadsThisMonth = countRes?.count ?? 0;
-      const MAX_DOWNLOADS_NIVEL_3 = 10;
+      const downloadsToday = countRes?.count ?? 0;
+      const MAX_DOWNLOADS_PER_DAY = 100;
 
-      if (downloadsThisMonth >= MAX_DOWNLOADS_NIVEL_3) {
+      if (downloadsToday >= MAX_DOWNLOADS_PER_DAY) {
         return new Response(
           JSON.stringify({
-            error: `Has alcanzado tu límite de ${MAX_DOWNLOADS_NIVEL_3} descargas este mes. (Nivel 3)`,
+            error: `Has alcanzado tu límite de ${MAX_DOWNLOADS_PER_DAY} descargas hoy. Vuelve mañana o sube a VIP Nivel 4 para descargas ilimitadas.`,
           }),
           { status: 403, headers: { 'Content-Type': 'application/json' } }
         );
       }
 
-      // Increment quota
       await drizzleDb
         .insert(chapterDownloads)
         .values({

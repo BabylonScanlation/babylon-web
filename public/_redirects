@@ -1,0 +1,7 @@
+# Dominio canónico: www → apex
+https://www.babylontoons.com/* https://babylontoons.com/:splat 301!
+http://www.babylontoons.com/* https://babylontoons.com/:splat 301!
+
+# Dominio viejo Pages → dominio nuevo
+https://babylon-scanlation.pages.dev/* https://babylontoons.com/:splat 301!
+http://babylon-scanlation.pages.dev/* https://babylontoons.com/:splat 301!

@@ -2,6 +2,7 @@
 import { actions } from 'astro:actions';
 import { onMount } from 'svelte';
 import { fade, fly } from 'svelte/transition';
+import { userStore } from '../lib/stores.svelte';
 import AdContainer from './AdContainer.svelte';
 import ReaderPage from './ReaderPage.svelte';
 
@@ -32,7 +33,6 @@ interface Props {
   prevChapter?: { slug: string; chapter: string } | null;
   processing?: boolean;
   isStaff?: boolean;
-  vipTier?: number;
 }
 
 let {
@@ -50,7 +50,6 @@ let {
   prevChapter = null,
   processing = false,
   isStaff = false,
-  vipTier = 0,
 }: Props = $props();
 
 let pagesData = $state<Page[]>([]);
@@ -899,11 +898,11 @@ import { siteConfig } from '../site.config';
             ></path></svg
           >
         </button>
-        {#if isStaff || vipTier >= 3}
+        {#if isStaff || userStore.user}
           <a
             href={`/api/series/${slug}/${chapter}/download${chapterId ? '?id=' + chapterId : ''}`}
             class="tool-btn download-trigger"
-            title="Descargar Capítulo"
+            title="Descargar Capítulo (100/día)"
             target="_blank"
             style="display: flex; align-items: center; justify-content: center; color: inherit; text-decoration: none;"
           >
@@ -924,12 +923,14 @@ import { siteConfig } from '../site.config';
             >
           </a>
         {:else}
-          <button 
+          <button
             class="tool-btn download-trigger"
-            title="Descargas exclusivas para VIP Nivel 3+"
+            title="Inicia sesión para descargar"
             onclick={(e) => {
               e.stopPropagation();
-              window.dispatchEvent(new CustomEvent('open-support-modal'));
+              window.dispatchEvent(
+                new CustomEvent('open-auth-modal', { detail: { view: 'login' } })
+              );
             }}
           >
             <svg

@@ -76,7 +76,6 @@ export const siteConfig = {
       'anthropic',
       'claude',
       'google-batch',
-      'bingbot',
       'ccbot',
       'bytespider',
       'megaindex',

@@ -51,4 +51,4 @@ Disallow: /api/user/
 Disallow: /verify/
 
 # Sitemap al final por convención
-Sitemap: https://babylon-scanlation.pages.dev/sitemap-dynamic.xml
+Sitemap: https://babylontoons.com/sitemap-dynamic.xml

@@ -37,7 +37,7 @@ const {
   title: pageTitle,
   description = siteConfig.description,
   ogImage = siteConfig.assets.ogImage,
-  canonicalURL = Astro.url.href,
+  canonicalURL,
   isNsfwContent, // Orion: Prop para forzar la temática según el contenido actual
 } = Astro.props;
 
@@ -73,8 +73,14 @@ const slMonetag2 =
 const slMonetag3 =
   env?.PUBLIC_MONETAG_SMARTLINK_3_URL || import.meta.env.PUBLIC_MONETAG_SMARTLINK_3_URL || '';
 
-// Orion: URL Base para metadatos absolutos
+// Orion: URL Base — canonical/og SIEMPRE contra el dominio canónico (evita www/pages.dev)
 const siteUrl = siteConfig.url;
+const canonicalOrigin = new URL(siteUrl).origin;
+const pagePath = Astro.url.pathname.endsWith('/')
+  ? Astro.url.pathname
+  : `${Astro.url.pathname}/`.replace('//', '/');
+const canonicalHref = canonicalURL || new URL(pagePath, `${canonicalOrigin}/`).href;
+const pageAbsoluteUrl = new URL(pagePath, `${canonicalOrigin}/`).href;
 const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
 ---
 
@@ -274,7 +280,7 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
     )}
     <meta name="title" content={title} />
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonicalURL} />
+    <link rel="canonical" href={canonicalHref} />
     <meta
       name="robots"
       content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
@@ -320,14 +326,14 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:url" content={pageAbsoluteUrl} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={fullOgImage} />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content={Astro.url.href} />
+    <meta property="twitter:url" content={pageAbsoluteUrl} />
     <meta property="twitter:title" content={title} />
     <meta property="twitter:description" content={description} />
     <meta property="twitter:image" content={fullOgImage} />

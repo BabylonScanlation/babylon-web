@@ -57,7 +57,6 @@ const tiers = [
     desc: 'Todo lo de Barón, más...',
     perks: [
       'Ver **capítulos exclusivos** bloqueados para VIPs.',
-      '**Descarga** de hasta X capítulos al mes.',
       'Lectura sin **marca de agua**.',
       '**Rol especial** en Discord.',
     ],
@@ -70,7 +69,7 @@ const tiers = [
     imagePlaceholder: 'https://placehold.co/400x300/4c1d95/a855f7?text=Imagen+Conde',
     desc: 'Todo lo de Vizconde, más...',
     perks: [
-      '**Descargas ilimitadas** de capítulos (sin marca de agua).',
+      '**Descargas ilimitadas** de capítulos (gratis: 100/día).',
       '**Votar** en encuestas para decidir qué manga subir primero.',
     ],
   },
