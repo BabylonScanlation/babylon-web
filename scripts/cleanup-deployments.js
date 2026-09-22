@@ -6,7 +6,7 @@
  */
 
 const ACCOUNT_ID = '8260ce74732f4b2f0219fea0cfa44119';
-const PROJECT_NAME = 'babylon-scanlation';
+const PROJECT_NAME = 'babylontoons';
 const API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 
 if (!API_TOKEN) {
