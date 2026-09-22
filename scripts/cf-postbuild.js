@@ -71,6 +71,15 @@ async function run() {
     }
   }
 
+  // 5. Borrar sitemaps estáticos para que el Worker los sirva (permite 301 por Host)
+  for (const f of ['sitemap-0.xml', 'sitemap-index.xml', 'robots.txt']) {
+    const p = path.join(distDir, f);
+    if (fs.existsSync(p)) {
+      fs.rmSync(p);
+      console.log(`✓ Eliminado estático ${f} (lo sirve el Worker).`);
+    }
+  }
+
   console.log('--- Post-procesamiento completado con éxito ---');
 }
 
