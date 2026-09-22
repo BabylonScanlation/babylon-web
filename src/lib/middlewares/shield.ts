@@ -32,6 +32,18 @@ async function checkRateLimit(ip: string): Promise<boolean> {
 export async function shield(context: APIContext, next: MiddlewareNext) {
   const { request, url, locals } = context;
 
+  // 301 canónicos (SEO): www y dominio viejo → apex, antes de age-gate
+  const host = (request.headers.get('host') || '').toLowerCase();
+  if (host === 'www.babylontoons.com' || host === 'babylon-scanlation.pages.dev') {
+    return new Response(null, {
+      status: 301,
+      headers: {
+        Location: `https://babylontoons.com${url.pathname}${url.search}`,
+        'Cache-Control': 'public, max-age=3600',
+      },
+    });
+  }
+
   const userAgent = request.headers.get('user-agent') || '';
   const lowerUa = userAgent.toLowerCase();
   const currentPath = url.pathname;
