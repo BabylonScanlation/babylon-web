@@ -356,6 +356,15 @@ const fullOgImage = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}
       href="https://challenges.cloudflare.com"
       crossorigin
     />
+    {shouldBlockContent && (
+      <script
+        is:inline
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        async
+        fetchpriority="high"
+        data-babylon-turnstile
+      ></script>
+    )}
 
     <!-- Astra: Swiper (Carga Dinámica Orion) -->
     <link rel="icon" type="image/png" href={siteConfig.assets.favicon} />

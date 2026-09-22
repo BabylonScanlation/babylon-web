@@ -23,6 +23,34 @@ const onTurnstileVerify = (token: string) => {
 ageCheck?.addEventListener('change', validateCaptcha);
 termsCheck?.addEventListener('change', validateCaptcha);
 
+const TURNSTILE_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+const MAX_ERROR_RETRIES = 3;
+
+function loadTurnstile(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // @ts-expect-error Turnstile is loaded via external script
+    if (window.turnstile) return resolve();
+
+    const existing = document.querySelector<HTMLScriptElement>('script[data-babylon-turnstile]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => reject(new Error('turnstile load failed')), {
+        once: true,
+      });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = TURNSTILE_SRC;
+    script.async = true;
+    script.defer = true;
+    script.dataset.babylonTurnstile = 'true';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('turnstile load failed'));
+    document.head.appendChild(script);
+  });
+}
+
 // Iniciar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
   const turnstileData = document.getElementById('turnstile-data');
@@ -33,41 +61,56 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  let renderAttempts = 0;
-  const render = () => {
+  let errorRetries = 0;
+  let widgetId: string | undefined;
+
+  const mountWidget = () => {
     // @ts-expect-error Turnstile is loaded via external script
-    if (window.turnstile) {
-      // @ts-expect-error Turnstile is loaded via external script
-      window.turnstile.render('#turnstile-container', {
-        sitekey: sitekey,
-        theme: 'dark',
-        callback: onTurnstileVerify,
-        'expired-callback': () => {
-          captchaToken = null;
-          validateCaptcha();
+    if (!window.turnstile) return;
+
+    // @ts-expect-error Turnstile is loaded via external script
+    widgetId = window.turnstile.render('#turnstile-container', {
+      sitekey: sitekey,
+      theme: 'dark',
+      'refresh-expired': 'auto',
+      callback: onTurnstileVerify,
+      'expired-callback': () => {
+        captchaToken = null;
+        validateCaptcha();
+      },
+      'error-callback': () => {
+        if (errorRetries >= MAX_ERROR_RETRIES) {
+          console.error('[Cloudflare Turnstile] Widget failed after retries');
+          return;
+        }
+        errorRetries += 1;
+        console.warn(
+          '[Cloudflare Turnstile] Widget error, limited retry',
+          errorRetries,
+          '/',
+          MAX_ERROR_RETRIES
+        );
+        setTimeout(() => {
           // @ts-expect-error Turnstile is loaded via external script
-          window.turnstile.reset();
-        },
-        'error-callback': () => {
-          console.warn('Turnstile error, retrying...');
-          // @ts-expect-error Turnstile is loaded via external script
-          window.turnstile.reset();
-        },
-      });
-    } else if (renderAttempts < 50) {
-      renderAttempts++;
-      setTimeout(render, 100);
-    }
+          if (widgetId) window.turnstile.reset(widgetId);
+        }, 2000 * errorRetries);
+      },
+    });
   };
 
-  // Esperar un poco a que el script de CF se cargue si no está listo
-  if (document.readyState === 'complete') render();
-  else window.addEventListener('load', render);
+  loadTurnstile()
+    .then(mountWidget)
+    .catch((err) => {
+      console.error('[Cloudflare Turnstile]', err);
+    });
 });
 
 if (enterBtn) {
   enterBtn.onclick = async () => {
     if (!captchaToken) return;
+
+    enterBtn.disabled = true;
+    enterBtn.textContent = 'Verificando...';
 
     try {
       const { error } = await actions.auth.verifyAge({
@@ -79,10 +122,14 @@ if (enterBtn) {
         window.location.href = '/';
       } else {
         alert(error?.message || 'Error de verificación. Inténtalo de nuevo.');
-        window.location.reload();
+        captchaToken = null;
+        validateCaptcha();
+        enterBtn.textContent = 'Entrar al Sitio';
       }
     } catch (e) {
       console.error(e);
+      enterBtn.disabled = false;
+      enterBtn.textContent = 'Entrar al Sitio';
     }
   };
 }
