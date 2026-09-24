@@ -40,6 +40,7 @@
     "db:online": "node scripts/db-sync.js",
     "db:purge": "node scripts/purge-utils.js --users",
     "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
+    "secrets:pull": "node scripts/infisical-pull.mjs",
     "db:migrate:local": "drizzle-kit migrate:sqlite",
     "db:push": "drizzle-kit push:sqlite",
     "prepare": "husky"
